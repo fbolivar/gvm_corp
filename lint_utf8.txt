@@ -1,0 +1,25 @@
+﻿
+> saas-factory-app@0.1.0 lint
+> next lint
+
+node.exe : Invalid project 
+directory provided, no such 
+directory: D:\PROYECTOS\EMPR
+ENDIMIENTO\BC FABRIC 
+SAS\APP\gvm_corp\lint
+En línea: 1 Carácter: 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (Inval  
+  id project...P\gvm_corp   
+ \lint:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
