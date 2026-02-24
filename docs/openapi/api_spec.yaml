@@ -1,0 +1,115 @@
+openapi: 3.1.0
+info:
+  title: SaaS Factory V3 API
+  version: 1.0.0
+  description: Modular Monolith API for ERP/CRM/Accounting
+servers:
+  - url: https://api.saas-factory.com/v1
+    description: Production Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Tenant:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        nit: { type: string }
+    
+    Party:
+      type: object
+      required: [legal_name, doc_type, doc_number]
+      properties:
+        id: { type: string, format: uuid }
+        legal_name: { type: string }
+        doc_type: { type: string, enum: [NIT, CC, CE, PP, TI] }
+        doc_number: { type: string }
+        email: { type: string, format: email }
+
+    Document:
+      type: object
+      required: [doc_type, party_id, issue_date, lines]
+      properties:
+        doc_type: { type: string, enum: [INVOICE, CREDIT_NOTE] }
+        party_id: { type: string, format: uuid }
+        issue_date: { type: string, format: date }
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentLine'
+
+    DocumentLine:
+      type: object
+      required: [product_id, qty, unit_price]
+      properties:
+        product_id: { type: string, format: uuid }
+        qty: { type: number }
+        unit_price: { type: number }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /tenants:
+    get:
+      summary: List available tenants for user
+      tags: [Auth]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Tenant' }
+
+  /parties:
+    get:
+      summary: List parties (customers/vendors)
+      tags: [CRM]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Party' }
+    post:
+      summary: Create new party
+      tags: [CRM]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Party' }
+
+  /documents:
+    post:
+      summary: Create financial document
+      tags: [Sales]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Document' }
+      responses:
+        '201':
+          description: Created
+
+  /dian/status/{id}:
+    get:
+      summary: Get DIAN transmission status
+      tags: [DIAN]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Status details
