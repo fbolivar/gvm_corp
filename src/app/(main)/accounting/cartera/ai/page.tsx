@@ -8,8 +8,11 @@ import { PortfolioAgentExclusions } from "@/features/portfolio/components/Portfo
 import { PortfolioAgentActivity } from "@/features/portfolio/components/PortfolioAgentActivity"
 import { PortfolioAgentMetrics } from "@/features/portfolio/components/PortfolioAgentMetrics"
 import { PortfolioAgentTemplates } from "@/features/portfolio/components/PortfolioAgentTemplates"
+import { DebtorRiskMatrix } from "@/features/portfolio/components/DebtorRiskMatrix"
+import { PaymentReportsManager } from "@/features/portfolio/components/PaymentReportsManager"
+import { Card } from "@/shared/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
-import { Brain, Settings2, ShieldOff, Activity, FileText, BarChart3, Bot, Sparkles, ChevronLeft } from "lucide-react"
+import { Brain, Settings2, ShieldOff, Activity, FileText, BarChart3, Bot, Sparkles, ChevronLeft, CheckSquare } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -115,39 +118,64 @@ export default function PortfolioAIPage() {
             {/* 🎛️ Control Matrix */}
             <Tabs defaultValue="overview" className="space-y-10">
                 <div className="flex justify-center">
-                    <TabsList className="bg-slate-950/5 p-2 rounded-[2rem] h-auto gap-2">
+                    <TabsList className="bg-slate-950/5 p-2 rounded-[2rem] h-auto gap-2 flex-wrap justify-center">
                         <TabsTrigger value="overview" className="rounded-full px-8 py-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white flex gap-3 transition-all">
                             <BarChart3 className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Overview</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Overview</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="reports" className="rounded-full px-8 py-3 data-[state=active]:bg-indigo-600 data-[state=active]:text-white flex gap-3 transition-all">
+                            <CheckSquare className="w-4 h-4" />
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Conciliación</span>
                         </TabsTrigger>
                         <TabsTrigger value="config" className="rounded-full px-8 py-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white flex gap-3 transition-all">
                             <Settings2 className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Configuración</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Config</span>
                         </TabsTrigger>
                         <TabsTrigger value="templates" className="rounded-full px-8 py-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white flex gap-3 transition-all">
                             <FileText className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Plantillas</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Plantillas</span>
                         </TabsTrigger>
                         <TabsTrigger value="exclusions" className="rounded-full px-8 py-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white flex gap-3 transition-all">
                             <ShieldOff className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">VIP / Exclusiones</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">VIP/Exclusiones</span>
                         </TabsTrigger>
                         <TabsTrigger value="activity" className="rounded-full px-8 py-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white flex gap-3 transition-all">
                             <Activity className="w-4 h-4" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Log de Bot</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Logs</span>
                         </TabsTrigger>
                     </TabsList>
                 </div>
 
                 <TabsContent value="overview" className="space-y-10 focus-visible:outline-none outline-none">
+                    <PortfolioAgentMetrics metrics={metrics} />
+
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-                        <div className="xl:col-span-2">
-                            <PortfolioAgentMetrics metrics={metrics} />
+                        <div className="xl:col-span-2 space-y-10">
+                            <DebtorRiskMatrix riskStats={metrics?.riskStats || []} />
+
+                            <Card className="rounded-[3rem] border-none shadow-premium bg-slate-900 p-12 text-white relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
+                                    <Bot className="h-40 w-40" />
+                                </div>
+                                <div className="relative z-10 space-y-6">
+                                    <h3 className="text-3xl font-black italic uppercase tracking-tighter">Próximo Escaneo Inteligente</h3>
+                                    <p className="text-slate-400 text-sm font-medium max-w-md">El agente procesará la cartera automáticamente cada 24 horas. Puedes forzar una sincronización manual desde la configuración.</p>
+                                    <div className="flex items-center gap-4">
+                                        <div className="px-6 py-2 bg-white/10 rounded-full border border-white/10 backdrop-blur-md">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Próxima Ejecución: Mañana 08:00 AM</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
                         </div>
                         <div className="xl:col-span-1 h-full">
                             <PortfolioAgentActivity actions={actions.slice(0, 10)} onRefresh={loadData} />
                         </div>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="reports" className="focus-visible:outline-none outline-none">
+                    <PaymentReportsManager />
                 </TabsContent>
 
                 <TabsContent value="config" className="focus-visible:outline-none outline-none">

@@ -165,7 +165,15 @@ export const documentService = {
         // We will await it to ensure consistency for now, or log error if fails but don't block.
         try {
             const { accountingService } = await import('@/features/accounting/services/accountingService'); // Dynamic import to avoid circular dep if any
-            await accountingService.createEntryFromDocument(client, { ...newDoc, subtotal: document.subtotal, taxes: document.taxes, total: document.total });
+            let accLines = lines || [];
+            if (lines && lines.length > 0) {
+                accLines = lines.map(line => ({
+                    ...line,
+                    document_id: newDoc.id,
+                    tax_config: line.tax_config || null
+                }));
+            }
+            await accountingService.createEntryFromDocument(client, { ...newDoc, subtotal: document.subtotal, taxes: document.taxes, total: document.total, lines: accLines });
         } catch (accError) {
             console.error("Failed to create accounting entry", accError);
             // NOTE: In production, this should alert admin or retry. 

@@ -5,7 +5,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Textarea } from "@/shared/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 import { Mail, Save, RefreshCw, Info, Send } from "lucide-react"
-import { collectionTemplates } from "../templates/collectionTemplates"
+import { collectionTemplates, CollectionTone } from "../templates/collectionTemplates"
 import { portfolioAgentService } from "../services/portfolioAgentService"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -16,12 +16,15 @@ interface Props {
 }
 
 export function PortfolioAgentTemplates({ config, onUpdate }: Props) {
-    const [templates, setTemplates] = useState<any>(config?.config_json?.templates || collectionTemplates)
+    const currentTone = (config?.tone || 'PROFESSIONAL') as CollectionTone
+    const [templates, setTemplates] = useState<any>(config?.config_json?.templates || collectionTemplates[currentTone])
     const [activeTab, setActiveTab] = useState("REMINDER_1")
 
     useEffect(() => {
         if (config?.config_json?.templates) {
             setTemplates(config.config_json.templates)
+        } else {
+            setTemplates(collectionTemplates[(config?.tone || 'PROFESSIONAL') as CollectionTone])
         }
     }, [config])
 
@@ -50,8 +53,8 @@ export function PortfolioAgentTemplates({ config, onUpdate }: Props) {
     }
 
     const resetToDefault = () => {
-        setTemplates(collectionTemplates)
-        toast.info("Valores restaurados a predeterminados")
+        setTemplates(collectionTemplates[(config.tone || 'PROFESSIONAL') as CollectionTone])
+        toast.info("Valores restaurados a predeterminados para el tono " + config.tone)
     }
 
     const handleSendTest = async () => {
@@ -68,71 +71,73 @@ export function PortfolioAgentTemplates({ config, onUpdate }: Props) {
     }
 
     return (
-        <Card className="border-none shadow-premium overflow-hidden bg-white">
-            <CardHeader className="p-8 border-b border-slate-100 flex flex-row items-center justify-between">
+        <Card className="border-none shadow-premium overflow-hidden bg-white rounded-[2.5rem]">
+            <CardHeader className="p-10 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
-                    <CardTitle className="text-xl font-black italic tracking-tighter uppercase flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-indigo-500" />
-                        Personalización de Mensajes
+                    <CardTitle className="text-2xl font-black italic tracking-tighter uppercase flex items-center gap-3">
+                        <Mail className="w-6 h-6 text-indigo-500" />
+                        Scripting de Cobranza
                     </CardTitle>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                        Define el tono y contenido de las comunicaciones automáticas
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
+                        Personaliza los protocolos de comunicación por tono
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleSendTest} className="h-9 px-3 border-slate-200 text-slate-600 hover:bg-slate-50">
+                <div className="flex gap-3 w-full md:w-auto">
+                    <Button variant="outline" size="lg" onClick={handleSendTest} className="rounded-full border-2 border-slate-100 hover:border-indigo-100 transition-all font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
                         <Send className="w-4 h-4 mr-2" />
-                        Enviar Prueba
+                        Prueba
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={resetToDefault} className="h-9 px-3 text-slate-400 hover:text-slate-600">
-                        <RefreshCw className="w-4 h-4 mr-2" />
+                    <Button variant="ghost" size="lg" onClick={resetToDefault} className="rounded-full hover:bg-slate-50 font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
+                        <RefreshCw className="w-4 h-4 mr-2 text-slate-400" />
                         Reset
                     </Button>
-                    <Button size="sm" onClick={handleSave} className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 shadow-lg">
+                    <Button size="lg" onClick={handleSave} className="rounded-full bg-slate-900 hover:bg-black text-white shadow-xl font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
                         <Save className="w-4 h-4 mr-2" />
                         Guardar
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-8">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="bg-slate-100/50 p-1 rounded-xl w-full grid grid-cols-3 h-12">
-                        <TabsTrigger value="REMINDER_1" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest">Aviso 1</TabsTrigger>
-                        <TabsTrigger value="REMINDER_2" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest">Aviso 2</TabsTrigger>
-                        <TabsTrigger value="FINAL_NOTICE" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest">Aviso Final</TabsTrigger>
+            <CardContent className="p-10">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
+                    <TabsList className="bg-slate-100/50 p-2 rounded-[1.5rem] w-full grid grid-cols-3 h-16 shadow-inner">
+                        <TabsTrigger value="REMINDER_1" className="rounded-2xl data-[state=active]:bg-white data-[state=active]:shadow-lg text-[10px] font-black uppercase tracking-widest transition-all">Protocolo Alpha</TabsTrigger>
+                        <TabsTrigger value="REMINDER_2" className="rounded-2xl data-[state=active]:bg-white data-[state=active]:shadow-lg text-[10px] font-black uppercase tracking-widest transition-all">Protocolo Beta</TabsTrigger>
+                        <TabsTrigger value="FINAL_NOTICE" className="rounded-2xl data-[state=active]:bg-white data-[state=active]:shadow-lg text-[10px] font-black uppercase tracking-widest transition-all">Protocolo Omega</TabsTrigger>
                     </TabsList>
 
                     {Object.keys(templates).map((key) => (
-                        <TabsContent key={key} value={key} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Asunto del Email</label>
+                        <TabsContent key={key} value={key} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 outline-none">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Header / Subject</label>
                                 <Input
                                     value={templates[key].subject}
                                     onChange={(e) => handleTemplateChange(key, 'subject', e.target.value)}
-                                    className="h-12 border-slate-200 bg-slate-50/30 focus-visible:ring-indigo-500 font-bold text-slate-700"
+                                    className="h-16 border-none bg-slate-50/50 rounded-2xl focus-visible:ring-2 focus-visible:ring-indigo-500 font-black italic text-slate-700 text-lg px-6"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cuerpo del Mensaje (HTML compatible)</label>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Main Transmission Body (HTML)</label>
                                 <Textarea
                                     value={templates[key].body}
                                     onChange={(e) => handleTemplateChange(key, 'body', e.target.value)}
-                                    className="min-h-[300px] border-slate-200 bg-slate-50/30 focus-visible:ring-indigo-500 font-mono text-sm leading-relaxed p-6"
+                                    className="min-h-[400px] border-none bg-slate-50/50 rounded-[2rem] focus-visible:ring-2 focus-visible:ring-indigo-500 font-mono text-sm leading-relaxed p-8 shadow-inner"
                                 />
                             </div>
 
-                            <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-start gap-4">
-                                <Info className="w-5 h-5 text-indigo-500 mt-0.5" />
-                                <div className="space-y-1">
-                                    <p className="text-xs font-bold text-indigo-900 uppercase">Variables Disponibles</p>
-                                    <p className="text-[10px] text-indigo-700 leading-relaxed italic">
-                                        Utiliza etiquetas como <code className="bg-white px-1 py-0.5 rounded text-indigo-600 font-black">{`{name}`}</code>,
-                                        <code className="bg-white px-1 py-0.5 rounded text-indigo-600 font-black">{`{total}`}</code>,
-                                        <code className="bg-white px-1 py-0.5 rounded text-indigo-600 font-black">{`{number}`}</code>,
-                                        o <code className="bg-white px-1 py-0.5 rounded text-indigo-600 font-black">{`{company}`}</code> para dinamizar el contenido.
+                            <Card className="p-6 bg-indigo-50/50 border-none rounded-3xl flex items-start gap-6">
+                                <div className="p-3 bg-white rounded-2xl shadow-sm">
+                                    <Info className="w-5 h-5 text-indigo-500" />
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Inyección de Variables AI</p>
+                                    <p className="text-[10px] text-indigo-700 leading-relaxed font-bold italic opacity-80 uppercase tracking-tighter">
+                                        Tokens activos: <code className="bg-white/50 px-2 py-0.5 rounded text-indigo-600">{"{name}"}</code>,
+                                        <code className="bg-white/50 px-2 py-0.5 rounded text-indigo-600">{"{total}"}</code>,
+                                        <code className="bg-white/50 px-2 py-0.5 rounded text-indigo-600">{"{number}"}</code>,
+                                        o <code className="bg-white/50 px-2 py-0.5 rounded text-indigo-600">{"{company}"}</code>. El motor los reemplazará durante el ciclo.
                                     </p>
                                 </div>
-                            </div>
+                            </Card>
                         </TabsContent>
                     ))}
                 </Tabs>

@@ -1,10 +1,26 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { CollectionAgentConfig, CollectionAction, DebtorProfile } from '../types';
-import { collectionTemplates } from '../templates/collectionTemplates';
+import { collectionTemplates, CollectionTone } from '../templates/collectionTemplates';
 import { notificationService } from '../../notifications/services/notificationService';
 import { differenceInDays } from 'date-fns';
 
 export const portfolioAgentService = {
+    /**
+     * Helper para obtener el tenant_id del usuario actual
+     */
+    async getTenantId(supabase: SupabaseClient) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        const { data: userTenant } = await supabase
+            .from('user_tenants')
+            .select('tenant_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        return userTenant?.tenant_id || null;
+    },
+
     /**
      * Obtiene la configuración del agente para el tenant actual
      */
@@ -22,10 +38,14 @@ export const portfolioAgentService = {
      * Actualiza o crea la configuración del agente
      */
     async saveConfig(client: SupabaseClient, config: Partial<CollectionAgentConfig>): Promise<CollectionAgentConfig> {
+        const tenant_id = await this.getTenantId(client);
+        if (!tenant_id) throw new Error("Acceso denegado: No se pudo determinar el tenant");
+
         const { data, error } = await client
             .from('collection_agent_config')
             .upsert({
                 ...config,
+                tenant_id,
                 updated_at: new Date().toISOString()
             })
             .select()
@@ -112,7 +132,15 @@ export const portfolioAgentService = {
 
     async dispatchAction(client: SupabaseClient, invoice: any, actionType: any, customTemplates?: any, tenantNameOnRun?: string) {
         const tenantName = tenantNameOnRun || "Nuestra Empresa";
-        const template = customTemplates?.[actionType] || (collectionTemplates as any)[actionType];
+
+        // Obtener configuración para saber el tono
+        const { data: config } = await client
+            .from('collection_agent_config')
+            .select('tone')
+            .maybeSingle();
+
+        const tone = (config?.tone || 'PROFESSIONAL') as CollectionTone;
+        const template = customTemplates?.[actionType] || collectionTemplates[tone]?.[actionType];
         if (!template) return null;
 
         const partyObject = Array.isArray(invoice.party) ? invoice.party[0] : invoice.party;
@@ -283,12 +311,67 @@ export const portfolioAgentService = {
             ? Math.round((totalRecoveredAmount / totalManagedAmount) * 100 * 10) / 10
             : 0;
 
+        // 4. Obtener perfiles de deudores para riesgos
+        const { data: profiles } = await client
+            .from('debtor_profiles')
+            .select('risk_level, average_payment_days, party:parties(id, documents(total, status, doc_type))')
+            .eq('excluded', false);
+
+        const riskBreakdown = {
+            CRITICAL: { count: 0, amount: 0, color: 'rose', preLegalCount: 0, preLegalAmount: 0 },
+            HIGH: { count: 0, amount: 0, color: 'amber', preLegalCount: 0, preLegalAmount: 0 },
+            MEDIUM: { count: 0, amount: 0, color: 'blue', preLegalCount: 0, preLegalAmount: 0 },
+            LOW: { count: 0, amount: 0, color: 'emerald', preLegalCount: 0, preLegalAmount: 0 }
+        };
+
+        const { data: config } = await client.from('collection_agent_config').select('auto_escalate_days').maybeSingle();
+        const autoEscalateDays = config?.auto_escalate_days || 90;
+
+        profiles?.forEach((prof: any) => {
+            const level = (prof.risk_level || 'LOW') as keyof typeof riskBreakdown;
+            if (riskBreakdown[level]) {
+                riskBreakdown[level].count++;
+                // Sumar facturas pendientes del partido
+                const pendingAmount = prof.party?.documents?.reduce((acc: number, doc: any) => {
+                    if (doc.doc_type === 'INVOICE' && doc.status === 'ACCEPTED') {
+                        return acc + Number(doc.total);
+                    }
+                    return acc;
+                }, 0) || 0;
+                riskBreakdown[level].amount += pendingAmount;
+
+                // AI Forecasting: Pre-Legal Risk Calculation
+                if (prof.average_payment_days && prof.average_payment_days >= autoEscalateDays) {
+                    riskBreakdown[level].preLegalCount++;
+                    riskBreakdown[level].preLegalAmount += pendingAmount;
+                }
+            }
+        });
+
+        const riskStats = Object.entries(riskBreakdown).map(([category, stats]) => ({
+            category,
+            ...stats
+        }));
+
+        // Calcular Promedio Global de Pago
+        let totalAvgDays = 0;
+        let countWithAvg = 0;
+        profiles?.forEach((p: any) => {
+            if (p.average_payment_days !== null && p.average_payment_days !== undefined) {
+                totalAvgDays += p.average_payment_days;
+                countWithAvg++;
+            }
+        });
+        const globalAvgPaymentDays = countWithAvg > 0 ? Math.round(totalAvgDays / countWithAvg) : 0;
+
         return {
             totalActions: actions.length,
             totalManagedAmount,
             totalRecoveredAmount,
             actionBreakdown: actionCounts,
-            recoveryRate
+            recoveryRate,
+            riskStats,
+            avgPaymentDays: globalAvgPaymentDays
         };
     },
 
@@ -318,7 +401,14 @@ export const portfolioAgentService = {
         };
 
         // 3. Dispatch action (sin logear en DB, solo envío)
-        const template = customTemplates?.[templateId] || (collectionTemplates as any)[templateId];
+        const { data: config } = await client
+            .from('collection_agent_config')
+            .select('tone')
+            .maybeSingle();
+
+        const tone = (config?.tone || 'PROFESSIONAL') as CollectionTone;
+        const template = customTemplates?.[templateId] || collectionTemplates[tone]?.[templateId];
+
         if (!template) throw new Error("Plantilla no encontrada");
 
         // Lógica de reemplazo local
@@ -338,6 +428,48 @@ export const portfolioAgentService = {
             subject: `[PRUEBA] ${subject}`,
             body
         });
+    },
+
+    /**
+     * Calcula el promedio de días de pago de un deudor
+     */
+    async calculateAveragePaymentDays(client: SupabaseClient, partyId: string): Promise<number | null> {
+        const { data: invoices, error } = await client
+            .from('documents')
+            .select(`
+                id, 
+                due_date, 
+                allocations:payment_allocations(amount, created_at)
+            `)
+            .eq('party_id', partyId)
+            .eq('doc_type', 'INVOICE')
+            .eq('status', 'ACCEPTED');
+
+        if (error || !invoices) return null;
+
+        let totalDays = 0;
+        let paidCount = 0;
+
+        invoices.forEach((inv: any) => {
+            const totalPaid = inv.allocations?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
+            // Solo contamos facturas pagadas (o casi pagadas)
+            if (totalPaid > 0) {
+                const dueDate = new Date(inv.due_date);
+                // Si hay múltiples pagos, tomamos el último
+                const lastPayment = inv.allocations.sort((a: any, b: any) =>
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )[0];
+
+                const paymentDate = new Date(lastPayment.created_at);
+                const diffTime = paymentDate.getTime() - dueDate.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                totalDays += diffDays;
+                paidCount++;
+            }
+        });
+
+        return paidCount > 0 ? Math.round(totalDays / paidCount) : null;
     },
 
     /**

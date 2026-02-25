@@ -108,10 +108,10 @@ export function PartyList({ initialData, totalCount, currentPage, perPage, vendo
                 <div className="relative z-10 space-y-4">
                     <div className="flex items-center gap-4">
                         <div className="h-12 w-1 space-x-1 bg-primary rounded-full" />
-                        <span className="text-primary font-black uppercase tracking-[0.4em] text-[10px]">Ecosistema Logístico</span>
+                        <span className="text-primary font-black uppercase tracking-[0.4em] text-[10px]">Ecosistema Logístico & CRM</span>
                     </div>
                     <h1 className="text-5xl lg:text-7xl font-black text-white italic tracking-tighter leading-none">
-                        Directorio de <span className="text-slate-500">Terceros</span>
+                        Comando de <span className="text-slate-500">Identidades</span>
                     </h1>
                     <p className="text-slate-400 font-bold max-w-2xl text-sm lg:text-base leading-relaxed">
                         Administre la red de identidades comerciales. Sincronización en tiempo real con carteras, inventarios y registros legales.

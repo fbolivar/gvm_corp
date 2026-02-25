@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
-import { TrendingUp, Mail, DollarSign, Activity } from "lucide-react"
+import { TrendingUp, Mail, DollarSign, Activity, Clock } from "lucide-react"
 
 interface Props {
     metrics: {
@@ -8,6 +8,7 @@ interface Props {
         totalRecoveredAmount: number;
         actionBreakdown: Record<string, number>;
         recoveryRate: number;
+        avgPaymentDays?: number;
     }
 }
 
@@ -21,11 +22,11 @@ export function PortfolioAgentMetrics({ metrics }: Props) {
             bg: "bg-blue-50"
         },
         {
-            title: "Cartera en Cobro",
-            value: metrics.totalManagedAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }),
-            icon: Mail,
-            color: "text-slate-500",
-            bg: "bg-slate-50"
+            title: "Velocidad de Pago",
+            value: `${metrics.avgPaymentDays || 0} Días`,
+            icon: Clock,
+            color: "text-amber-500",
+            bg: "bg-amber-50"
         },
         {
             title: "Recaudo Atribuido",

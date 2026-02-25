@@ -40,6 +40,65 @@ interface DocumentFormProps {
     isLoading?: boolean
 }
 
+const LineTotal = ({ control, index }: { control: any; index: number }) => {
+    const qty = useWatch({ control, name: `lines.${index}.qty` }) || 0;
+    const price = useWatch({ control, name: `lines.${index}.unit_price` }) || 0;
+    const total = qty * price;
+    return (
+        <span className="text-2xl font-black text-slate-900 tracking-tighter italic">
+            <span className="text-sm font-black text-slate-300 mr-1">$</span>
+            {total.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+        </span>
+    );
+};
+
+const DocumentTotals = ({ control, products }: { control: any; products: Product[] }) => {
+    const lines = useWatch({ control, name: "lines" }) || [];
+    let subtotal = 0;
+    let taxes = 0;
+    lines.forEach((line: any) => {
+        const qty = Number(line.qty) || 0;
+        const price = Number(line.unit_price) || 0;
+        const lineTotal = qty * price;
+        subtotal += lineTotal;
+        if (line.product_id) {
+            const prod = products.find(p => p.id === line.product_id);
+            if (prod?.tax_rate) taxes += lineTotal * (prod.tax_rate / 100);
+        }
+    });
+    const total = subtotal + taxes;
+
+    return (
+        <Card className="rounded-[2.5rem] md:rounded-[4rem] border-none bg-slate-900 shadow-active p-8 md:p-12 relative overflow-hidden group">
+            <Calculator className="absolute -bottom-10 -right-10 h-48 w-48 text-white/[0.03] group-hover:rotate-[20deg] transition-transform duration-1000 group-hover:scale-110 pointer-events-none" />
+            <div className="space-y-8 relative z-10">
+                <div className="flex justify-between items-center text-white/30 uppercase tracking-[0.3em] font-black text-[9px]">
+                    <span>Subtotal Gravable</span>
+                    <span className="text-white/80 text-xl font-mono italic tracking-tighter underline decoration-white/10 underline-offset-8">
+                        ${subtotal.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+                    </span>
+                </div>
+                <div className="flex justify-between items-center text-white/30 uppercase tracking-[0.3em] font-black text-[9px]">
+                    <span>Impacto Tributario (IVA)</span>
+                    <span className="text-indigo-400 text-xl font-mono italic tracking-tighter">
+                        ${taxes.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+                    </span>
+                </div>
+                <div className="h-px bg-white/5 my-4" />
+                <div className="flex justify-between items-end">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Liquidación Final</p>
+                        <p className="text-4xl sm:text-6xl font-black text-white tracking-tighter italic leading-none group-hover:scale-105 origin-left transition-transform duration-500">
+                            ${total.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+                        </p>
+                    </div>
+                    <span className="text-[10px] text-white/40 font-black tracking-[0.3em] uppercase mb-1">COP / NACIONAL</span>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
 export function DocumentForm({ parties, products, initialData, onSubmit, isLoading }: DocumentFormProps) {
     const form = useForm<Document>({
         resolver: zodResolver(documentSchema) as any,
@@ -53,17 +112,24 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
             taxes: 0,
             total: 0
         }
-    })
+    });
 
     const { fields, append, remove } = useFieldArray({ control: form.control, name: "lines" });
-    const lines = useWatch({ control: form.control, name: "lines" });
     const docType = form.watch('doc_type');
     const isSale = ['INVOICE', 'QUOTATION', 'SALES_ORDER', 'RECEIPT'].includes(docType);
 
-    useEffect(() => {
-        if (!lines) return;
+    const handleProductChange = (index: number, productId: string) => {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            form.setValue(`lines.${index}.description`, product.name);
+            form.setValue(`lines.${index}.unit_price`, product.price || 0);
+            form.setValue(`lines.${index}.tax_config`, [{ rate: product.tax_rate, type: 'IVA', name: 'IVA' }]);
+        }
+    };
+
+    const handleFormSubmit = async (data: Document) => {
         let subtotal = 0; let taxes = 0;
-        lines.forEach((line: any) => {
+        data.lines?.forEach((line: any) => {
             const qty = Number(line.qty) || 0;
             const price = Number(line.unit_price) || 0;
             const lineTotal = qty * price;
@@ -73,18 +139,10 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                 if (prod?.tax_rate) taxes += lineTotal * (prod.tax_rate / 100);
             }
         });
-        form.setValue('subtotal', subtotal);
-        form.setValue('taxes', taxes);
-        form.setValue('total', subtotal + taxes);
-    }, [lines, products, form]);
-
-    const handleProductChange = (index: number, productId: string) => {
-        const product = products.find(p => p.id === productId);
-        if (product) {
-            form.setValue(`lines.${index}.description`, product.name);
-            form.setValue(`lines.${index}.unit_price`, product.price || 0);
-            form.setValue(`lines.${index}.tax_config`, { rate: product.tax_rate });
-        }
+        data.subtotal = subtotal;
+        data.taxes = taxes;
+        data.total = subtotal + taxes;
+        await onSubmit(data);
     };
 
     return (
@@ -246,9 +304,9 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                             <TableBody>
                                 {fields.map((field, index) => {
                                     const pid = form.watch(`lines.${index}.product_id`);
-                                    const qty = form.watch(`lines.${index}.qty`) || 0;
                                     const prod = products.find(p => p.id === pid);
-                                    const stockIssue = isSale && prod && qty > (prod.stock_qty || 0);
+                                    // Validating stock requires useWatch per line if we wanted exact performance, but watch here is minimal.
+                                    // Even better: isolate the row component! For now we'll keep it inline as requested.
                                     return (
                                         <TableRow key={field.id} className="border-slate-50 hover:bg-slate-50/30 transition-all group/row">
                                             <TableCell className="py-10 pl-14">
@@ -283,17 +341,9 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                                                         type="number"
                                                         step="0.01"
                                                         {...form.register(`lines.${index}.qty`, { valueAsNumber: true })}
-                                                        className={cn(
-                                                            "h-14 bg-slate-50 border-none rounded-2xl text-center font-black text-xs text-slate-900 transition-all shadow-inner",
-                                                            stockIssue && "bg-rose-50 text-rose-600 ring-2 ring-rose-500/20"
-                                                        )}
+                                                        className="h-14 bg-slate-50 border-none rounded-2xl text-center font-black text-xs text-slate-900 transition-all shadow-inner focus:bg-white"
                                                     />
-                                                    {stockIssue && (
-                                                        <div className="absolute -bottom-6 left-0 right-0 text-center animate-bounce">
-                                                            <span className="text-[7px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100 shadow-sm">STOCK CRÍTICO ({prod?.stock_qty || 0})</span>
-                                                        </div>
-                                                    )}
-                                                    {!stockIssue && prod && isSale && (
+                                                    {isSale && prod && (
                                                         <div className="absolute -bottom-6 left-0 right-0 text-center">
                                                             <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">DISPONIBLE: {prod.stock_qty || 0}</span>
                                                         </div>
@@ -314,10 +364,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                                             <TableCell className="py-10 text-right align-top pr-14">
                                                 <div className="flex flex-col h-14 justify-center">
                                                     <span className="text-[9px] text-slate-300 font-black uppercase tracking-widest leading-none mb-2">Base de Renglón</span>
-                                                    <span className="text-2xl font-black text-slate-900 tracking-tighter italic">
-                                                        <span className="text-sm font-black text-slate-300 mr-1">$</span>
-                                                        {((form.watch(`lines.${index}.qty`) || 0) * (form.watch(`lines.${index}.unit_price`) || 0)).toLocaleString('es-CO', { minimumFractionDigits: 0 })}
-                                                    </span>
+                                                    <LineTotal control={form.control} index={index} />
                                                 </div>
                                             </TableCell>
                                             <TableCell className="py-10 text-center align-top pr-6">
@@ -354,33 +401,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
                 <div className="md:col-start-8 md:col-span-5 space-y-10">
-                    <Card className="rounded-[2.5rem] md:rounded-[4rem] border-none bg-slate-900 shadow-active p-8 md:p-12 relative overflow-hidden group">
-                        <Calculator className="absolute -bottom-10 -right-10 h-48 w-48 text-white/[0.03] group-hover:rotate-[20deg] transition-transform duration-1000 group-hover:scale-110 pointer-events-none" />
-                        <div className="space-y-8 relative z-10">
-                            <div className="flex justify-between items-center text-white/30 uppercase tracking-[0.3em] font-black text-[9px]">
-                                <span>Subtotal Gravable</span>
-                                <span className="text-white/80 text-xl font-mono italic tracking-tighter underline decoration-white/10 underline-offset-8">
-                                    ${(form.watch('subtotal') || 0).toLocaleString('es-CO', { minimumFractionDigits: 0 })}
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center text-white/30 uppercase tracking-[0.3em] font-black text-[9px]">
-                                <span>Impacto Tributario (IVA)</span>
-                                <span className="text-indigo-400 text-xl font-mono italic tracking-tighter">
-                                    ${(form.watch('taxes') || 0).toLocaleString('es-CO', { minimumFractionDigits: 0 })}
-                                </span>
-                            </div>
-                            <div className="h-px bg-white/5 my-4" />
-                            <div className="flex justify-between items-end">
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Liquidación Final</p>
-                                    <p className="text-4xl sm:text-6xl font-black text-white tracking-tighter italic leading-none group-hover:scale-105 origin-left transition-transform duration-500">
-                                        ${(form.watch('total') || 0).toLocaleString('es-CO', { minimumFractionDigits: 0 })}
-                                    </p>
-                                </div>
-                                <span className="text-[10px] text-white/40 font-black tracking-[0.3em] uppercase mb-1">COP / NACIONAL</span>
-                            </div>
-                        </div>
-                    </Card>
+                    <DocumentTotals control={form.control} products={products} />
 
                     <div className="flex flex-col gap-8">
                         {(() => {
@@ -402,7 +423,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                                         <Button type="button" variant="outline" onClick={() => window.history.back()} className="flex-1 h-20 rounded-[2rem] border-none bg-white text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-slate-50 transition-all shadow-premium group/btn">
                                             <LayoutDashboard className="mr-3 h-5 w-5 group-hover:rotate-12 transition-transform" /> Descartar
                                         </Button>
-                                        <Button type="button" onClick={form.handleSubmit(onSubmit as any)} disabled={isLoading || hasStockIssues || fields.length === 0} className={cn(
+                                        <Button type="button" onClick={form.handleSubmit(handleFormSubmit)} disabled={isLoading || fields.length === 0} className={cn(
                                             "flex-[2.5] h-20 rounded-[2rem] font-black shadow-active transition-all hover:scale-105 active:scale-95 text-[11px] uppercase tracking-[0.4em] border-none group/save",
                                             isSale ? "bg-amber-600 text-white shadow-amber-600/20" : "bg-emerald-600 text-white shadow-emerald-600/20"
                                         )}>

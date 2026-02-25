@@ -85,22 +85,29 @@ export default async function TreasuryPage() {
                     </div>
                 </Card>
 
-                <Card className="rounded-[3rem] bg-white p-10 flex flex-col justify-between items-start shadow-premium group border border-slate-50 relative overflow-hidden">
-                    <div className="absolute -bottom-10 -right-10 opacity-[0.03] group-hover:scale-110 transition-transform">
-                        <Activity className="h-40 w-40 text-slate-900" />
+                <Card className="rounded-[4rem] bg-slate-950 text-white p-10 flex flex-col justify-between items-start shadow-active group border border-slate-800 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                    <div className="absolute -bottom-10 -right-10 opacity-[0.05] group-hover:scale-125 group-hover:rotate-12 transition-transform duration-1000">
+                        <Activity className="h-56 w-56 text-white" />
                     </div>
-                    <div className="space-y-2 relative z-10">
-                        <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Disponibilidad en Cuentas</span>
+                    <div className="space-y-4 relative z-10 w-full">
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+                                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#34d399]" />
+                                <span className="text-[9px] font-black text-emerald-400/90 uppercase tracking-[0.4em] italic">Capital de Trabajo Real</span>
+                            </div>
+                            <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 bg-indigo-500/10 text-[9px] font-black uppercase tracking-widest px-3 py-1">
+                                V3 RADAR
+                            </Badge>
                         </div>
-                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter italic leading-none">
-                            ${totalLiquidity.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+                        <h2 className="text-5xl lg:text-6xl font-black text-white tracking-tighter italic leading-none group-hover:scale-105 origin-left transition-transform duration-500">
+                            <span className="text-2xl text-slate-500 mr-2">$</span>
+                            {totalLiquidity.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
                         </h2>
                     </div>
-                    <Button variant="ghost" asChild className="h-12 mt-6 px-6 rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-black text-[9px] uppercase tracking-widest gap-2">
+                    <Button variant="ghost" asChild className="h-14 mt-8 px-8 rounded-2xl text-slate-950 bg-white hover:bg-slate-200 font-black text-[10px] uppercase tracking-[0.3em] gap-3 shadow-premium group/btn w-full md:w-auto relative z-10 overflow-hidden">
                         <Link href="/treasury/reconcile">
-                            <Clock className="h-4 w-4" /> Ejecutar Conciliación
+                            <Clock className="h-5 w-5 group-hover/btn:-rotate-90 transition-transform duration-500" /> Ejecutar Conciliación IA
                         </Link>
                     </Button>
                 </Card>
@@ -150,41 +157,48 @@ export default async function TreasuryPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {accounts.map((account) => (
-                        <Card key={account.id} className="rounded-[3.5rem] bg-white border-none shadow-premium hover:shadow-active transition-all group overflow-hidden relative border border-slate-50">
-                            <CardContent className="p-10 space-y-8 relative z-10">
+                        <Card key={account.id} className="rounded-[4rem] bg-white hover:bg-slate-950 hover:text-white border-none shadow-premium hover:shadow-active transition-all duration-700 group overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-12 opacity-0 group-hover:opacity-[0.05] pointer-events-none group-hover:scale-150 transition-all duration-1000">
+                                {account.type === 'BANK' ? <Landmark className="h-48 w-48 text-white" /> : <Wallet className="h-48 w-48 text-white" />}
+                            </div>
+                            <CardContent className="p-10 space-y-10 relative z-10">
                                 <div className="flex items-center justify-between">
                                     <div className={cn(
-                                        "h-16 w-16 rounded-[1.5rem] flex items-center justify-center shadow-premium transition-transform group-hover:rotate-6 duration-700",
-                                        account.type === 'BANK' ? "bg-indigo-50 text-indigo-600" : "bg-emerald-50 text-emerald-600"
+                                        "h-20 w-20 rounded-[2rem] flex items-center justify-center shadow-active transition-all group-hover:rotate-12 group-hover:scale-110 duration-700",
+                                        account.type === 'BANK' ? "bg-indigo-600 text-white shadow-indigo-600/30" : "bg-emerald-600 text-white shadow-emerald-600/30"
                                     )}>
-                                        {account.type === 'BANK' ? <Landmark className="h-8 w-8" /> : <Wallet className="h-8 w-8" />}
+                                        {account.type === 'BANK' ? <Landmark className="h-10 w-10" /> : <Wallet className="h-10 w-10" />}
                                     </div>
-                                    <Badge variant="outline" className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-none italic">
+                                    <Badge variant="outline" className="text-[9px] font-black text-slate-400 group-hover:text-white/50 uppercase tracking-[0.3em] border-slate-200 group-hover:border-white/10 italic px-4 py-2 rounded-full">
                                         ESTADO: ACTIVO
                                     </Badge>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <h3 className="text-2xl font-black text-slate-900 tracking-tighter italic leading-tight group-hover:text-primary transition-colors">{account.name}</h3>
+                                <div className="space-y-3">
+                                    <h3 className="text-3xl font-black text-slate-900 group-hover:text-white tracking-tighter italic leading-tight transition-colors truncate">{account.name}</h3>
                                     <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest line-clamp-1">{account.bank_name || 'Efectivo Caja'}</span>
+                                        <div className="px-3 py-1 bg-slate-100 group-hover:bg-white/10 rounded-lg max-w-fit">
+                                            <span className="text-[10px] font-bold text-slate-500 group-hover:text-white/70 tracking-widest truncate">{account.bank_name || 'Efectivo Caja Central'}</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="pt-8 border-t border-slate-100/50">
-                                    <div className="text-4xl font-black text-slate-900 tracking-tighter font-mono italic leading-none">
-                                        ${account.balance?.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+                                <div className="pt-8 border-t border-slate-100 group-hover:border-white/10 transition-colors">
+                                    <p className="text-[10px] font-black text-slate-400 group-hover:text-white/40 uppercase tracking-[0.4em] mb-2">Flujo Disponible</p>
+                                    <div className="text-4xl font-black text-slate-900 group-hover:text-white tracking-tighter font-mono italic leading-none transition-colors group-hover:scale-105 origin-left duration-500">
+                                        <span className="text-xl text-slate-300 group-hover:text-white/30 mr-1">$</span>
+                                        {account.balance?.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
                                     </div>
-                                    <div className="flex items-center gap-2 mt-4">
-                                        <Badge className="bg-emerald-500 text-white border-none text-[8px] px-2.5 py-0.5 font-black uppercase tracking-widest rounded-full shadow-sm">Auditado</Badge>
-                                        <Zap className="h-3 w-3 text-emerald-400" />
+                                    <div className="flex items-center gap-3 mt-6">
+                                        <Badge className="bg-emerald-50 text-emerald-600 group-hover:bg-emerald-500/20 group-hover:text-emerald-400 border border-emerald-200 group-hover:border-emerald-500/30 text-[9px] px-4 py-1.5 font-black uppercase tracking-[0.3em] rounded-full shadow-sm">Auditado Radar</Badge>
+                                        <ShieldCheck className="h-4 w-4 text-emerald-500 group-hover:text-emerald-400 animate-pulse" />
                                     </div>
                                 </div>
                             </CardContent>
 
-                            <Button variant="ghost" className="absolute top-4 right-4 h-12 w-12 rounded-2xl text-slate-200 hover:text-primary hover:bg-slate-50 transition-all opacity-0 group-hover:opacity-100" asChild>
+                            <Button variant="ghost" className="absolute top-6 right-6 h-14 w-14 rounded-full bg-slate-100 text-slate-400 group-hover:text-white group-hover:bg-white/10 transition-all shadow-premium hover:scale-110 active:scale-95 z-20" asChild>
                                 <Link href={`/treasury/accounts/${account.id}`}>
-                                    <ChevronRight className="h-6 w-6" />
+                                    <ArrowUpRight className="h-6 w-6 group-hover:rotate-45 transition-transform duration-500" />
                                 </Link>
                             </Button>
                         </Card>

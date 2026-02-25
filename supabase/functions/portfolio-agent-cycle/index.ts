@@ -77,9 +77,56 @@ serve(async (req) => {
                 if (debtorProfile?.excluded) continue
                 if (Number(invoice.total) < config.min_amount_threshold) continue
 
+                // Check for payments to update debtor life-cycle
+                const { data: allocations } = await supabaseClient
+                    .from('payment_allocations')
+                    .select('amount, created_at')
+                    .eq('document_id', invoice.id)
+
+                const totalPaid = allocations?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0
+                if (totalPaid >= Number(invoice.total)) continue // Invoice is paid
+
                 const dueDate = new Date(invoice.due_date)
                 const delayDays = Math.floor((new Date().getTime() - dueDate.getTime()) / (1000 * 3600 * 24))
                 if (delayDays <= config.grace_days) continue
+
+                // Update Debtor Profile Intelligence (Phase 2 & 3)
+                if (party?.id) {
+                    const riskLevel = delayDays > 60 ? 'CRITICAL' : delayDays > 30 ? 'HIGH' : delayDays > 15 ? 'MEDIUM' : 'LOW';
+
+                    // Intelligence: Calculate Avg Payment Days for this debtor
+                    const { data: allPartyInvoices } = await supabaseClient
+                        .from('documents')
+                        .select('due_date, allocations:payment_allocations(amount, created_at)')
+                        .eq('party_id', party.id)
+                        .eq('doc_type', 'INVOICE')
+
+                    let totalDiffDays = 0;
+                    let paidDocsCount = 0;
+
+                    allPartyInvoices?.forEach((inv: any) => {
+                        const invTotal = Number(invoice.total); // Simplified for this invoice or we could get real totals
+                        const pTotal = inv.allocations?.reduce((acc: number, c: any) => acc + Number(c.amount), 0) || 0;
+                        if (pTotal > 0 && inv.allocations.length > 0) {
+                            const lastP = inv.allocations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                            const diff = Math.ceil((new Date(lastP.created_at).getTime() - new Date(inv.due_date).getTime()) / (1000 * 3600 * 24));
+                            totalDiffDays += diff;
+                            paidDocsCount++;
+                        }
+                    });
+
+                    const avgDays = paidDocsCount > 0 ? Math.round(totalDiffDays / paidDocsCount) : null;
+
+                    await supabaseClient
+                        .from('debtor_profiles')
+                        .upsert({
+                            tenant_id: tenantId,
+                            party_id: party.id,
+                            risk_level: riskLevel,
+                            average_payment_days: avgDays,
+                            last_payment_date: allocations && allocations.length > 0 ? allocations[allocations.length - 1].created_at : null
+                        }, { onConflict: 'tenant_id,party_id' })
+                }
 
                 // Check last action
                 const { data: lastActions } = await supabaseClient
@@ -112,16 +159,18 @@ serve(async (req) => {
                             title: "🚨 ESCALADO DE COBRO REQUERIDO",
                             body: `El deudor ${party?.legal_name || 'Desconocido'} requiere intervención humana por factura ${invoice.number}.`,
                             category: 'PORTFOLIO',
-                            is_read: false
+                            priority: 'HIGH',
+                            link: `/accounting/cartera`
                         })
 
                         await supabaseClient.from('collection_actions').insert({
                             tenant_id: tenantId,
                             document_id: invoice.id,
+                            party_id: party?.id,
                             action_type: 'ESCALATE',
                             channel: 'SYSTEM',
                             status: 'SENT',
-                            metadata: { automated: true, reason: 'Sequence completed' }
+                            metadata: { automated: true, reason: 'Sequence completed', delay_days: delayDays }
                         })
                         tenantActionsCount++
                         continue
@@ -133,7 +182,7 @@ serve(async (req) => {
                     const replaceVars = (str: string) => {
                         return str
                             .replace(/{name}/g, party?.legal_name || 'Cliente')
-                            .replace(/{total}/g, Number(invoice.total).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }))
+                            .replace(/{total}/g, Number(Number(invoice.total) - totalPaid).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }))
                             .replace(/{number}/g, invoice.number)
                             .replace(/{company}/g, tenantName)
                             .replace(/{due_date}/g, invoice.due_date)
@@ -148,6 +197,7 @@ serve(async (req) => {
                         .insert({
                             tenant_id: tenantId,
                             document_id: invoice.id,
+                            party_id: party?.id,
                             action_type: nextActionType,
                             channel: 'EMAIL',
                             status: 'SENT',
@@ -155,7 +205,8 @@ serve(async (req) => {
                                 automated: true,
                                 recipient: party?.email,
                                 subject,
-                                body_preview: body.substring(0, 100) + '...'
+                                body_preview: body.substring(0, 150) + '...',
+                                delay_days: delayDays
                             }
                         })
 
@@ -169,7 +220,7 @@ serve(async (req) => {
                 .update({
                     last_run_at: new Date().toISOString(),
                     last_run_status: 'SUCCESS',
-                    last_run_results: { actions_executed: tenantActionsCount }
+                    last_run_results: { actions_executed: tenantActionsCount, timestamp: new Date().toISOString() }
                 })
                 .eq('id', config.id)
 

@@ -83,23 +83,47 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
 
     const getStatusBadge = (item: CarteraItem) => {
         const daysOverdue = item.due_date ? differenceInDays(new Date(), new Date(item.due_date)) : 0;
+        const totalDays = item.due_date ? differenceInDays(new Date(item.due_date), new Date(item.issue_date)) : 30; // Default 30 days
+        const progress = Math.min(Math.max((daysOverdue / 30) * 100, 0), 100); // 30 days overdue is 100% critical
 
         if (item.balance <= 0) return (
-            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-none rounded-full font-black text-[9px] uppercase tracking-widest px-4 py-1.5 shadow-sm italic gap-2">
-                <CheckCircle2 className="h-3 w-3" /> SALDADO
-            </Badge>
+            <div className="flex flex-col items-center gap-2 w-full max-w-[120px]">
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-none rounded-full font-black text-[9px] uppercase tracking-[0.3em] px-4 py-1.5 shadow-sm italic gap-2 w-full justify-center">
+                    <CheckCircle2 className="h-3 w-3" /> SALDADO
+                </Badge>
+                <div className="w-full h-1 bg-emerald-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 w-full" />
+                </div>
+            </div>
         );
 
         if (daysOverdue > 0) return (
-            <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-none rounded-full font-black text-[9px] uppercase tracking-widest px-4 py-1.5 shadow-sm italic gap-2 animate-pulse">
-                <AlertCircle className="h-3 w-3" /> VENCIDO {daysOverdue}D
-            </Badge>
+            <div className="flex flex-col items-center gap-2 w-full max-w-[120px]">
+                <Badge variant="outline" className={cn(
+                    "border-none rounded-full font-black text-[9px] uppercase tracking-[0.3em] px-4 py-1.5 shadow-sm italic gap-2 w-full justify-center",
+                    daysOverdue > 15 ? "bg-rose-500/10 text-rose-600 animate-pulse" : "bg-orange-500/10 text-orange-600"
+                )}>
+                    <AlertCircle className="h-3 w-3" /> {daysOverdue > 15 ? "CRÍTICO" : "VENCIDO"} {daysOverdue}D
+                </Badge>
+                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={cn("h-full", daysOverdue > 15 ? "bg-rose-500" : "bg-orange-500")} style={{ width: `${Math.max(10, progress)}%` }} />
+                </div>
+            </div>
         );
 
+        // Vigente
+        const daysLeft = item.due_date ? differenceInDays(new Date(item.due_date), new Date()) : 0;
+        const progressLeft = Math.min(Math.max(((totalDays - daysLeft) / totalDays) * 100, 0), 100);
+
         return (
-            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-none rounded-full font-black text-[9px] uppercase tracking-widest px-4 py-1.5 shadow-sm italic gap-2">
-                <Clock className="h-3 w-3" /> VIGENTE
-            </Badge>
+            <div className="flex flex-col items-center gap-2 w-full max-w-[120px]">
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-none rounded-full font-black text-[9px] uppercase tracking-[0.3em] px-4 py-1.5 shadow-sm italic gap-2 w-full justify-center">
+                    <Clock className="h-3 w-3" /> PUNTUAL
+                </Badge>
+                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500" style={{ width: `${Math.max(5, progressLeft)}%` }} />
+                </div>
+            </div>
         );
     };
 

@@ -307,6 +307,19 @@ test('should calculate total with tax', () => {
     3. Asegurar que el Command Palette use un `Portal` (vía Radix UI) para inyectarse en el root del DOM con el `z-index` más alto posible.
 - **Aplicar en**: Cualquier buscador de entidad o selector de registros complejo.
 
+### 2026-02-25: Fatal Turbopack - failed to create whole tree
+- **Error**: Next.js (Turbopack) lanza un error fatal `TurbopackInternalError: failed to create whole tree` y genera un panic log. Esto suele ocurrir por corrupción en el cache o conflictos de sincronización en Windows.
+- **Fix**: Limpiar el cache de Next.js y TypeScript de forma agresiva: `Remove-Item -Recurse -Force .next` y `Remove-Item tsconfig.tsbuildinfo`.
+- **Aplicar en**: Cualquier crash inesperado de Turbopack durante el arranque.
+
+### 2026-02-25: Error evaluando configuración de PostCSS (Tailwind v4)
+- **Error**: La actualización mediante `npm-check-updates -u` accidentalmente instala `tailwindcss@4+` lo cual rompe un proyecto de Factory V3 basado en Next.js App Router y Tailwind v3. El error muestra: `It looks like you're trying to use tailwindcss directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package...`
+- **Fix**: 
+    1. Revertir la versión de Tailwind instalando las herramientas comprobadas de la v3: `npm install tailwindcss@3.4.1 postcss autoprefixer`.
+    2. Mantener `postcss.config.js` estricto con `tailwindcss: {}` a nivel raíz.
+    3. Hacer purge de cachés de Next (`.next`).
+- **Aplicar en**: Procesos de mantenimiento, siempre verificar el `package.json` para no salirse del **Golden Path** (Tailwind 3.4).
+
 ---
 
 *Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte.*

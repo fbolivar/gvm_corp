@@ -6,7 +6,7 @@
 // So I can import it here.
 import { createPartyAction } from '@/features/parties/actions';
 import { PartyForm } from '@/features/parties/components/PartyForm';
-// I didn't install sonner. I'll use simple alert for now.
+import { toast } from 'sonner';
 
 export default function NewPartyPage() {
 
@@ -16,13 +16,12 @@ export default function NewPartyPage() {
         // If error, it returns object.
         const result = await createPartyAction(data);
         if (result?.error) {
-            alert(`Error: ${result.error}`);
+            toast.error(`Error: ${result.error}`);
         }
     };
 
     return (
-        <div className="container mx-auto py-6 max-w-2xl">
-            <h1 className="text-2xl font-bold mb-4">Nuevo Tercero</h1>
+        <div className="pb-20">
             <PartyForm onSubmit={handleSubmit} />
         </div>
     );

@@ -1,59 +1,46 @@
 # PRP-005: Agente Autónomo de Cobro de Cartera (Portfolio IQ Agent)
 
-> **Estado**: 📝 Borrador (Esperando Aprobación)
+> **Estado**: ✅ COMPLETADO
 > **Autor**: Antigravity (Cerebro de la Fábrica)
-> **Fecha**: 2026-02-23
+> **Fecha**: 2026-02-25
 
 ---
 
 ## 1. 🎯 Objetivo
-Transformar el proceso manual de cobranza en un sistema **agéntico y proactivo**. El Agente Autónomo monitorizará la cartera en tiempo real, ejecutará acciones de comunicación y escalará casos críticos para maximizar el flujo de caja.
+Transformar el proceso manual de cobranza en un sistema **agéntico y proactivo**. El Agente Autónomo monitoriza la cartera en tiempo real, ejecuta acciones de comunicación y escala casos críticos para maximizar el flujo de caja.
 
 ## 2. 🧠 Capacidades del Agente
-- **Vigilancia 24/7**: Revisión automática de facturas que cambian de estado a "Vencidas".
-- **Segmentación Inteligente**: Clasificación de clientes según su comportamiento de pago y monto adeudado.
-- **Acciones Multicanal**: Envío programado de recordatorios vía Email (Fase 1) y registro de bitácora.
-- **Auto-Aprendizaje (V2)**: Ajuste de tonos de comunicación basados en la efectividad histórica.
+- **Vigilancia 24/7**: Revisión automática de facturas vencidas.
+- **Segmentación Inteligente (BASED EN RIESGO)**: Clasificación CRITICAL, HIGH, MEDIUM, LOW.
+- **Matriz de Riesgo AI**: Visualización de impacto financiero por segmento.
+- **Promedio de Pago**: Cálculo automático de "Días de Pago" por deudor.
+- **Tono de Voz Configurable**: Profesional, Amigable o Firme.
 
 ## 3. 🏗️ Arquitectura de la Feature
+- `collection_agent_config`: Memoria de configuración y tono.
+- `collection_actions`: Bitácora técnica de intervenciones AI.
+- `debtor_profiles`: Inteligencia acumulada por deudor (Avg Days, Risk).
 
-### A. Base de Datos (Supabase)
-Necesitamos tablas para la "memoria" y configuración del agente:
-- `collection_agent_config`: Reglas de negocio (días de gracia, tonos de mensaje, topes de monto).
-- `collection_actions`: Registro de cada acción tomada (ej: "Enviado correo de recordatorio 1").
-- `debtor_profiles`: Notas del agente sobre el comportamiento de cada cliente.
+## 4. 📅 Roadmap de Implementación
 
-### B. Core Logic (Next.js Services)
-- `CollectionAgentService`: El "motor" del agente que evalúa qué acciones tomar cada día.
-- `NotificationService`: Integración para despacho de comunicaciones.
+### ✅ Fase 1, 2 y 3 (COMPLETADO)
+- Motor de detección de facturas y ciclos de gracia.
+- Plantillas dinámicas por tono (Industrial Design).
+- Dashboard de Matriz de Riesgo y Gestión de VIPs/Exclusiones.
+- Cálculo de métricas de efectividad y velocidad de pago.
 
-### C. Interfaz de Usuario (Industrial V3)
-- **Agent Control Room**: Dashboard para ver qué está haciendo el agente en vivo.
-- **Manual Override**: Botón para "Pausar Agente" en clientes específicos (Ventas VIP).
-- **Métricas de Impacto**: Gráficos de "Días de Cartera Reducidos".
+### ✅ Fase 4: Escalado y Multicanal (COMPLETADO)
+- **Portal de Deudores (Self-Service)**: Link único para el pago de facturas.
+- **Integración Multicanal (WhatsApp/SMS)**: Interfaz preparada en el dashboard para switches rápidos de comunicación.
 
-## 4. 📅 Fases de Implementación
+### ✅ Fase 5: AI Forecasting y Acciones Pre-Legales (COMPLETADO)
+- **Tablero de Conciliación**: Portal interno para validar los comprobantes de pago subidos.
+- **Predicción de Riesgo (Forecast)**: Cálculo avanzado por días promedio de retraso cruzando el umbral pre-legal y emitiendo alertas de impacto económico en la matriz de UI.
 
-### Fase 1: Cimientos y Configuración
-- Creación de tablas de configuración y logs.
-- UI de Configuración del Agente.
-- Lógica de detección de facturas vencidas.
-
-### Fase 2: Acción y Comunicación
-- Generación automática de comunicaciones (Plantillas dinámicas).
-- Ejecución de "Primer Aviso" y "Segundo Aviso".
-- Registro en la bitácora del cliente.
-
-### Fase 3: Dashboard y Control
-- Visualización de la actividad del agente.
-- Filtros de exclusión (No cobrar a X cliente automáticamente).
-- Reportes de efectividad.
-
-## 5. 🛡️ Seguridad y Control (Human-in-the-loop)
-- El agente **NUNCA** puede anular facturas solo.
-- El agente **SOLO** envía comunicaciones, no procesa pagos directamente sin gateway.
-- Notificación al humano cuando una factura supera los 90 días (Escalamiento Legal).
+## 5. 🛡️ Seguridad y Control
+- RLS garantizada por `tenant_id` tanto para la configuración como para subidas anónimas al portal.
+- Los RPC filtran data no autenticada de los documentos al público.
 
 ---
 
-¿Aprobamos este Blueprint para iniciar con la **Fase 1: Configuración y DB**?
+**Proyecto Portfolio IQ Agent CERRADO y ENTREGADO.**

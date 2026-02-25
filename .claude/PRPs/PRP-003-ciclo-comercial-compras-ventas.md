@@ -1,6 +1,6 @@
 # PRP-003: Modernización del Ciclo Comercial (Compras y Facturación)
 
-> **Estado**: 🚀 EN EJECUCIÓN
+> **Estado**: ✅ COMPLETADO
 > **Dueño**: Antigravity Brain
 > **Fecha**: 2026-02-18
 
@@ -37,7 +37,7 @@ Transformar los módulos de **Compras** (Purchasing) y **Ventas/Facturación** (
 ### Fase 3: Infraestructura de Servicios (Core)
 - [x] **`documentService`**:
     - Método `getRelatedDocuments` para trackear genealogía.
-- [ ] **`accountingService`**:
+- [x] **`accountingService`**:
     - Ampliar `createEntryFromDocument` para todos los tipos de documentos comerciales.
     - Soporte para impuestos (IVA) y retenciones.
 

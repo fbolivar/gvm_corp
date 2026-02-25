@@ -309,7 +309,7 @@ export function TreasuryTransactionForm({ type, onSubmit, isLoading }: TreasuryT
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar p-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar p-1">
                                 {pendingDocs.map(doc => {
                                     const isSelected = selectedDocs.includes(doc.id!);
                                     return (
@@ -317,42 +317,58 @@ export function TreasuryTransactionForm({ type, onSubmit, isLoading }: TreasuryT
                                             key={doc.id}
                                             onClick={() => handleSelectDoc(doc.id!, doc.balance)}
                                             className={cn(
-                                                "cursor-pointer group relative flex flex-col p-8 rounded-[3rem] border transition-all duration-700",
+                                                "cursor-pointer group relative flex flex-col p-8 rounded-[3.5rem] border-2 transition-all duration-700 overflow-hidden",
                                                 isSelected
-                                                    ? "bg-slate-900 border-slate-800 shadow-active scale-[1.02] text-white"
-                                                    : "bg-white border-slate-100 hover:border-primary/50 hover:shadow-premium group"
+                                                    ? type === 'RECEIPT' ? "bg-slate-950 border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.15)] scale-[1.02]" : "bg-slate-950 border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.15)] scale-[1.02]"
+                                                    : "bg-slate-50 border-slate-100 hover:bg-slate-950 hover:border-slate-800 hover:scale-[1.01]"
                                             )}
                                         >
-                                            <div className="flex items-center justify-between mb-6">
+                                            {/* Decorative background pulse for selected state */}
+                                            {isSelected && (
                                                 <div className={cn(
-                                                    "h-10 w-10 rounded-xl border-2 flex items-center justify-center transition-all duration-700",
-                                                    isSelected ? "bg-primary border-primary shadow-lg shadow-primary/30 rotate-12" : "bg-slate-50 border-slate-100 group-hover:bg-primary/5"
+                                                    "absolute -bottom-10 -right-10 w-40 h-40 blur-3xl opacity-20",
+                                                    type === 'RECEIPT' ? "bg-emerald-500" : "bg-rose-500"
+                                                )} />
+                                            )}
+
+                                            <div className="flex items-center justify-between mb-8 relative z-10">
+                                                <div className={cn(
+                                                    "h-14 w-14 rounded-2xl flex items-center justify-center transition-all duration-700 shadow-sm",
+                                                    isSelected
+                                                        ? type === 'RECEIPT' ? "bg-emerald-500 text-white shadow-emerald-500/30 rotate-12 scale-110" : "bg-rose-500 text-white shadow-rose-500/30 rotate-12 scale-110"
+                                                        : "bg-white text-slate-300 group-hover:bg-white/10 group-hover:text-slate-500"
                                                 )}>
-                                                    {isSelected && <CheckCircle2 className="h-6 w-6 text-white" />}
+                                                    {isSelected ? <CheckCircle2 className="h-7 w-7" /> : <Activity className="h-6 w-6" />}
                                                 </div>
                                                 <Badge variant="outline" className={cn(
-                                                    "border-none rounded-full px-4 py-1.5 font-black text-[9px] tracking-widest italic",
-                                                    isSelected ? "bg-white/10 text-primary-foreground/80" : "bg-slate-50 text-slate-400"
+                                                    "border-none rounded-full px-4 py-2 font-black text-[9px] tracking-[0.3em] uppercase italic",
+                                                    isSelected ? "bg-white/10 text-white" : "bg-white text-slate-400 group-hover:bg-white/5 group-hover:text-slate-500"
                                                 )}>
                                                     {doc.doc_type}
                                                 </Badge>
                                             </div>
 
-                                            <div className="space-y-4">
+                                            <div className="space-y-6 relative z-10">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className={cn("text-2xl font-black font-mono tracking-tighter italic", isSelected ? "text-white" : "text-slate-900")}>
-                                                        {doc.number || 'DOCUMENTO-X'}
-                                                    </span>
-                                                    <span className={cn("text-[10px] font-black uppercase tracking-[0.3em]", isSelected ? "text-slate-500" : "text-slate-400")}>
-                                                        Fecha: {doc.issue_date}
+                                                    <span className={cn("text-3xl font-black font-mono tracking-tighter italic leading-none transition-colors", isSelected ? "text-white" : "text-slate-900 group-hover:text-white")}>
+                                                        {doc.number || 'DOC-X'}
                                                     </span>
                                                 </div>
 
-                                                <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                                                    <span className={cn("text-[9px] font-black uppercase tracking-widest italic leading-none", isSelected ? "text-primary" : "text-slate-300")}>Saldo Pendiente</span>
-                                                    <span className={cn("text-2xl font-black font-mono tracking-tighter", isSelected ? "text-white" : "text-slate-900")}>
-                                                        ${doc.balance?.toLocaleString('es-CO')}
-                                                    </span>
+                                                <div className={cn("pt-6 border-t flex items-center justify-between transition-colors", isSelected ? "border-white/10" : "border-slate-200 group-hover:border-white/10")}>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className={cn("text-[9px] font-black uppercase tracking-[0.4em] italic leading-none", isSelected ? "text-slate-400" : "text-slate-400 group-hover:text-slate-500")}>Fecha de Emisión</span>
+                                                        <span className={cn("text-xs font-black uppercase tracking-widest", isSelected ? "text-slate-300" : "text-slate-500 group-hover:text-slate-400")}>
+                                                            {doc.issue_date}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className={cn("text-[9px] font-black uppercase tracking-[0.4em] italic leading-none block mb-1", isSelected ? "text-slate-400" : "text-slate-400 group-hover:text-slate-500")}>Saldo Pendiente</span>
+                                                        <span className={cn("text-2xl font-black font-mono tracking-tighter", isSelected ? "text-white" : "text-slate-900 group-hover:text-white")}>
+                                                            <span className={cn("text-sm mr-1", isSelected ? "text-slate-500" : "text-slate-300 group-hover:text-slate-600")}>$</span>
+                                                            {doc.balance?.toLocaleString('es-CO')}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

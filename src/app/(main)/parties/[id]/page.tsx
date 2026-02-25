@@ -23,8 +23,7 @@ export default async function EditPartyPage({ params }: PageProps) {
         }
 
         return (
-            <div className="container mx-auto py-6 max-w-2xl">
-                <h1 className="text-2xl font-bold mb-4">Editar Tercero</h1>
+            <div className="pb-20">
                 <EditPartyClient party={party} />
             </div>
         );

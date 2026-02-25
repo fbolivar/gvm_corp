@@ -46,9 +46,9 @@ export default async function PartiesPage({ searchParams }: PageProps) {
             {/* 💎 PREMIUM HEADER */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
                 <div className="space-y-2">
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Terceros & Contactos</h1>
+                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Centro de Identidades</h1>
                     <div className="flex items-center gap-4">
-                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">CRM & Directorio Comercial</p>
+                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Directorio & CRM Inteligente</p>
                         <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">
                             <ShieldCheck className="h-3 w-3 text-indigo-600" />
                             <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Registro DIAN</span>

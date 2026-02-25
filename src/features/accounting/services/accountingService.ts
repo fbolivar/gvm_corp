@@ -198,55 +198,134 @@ export const accountingService = {
 
     async createEntryFromDocument(client: SupabaseClient, document: any) {
         let lines: any[] = [];
-        let description = `Contabilización ${document.doc_type} ${document.number}`;
+        let description = `Contabilización ${document.doc_type} ${document.number || document.id?.substring(0, 8)}`;
+
+        // Aggregate Taxes from Lines if available
+        let ivaAmount = 0;
+        let reteFuenteAmount = 0;
+        let reteIcaAmount = 0;
+        let cxAmount = 0; // Total to CXC / CXP
+
+        if (document.lines && Array.isArray(document.lines) && document.lines.length > 0) {
+            document.lines.forEach((line: any) => {
+                const lineTotal = Number(line.qty) * Number(line.unit_price);
+
+                // Flexible parsing of tax_config. It can be an array of objects or a single object.
+                const configs = Array.isArray(line.tax_config) ? line.tax_config : (line.tax_config ? [line.tax_config] : []);
+
+                configs.forEach((tax: any) => {
+                    const rate = Number(tax.rate) || 0;
+                    const taxVal = lineTotal * (rate / 100);
+
+                    const tType = (tax.type || tax.name || 'IVA').toUpperCase();
+
+                    if (tType.includes('IVA')) {
+                        ivaAmount += taxVal;
+                    } else if (tType.includes('RETEFUENTE') || tType.includes('FUENTE') || tType.includes('RF')) {
+                        reteFuenteAmount += taxVal;
+                    } else if (tType.includes('ICA')) {
+                        reteIcaAmount += taxVal;
+                    } else {
+                        // Fallback assumes additive tax
+                        ivaAmount += taxVal;
+                    }
+                });
+            });
+            // Recompute total based on standard structure: subtotal + IVA - Retenciones
+            cxAmount = Number(document.subtotal) + ivaAmount - reteFuenteAmount - reteIcaAmount;
+        } else {
+            // Fallback for docs without lines (legacy or quick created)
+            ivaAmount = Number(document.taxes) || 0;
+            cxAmount = Number(document.total) || 0;
+        }
 
         if (document.doc_type === 'INVOICE') {
             const receivableAccount = await this.getAccountByCode(client, '1305'); // Clientes
             const incomeAccount = await this.getAccountByCode(client, '4135'); // Comercio
-            const taxAccount = await this.getAccountByCode(client, '2408'); // IVA
+            const ivaAccount = await this.getAccountByCode(client, '2408'); // IVA Generado
+            const reteFuenteAccount = await this.getAccountByCode(client, '135515'); // Anticipo Retefuente (Activo)
+            const reteIcaAccount = await this.getAccountByCode(client, '135518'); // Anticipo ReteICA (Activo)
 
             if (!receivableAccount || !incomeAccount) return;
 
             // Debits (Receivable / CXC) -> Total
-            lines.push({ account_id: receivableAccount.id, party_id: document.party_id, debit: document.total, credit: 0, description });
+            lines.push({ account_id: receivableAccount.id, party_id: document.party_id, debit: cxAmount, credit: 0, description });
+
+            // Debits (Anticipos Retenciones)
+            if (reteFuenteAmount > 0 && reteFuenteAccount) {
+                lines.push({ account_id: reteFuenteAccount.id, party_id: document.party_id, debit: reteFuenteAmount, credit: 0, description: `Anticipo Retefuente Fac ${document.number}` });
+            }
+            if (reteIcaAmount > 0 && reteIcaAccount) {
+                lines.push({ account_id: reteIcaAccount.id, party_id: document.party_id, debit: reteIcaAmount, credit: 0, description: `Anticipo ReteICA Fac ${document.number}` });
+            }
+
             // Credits (Income) -> Subtotal
             lines.push({ account_id: incomeAccount.id, party_id: document.party_id, debit: 0, credit: document.subtotal, description: `Ingreso Fac ${document.number}` });
-            // Credits (Tax) -> Taxes
-            if (document.taxes > 0 && taxAccount) {
-                lines.push({ account_id: taxAccount.id, party_id: document.party_id, debit: 0, credit: document.taxes, description: `IVA Fac ${document.number}` });
+
+            // Credits (IVA Generado)
+            if (ivaAmount > 0 && ivaAccount) {
+                lines.push({ account_id: ivaAccount.id, party_id: document.party_id, debit: 0, credit: ivaAmount, description: `IVA Generado Fac ${document.number}` });
             }
         }
         else if (document.doc_type === 'VENDOR_BILL') {
             const payableAccount = await this.getAccountByCode(client, '2205'); // Proveedores
-            const expenseAccount = await this.getAccountByCode(client, '6135'); // Costo de Ventas (o 51...)
-            const taxAccount = await this.getAccountByCode(client, '2408'); // IVA Descontable
+            const expenseAccount = await this.getAccountByCode(client, '6135'); // Costo de Ventas
+            const ivaAccount = await this.getAccountByCode(client, '2408'); // IVA Descontable
+            const reteFuenteAccount = await this.getAccountByCode(client, '2365'); // Retefuente por Pagar (Pasivo)
+            const reteIcaAccount = await this.getAccountByCode(client, '2368'); // ReteICA por Pagar (Pasivo)
 
             if (!payableAccount || !expenseAccount) return;
 
             // Debits (Expense / Cost) -> Subtotal
-            lines.push({ account_id: expenseAccount.id, party_id: document.party_id, debit: document.subtotal, credit: 0, description: `Compra Fr ${document.number}` });
-            // Debits (Tax) -> Taxes
-            if (document.taxes > 0 && taxAccount) {
-                lines.push({ account_id: taxAccount.id, party_id: document.party_id, debit: document.taxes, credit: 0, description: `IVA Descontable ${document.number}` });
+            lines.push({ account_id: expenseAccount.id, party_id: document.party_id, debit: document.subtotal, credit: 0, description: `Costo/Gasto ${document.number}` });
+
+            // Debits (IVA Descontable)
+            if (ivaAmount > 0 && ivaAccount) {
+                lines.push({ account_id: ivaAccount.id, party_id: document.party_id, debit: ivaAmount, credit: 0, description: `IVA Descontable ${document.number}` });
             }
-            // Credits (Payable / CXP) -> Total
-            lines.push({ account_id: payableAccount.id, party_id: document.party_id, debit: 0, credit: document.total, description: `CXP Prov ${document.number}` });
+
+            // Credits (Retenciones por pgar)
+            if (reteFuenteAmount > 0 && reteFuenteAccount) {
+                lines.push({ account_id: reteFuenteAccount.id, party_id: document.party_id, debit: 0, credit: reteFuenteAmount, description: `Retefuente por Pagar Fr ${document.number}` });
+            }
+            if (reteIcaAmount > 0 && reteIcaAccount) {
+                lines.push({ account_id: reteIcaAccount.id, party_id: document.party_id, debit: 0, credit: reteIcaAmount, description: `ReteICA por Pagar Fr ${document.number}` });
+            }
+
+            // Credits (Payable / CXP) -> Total a pagar
+            lines.push({ account_id: payableAccount.id, party_id: document.party_id, debit: 0, credit: cxAmount, description: `CXP Prov ${document.number}` });
         }
         else if (document.doc_type === 'CREDIT_NOTE') {
             const receivableAccount = await this.getAccountByCode(client, '1305'); // Clientes
-            const incomeAccount = await this.getAccountByCode(client, '4135'); // Comercio (Devolución)
-            const taxAccount = await this.getAccountByCode(client, '2408'); // IVA 
+            const returnAccount = await this.getAccountByCode(client, '4175'); // Devoluciones Ventas
+            const ivaAccount = await this.getAccountByCode(client, '2408'); // IVA Descontable/Generado Reversado
+            const reteFuenteAccount = await this.getAccountByCode(client, '135515'); // Reversa
+            const reteIcaAccount = await this.getAccountByCode(client, '135518'); // Reversa
 
-            if (!receivableAccount || !incomeAccount) return;
+            if (!receivableAccount || !returnAccount) return;
 
-            // Debits (Income - Reversal) -> Subtotal
-            lines.push({ account_id: incomeAccount.id, party_id: document.party_id, debit: document.subtotal, credit: 0, description: `Devolución Venta ${document.number}` });
-            // Debits (Tax - Reversal) -> Taxes
-            if (document.taxes > 0 && taxAccount) {
-                lines.push({ account_id: taxAccount.id, party_id: document.party_id, debit: document.taxes, credit: 0, description: `IVA Dev ${document.number}` });
+            // Debits (Income Reversal / Returns) -> Subtotal
+            lines.push({ account_id: returnAccount.id, party_id: document.party_id, debit: document.subtotal, credit: 0, description: `Devolución Venta ${document.number}` });
+
+            // Debits (IVA Reversal)
+            if (ivaAmount > 0 && ivaAccount) {
+                lines.push({ account_id: ivaAccount.id, party_id: document.party_id, debit: ivaAmount, credit: 0, description: `Ajuste IVA NC ${document.number}` });
             }
-            // Credits (Receivable - Reversal) -> Total
-            lines.push({ account_id: receivableAccount.id, party_id: document.party_id, debit: 0, credit: document.total, description: `Nota Crédito ${document.number}` });
+
+            // Credits (Reversa Anticipos)
+            if (reteFuenteAmount > 0 && reteFuenteAccount) {
+                lines.push({ account_id: reteFuenteAccount.id, party_id: document.party_id, debit: 0, credit: reteFuenteAmount, description: `Reversa Retefuente NC ${document.number}` });
+            }
+            if (reteIcaAmount > 0 && reteIcaAccount) {
+                lines.push({ account_id: reteIcaAccount.id, party_id: document.party_id, debit: 0, credit: reteIcaAmount, description: `Reversa ReteICA NC ${document.number}` });
+            }
+
+            // Credits (Receivable Reversal) -> Total
+            lines.push({ account_id: receivableAccount.id, party_id: document.party_id, debit: 0, credit: cxAmount, description: `Ajuste CXC NC ${document.number}` });
+        }
+        // Orders and Quotes do not generate accounting entries.
+        else if (['PURCHASE_ORDER', 'SALES_ORDER', 'QUOTATION'].includes(document.doc_type)) {
+            return;
         }
 
         if (lines.length === 0) return;

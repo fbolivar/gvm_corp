@@ -4,6 +4,8 @@ import { PartyForm } from '@/features/parties/components/PartyForm';
 import { updatePartyAction } from '@/features/parties/actions';
 import { Party } from "@/features/parties/types";
 
+import { toast } from 'sonner';
+
 export default function EditPartyClient({ party }: { party: Party }) {
 
     const handleSubmit = async (data: Party) => {
@@ -13,7 +15,7 @@ export default function EditPartyClient({ party }: { party: Party }) {
         const id = party.id!;
         const result = await updatePartyAction(id, data);
         if (result?.error) {
-            alert(`Error: ${result.error}`);
+            toast.error(`Error: ${result.error}`);
         }
     };
 
