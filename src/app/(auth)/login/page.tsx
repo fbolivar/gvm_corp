@@ -7,31 +7,31 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex">
 
       {/* ═══════════ LEFT PANEL: Brand Identity ═══════════ */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-between p-16 relative">
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-between p-16 relative bg-slate-50">
         {/* Decorative elements */}
-        <div className="absolute bottom-0 right-0 opacity-[0.03] pointer-events-none">
-          <Cpu className="h-[500px] w-[500px] text-white" />
+        <div className="absolute bottom-0 right-0 opacity-[0.04] pointer-events-none">
+          <Cpu className="h-[500px] w-[500px] text-slate-900" />
         </div>
-        <div className="absolute top-20 right-20 opacity-[0.04] pointer-events-none">
-          <Radio className="h-48 w-48 text-white animate-pulse" />
+        <div className="absolute top-20 right-20 opacity-[0.05] pointer-events-none">
+          <Radio className="h-48 w-48 text-indigo-600 animate-pulse" />
         </div>
 
         {/* Logo */}
         <div className="flex items-center gap-4 relative z-10">
-          <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+          <div className="h-14 w-14 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden">
             <Image src="/logo-gvm.png" alt="GVM" width={36} height={36} className="rounded-lg" />
           </div>
           <div>
-            <p className="text-white font-black italic text-xl tracking-tighter">GVM S.A.S</p>
-            <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">ERP Intelligence V3</p>
+            <p className="text-slate-900 font-black italic text-xl tracking-tighter">GVM S.A.S</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">ERP Intelligence V3</p>
           </div>
         </div>
 
         {/* Hero Text */}
         <div className="space-y-8 relative z-10 max-w-xl">
-          <h1 className="text-6xl xl:text-7xl font-black text-white tracking-tighter italic uppercase leading-[0.9]">
+          <h1 className="text-6xl xl:text-7xl font-black text-slate-900 tracking-tighter italic uppercase leading-[0.9]">
             Centro de<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-emerald-400 to-indigo-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-primary to-indigo-600">
               Acceso Seguro
             </span>
           </h1>
@@ -46,9 +46,9 @@ export default function LoginPage() {
               { icon: Fingerprint, label: "Supabase RLS" },
               { icon: Cpu, label: "Edge Runtime" },
             ].map((chip) => (
-              <div key={chip.label} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10">
-                <chip.icon className="h-3.5 w-3.5 text-indigo-400" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{chip.label}</span>
+              <div key={chip.label} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-slate-100 shadow-sm">
+                <chip.icon className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">{chip.label}</span>
               </div>
             ))}
           </div>
@@ -56,24 +56,24 @@ export default function LoginPage() {
 
         {/* Bottom Security Badge */}
         <div className="flex items-center gap-3 relative z-10">
-          <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-          <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.5em] italic">
+          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em] italic">
             Secure Enterprise Cloud — Encriptación AES-256
           </p>
         </div>
       </div>
 
       {/* ═══════════ RIGHT PANEL: Login Form ═══════════ */}
-      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-6 lg:p-12">
+      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-6 lg:p-12 bg-white">
         <div className="w-full max-w-md flex flex-col items-center gap-10">
           {/* Mobile-only logo */}
           <div className="lg:hidden flex items-center gap-3 mb-4">
-            <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+            <div className="h-12 w-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
               <Image src="/logo-gvm.png" alt="GVM" width={32} height={32} className="rounded-lg" />
             </div>
             <div>
-              <p className="text-white font-black italic text-lg tracking-tighter">GVM S.A.S</p>
-              <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em]">Centro de Acceso</p>
+              <p className="text-slate-900 font-black italic text-lg tracking-tighter">GVM S.A.S</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Centro de Acceso</p>
             </div>
           </div>
 
@@ -82,11 +82,11 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="flex flex-col items-center gap-3 text-center">
             <div className="flex items-center gap-4 opacity-20">
-              <div className="h-px w-12 bg-white" />
-              <Fingerprint className="h-4 w-4 text-white" />
-              <div className="h-px w-12 bg-white" />
+              <div className="h-px w-12 bg-slate-900" />
+              <Fingerprint className="h-4 w-4 text-slate-900" />
+              <div className="h-px w-12 bg-slate-900" />
             </div>
-            <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">
               Secure Enterprise Cloud • GVM S.A.S © 2026
             </p>
           </div>
