@@ -102,8 +102,7 @@ export default async function AccountingReportsPage() {
                     icon: ArrowLeftRight,
                     href: "/accounting/reports/cash-flow",
                     color: "text-cyan-400",
-                    bg: "bg-cyan-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-cyan-500/10"
                 },
                 {
                     title: "Estado de Cambios en Patrimonio",
