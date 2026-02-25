@@ -231,8 +231,7 @@ export default async function AccountingReportsPage() {
                     icon: Package,
                     href: "/accounting/reports/kardex",
                     color: "text-purple-400",
-                    bg: "bg-purple-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-purple-500/10"
                 },
                 {
                     title: "Productos de Baja Rotación",
@@ -256,8 +255,7 @@ export default async function AccountingReportsPage() {
                     icon: DollarSign,
                     href: "/accounting/reports/daily-cash",
                     color: "text-emerald-400",
-                    bg: "bg-emerald-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-emerald-500/10"
                 },
                 {
                     title: "Conciliación Bancaria",
