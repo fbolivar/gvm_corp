@@ -3,20 +3,20 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, LoginCredentials, SignupCredentials } from '../types/index';
+import { loginSchema, LoginCredentials } from '../types/index';
 import { authService } from "../services/authService";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/shared/components/ui/card";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import { Lock, Mail, Loader2, ArrowRight, Zap, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
 
 export function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
     const {
@@ -38,99 +38,120 @@ export function LoginForm() {
             toast.success("¡Bienvenido de nuevo!");
             router.push("/dashboard");
             router.refresh();
-        } catch (error: any) {
-            toast.error(error.message || "Error al iniciar sesión");
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : "Error al iniciar sesión";
+            toast.error(msg);
             setIsLoading(false);
         }
     };
 
     return (
-        <Card className="border-none bg-white/80 backdrop-blur-xl shadow-premium rounded-[3rem] overflow-hidden w-full max-w-lg animate-in fade-in zoom-in-95 duration-700">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary via-indigo-500 to-rose-500" />
-
-            <CardHeader className="p-10 pb-6 text-center space-y-4">
-                <div className="flex justify-center">
-                    <div className="h-20 w-20 rounded-[2rem] bg-slate-900 flex items-center justify-center text-white shadow-active transform -rotate-6 group-hover:rotate-0 transition-transform duration-500">
-                        <Sparkles className="h-10 w-10 text-primary animate-pulse" />
-                    </div>
+        <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            {/* Header */}
+            <div className="mb-10 space-y-3">
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                    <span className="text-[9px] font-black text-emerald-400/80 uppercase tracking-[0.5em] italic">Enlace Seguro Activo</span>
                 </div>
-                <div className="space-y-1">
-                    <CardTitle className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900 italic">GVM S.A.S</CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-widest">
-                        Intelligence Engine V3
-                    </CardDescription>
+                <h2 className="text-4xl font-black text-white tracking-tighter italic">
+                    Iniciar Sesión
+                </h2>
+                <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
+                    Ingresa tus credenciales de acceso corporativo
+                </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Email */}
+                <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 ml-1">Email Corporativo</Label>
+                    <div className="relative group">
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-700 group-focus-within:text-indigo-400 transition-colors duration-500" />
+                        <Input
+                            {...register("email")}
+                            type="email"
+                            placeholder="operador@gvm.com"
+                            className={cn(
+                                "h-14 pl-14 pr-6 bg-white/5 border border-white/10 rounded-2xl font-bold text-white placeholder:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30 transition-all duration-500",
+                                errors.email && "ring-2 ring-rose-500/50 border-rose-500/30"
+                            )}
+                        />
+                    </div>
+                    {errors.email && (
+                        <p className="text-[9px] font-black text-rose-400 uppercase tracking-[0.3em] ml-1 flex items-center gap-1">
+                            <span className="h-1 w-1 rounded-full bg-rose-400" />
+                            {errors.email.message}
+                        </p>
+                    )}
                 </div>
-            </CardHeader>
 
-            <CardContent className="p-10 pt-0">
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Corporativo</Label>
-                        <div className="relative group">
-                            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
-                            <Input
-                                {...register("email")}
-                                type="email"
-                                placeholder="tu@empresa.com"
-                                className={cn(
-                                    "h-16 pl-14 pr-6 bg-slate-50 border-none rounded-2xl font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-primary/10 transition-all",
-                                    errors.email && "ring-2 ring-rose-500/50"
-                                )}
-                            />
-                        </div>
-                        {errors.email && (
-                            <p className="text-[10px] font-black text-rose-500 uppercase tracking-tighter ml-4">{errors.email.message}</p>
-                        )}
+                {/* Password */}
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center px-1">
+                        <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">Contraseña</Label>
+                        <Link href="/forgot-password" className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] hover:text-indigo-300 transition-colors">
+                            ¿Olvidaste?
+                        </Link>
                     </div>
-
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center ml-4 mr-4">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contraseña</Label>
-                            <Link href="/forgot-password" className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">
-                                ¿ Olvidaste ?
-                            </Link>
-                        </div>
-                        <div className="relative group">
-                            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
-                            <Input
-                                {...register("password")}
-                                type="password"
-                                placeholder="••••••••"
-                                className={cn(
-                                    "h-16 pl-14 pr-6 bg-slate-50 border-none rounded-2xl font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-primary/10 transition-all",
-                                    errors.password && "ring-2 ring-rose-500/50"
-                                )}
-                            />
-                        </div>
-                        {errors.password && (
-                            <p className="text-[10px] font-black text-rose-500 uppercase tracking-tighter ml-4">{errors.password.message}</p>
-                        )}
+                    <div className="relative group">
+                        <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-700 group-focus-within:text-indigo-400 transition-colors duration-500" />
+                        <Input
+                            {...register("password")}
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className={cn(
+                                "h-14 pl-14 pr-14 bg-white/5 border border-white/10 rounded-2xl font-bold text-white placeholder:text-slate-700 focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30 transition-all duration-500",
+                                errors.password && "ring-2 ring-rose-500/50 border-rose-500/30"
+                            )}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 hover:text-white transition-colors"
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                     </div>
+                    {errors.password && (
+                        <p className="text-[9px] font-black text-rose-400 uppercase tracking-[0.3em] ml-1 flex items-center gap-1">
+                            <span className="h-1 w-1 rounded-full bg-rose-400" />
+                            {errors.password.message}
+                        </p>
+                    )}
+                </div>
 
-                    <Button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full h-16 sm:h-20 rounded-[1.5rem] sm:rounded-[2rem] bg-slate-900 hover:bg-primary text-white font-black italic tracking-tight text-xl sm:text-2xl transition-all shadow-active active:scale-95 group"
-                    >
-                        {isLoading ? (
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                        ) : (
-                            <span className="flex items-center gap-3">
-                                INICIAR SESIÓN <ArrowRight className="h-6 w-6 group-hover:translate-x-2 transition-transform" />
-                            </span>
-                        )}
-                    </Button>
-                </form>
-            </CardContent>
+                {/* Submit */}
+                <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black italic tracking-tight text-lg transition-all duration-500 shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.3)] active:scale-[0.98] group"
+                >
+                    {isLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    ) : (
+                        <span className="flex items-center gap-3">
+                            ACCEDER AL SISTEMA <ArrowRight className="h-5 w-5 group-hover:translate-x-2 transition-transform" />
+                        </span>
+                    )}
+                </Button>
+            </form>
 
-            <CardFooter className="p-10 pt-0 flex justify-center border-t border-slate-50 bg-slate-50/50">
-                <p className="text-xs font-medium text-slate-400">
-                    ¿No tienes cuenta?{" "}
-                    <Link href="/signup" className="text-slate-900 font-black italic hover:text-primary transition-colors">
+            {/* Divider */}
+            <div className="mt-10 pt-8 border-t border-white/5 text-center">
+                <p className="text-xs font-bold text-slate-600">
+                    ¿No tienes credenciales?{" "}
+                    <Link href="/signup" className="text-indigo-400 font-black italic hover:text-indigo-300 transition-colors">
                         Solicitar Acceso
                     </Link>
                 </p>
-            </CardFooter>
-        </Card>
+            </div>
+
+            {/* Security info */}
+            <div className="mt-6 flex items-center justify-center gap-2">
+                <Zap className="h-3 w-3 text-slate-700" />
+                <span className="text-[8px] font-black text-slate-700 uppercase tracking-[0.4em]">Protegido con Supabase Auth + JWT</span>
+            </div>
+        </div>
     );
 }
