@@ -111,8 +111,7 @@ export default async function AccountingReportsPage() {
                     icon: BookOpen,
                     href: "/accounting/reports/equity-changes",
                     color: "text-teal-400",
-                    bg: "bg-teal-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-teal-500/10"
                 }
             ]
         },
