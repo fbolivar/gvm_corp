@@ -143,8 +143,7 @@ export default async function AccountingReportsPage() {
                     icon: ClipboardList,
                     href: "/accounting/reports/journal",
                     color: "text-orange-400",
-                    bg: "bg-orange-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-orange-500/10"
                 },
                 {
                     title: "Libro Mayor",
@@ -153,8 +152,7 @@ export default async function AccountingReportsPage() {
                     icon: BookOpen,
                     href: "/accounting/reports/general-ledger",
                     color: "text-pink-400",
-                    bg: "bg-pink-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-pink-500/10"
                 }
             ]
         },
@@ -168,8 +166,7 @@ export default async function AccountingReportsPage() {
                     icon: TrendingUp,
                     href: "/accounting/reports/sales",
                     color: "text-green-400",
-                    bg: "bg-green-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-green-500/10"
                 },
                 {
                     title: "Cartera por Edades",
@@ -178,8 +175,7 @@ export default async function AccountingReportsPage() {
                     icon: BarChart2,
                     href: "/accounting/reports/aging-receivable",
                     color: "text-lime-400",
-                    bg: "bg-lime-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-lime-500/10"
                 },
                 {
                     title: "Facturas Emitidas",
@@ -203,8 +199,7 @@ export default async function AccountingReportsPage() {
                     icon: Truck,
                     href: "/accounting/reports/purchases",
                     color: "text-blue-400",
-                    bg: "bg-blue-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-blue-500/10"
                 },
                 {
                     title: "Cuentas por Pagar",
@@ -213,9 +208,8 @@ export default async function AccountingReportsPage() {
                     icon: CreditCard,
                     href: "/accounting/reports/aging-payable",
                     color: "text-slate-400",
-                    bg: "bg-slate-500/10",
-                    badge: "Próximamente"
-                }
+                    bg: "bg-slate-500/10"
+                },
             ]
         },
         {
