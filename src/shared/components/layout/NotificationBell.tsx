@@ -53,7 +53,7 @@ export function NotificationBell() {
 
             if (data) {
                 setNotifications(data);
-                setHasUnread(data.some(n => !n.is_read));
+                setHasUnread(data.some((n: { is_read: boolean }) => !n.is_read));
                 setUserId(user.id);
                 setTenantId(userTenant?.tenant_id || null);
             }

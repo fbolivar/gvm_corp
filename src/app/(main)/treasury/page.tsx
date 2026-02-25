@@ -39,10 +39,10 @@ export default async function TreasuryPage() {
 
     const [accounts, transactions, tenant, ar, ap] = await Promise.all([
         treasuryService.getAccounts(supabase),
-        treasuryService.getTransactions(supabase),
+        treasuryService.getTransactions(supabase, { limit: 20 }),
         settingsService.getTenantInfo(supabase),
-        supabase.from('documents').select('*').eq('doc_type', 'INVOICE').neq('status', 'SENT'),
-        supabase.from('documents').select('*').eq('doc_type', 'VENDOR_BILL').neq('status', 'SENT')
+        supabase.from('documents').select('id,total,balance,status,due_date').eq('doc_type', 'INVOICE').neq('status', 'SENT'),
+        supabase.from('documents').select('id,total,balance,status,due_date').eq('doc_type', 'VENDOR_BILL').neq('status', 'SENT')
     ]);
 
     const totalLiquidity = accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);

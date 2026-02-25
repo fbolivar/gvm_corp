@@ -49,7 +49,7 @@ export function ChatInterface() {
 
     useEffect(() => {
         loadChannels();
-        supabase.auth.getUser().then(({ data: { user } }) => setCurrentUser(user));
+        supabase.auth.getUser().then(({ data: { user } }: { data: { user: unknown } }) => setCurrentUser(user));
     }, []);
 
     useEffect(() => {
@@ -61,7 +61,7 @@ export function ChatInterface() {
                 .on(
                     'postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `channel_id=eq.${activeChannel.id}` },
-                    (payload) => setMessages(prev => [...prev, payload.new as ChatMessage])
+                    (payload: { new: ChatMessage }) => setMessages(prev => [...prev, payload.new as ChatMessage])
                 )
                 .on(
                     'postgres_changes',
@@ -83,7 +83,7 @@ export function ChatInterface() {
                     });
                     setTypingUsers(typing);
                 })
-                .subscribe(async (status) => {
+                .subscribe(async (status: string) => {
                     if (status === 'SUBSCRIBED') {
                         presenceChannelRef.current = presenceChannel;
                         await presenceChannel.track({

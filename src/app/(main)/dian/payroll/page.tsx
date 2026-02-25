@@ -69,7 +69,7 @@ export default function DianPayrollDashboard() {
                 if (error) throw error;
 
                 // Fetch employee data for each party
-                const payrollDocs = data.filter(d => d.document?.doc_type === 'PAYROLL');
+                const payrollDocs = data.filter((d: { document?: { doc_type: string } }) => d.document?.doc_type === 'PAYROLL');
 
                 const docsWithEmployee = await Promise.all(payrollDocs.map(async (doc: any) => {
                     const { data: emp } = await supabase

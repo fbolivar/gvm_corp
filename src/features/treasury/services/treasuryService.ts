@@ -19,7 +19,7 @@ export const treasuryService = {
     async getAccounts(client: SupabaseClient) {
         const { data, error } = await client
             .from('treasury_accounts')
-            .select('*')
+            .select('id,name,type,bank_name,account_number,balance,chart_account_id')
             .order('name');
         if (error) throw error;
         return data as TreasuryAccount[];
@@ -36,7 +36,7 @@ export const treasuryService = {
         return data as TreasuryAccount;
     },
 
-    async getTransactions(client: SupabaseClient, filters?: { account_id?: string }) {
+    async getTransactions(client: SupabaseClient, filters?: { account_id?: string; limit?: number }) {
         let query = client
             .from('treasury_transactions')
             .select(`
@@ -54,6 +54,10 @@ export const treasuryService = {
             query = query.eq('account_id', filters.account_id);
         }
 
+        if (filters?.limit) {
+            query = query.limit(filters.limit);
+        }
+
         const { data, error } = await query;
         if (error) throw error;
         return data;
@@ -67,7 +71,7 @@ export const treasuryService = {
 
         const { data, error } = await client
             .from('documents')
-            .select('*')
+            .select('id,number,doc_type,issue_date,due_date,total,balance,status')
             .eq('party_id', partyId)
             // .eq('doc_type', docType) // In this app we have varied doc_types, let's just use party
             .neq('status', 'SENT') // SENT means finalized/paid in our simulation
