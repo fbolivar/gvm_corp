@@ -59,6 +59,28 @@ export const productionService = {
         return rec;
     },
 
+    async getOrderById(client: SupabaseClient, id: string) {
+        const { data, error } = await client
+            .from('production_orders')
+            .select(`
+                *,
+                recipes:production_recipes(
+                    name, description,
+                    products(name, sku, uom),
+                    items:production_recipe_items(
+                        qty_required,
+                        products(name, sku, uom)
+                    )
+                ),
+                warehouses(name, code)
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return data as any;
+    },
+
     async createOrder(client: SupabaseClient, order: Partial<ProductionOrder>) {
         const tenantId = (await client.auth.getUser()).data.user?.user_metadata.tenant_id;
         const { data, error } = await client

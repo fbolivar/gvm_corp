@@ -44,38 +44,69 @@ export default async function DianDashboard() {
 
     const config = await getDianConfigAction();
 
+    const acceptedCount = transmissions?.filter((t: any) => t.dian_status === 'ACCEPTED').length ?? 0;
+    const rejectedCount = transmissions?.filter((t: any) => t.dian_status !== 'ACCEPTED').length ?? 0;
+    const txTotal = transmissions?.length ?? 0;
+
     return (
-        <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            {/* 💎 PREMIUM HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="space-y-2">
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Cumplimiento DIAN</h1>
-                    <div className="flex items-center gap-4">
-                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Facturación & Documentos Electrónicos</p>
-                        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full">
-                            <ShieldCheck className="h-3 w-3 text-emerald-600" />
-                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Operativo</span>
+        <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            {/* 🏭 V3 INDUSTRIAL HERO HEADER */}
+            <div className="bg-slate-900 rounded-[4rem] p-12 md:p-16 text-white shadow-active relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-all duration-1000">
+                    <ShieldCheck className="h-80 w-80 text-white" />
+                </div>
+
+                <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-end gap-10">
+                    <div className="space-y-5">
+                        <div className="flex items-center gap-4">
+                            <div className="h-2 w-12 bg-emerald-500 rounded-full" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-emerald-400">Sistema de Facturación Electrónica</span>
+                        </div>
+                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                            DIAN<br /><span className="text-slate-500">Control</span>
+                        </h1>
+                        <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">Transmisiones · Resoluciones · Configuración</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4">
+                        <div className="h-24 px-8 rounded-[2rem] bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20 flex flex-col justify-center items-end">
+                            <span className="text-[10px] uppercase tracking-widest text-emerald-400 font-black">Aceptados</span>
+                            <span className="text-3xl font-black italic tracking-tighter text-emerald-300">{acceptedCount}</span>
+                        </div>
+                        {rejectedCount > 0 && (
+                            <div className="h-24 px-8 rounded-[2rem] bg-rose-500/10 backdrop-blur-md border border-rose-500/20 flex flex-col justify-center items-end">
+                                <span className="text-[10px] uppercase tracking-widest text-rose-400 font-black">Rechazados</span>
+                                <span className="text-3xl font-black italic tracking-tighter text-rose-300">{rejectedCount}</span>
+                            </div>
+                        )}
+                        <div className="h-24 px-8 rounded-[2rem] bg-white/5 backdrop-blur-md border border-white/10 flex flex-col justify-center items-end">
+                            <span className="text-[10px] uppercase tracking-widest text-slate-400 font-black">Total</span>
+                            <span className="text-3xl font-black italic tracking-tighter">{txTotal}</span>
+                        </div>
+                        <div className="h-24 px-8 rounded-[2rem] bg-indigo-500/10 backdrop-blur-md border border-indigo-500/20 flex flex-col justify-center items-end group/stat hover:bg-indigo-500/20 transition-all">
+                            <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-black">Estado</span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
+                                <span className="text-sm font-black italic text-indigo-100 uppercase">Operativo</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <Badge variant="outline" className="h-14 px-6 rounded-[1.5rem] border-none bg-white shadow-premium text-slate-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-emerald-500" />
-                    Conexión Segura
-                </Badge>
             </div>
 
             {/* TABS */}
             <Tabs defaultValue="transmissions" className="w-full">
                 <TabsList className="bg-white border-none shadow-premium p-1.5 rounded-[1.5rem] h-14">
-                    <TabsTrigger value="transmissions" className="rounded-xl px-6 data-[state=active]:bg-slate-900 data-[state=active]:text-white font-black text-[11px] uppercase tracking-widest transition-all text-slate-400">
-                        <History className="h-4 w-4 mr-2" /> Transmisiones
+                    <TabsTrigger value="transmissions" className="rounded-xl px-6 data-[state=active]:bg-slate-900 data-[state=active]:text-white font-black text-[11px] uppercase tracking-widest transition-all text-slate-400 flex items-center gap-2">
+                        <History className="h-4 w-4" /> Transmisiones
+                        {txTotal > 0 && <span className="h-5 min-w-5 px-1.5 rounded-full bg-indigo-100 text-indigo-600 data-[state=active]:bg-white/20 data-[state=active]:text-white text-[9px] font-black flex items-center justify-center">{txTotal}</span>}
                     </TabsTrigger>
-                    <TabsTrigger value="resolutions" className="rounded-xl px-6 data-[state=active]:bg-slate-900 data-[state=active]:text-white font-black text-[11px] uppercase tracking-widest transition-all text-slate-400">
-                        <FileCode className="h-4 w-4 mr-2" /> Resoluciones
+                    <TabsTrigger value="resolutions" className="rounded-xl px-6 data-[state=active]:bg-slate-900 data-[state=active]:text-white font-black text-[11px] uppercase tracking-widest transition-all text-slate-400 flex items-center gap-2">
+                        <FileCode className="h-4 w-4" /> Resoluciones
+                        {(resolutions?.length ?? 0) > 0 && <span className="h-5 min-w-5 px-1.5 rounded-full bg-slate-100 text-slate-500 text-[9px] font-black flex items-center justify-center">{resolutions!.length}</span>}
                     </TabsTrigger>
-                    <TabsTrigger value="config" className="rounded-xl px-6 data-[state=active]:bg-slate-900 data-[state=active]:text-white font-black text-[11px] uppercase tracking-widest transition-all text-slate-400">
-                        <Settings className="h-4 w-4 mr-2" /> Configuración
+                    <TabsTrigger value="config" className="rounded-xl px-6 data-[state=active]:bg-slate-900 data-[state=active]:text-white font-black text-[11px] uppercase tracking-widest transition-all text-slate-400 flex items-center gap-2">
+                        <Settings className="h-4 w-4" /> Configuración
                     </TabsTrigger>
                 </TabsList>
 

@@ -75,6 +75,21 @@ export const crmService = {
         return data as Opportunity;
     },
 
+    async getOpportunityById(client: SupabaseClient, id: string) {
+        const { data, error } = await client
+            .from('crm_opportunities')
+            .select(`
+                *,
+                leads (name, company_name, email, phone, status),
+                parties (legal_name, trade_name, email, phone)
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return data as any;
+    },
+
     async updateStage(client: SupabaseClient, id: string, stage: OpportunityStage) {
         const { data, error } = await client
             .from('crm_opportunities')

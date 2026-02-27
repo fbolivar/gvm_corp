@@ -3,6 +3,7 @@ import { employeeService } from "@/features/payroll/services/employeeService"
 import { financeService } from "@/features/payroll/services/financeService"
 import { redirect } from "next/navigation"
 import { AttendanceWidget } from "@/features/payroll/components/AttendanceWidget"
+import { PayrollSlipButton } from "@/features/payroll/components/PayrollSlipButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import {
     Wallet,
@@ -120,9 +121,15 @@ export default async function MyPayrollPage() {
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Neto Liquidado</p>
                                             <p className="text-3xl font-black text-emerald-600 italic tracking-tighter">${(Number((doc as any).total) || 0).toLocaleString('es-CO')}</p>
                                         </div>
-                                        <Button variant="outline" className="h-16 w-16 rounded-2xl border-none bg-slate-50 hover:bg-slate-900 text-slate-400 hover:text-white transition-all duration-500 group/btn">
-                                            <Download className="h-6 w-6 group-hover/btn:translate-y-1 transition-transform" />
-                                        </Button>
+                                        <PayrollSlipButton
+                                            docNumber={doc.number || ''}
+                                            issueDate={doc.issue_date || ''}
+                                            netAmount={Number((doc as any).total) || 0}
+                                            employeeName={employee.party?.legal_name || ''}
+                                            salary={Number(employee.salary) || 0}
+                                            contractType={employee.contract_type || ''}
+                                            companyName={'GVM Corp'}
+                                        />
                                     </div>
                                 </div>
                             ))}
