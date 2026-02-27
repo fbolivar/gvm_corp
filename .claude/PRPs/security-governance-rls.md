@@ -1,5 +1,9 @@
 # PRP: Seguridad y Gobernanza (RLS & Roles Matrix)
 
+> **Estado**: ✅ COMPLETADO
+> **Fecha**: 2026-02-27
+> **Migración**: `20260227050000_governance_complete.sql`
+
 ## 🎯 Objetivo
 Implementar un sistema de seguridad robusto basado en roles específicos, perfiles de acceso matriciales por módulo y segmentación por zonas geográficas, asegurando que el SaaS no asuma permisos de administrador por defecto.
 
