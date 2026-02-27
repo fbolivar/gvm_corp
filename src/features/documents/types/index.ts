@@ -61,6 +61,7 @@ export const documentSchema = z.object({
     subtotal: z.number().default(0),
     taxes: z.number().default(0),
     total: z.number().default(0),
+    balance: z.number().default(0).optional(),
 
     status: DocumentStatusEnum.default('DRAFT'),
 

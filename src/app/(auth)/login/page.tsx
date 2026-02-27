@@ -19,7 +19,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex items-center gap-4 relative z-10">
           <div className="h-14 w-14 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden">
-            <Image src="/logo-gvm.png" alt="GVM" width={36} height={36} className="rounded-lg" />
+            <Image src="/logo-gvm.png" alt="GVM" width={36} height={36} className="rounded-lg w-auto h-auto" />
           </div>
           <div>
             <p className="text-slate-900 font-black italic text-xl tracking-tighter">GVM S.A.S</p>
@@ -69,7 +69,7 @@ export default function LoginPage() {
           {/* Mobile-only logo */}
           <div className="lg:hidden flex items-center gap-3 mb-4">
             <div className="h-12 w-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
-              <Image src="/logo-gvm.png" alt="GVM" width={32} height={32} className="rounded-lg" />
+              <Image src="/logo-gvm.png" alt="GVM" width={32} height={32} className="rounded-lg w-auto h-auto" />
             </div>
             <div>
               <p className="text-slate-900 font-black italic text-lg tracking-tighter">GVM S.A.S</p>

@@ -29,11 +29,10 @@ interface JournalLine {
 
 interface JournalEntry {
     id: string;
-    entry_number: string | null;
+    number: string | null;
     entry_date: string;
     description: string;
-    reference: string | null;
-    source_type: string | null;
+    document_id: string | null;
     lines: JournalLine[];
 }
 
@@ -55,11 +54,10 @@ export default async function JournalBookPage({
         .from('journal_entries')
         .select(`
             id,
-            entry_number,
+            number,
             entry_date,
             description,
-            reference,
-            source_type,
+            document_id,
             lines:journal_lines(
                 debit,
                 credit,
@@ -93,16 +91,8 @@ export default async function JournalBookPage({
 
     const fmt = (n: number) => `$${n.toLocaleString('es-CO', { minimumFractionDigits: 0 })}`;
 
-    const sourceLabel = (type: string | null): string => {
-        const map: Record<string, string> = {
-            'INVOICE': 'Factura',
-            'BILL': 'Factura Proveedor',
-            'RECEIPT': 'Recibo',
-            'PAYMENT': 'Pago',
-            'PAYROLL': 'Nómina',
-            'MANUAL': 'Manual',
-        };
-        return map[type || ''] || type || 'Manual';
+    const sourceLabel = (docId: string | null): string => {
+        return docId ? 'Automático' : 'Manual';
     };
 
     return (
@@ -207,10 +197,10 @@ export default async function JournalBookPage({
                                     <div>
                                         <div className="flex items-center gap-3">
                                             <h4 className="text-sm font-black text-slate-900 tracking-tight">
-                                                {entry.entry_number ? `Asiento #${entry.entry_number}` : `Registro ${entry.id.slice(0, 8)}`}
+                                                {entry.number ? `Asiento #${entry.number}` : `Registro ${entry.id.slice(0, 8)}`}
                                             </h4>
                                             <Badge className="bg-indigo-50 text-indigo-600 border-none text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-0.5 rounded-md">
-                                                {sourceLabel(entry.source_type)}
+                                                {sourceLabel(entry.document_id)}
                                             </Badge>
                                         </div>
                                         <p className="text-[10px] text-slate-400 font-bold mt-0.5">{entry.description}</p>
@@ -221,11 +211,6 @@ export default async function JournalBookPage({
                                         <Calendar className="h-3 w-3" />
                                         {entry.entry_date}
                                     </div>
-                                    {entry.reference && (
-                                        <Badge className="bg-slate-100 text-slate-500 border-none text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-0.5 rounded-md">
-                                            Ref: {entry.reference}
-                                        </Badge>
-                                    )}
                                 </div>
                             </div>
 

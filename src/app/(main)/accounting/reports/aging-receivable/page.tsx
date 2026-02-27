@@ -38,10 +38,10 @@ export default async function AgingReceivablePage({
     // Fetch Pending Invoices (Ventas por cobrar)
     const { data: invoices, error } = await supabase
         .from('documents')
-        .select('*, party:parties(legal_name, doc_number)')
+        .select('id, number, doc_type, total, status, issue_date, due_date, party_id, party:parties(legal_name, doc_number)')
         .eq('doc_type', 'INVOICE')
-        .gt('balance', 0)
-        .order('due_date', { ascending: true });
+        .gt('total', 0)
+        .order('issue_date', { ascending: true });
 
     if (error) throw error;
 
@@ -56,7 +56,8 @@ export default async function AgingReceivablePage({
     };
 
     const classifiedInvoices = (invoices || []).map(inv => {
-        const dueDate = new Date(inv.due_date);
+        const rawDueDate = (inv as any).due_date || inv.issue_date;
+        const dueDate = new Date(rawDueDate);
         const diffTime = today.getTime() - dueDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -66,18 +67,19 @@ export default async function AgingReceivablePage({
         else if (diffDays > 30) category = 'overdue30';
         else category = 'current';
 
-        const balance = Number(inv.balance) || 0;
+        const balance = Number(inv.total) || 0;
         agingData[category].amount += balance;
         agingData[category].count += 1;
 
         return {
             ...inv,
             daysOverdue: diffDays,
-            category
+            category,
+            party: Array.isArray(inv.party) ? inv.party[0] : inv.party
         };
     });
 
-    const totalReceivable = classifiedInvoices.reduce((sum, inv) => sum + (Number(inv.balance) || 0), 0);
+    const totalReceivable = classifiedInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
     const criticalAmount = agingData.overdue90.amount + agingData.overdue60.amount;
     const criticalPercent = totalReceivable > 0 ? (criticalAmount / totalReceivable) * 100 : 0;
 
@@ -195,7 +197,7 @@ export default async function AgingReceivablePage({
                                         <span className="text-xs font-bold text-slate-400 tabular-nums line-through decoration-slate-200">{fmt(Number(inv.total))}</span>
                                     </td>
                                     <td className="px-10 py-6 text-right">
-                                        <span className="text-sm font-black text-slate-900 tabular-nums italic">{fmt(Number(inv.balance))}</span>
+                                        <span className="text-sm font-black text-slate-900 tabular-nums italic">{fmt(Number(inv.total))}</span>
                                     </td>
                                     <td className="px-10 py-6 text-center">
                                         <Badge className={cn(

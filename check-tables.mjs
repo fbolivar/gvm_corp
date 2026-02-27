@@ -14,20 +14,28 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-async function checkTables() {
-    const tables = ['collection_agent_config', 'collection_actions', 'debtor_profiles', 'app_notifications'];
-    for (const table of tables) {
-        const { error } = await supabase.from(table).select('*').limit(1);
-        if (error) {
-            if (error.code === '42P01') {
-                console.log(`Tabla ${table}: NO EXISTE`);
+async function introspectDocuments() {
+    console.log("🔍 Introspeccionando tabla 'documents'...");
+
+    const { data: cols, error: colError } = await supabase.rpc('get_portal_invoice', { doc_id: '00000000-0000-0000-0000-000000000000' });
+
+    if (colError) {
+        console.log("❌ Error al llamar get_portal_invoice:", colError.message);
+        console.log("Código de error:", colError.code);
+
+        // Try individual columns
+        const columns = ['id', 'number', 'total', 'due_date', 'status', 'party_id', 'tenant_id', 'balance'];
+        for (const col of columns) {
+            const { error } = await supabase.from('documents').select(col).limit(1);
+            if (error) {
+                console.log(`Column '${col}': MISSING - ${error.message}`);
             } else {
-                console.log(`Tabla ${table}: Error ${error.code} - ${error.message}`);
+                console.log(`Column '${col}': EXISTS`);
             }
-        } else {
-            console.log(`Tabla ${table}: EXISTE`);
         }
+    } else {
+        console.log("✅ get_portal_invoice funciona (retornó vacío como esperado).");
     }
 }
 
-checkTables()
+introspectDocuments()

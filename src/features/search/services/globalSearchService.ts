@@ -32,14 +32,28 @@ export const globalSearchService = {
         if (normalizedQuery.length < 2) return [];
 
         // 1. Database Search (Consolidated RPC)
-        const { data: dbResults, error } = await client
+        let { data: dbResults, error } = await client
             .rpc('perform_global_search', {
                 search_query: normalizedQuery,
-                category_filter: categoryFilter === 'HELP' ? 'NONE' : categoryFilter // If help, we don't need DB results or we wait for local
+                category_filter: categoryFilter === 'HELP' ? 'NONE' : categoryFilter
             });
 
         if (error) {
-            console.error('Search error:', error);
+            console.error('Search RPC error (using fallback):', error.message);
+
+            // Fallback: search in common tables if RPC is missing or fails
+            const fallbackResults: SearchResult[] = [];
+
+            if (!categoryFilter || categoryFilter === 'PRODUCT') {
+                const { data: prods } = await client.from('products').select('id, name, sku').ilike('name', `%${normalizedQuery}%`).limit(3);
+                prods?.forEach(p => fallbackResults.push({ id: p.id, title: p.name, subtitle: p.sku, category: 'PRODUCT', link: `/inventory?search=${p.sku}` }));
+            }
+            if (!categoryFilter || categoryFilter === 'PARTY') {
+                const { data: parties } = await client.from('parties').select('id, legal_name, doc_number').ilike('legal_name', `%${normalizedQuery}%`).limit(3);
+                parties?.forEach(p => fallbackResults.push({ id: p.id, title: p.legal_name, subtitle: p.doc_number, category: 'PARTY', link: `/parties/${p.id}` }));
+            }
+
+            dbResults = fallbackResults;
         }
 
         const consolidatedDbResults: SearchResult[] = (dbResults as any[]) || [];

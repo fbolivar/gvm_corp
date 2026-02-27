@@ -27,7 +27,17 @@ export const productService = {
             p_search: filters.search || ''
         }, { count: 'exact' });
 
-        if (error) throw error;
+        if (error) {
+            // Fallback: RPC may not be deployed yet — query products directly
+            console.error("get_products_with_stock RPC unavailable:", error.message, "— using direct query fallback");
+            const { data: fallbackData, error: fbErr, count: fbCount } = await query
+                .range(from, from + filters.per_page - 1)
+                .order('name');
+            if (fbErr) throw fbErr;
+            const fallbackMapped = (fallbackData as any[]).map(p => ({ ...p, stock_qty: 0, total_qty: 0 }));
+            return { data: fallbackMapped as Product[], count: fbCount || 0 };
+        }
+
         // RPC returns total_qty, map to stock_qty for UI
         const mappedData = (data as any[]).map(p => ({
             ...p,

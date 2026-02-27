@@ -1,0 +1,22 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ≡ƒñû agentic secret storage: https://dotenvx.com/as2
+--- Probing documents ---
+documents.id: [EXISTS]
+documents.number: [EXISTS]
+documents.total: [EXISTS]
+documents.issue_date: [EXISTS]
+documents.due_date: [EXISTS]
+documents.balance: [MISSING] column documents.balance does not exist
+documents.status: [EXISTS]
+--- Probing treasury_accounts ---
+treasury_accounts.id: [EXISTS]
+treasury_accounts.name: [EXISTS]
+treasury_accounts.balance: [EXISTS]
+treasury_accounts.type: [EXISTS]
+treasury_accounts.bank_name: [EXISTS]
+treasury_accounts.account_number: [EXISTS]
+--- Probing treasury_transactions ---
+treasury_transactions.id: [EXISTS]
+treasury_transactions.amount: [EXISTS]
+treasury_transactions.date: [EXISTS]
+treasury_transactions.transaction_type: [EXISTS]
+treasury_transactions.type: [MISSING] column treasury_transactions.type does not exist

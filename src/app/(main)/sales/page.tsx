@@ -40,19 +40,26 @@ export default async function SalesDashboard() {
     let error: string | null = null;
 
     try {
-        const [leadsRes, quotesResult, ordersResult, invoicesResult] = await Promise.all([
+        const [leadsRes, quotesResult, ordersResult, invoicesResult] = await Promise.allSettled([
             crmService.getLeads(supabase),
             documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'QUOTATION' }),
             documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'SALES_ORDER' }),
             documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'INVOICE' })
         ]);
 
-        leads = leadsRes || [];
-        quotes = quotesResult.data || [];
-        orders = ordersResult.data || [];
-        invoices = invoicesResult.data || [];
+        if (leadsRes.status === 'fulfilled') leads = leadsRes.value || [];
+        else console.error("Error loading leads:", leadsRes.reason?.message || leadsRes.reason?.code || leadsRes.reason);
+
+        if (quotesResult.status === 'fulfilled') quotes = quotesResult.value.data || [];
+        else console.error("Error loading quotes:", quotesResult.reason?.message || quotesResult.reason?.code || quotesResult.reason);
+
+        if (ordersResult.status === 'fulfilled') orders = ordersResult.value.data || [];
+        else console.error("Error loading orders:", ordersResult.reason?.message || ordersResult.reason?.code || ordersResult.reason);
+
+        if (invoicesResult.status === 'fulfilled') invoices = invoicesResult.value.data || [];
+        else console.error("Error loading invoices:", invoicesResult.reason?.message || invoicesResult.reason?.code || invoicesResult.reason);
     } catch (err: any) {
-        console.error("Error fetching sales data:", err);
+        console.error("Error fetching sales data:", err?.message || err?.code || err);
         error = err.message || "Error al cargar datos comerciales";
     }
 

@@ -64,7 +64,7 @@ export const portfolioAgentService = {
         const { data, error } = await client
             .from('documents')
             .select(`
-                *,
+                id, number, total, due_date, issue_date, status, tenant_id,
                 party:parties(
                     id, 
                     legal_name, 

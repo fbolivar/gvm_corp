@@ -30,26 +30,59 @@ export default function DebtorPortalPage() {
 
     const fetchDocumentInfo = async () => {
         try {
-            // Nota: En un sistema real, esto debería estar protegido por un token o hash
-            // Para este demo/implementación inicial, usamos el ID directo si es accesible
-            const { data, error } = await supabase
+            // Priority: Use the RPC for SECURITY DEFINER access
+            const { data: rpcData, error: rpcError } = await supabase
                 .rpc('get_portal_invoice', { doc_id: documentId })
                 .single()
 
-            if (error) throw error
-            const invoiceData = data as any;
+            let invoiceData: any = null;
+
+            if (rpcError) {
+                console.warn("RPC failed, attempting direct fetch (Check RLS policies):", rpcError.message);
+
+                // Fallback: Direct fetch
+                const { data: directData, error: directError } = await supabase
+                    .from('documents')
+                    .select('id, number, total, due_date, issue_date, status, party_id, tenant_id, tenant:tenants(name), party:parties(legal_name)')
+                    .eq('id', documentId)
+                    .single();
+
+                if (directError) {
+                    console.error("Critical: Both RPC and Direct fetch failed", directError);
+                    throw rpcError; // Propagate the original RPC error for context
+                }
+
+                // Map direct data to expected structure
+                const d = directData as any;
+                invoiceData = {
+                    id: d.id,
+                    number: d.number,
+                    total: d.total,
+                    due_date: d.due_date,
+                    status: d.status,
+                    party_id: d.party_id,
+                    tenant_id: d.tenant_id,
+                    tenant_name: d.tenant?.name,
+                    party_name: d.party?.legal_name
+                };
+            } else {
+                invoiceData = rpcData;
+            }
+
+            if (!invoiceData) throw new Error("Factura no encontrada");
+
             setDocument({
                 id: invoiceData.id,
                 number: invoiceData.number,
                 total: invoiceData.total,
-                due_date: invoiceData.due_date,
+                due_date: invoiceData.due_date || invoiceData.issue_date,
                 status: invoiceData.status,
                 party_id: invoiceData.party_id,
                 tenant_id: invoiceData.tenant_id,
-                tenant: { name: invoiceData.tenant_name },
-                party: { legal_name: invoiceData.party_name }
+                tenant: { name: invoiceData.tenant_name || invoiceData.tenant?.name },
+                party: { legal_name: invoiceData.party_name || invoiceData.party?.legal_name }
             })
-            setReportData(prev => ({ ...prev, amount: invoiceData.total.toString() }))
+            setReportData(prev => ({ ...prev, amount: (invoiceData.total || 0).toString() }))
         } catch (error) {
             console.error(error)
             toast.error("No se pudo cargar la información de la factura")

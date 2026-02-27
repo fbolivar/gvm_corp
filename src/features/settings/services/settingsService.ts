@@ -4,10 +4,41 @@ export interface TeamMember {
     id: string;
     user_id: string;
     role: string;
+    role_id?: string;
+    zone_id?: string;
+    role_name?: string;
+    zone_name?: string;
     status: string;
     created_at: string;
     email: string;
     full_name: string;
+}
+
+export interface AppRole {
+    id: string;
+    name: string;
+    description?: string;
+}
+
+export interface AppModule {
+    id: string;
+    key: string;
+    name: string;
+    icon?: string;
+}
+
+export interface RolePermission {
+    role_id: string;
+    module_key: string;
+    can_view: boolean;
+    can_edit: boolean;
+}
+
+export interface Zone {
+    id: string;
+    tenant_id: string;
+    name: string;
+    description?: string;
 }
 
 export interface TenantInfo {
@@ -204,7 +235,7 @@ export const settingsService = {
         return inviteData.user;
     },
 
-    async addExistingUserToTeam(supabase: SupabaseClient, email: string, role: string) {
+    async addExistingUserToTeam(supabase: SupabaseClient, email: string, role: string, zoneId?: string) {
         // Get tenant
         const { data: tenant } = await supabase
             .from('tenants')
@@ -218,7 +249,8 @@ export const settingsService = {
         const { data, error } = await supabase.rpc('add_user_to_tenant_by_email', {
             p_email: email,
             p_tenant_id: tenant.id,
-            p_role: role
+            p_role: role,
+            p_zone_id: zoneId || null
         });
 
         if (error) throw error;
@@ -229,6 +261,16 @@ export const settingsService = {
         const { data, error } = await supabase.rpc('update_team_member_role', {
             p_membership_id: membershipId,
             p_new_role: role
+        });
+
+        if (error) throw error;
+        return data;
+    },
+
+    async updateTeamMemberZone(supabase: SupabaseClient, membershipId: string, zoneId: string | null) {
+        const { data, error } = await supabase.rpc('update_team_member_zone', {
+            p_membership_id: membershipId,
+            p_new_zone_id: zoneId
         });
 
         if (error) throw error;
@@ -323,5 +365,79 @@ export const settingsService = {
 
         await this.updateTenantInfo(supabase, tenantId, { logo_url: publicUrl });
         return publicUrl;
+    },
+
+    // ==========================================
+    // Governance & Zones
+    // ==========================================
+
+    async getAppRoles(supabase: SupabaseClient): Promise<AppRole[]> {
+        const { data, error } = await supabase
+            .from('app_roles')
+            .select('*')
+            .order('name');
+        if (error) throw error;
+        return data || [];
+    },
+
+    async getAppModules(supabase: SupabaseClient): Promise<AppModule[]> {
+        const { data, error } = await supabase
+            .from('app_modules')
+            .select('*')
+            .order('name');
+        if (error) throw error;
+        return data || [];
+    },
+
+    async getRolePermissions(supabase: SupabaseClient): Promise<RolePermission[]> {
+        const { data, error } = await supabase
+            .from('role_permissions')
+            .select('*');
+        if (error) throw error;
+        return data || [];
+    },
+
+    async updateRolePermission(supabase: SupabaseClient, role_id: string, module_key: string, can_view: boolean) {
+        // Usamos RPC con SECURITY DEFINER para bypasear las restricciones RLS
+        // La función upsert_role_permission existe en la migración 20260226150000
+        const { error } = await supabase.rpc('upsert_role_permission', {
+            p_role_id: role_id,
+            p_module_key: module_key,
+            p_can_view: can_view
+        });
+        if (error) {
+            // Fallback: intento directo si la RPC no existe aún
+            const { error: upsertError } = await supabase
+                .from('role_permissions')
+                .upsert({ role_id, module_key, can_view, can_edit: can_view }, { onConflict: 'role_id,module_key' });
+            if (upsertError) throw upsertError;
+        }
+    },
+
+    async getZones(supabase: SupabaseClient): Promise<Zone[]> {
+        const { data, error } = await supabase
+            .from('zones')
+            .select('*')
+            .order('name');
+        if (error) throw error;
+        return data || [];
+    },
+
+    async createZone(supabase: SupabaseClient, tenantId: string, name: string) {
+        const { data, error } = await supabase
+            .from('zones')
+            .insert({ tenant_id: tenantId, name })
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteZone(supabase: SupabaseClient, zoneId: string) {
+        const { error } = await supabase
+            .from('zones')
+            .delete()
+            .eq('id', zoneId);
+        if (error) throw error;
     }
 };

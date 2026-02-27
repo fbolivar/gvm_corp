@@ -89,3 +89,16 @@ export async function convertLeadToOpportunityAction(leadId: string, partyData: 
         return { error: error.message };
     }
 }
+
+export async function createOpportunityAction(data: any) {
+    const supabase = await createClient();
+
+    try {
+        const opportunity = await crmService.createOpportunity(supabase, data);
+        revalidatePath('/crm/pipeline');
+        revalidatePath('/crm');
+        return { success: true, opportunityId: opportunity.id };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}

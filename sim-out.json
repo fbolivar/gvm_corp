@@ -1,0 +1,11 @@
+{
+  "roleName": "ADMINISTRADOR BODEGA",
+  "isHighLevel": false,
+  "permsLen": 15,
+  "permMap": {
+    "accounting": true,
+    "inventory": true,
+    "payroll": true,
+    "purchasing": true
+  }
+}

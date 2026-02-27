@@ -37,10 +37,10 @@ export default async function AgingPayablePage({
     // Fetch Pending Vendor Bills (Cuentas por pagar)
     const { data: bills, error } = await supabase
         .from('documents')
-        .select('*, party:parties(legal_name, doc_number)')
+        .select('id, number, doc_type, total, status, issue_date, due_date, party_id, party:parties(legal_name, doc_number)')
         .eq('doc_type', 'VENDOR_BILL')
-        .gt('balance', 0)
-        .order('due_date', { ascending: true });
+        .gt('total', 0)
+        .order('issue_date', { ascending: true });
 
     if (error) throw error;
 
@@ -55,7 +55,8 @@ export default async function AgingPayablePage({
     };
 
     const classifiedBills = (bills || []).map(bill => {
-        const dueDate = new Date(bill.due_date);
+        const rawDueDate = (bill as any).due_date || bill.issue_date;
+        const dueDate = new Date(rawDueDate);
         const diffTime = today.getTime() - dueDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -65,18 +66,19 @@ export default async function AgingPayablePage({
         else if (diffDays > 30) category = 'overdue30';
         else category = 'current';
 
-        const balance = Number(bill.balance) || 0;
+        const balance = Number(bill.total) || 0;
         agingData[category].amount += balance;
         agingData[category].count += 1;
 
         return {
             ...bill,
             daysOverdue: diffDays,
-            category
+            category,
+            party: Array.isArray(bill.party) ? bill.party[0] : bill.party
         };
     });
 
-    const totalPayable = classifiedBills.reduce((sum, b) => sum + (Number(b.balance) || 0), 0);
+    const totalPayable = classifiedBills.reduce((sum, b) => sum + (Number(b.total) || 0), 0);
     const criticalAmount = agingData.overdue90.amount + agingData.overdue60.amount;
 
     const fmt = (n: number) => `$${n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -192,7 +194,7 @@ export default async function AgingPayablePage({
                                         </div>
                                     </td>
                                     <td className="px-10 py-6 text-right">
-                                        <span className="text-sm font-black text-slate-900 tabular-nums italic">{fmt(Number(bill.balance))}</span>
+                                        <span className="text-sm font-black text-slate-900 tabular-nums italic">{fmt(Number(bill.total))}</span>
                                     </td>
                                     <td className="px-10 py-6 text-center">
                                         <Badge className={cn(

@@ -1,0 +1,18 @@
+﻿[dotenv@17.3.1] injecting env (2) from .env.local -- tip: ≡ƒ¢á∩╕Å  run anywhere with `dotenvx run -- yourcommand`
+≡ƒöæ URL: https://qoivnsnugfblfebrpifq.supabase.co
+≡ƒöæ Service Role Key disponible: false
+≡ƒöæ Usando: ANON KEY (puede fallar en escritura)
+
+=== DIAGN├ôSTICO DE GOBERNANZA ===
+
+Γ£à app_roles: 0 roles encontrados
+
+Γ£à app_modules: 0 m├│dulos encontrados
+
+Γ£à role_permissions: 0 filas encontradas
+   - 0 permisos activos (can_view=true)
+   - 0 permisos inactivos
+
+--- PRUEBA DE ESCRITURA (toggle) ---
+
+=== FIN DEL DIAGN├ôSTICO ===

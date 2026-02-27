@@ -76,3 +76,11 @@ export interface FinancialNode {
     level: number;
     children: FinancialNode[];
 }
+
+export interface ReportingFilters {
+    startDate?: string;
+    endDate?: string;
+    accountId?: string;
+    partyId?: string;
+    search?: string;
+}

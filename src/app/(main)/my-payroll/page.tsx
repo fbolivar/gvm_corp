@@ -43,7 +43,7 @@ export default async function MyPayrollPage() {
     const [loans, benefits, documents] = await Promise.all([
         financeService.getEmployeeLoans(supabase, employee.id!),
         financeService.getEmployeeBenefits(supabase, employee.id!),
-        supabase.from('documents').select('*').eq('party_id', employee.party_id).eq('doc_type', 'PAYROLL').order('issue_date', { ascending: false }).limit(5)
+        supabase.from('documents').select('id, number, issue_date, total, status').eq('party_id', employee.party_id).eq('doc_type', 'PAYROLL').order('issue_date', { ascending: false }).limit(5)
     ])
 
     return (

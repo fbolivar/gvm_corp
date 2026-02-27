@@ -70,21 +70,31 @@ export const analyticsService = {
         let currentBalance = accounts?.reduce((sum, acc) => sum + Number(acc.balance), 0) || 0;
 
         // 2. Obtener documentos pendientes (AR y AP)
-        // Nota: Para una implementación real, restaríamos abonos de payment_allocations
-        // Por simplificación inicial, usamos el total del documento si no está cobrado/pagado
-        const { data: docs, error: docsError } = await client
+        // Nota: Si due_date no existe (Error 42703), usamos issue_date como fallback en la lógica local
+        // pero evitamos el filtro directo en SQL si no estamos seguros.
+        // Para este parche, seleccionamos sin filtrar por due_date en SQL si dudamos,
+        // o seleccionamos issue_date.
+        let query = client
             .from('documents')
-            .select('*')
+            .select('balance, total, doc_type, status, issue_date, due_date')
             .in('doc_type', ['INVOICE', 'VENDOR_BILL'])
-            .in('status', ['ACCEPTED', 'SIGNED'])
-            .lte('due_date', format(endDate, 'yyyy-MM-dd'));
+            .in('status', ['ACCEPTED', 'SIGNED']);
 
-        if (docsError) throw docsError;
+        const { data: docs, error: docsError } = await query;
+
+        if (docsError) {
+            console.error("Cash flow docs error:", docsError.message);
+            return [];
+        }
 
         const dailyDelta = new Map<string, { inflow: number; outflow: number }>();
 
         docs?.forEach(doc => {
-            const dateStr = doc.due_date;
+            const rawDueDate = (doc as any).due_date || (doc as any).issue_date;
+            if (!rawDueDate) return;
+
+            const dateStr = typeof rawDueDate === 'string' ? rawDueDate.split('T')[0] : format(new Date(rawDueDate), 'yyyy-MM-dd');
+
             const delta = dailyDelta.get(dateStr) || { inflow: 0, outflow: 0 };
 
             if (doc.doc_type === 'INVOICE') {
@@ -125,7 +135,7 @@ export const analyticsService = {
 
         const { data: docs } = await client
             .from('documents')
-            .select('*')
+            .select('id, number, doc_type, status, total, issue_date, due_date, party_id, tenant_id') // Avoid select(*) which fails on missing columns
             .in('doc_type', ['INVOICE', 'VENDOR_BILL', 'PAYROLL'])
             .in('status', ['ACCEPTED', 'SIGNED']);
 
@@ -140,12 +150,13 @@ export const analyticsService = {
 
         docs?.forEach(doc => {
             const amount = Number(doc.total);
-            const dueDate = new Date(doc.due_date);
+            const rawDueDate = (doc as any).due_date || (doc as any).issue_date;
+            const dueDate = new Date(rawDueDate);
             const diff = differenceInDays(today, dueDate);
             const aging = summary[doc.doc_type === 'INVOICE' ? 'ar_aging' : 'ap_aging'];
 
             if (doc.doc_type === 'INVOICE') summary.total_ar += amount;
-            else summary.total_ap += amount;
+            else if (doc.doc_type === 'VENDOR_BILL') summary.total_ap += amount;
 
             if (diff <= 0) aging.current += amount;
             else if (diff <= 30) aging["1-30"] += amount;
@@ -155,7 +166,12 @@ export const analyticsService = {
         });
 
         summary.net_cash_flow = summary.total_ar - summary.total_ap;
-        summary.top_profitable_products = (await this.getProductProfitability(client)).slice(0, 5);
+        try {
+            summary.top_profitable_products = (await this.getProductProfitability(client)).slice(0, 5);
+        } catch (e) {
+            console.error("Error loading product profitability:", e);
+            summary.top_profitable_products = [];
+        }
 
         // Integrar métricas del Agente AI
         try {

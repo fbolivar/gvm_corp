@@ -97,7 +97,7 @@ export function TreasuryTransactionForm({ type, onSubmit, isLoading }: TreasuryT
                         setSelectedDocs([initialInvoiceId])
                         const targetDoc = docs.find(d => d.id === initialInvoiceId)
                         if (targetDoc) {
-                            form.setValue('amount', targetDoc.balance)
+                            form.setValue('amount', targetDoc.total)
                         }
                     }
                 })

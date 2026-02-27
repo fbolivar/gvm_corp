@@ -13,10 +13,12 @@ import { useRouter } from "next/navigation";
 import { Lock, Mail, Loader2, ArrowRight, Zap, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
+import { SliderCaptcha } from "./SliderCaptcha";
 
 export function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [humanVerified, setHumanVerified] = useState(false);
     const router = useRouter();
 
     const {
@@ -32,6 +34,10 @@ export function LoginForm() {
     });
 
     const onSubmit = async (data: LoginCredentials) => {
+        if (!humanVerified) {
+            toast.error("Por favor desliza el control para verificar que eres humano");
+            return;
+        }
         setIsLoading(true);
         try {
             await authService.signIn(data);
@@ -121,17 +127,25 @@ export function LoginForm() {
                     )}
                 </div>
 
+                {/* Slider CAPTCHA — Verificación Humana */}
+                <SliderCaptcha onVerified={() => setHumanVerified(true)} />
+
                 {/* Submit */}
                 <Button
                     type="submit"
-                    disabled={isLoading}
-                    className="w-full h-16 rounded-2xl bg-slate-900 hover:bg-indigo-600 text-white font-black italic tracking-tight text-lg transition-all duration-500 shadow-lg hover:shadow-xl active:scale-[0.98] group"
+                    disabled={isLoading || !humanVerified}
+                    className={cn(
+                        "w-full h-16 rounded-2xl font-black italic tracking-tight text-lg transition-all duration-500 shadow-lg group",
+                        humanVerified
+                            ? "bg-slate-900 hover:bg-indigo-600 text-white hover:shadow-xl active:scale-[0.98]"
+                            : "bg-slate-100 text-slate-300 cursor-not-allowed shadow-none"
+                    )}
                 >
                     {isLoading ? (
                         <Loader2 className="h-6 w-6 animate-spin" />
                     ) : (
                         <span className="flex items-center gap-3">
-                            ACCEDER AL SISTEMA <ArrowRight className="h-5 w-5 group-hover:translate-x-2 transition-transform" />
+                            ACCEDER AL SISTEMA <ArrowRight className={cn("h-5 w-5 transition-transform", humanVerified && "group-hover:translate-x-2")} />
                         </span>
                     )}
                 </Button>

@@ -48,8 +48,8 @@ export function ExecutiveDashboard() {
                 ]);
                 setSummary(sum);
                 setCashFlow(flow);
-            } catch (error) {
-                console.error("Error loading BI data:", error);
+            } catch (error: any) {
+                console.error("Error loading BI data:", error?.message || error?.code || JSON.stringify(error) || error);
             } finally {
                 setLoading(false);
             }

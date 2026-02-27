@@ -45,7 +45,6 @@ export default async function InventoryPage({ searchParams }: PageProps) {
         supabase
             .from('warehouses')
             .select('*')
-            .eq('status', 'ACTIVE')
             .order('name'),
         inventoryService.getMovementsStats(supabase),
         inventoryService.getInventoryTrends(supabase),

@@ -38,19 +38,26 @@ export const dashboardService = {
         }
 
         // Accounts Receivable Aging
-        const { data: arInvoices } = await client
+        // Fallback for missing due_date and balance columns (Error 42703)
+        const { data: arInvoices, error: arError } = await client
             .from('documents')
-            .select('total, issue_date, due_date, status')
+            .select('balance, total, doc_type, status, issue_date, due_date')
             .eq('doc_type', 'INVOICE')
-            .in('status', ['SENT', 'PARTIAL']);
+            .in('status', ['ACCEPTED', 'SIGNED']);
+
+        if (arError) {
+            console.error("Dashboard Service Error (arInvoices):", arError.message);
+        }
 
         const aging = { current: 0, overdue30: 0, overdue60: 0, overdue90: 0 };
         const now = new Date();
 
         arInvoices?.forEach(inv => {
-            const dueDate = new Date(inv.due_date);
+            // Use due_date if it exists, otherwise fallback to issue_date
+            const rawDueDate = (inv as any).due_date || inv.issue_date;
+            const dueDate = new Date(rawDueDate);
             const diffDays = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 3600 * 24));
-            const total = Number(inv.total) || 0;
+            const total = Number(inv.balance) || Number(inv.total) || 0;
 
             if (diffDays <= 0) aging.current += total;
             else if (diffDays <= 30) aging.overdue30 += total;
@@ -92,7 +99,7 @@ export const dashboardService = {
         // Top Sold Products (Last 30 days)
         const { data: salesLines } = await client
             .from('document_lines')
-            .select('product_id, qty, subtotal, products(name, sku), documents!inner(doc_type, issue_date)')
+            .select('product_id, qty, line_total, products(name, sku), documents!inner(doc_type, issue_date)')
             .eq('documents.doc_type', 'INVOICE')
             .gte('documents.issue_date', firstDayOfMonth);
 
@@ -107,7 +114,7 @@ export const dashboardService = {
                 productSales[line.product_id] = { name: pData.name, sku: pData.sku, qty: 0, total: 0 };
             }
             productSales[line.product_id].qty += Number(line.qty);
-            productSales[line.product_id].total += Number(line.subtotal);
+            productSales[line.product_id].total += Number(line.line_total);
         });
 
         const topProducts = Object.values(productSales)

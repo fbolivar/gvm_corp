@@ -71,7 +71,7 @@ export const treasuryService = {
 
         const { data, error } = await client
             .from('documents')
-            .select('id,number,doc_type,issue_date,due_date,total,balance,status')
+            .select('id,number,doc_type,issue_date,due_date,total,status')
             .eq('party_id', partyId)
             // .eq('doc_type', docType) // In this app we have varied doc_types, let's just use party
             .neq('status', 'SENT') // SENT means finalized/paid in our simulation

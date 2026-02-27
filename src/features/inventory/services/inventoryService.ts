@@ -236,7 +236,62 @@ export const inventoryService = {
             p_search: search
         });
 
-        if (error) throw error;
+        if (error) {
+            console.error("get_inventory_valuation RPC unavailable:", error.message, "— using direct query fallback");
+            // Fallback: calcular valoración directamente desde inventory_movements
+            const { data: fallbackData, error: fbErr } = await client
+                .from('inventory_movements')
+                .select(`
+                    product_id,
+                    qty,
+                    cost,
+                    type,
+                    products!inner(id, name, sku)
+                `);
+
+            if (fbErr) {
+                console.error("Fallback valuation query failed:", fbErr.message);
+                return [];
+            }
+
+            // Agrupar por producto y calcular stock + costo promedio
+            const productMap: Record<string, any> = {};
+            for (const m of (fallbackData as any[])) {
+                const pid = m.product_id;
+                if (!productMap[pid]) {
+                    productMap[pid] = {
+                        product_id: pid,
+                        product_name: m.products?.name || 'Desconocido',
+                        sku: m.products?.sku || '',
+                        total_qty: 0,
+                        total_cost: 0,
+                        movement_count: 0
+                    };
+                }
+                const delta = ['IN', 'TRANSFER'].includes(m.type) ? Number(m.qty) : -Number(m.qty);
+                productMap[pid].total_qty += delta;
+                productMap[pid].total_cost += Number(m.cost) * Number(m.qty);
+                productMap[pid].movement_count += 1;
+            }
+
+            return Object.values(productMap)
+                .filter(p => {
+                    if (search) {
+                        const s = search.toLowerCase();
+                        return p.product_name.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s);
+                    }
+                    return p.total_qty > 0;
+                })
+                .map(p => ({
+                    product_id: p.product_id,
+                    product_name: p.product_name,
+                    sku: p.sku,
+                    total_qty: Math.max(0, p.total_qty),
+                    avg_cost: p.movement_count > 0 ? p.total_cost / p.movement_count : 0,
+                    total_value: Math.max(0, p.total_qty) * (p.movement_count > 0 ? p.total_cost / p.movement_count : 0)
+                }))
+                .sort((a, b) => a.product_name.localeCompare(b.product_name));
+        }
         return data as any[];
     },
 
