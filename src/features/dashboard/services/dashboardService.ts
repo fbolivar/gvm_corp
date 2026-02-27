@@ -20,6 +20,14 @@ export interface DashboardKPIs {
     topProducts: Array<{ name: string; sku: string; qty: number; total: number }>;
 }
 
+export interface PreviousMonthKPIs {
+    totalIncome: number;
+    totalExpenses: number;
+    netProfit: number;
+    accountsReceivable: number;
+    monthInvoicesCount: number;
+}
+
 export const dashboardService = {
     async getKPIs(client: SupabaseClient): Promise<DashboardKPIs> {
         const today = new Date();
@@ -172,5 +180,56 @@ export const dashboardService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async getMonthInvoiceCount(client: SupabaseClient): Promise<number> {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        const { count } = await client
+            .from('documents')
+            .select('*', { count: 'exact', head: true })
+            .in('doc_type', ['INVOICE', 'SALES_ORDER', 'QUOTATION'])
+            .gte('issue_date', firstDayOfMonth);
+        return count || 0;
+    },
+
+    async getPreviousMonthKPIs(client: SupabaseClient): Promise<PreviousMonthKPIs> {
+        const today = new Date();
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().split('T')[0];
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+
+        const { accountingService } = await import('@/features/accounting/services/accountingService');
+
+        let financials = { totalIncome: 0, totalExpenses: 0, netProfit: 0 };
+        try {
+            financials = await accountingService.getProfitAndLoss(client, firstDayLastMonth, lastDayLastMonth);
+        } catch (e: any) {
+            console.error("Error fetching previous month P&L:", e?.message || e);
+        }
+
+        const { data: arInvoices } = await client
+            .from('documents')
+            .select('total')
+            .eq('doc_type', 'INVOICE')
+            .in('status', ['ACCEPTED', 'SIGNED'])
+            .gte('issue_date', firstDayLastMonth)
+            .lte('issue_date', lastDayLastMonth);
+
+        const accountsReceivable = arInvoices?.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0) || 0;
+
+        const { count: monthInvoicesCount } = await client
+            .from('documents')
+            .select('*', { count: 'exact', head: true })
+            .in('doc_type', ['INVOICE', 'SALES_ORDER', 'QUOTATION'])
+            .gte('issue_date', firstDayLastMonth)
+            .lte('issue_date', lastDayLastMonth);
+
+        return {
+            totalIncome: financials.totalIncome,
+            totalExpenses: financials.totalExpenses,
+            netProfit: financials.netProfit,
+            accountsReceivable,
+            monthInvoicesCount: monthInvoicesCount || 0,
+        };
     }
 };

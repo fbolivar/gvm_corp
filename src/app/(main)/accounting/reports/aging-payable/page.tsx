@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { ReportingFilters } from '@/features/accounting/components/ReportingFilters';
+import { AgingChart } from '@/features/accounting/components/charts/AgingChart';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { Card } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
@@ -83,6 +84,20 @@ export default async function AgingPayablePage({
 
     const fmt = (n: number) => `$${n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+    const agingBuckets = [
+        { label: 'Vigente', amount: agingData.current.amount, count: agingData.current.count, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { label: '30-60 días', amount: agingData.overdue30.amount, count: agingData.overdue30.count, color: 'text-orange-500', bg: 'bg-orange-50' },
+        { label: '60-90 días', amount: agingData.overdue60.amount, count: agingData.overdue60.count, color: 'text-rose-500', bg: 'bg-rose-50' },
+        { label: 'Inmediato', amount: agingData.overdue90.amount, count: agingData.overdue90.count, color: 'text-slate-900', bg: 'bg-slate-100' },
+    ];
+    const topCreditors = Object.entries(
+        classifiedBills.reduce((acc: Record<string, number>, bill) => {
+            const name = bill.party?.legal_name || 'Sin nombre';
+            acc[name] = (acc[name] || 0) + (Number(bill.total) || 0);
+            return acc;
+        }, {})
+    ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, amount]) => ({ name, amount }));
+
     return (
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* Header */}
@@ -118,6 +133,9 @@ export default async function AgingPayablePage({
                     <ReportingFilters />
                 </div>
             </div>
+
+            {/* Aging Chart */}
+            <AgingChart buckets={agingBuckets} topDebtors={topCreditors} title="Distribución Pasivos por Vencimiento" />
 
             {/* Aging Categories Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

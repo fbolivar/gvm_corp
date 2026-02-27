@@ -2,13 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 import { accountingService } from '@/features/accounting/services/accountingService';
 import { financialReportService } from '@/features/accounting/services/financialReportService';
 import { settingsService } from '@/features/settings/services/settingsService';
+import { PLChart } from '@/features/accounting/components/charts/PLChart';
 import { HierarchicalFinancialTable } from '@/features/accounting/components/HierarchicalFinancialTable';
 import { ReportingFilters } from '@/features/accounting/components/ReportingFilters';
 import { ReportExportActions } from '@/features/accounting/components/ReportExportActions';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
-import { TrendingUp, TrendingDown, BarChart3, DollarSign, Percent, Info, Activity, ArrowRight } from "lucide-react"
+import { TrendingUp, TrendingDown, BarChart3, DollarSign, Percent, Info, Activity, ArrowRight, Scale } from "lucide-react"
 import { redirect } from 'next/navigation';
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
@@ -16,7 +17,7 @@ import { Button } from "@/shared/components/ui/button"
 export default async function ProfitAndLossPage({
     searchParams
 }: {
-    searchParams: Promise<{ startDate?: string, endDate?: string }>
+    searchParams: Promise<{ startDate?: string, endDate?: string, compareStart?: string, compareEnd?: string }>
 }) {
     const supabase = await createClient();
     const params = await searchParams;
@@ -26,10 +27,15 @@ export default async function ProfitAndLossPage({
 
     const startDate = params.startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     const endDate = params.endDate || new Date().toISOString().split('T')[0];
+    const compareStart = params.compareStart;
+    const compareEnd = params.compareEnd;
 
-    const [data, tenant] = await Promise.all([
+    const [data, tenant, compareData] = await Promise.all([
         accountingService.getProfitAndLoss(supabase, startDate, endDate),
-        settingsService.getTenantInfo(supabase)
+        settingsService.getTenantInfo(supabase),
+        (compareStart && compareEnd)
+            ? accountingService.getProfitAndLoss(supabase, compareStart, compareEnd).catch(() => null)
+            : Promise.resolve(null),
     ]);
 
     const incomeTree = financialReportService.buildHierarchy(data.income);
@@ -37,6 +43,22 @@ export default async function ProfitAndLossPage({
 
     const margin = data.totalIncome > 0 ? ((data.netProfit / data.totalIncome) * 100).toFixed(1) : '0';
     const isProfit = data.netProfit >= 0;
+
+    const calcDelta = (current: number, previous: number) =>
+        previous === 0 ? (current > 0 ? 100 : 0) : ((current - previous) / previous) * 100;
+
+    // Build chart categories: match income and expense lines by account name
+    const incomeMap = new Map(data.income.map((i: { name: string; balance: number }) => [i.name, i.balance]));
+    const expenseMap = new Map(data.expenses.map((e: { name: string; balance: number }) => [e.name, e.balance]));
+    const allAccounts = new Set([...incomeMap.keys(), ...expenseMap.keys()]);
+    const plCategories = Array.from(allAccounts)
+        .map(name => ({
+            name: name.length > 18 ? name.slice(0, 18) + '…' : name,
+            income: Number(incomeMap.get(name) || 0),
+            expense: Number(expenseMap.get(name) || 0),
+        }))
+        .filter(c => c.income > 0 || c.expense > 0)
+        .slice(0, 8);
 
     return (
         <div className="page-container space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -88,6 +110,14 @@ export default async function ProfitAndLossPage({
                     />
                 </div>
             </div>
+
+            {/* P&L Chart */}
+            <PLChart
+                categories={plCategories}
+                totalIncome={data.totalIncome}
+                totalExpenses={data.totalExpenses}
+                netProfit={data.netProfit}
+            />
 
             {/* 🎯 KPI V3 DASHBOARD */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -156,6 +186,53 @@ export default async function ProfitAndLossPage({
                     </div>
                 </div>
             </div>
+
+            {/* 📊 PERIOD COMPARISON */}
+            {compareData && (
+                <div className="bg-white rounded-[3.5rem] p-10 shadow-premium border border-slate-50">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
+                            <Scale className="h-7 w-7" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black italic uppercase tracking-tighter text-slate-950">Comparativa de Períodos</h3>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                {startDate} » {endDate} &nbsp;vs&nbsp; {compareStart} » {compareEnd}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="divide-y divide-slate-50">
+                        {[
+                            { label: 'Ingresos Operativos', current: data.totalIncome, previous: compareData.totalIncome, positiveGood: true },
+                            { label: 'Gastos y Costos', current: data.totalExpenses, previous: compareData.totalExpenses, positiveGood: false },
+                            { label: 'Utilidad Neta', current: data.netProfit, previous: compareData.netProfit, positiveGood: true },
+                        ].map(({ label, current, previous, positiveGood }) => {
+                            const delta = calcDelta(current, previous);
+                            const isImprovement = positiveGood ? delta >= 0 : delta <= 0;
+                            return (
+                                <div key={label} className="grid grid-cols-4 items-center gap-6 py-5">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</span>
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Período Actual</p>
+                                        <span className="text-xl font-black italic text-slate-900 tabular-nums">${current.toLocaleString('es-CO')}</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Período Anterior</p>
+                                        <span className="text-lg font-bold italic text-slate-400 tabular-nums">${previous.toLocaleString('es-CO')}</span>
+                                    </div>
+                                    <Badge className={cn(
+                                        "h-8 px-4 rounded-full border-none font-black text-[10px] tracking-widest w-fit",
+                                        isImprovement ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                                    )}>
+                                        {isImprovement ? <TrendingUp className="h-3 w-3 mr-1.5 inline" /> : <TrendingDown className="h-3 w-3 mr-1.5 inline" />}
+                                        {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+                                    </Badge>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* 🏗️ DETAIL ARCHITECTURE */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">

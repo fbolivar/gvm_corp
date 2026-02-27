@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { dashboardService } from '@/features/dashboard/services/dashboardService';
+import { dashboardService, PreviousMonthKPIs } from '@/features/dashboard/services/dashboardService';
 import { KPICard } from '@/features/dashboard/components/KPICard';
 import { RecentSalesWidget } from '@/features/dashboard/components/RecentSalesWidget';
 import { ActionGrid } from '@/features/dashboard/components/ActionGrid';
@@ -42,11 +42,22 @@ export default async function DashboardPage() {
     // Disparar evaluación de alertas inteligentes (Side effect en DB)
     smartAlertService.evaluateAndTriggerAlerts(supabase).catch(console.error);
 
-    const [kpis, recentActivity, tenant] = await Promise.all([
+    const [kpis, recentActivity, tenant, prevKpis, monthCount] = await Promise.all([
       dashboardService.getKPIs(supabase),
       dashboardService.getRecentActivity(supabase),
-      settingsService.getTenantInfo(supabase)
+      settingsService.getTenantInfo(supabase),
+      dashboardService.getPreviousMonthKPIs(supabase),
+      dashboardService.getMonthInvoiceCount(supabase),
     ]);
+
+    const calcTrend = (current: number, previous: number): number => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 100 * 10) / 10;
+    };
+
+    const trendIncome = calcTrend(kpis.totalIncome, prevKpis.totalIncome);
+    const trendOrders = calcTrend(monthCount, prevKpis.monthInvoicesCount);
+    const trendNetProfit = calcTrend(kpis.netProfit, prevKpis.netProfit);
 
     return (
       <div className="page-container space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -96,25 +107,25 @@ export default async function DashboardPage() {
             title="Facturación Bruta"
             value={`$${kpis.totalIncome.toLocaleString('es-CO')}`}
             icon={TrendingUp}
-            trend={{ value: 12.5, label: "Crecimiento Mensual", isPositive: true }}
+            trend={{ value: Math.abs(trendIncome), label: "vs mes anterior", isPositive: trendIncome >= 0 }}
           />
           <KPICard
             title="Volumen Órdenes"
-            value={recentActivity.length + 120}
+            value={monthCount}
             icon={Briefcase}
-            trend={{ value: 4.2, label: "vs mes anterior", isPositive: true }}
+            trend={{ value: Math.abs(trendOrders), label: "vs mes anterior", isPositive: trendOrders >= 0 }}
           />
           <KPICard
             title="Activos en Stock"
             value={`$${kpis.inventoryValue.toLocaleString('es-CO')}`}
             icon={Package}
-            trend={{ value: 2.1, label: "valoración", isPositive: true }}
+            trend={{ value: 0, label: "valoración actual", isPositive: true }}
           />
           <KPICard
             title="Margen Neto"
             value={`$${kpis.netProfit.toLocaleString('es-CO')}`}
             icon={DollarSign}
-            trend={{ value: 8, label: "crecimiento neto", isPositive: true }}
+            trend={{ value: Math.abs(trendNetProfit), label: "vs mes anterior", isPositive: trendNetProfit >= 0 }}
           />
         </div>
 
@@ -130,7 +141,10 @@ export default async function DashboardPage() {
                   <h4 className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none italic">Gasto Operativo</h4>
                   <div className="flex items-baseline gap-2">
                     <span className="text-xl font-extrabold text-slate-900 tracking-tight italic tabular-nums">${kpis.totalExpenses.toLocaleString('es-CO')}</span>
-                    <Badge className="bg-rose-100 text-rose-600 border-none font-bold text-[7px] uppercase px-1 py-0.5 rounded-full">-2%</Badge>
+                    {prevKpis.totalExpenses > 0 && (() => {
+                      const t = calcTrend(kpis.totalExpenses, prevKpis.totalExpenses);
+                      return <Badge className={`border-none font-bold text-[7px] uppercase px-1 py-0.5 rounded-full ${t <= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>{t > 0 ? '+' : ''}{t}%</Badge>;
+                    })()}
                   </div>
                 </div>
               </Card>
@@ -143,7 +157,7 @@ export default async function DashboardPage() {
                   <h4 className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none italic">Nuevos Clientes</h4>
                   <div className="flex items-baseline gap-2">
                     <span className="text-xl font-extrabold text-slate-900 tracking-tight italic tabular-nums">{kpis.newCustomers}</span>
-                    <Badge className="bg-emerald-100 text-emerald-600 border-none font-bold text-[7px] uppercase px-1 py-0.5 rounded-full">+14%</Badge>
+                    <Badge className="bg-slate-100 text-slate-500 border-none font-bold text-[7px] uppercase px-1 py-0.5 rounded-full">este mes</Badge>
                   </div>
                 </div>
               </Card>

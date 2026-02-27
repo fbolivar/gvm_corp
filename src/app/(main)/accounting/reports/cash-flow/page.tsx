@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { ReportingFilters } from '@/features/accounting/components/ReportingFilters';
+import { CashFlowChart } from '@/features/accounting/components/charts/CashFlowChart';
+import { analyticsService } from '@/features/analytics/services/analyticsService';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { Card } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
@@ -124,9 +126,10 @@ export default async function CashFlowPage({
     const startDate = params.startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     const endDate = params.endDate || new Date().toISOString().split('T')[0];
 
-    const [data, tenant] = await Promise.all([
+    const [data, tenant, cashFlowProjection] = await Promise.all([
         getCashFlowData(supabase, startDate, endDate),
-        settingsService.getTenantInfo(supabase)
+        settingsService.getTenantInfo(supabase),
+        analyticsService.getCashFlowProjection(supabase, 30).catch(() => []),
     ]);
 
     const sections: CashFlowSection[] = [
@@ -215,6 +218,11 @@ export default async function CashFlowPage({
                 </div>
                 <ReportingFilters />
             </div>
+
+            {/* Cash Flow Chart */}
+            {cashFlowProjection.length > 0 && (
+                <CashFlowChart data={cashFlowProjection} title="Proyección de Liquidez (30 días)" />
+            )}
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
