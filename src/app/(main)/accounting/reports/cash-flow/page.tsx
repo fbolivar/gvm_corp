@@ -38,7 +38,7 @@ async function getCashFlowData(supabase: ReturnType<typeof createClient> extends
     // Actividades de Operación: ingresos y egresos de tesorería
     const { data: transactions } = await supabase
         .from('treasury_transactions')
-        .select('type, amount, description, concept')
+        .select('transaction_type, amount, description')
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date', { ascending: true });
@@ -46,9 +46,9 @@ async function getCashFlowData(supabase: ReturnType<typeof createClient> extends
     const txns = transactions || [];
 
     // Classify transactions into cash flow categories
-    const receipts = txns.filter((t: { type: string }) => t.type === 'RECEIPT');
-    const payments = txns.filter((t: { type: string }) => t.type === 'PAYMENT');
-    const transfers = txns.filter((t: { type: string }) => t.type === 'TRANSFER');
+    const receipts = txns.filter((t: { transaction_type: string }) => t.transaction_type === 'RECEIPT');
+    const payments = txns.filter((t: { transaction_type: string }) => t.transaction_type === 'PAYMENT');
+    const transfers = txns.filter((t: { transaction_type: string }) => t.transaction_type === 'TRANSFER');
 
     // Operating Activities
     const operatingInflows = receipts.reduce((sum: number, t: { amount: number }) => sum + t.amount, 0);
