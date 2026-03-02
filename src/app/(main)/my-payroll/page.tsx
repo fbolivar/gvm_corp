@@ -6,18 +6,16 @@ import { redirect } from "next/navigation"
 import { AttendanceWidget } from "@/features/payroll/components/AttendanceWidget"
 import { PayrollSlipButton } from "@/features/payroll/components/PayrollSlipButton"
 import { OvertimePanel } from "@/features/payroll/components/OvertimePanel"
+import { CertificateButtons } from "@/features/payroll/components/CertificateButtons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import {
     Wallet,
     FileText,
-    Calendar,
     TrendingUp,
     ShieldCheck,
     BadgeInfo,
-    Download
 } from "lucide-react"
 import { Badge } from "@/shared/components/ui/badge"
-import { Button } from "@/shared/components/ui/button"
 
 export default async function MyPayrollPage() {
     const supabase = await createClient()
@@ -247,16 +245,18 @@ export default async function MyPayrollPage() {
                     </div>
 
                     {/* QUICK CERTIFICATES */}
-                    <div className="grid gap-4">
-                        <Button className="h-20 w-full rounded-[2rem] bg-indigo-600 hover:bg-indigo-700 text-white font-black italic tracking-tight text-xl shadow-active hover:scale-[1.02] transition-all group flex items-center justify-between px-10 border-none">
-                            CERTIFICADO LABORAL
-                            <Download className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                        <Button variant="outline" className="h-20 w-full rounded-[2rem] bg-white border-2 border-slate-100 text-slate-900 font-black italic tracking-tight text-xl hover:bg-slate-50 transition-all flex items-center justify-between px-10">
-                            CERTIFICADO INGRESOS
-                            <Download className="h-6 w-6 opacity-30" />
-                        </Button>
-                    </div>
+                    <CertificateButtons
+                        data={{
+                            employeeName:      employee.party?.legal_name ?? '',
+                            employeeDoc:       (employee.party as { doc_number?: string } | undefined)?.doc_number ?? '',
+                            employeeDocType:   (employee.party as { doc_type?: string } | undefined)?.doc_type ?? 'C.C.',
+                            contractType:      employee.contract_type,
+                            startDate:         employee.start_date,
+                            salary:            Number(employee.salary),
+                            transportAllowance: employee.transport_allowance,
+                            companyName:       'GVM Corp',
+                        }}
+                    />
                 </aside>
             </div>
         </div>
