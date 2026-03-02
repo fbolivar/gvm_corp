@@ -24,9 +24,13 @@ import {
     Info,
     FileText,
     ChevronRight,
-    ArrowUpRight
+    ArrowUpRight,
+    Link2,
+    Copy,
+    Check
 } from "lucide-react"
 import { emitDianAction } from '@/features/dian/actions'
+import { createPaymentLinkAction } from '@/features/payments/actions'
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { useRouter } from "next/navigation"
@@ -45,6 +49,9 @@ interface DocumentDetailProps {
 export function DocumentDetail({ document, relatedDocuments }: DocumentDetailProps) {
     const router = useRouter();
     const [processing, setProcessing] = useState(false);
+    const [creatingLink, setCreatingLink] = useState(false);
+    const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
 
     const handleEmit = async () => {
         if (!confirm("¿Confirmar emisión oficial a la DIAN? Esta acción generará el XML legal y el CUFE.")) return;
@@ -60,8 +67,45 @@ export function DocumentDetail({ document, relatedDocuments }: DocumentDetailPro
         }
     };
 
+    const handleCreatePaymentLink = async () => {
+        if (!document.id) return;
+        setCreatingLink(true);
+        const result = await createPaymentLinkAction(document.id);
+        setCreatingLink(false);
+
+        if ('error' in result) {
+            alert(`Error al crear link de pago: ${result.error}`);
+            return;
+        }
+
+        setPaymentUrl(result.url);
+        // Copiar al portapapeles automáticamente
+        try {
+            await navigator.clipboard.writeText(result.url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 3000);
+        } catch {
+            // Portapapeles no disponible en contexto no-HTTPS — mostrar URL igualmente
+        }
+    };
+
+    const handleCopyUrl = async () => {
+        if (!paymentUrl) return;
+        try {
+            await navigator.clipboard.writeText(paymentUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 3000);
+        } catch {
+            // silencioso
+        }
+    };
+
     const isSent = document.status === 'SENT';
     const isDraft = document.status === 'DRAFT';
+    const isInvoice = document.doc_type === 'INVOICE';
+    const balance = Number(document.balance ?? document.total ?? 0);
+    // 'PAID' no está en el enum TypeScript actual pero puede existir en DB
+    const canCreatePaymentLink = isInvoice && balance > 0 && (document.status as string) !== 'PAID';
 
     const docTypeLabel: Record<string, string> = {
         'INVOICE': 'Factura de Venta',
@@ -164,6 +208,46 @@ export function DocumentDetail({ document, relatedDocuments }: DocumentDetailPro
                             {processing ? <Loader2 className="mr-3 h-4 w-4 animate-spin" /> : <Send className="mr-3 h-4 w-4" />}
                             Emitir DIAN
                         </Button>
+                    )}
+
+                    {canCreatePaymentLink && !paymentUrl && (
+                        <Button
+                            onClick={handleCreatePaymentLink}
+                            disabled={creatingLink}
+                            variant="outline"
+                            className="h-14 rounded-[1.25rem] border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black px-8 shadow-sm transition-all hover:scale-105 active:scale-95 text-[10px] uppercase tracking-widest"
+                        >
+                            {creatingLink
+                                ? <Loader2 className="mr-3 h-4 w-4 animate-spin" />
+                                : <Link2 className="mr-3 h-4 w-4" />
+                            }
+                            Link de Pago
+                        </Button>
+                    )}
+
+                    {canCreatePaymentLink && paymentUrl && (
+                        <div className="flex items-center gap-2 h-14 bg-emerald-50 border border-emerald-200 rounded-[1.25rem] px-4">
+                            <a
+                                href={paymentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-black text-emerald-700 uppercase tracking-widest hover:underline max-w-[140px] truncate"
+                            >
+                                Ver Link
+                            </a>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={handleCopyUrl}
+                                className="h-8 w-8 rounded-xl text-emerald-600 hover:bg-emerald-100"
+                                title="Copiar URL"
+                            >
+                                {copied
+                                    ? <Check className="h-4 w-4 text-emerald-500" />
+                                    : <Copy className="h-4 w-4" />
+                                }
+                            </Button>
+                        </div>
                     )}
 
                     {isSent && document.doc_type === 'PURCHASE_ORDER' && !relatedDocuments?.children.some(c => c.doc_type === 'VENDOR_BILL') && (
