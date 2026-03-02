@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import { PWARegister } from "@/shared/components/PWARegister"
 
 // Dynamic imports to prevent hydration errors from client-only states (Supabase, Zustand)
 const Sidebar = dynamic(() => import("@/shared/components/layout/Sidebar").then(mod => mod.Sidebar), { ssr: false })
@@ -34,6 +35,9 @@ export default function MainLayout({
 
       {/* AI Floating Assistant */}
       <AIAssistantChat mode="floating" />
+
+      {/* PWA Service Worker Registration */}
+      <PWARegister />
     </div>
   )
 }
