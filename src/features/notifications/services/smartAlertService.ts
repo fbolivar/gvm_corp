@@ -27,6 +27,7 @@ export const smartAlertService = {
             this.checkBankReconciliationPendingAlert(client),
             this.checkFiscalPeriodClosingAlert(client),
             this.checkFixedAssetsNeverDepreciatedAlert(client),
+            this.checkContractsExpiringAlert(client),
         ]);
     },
 
@@ -312,6 +313,40 @@ export const smartAlertService = {
             }, 'MEDIUM');
         } catch (e) {
             console.error('[smartAlerts] fixed_assets_never_depreciated:', e);
+        }
+    },
+
+    // ─── Contracts Expiring ───────────────────────────────────────────────────
+
+    async checkContractsExpiringAlert(client: SupabaseClient) {
+        try {
+            const today = new Date();
+            const in30Days = new Date(today);
+            in30Days.setDate(today.getDate() + 30);
+            const todayStr = today.toISOString().split('T')[0];
+            const in30Str = in30Days.toISOString().split('T')[0];
+
+            const { data: expiring } = await client
+                .from('contracts')
+                .select('id, title, end_date')
+                .eq('status', 'ACTIVE')
+                .gte('end_date', todayStr)
+                .lte('end_date', in30Str);
+
+            if (!expiring || expiring.length === 0) return;
+
+            const count = expiring.length;
+            const sample = expiring.slice(0, 2).map((c: { title: string }) => c.title).join(', ');
+            const suffix = count > 2 ? ` y ${count - 2} más` : '';
+
+            await this.triggerAlert(client, {
+                title: `${count} Contrato${count > 1 ? 's' : ''} por Vencer en 30 Días`,
+                body: `Los siguientes contratos vencen pronto: ${sample}${suffix}. Gestiona la renovación o terminación a tiempo.`,
+                category: 'OPERATIONS',
+                link: '/contracts',
+            }, 'HIGH');
+        } catch (e) {
+            console.error('[smartAlerts] contracts_expiring:', e);
         }
     },
 
