@@ -7,6 +7,7 @@ const Sidebar = dynamic(() => import("@/shared/components/layout/Sidebar").then(
 const MobileNav = dynamic(() => import("@/shared/components/layout/MobileNav").then(mod => mod.MobileNav), { ssr: false })
 const Header = dynamic(() => import("@/shared/components/layout/Header").then(mod => mod.Header), { ssr: false })
 const CommandPalette = dynamic(() => import("@/features/search/components/CommandPalette").then(mod => mod.CommandPalette), { ssr: false })
+const AIAssistantChat = dynamic(() => import("@/features/ai/components/AIAssistantChat").then(mod => mod.AIAssistantChat), { ssr: false })
 
 export default function MainLayout({
   children,
@@ -30,6 +31,9 @@ export default function MainLayout({
 
       {/* Global Command Palette */}
       <CommandPalette />
+
+      {/* AI Floating Assistant */}
+      <AIAssistantChat mode="floating" />
     </div>
   )
 }

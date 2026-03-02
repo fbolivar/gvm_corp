@@ -185,6 +185,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
         {
             group: t.sidebar.tools.toUpperCase(),
             links: [
+                { title: 'GVM AI', href: "/ai-assistant", icon: Sparkles }, // siempre visible
                 { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare }, // siempre visible
                 { title: t.sidebar.settings, href: "/settings", icon: Settings, moduleKey: 'settings' },
                 { title: t.sidebar.help, href: "/help", icon: HelpCircle }, // siempre visible
