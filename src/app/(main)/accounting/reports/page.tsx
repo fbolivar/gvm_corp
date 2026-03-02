@@ -262,8 +262,7 @@ export default async function AccountingReportsPage() {
                     icon: Banknote,
                     href: "/accounting/reports/bank-reconciliation",
                     color: "text-indigo-400",
-                    bg: "bg-indigo-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-indigo-500/10"
                 }
             ]
         },
@@ -336,8 +335,7 @@ export default async function AccountingReportsPage() {
                     icon: FileSpreadsheet,
                     href: "/accounting/reports/tax-media",
                     color: "text-orange-400",
-                    bg: "bg-orange-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-orange-500/10"
                 }
             ]
         },
@@ -351,8 +349,7 @@ export default async function AccountingReportsPage() {
                     icon: Printer,
                     href: "/accounting/reports/invoice-template",
                     color: "text-indigo-400",
-                    bg: "bg-indigo-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-indigo-500/10"
                 },
                 {
                     title: "Comprobante de Egreso",
@@ -361,8 +358,7 @@ export default async function AccountingReportsPage() {
                     icon: Wallet,
                     href: "/accounting/reports/expense-voucher",
                     color: "text-emerald-400",
-                    bg: "bg-emerald-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-emerald-500/10"
                 },
                 {
                     title: "Recibo de Caja",
@@ -371,8 +367,7 @@ export default async function AccountingReportsPage() {
                     icon: Receipt,
                     href: "/accounting/reports/cash-receipt",
                     color: "text-sky-400",
-                    bg: "bg-sky-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-sky-500/10"
                 },
                 {
                     title: "Nota Crédito / Débito",
@@ -381,8 +376,7 @@ export default async function AccountingReportsPage() {
                     icon: FileText,
                     href: "/accounting/reports/credit-note",
                     color: "text-amber-400",
-                    bg: "bg-amber-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-amber-500/10"
                 },
                 {
                     title: "Orden de Compra",
@@ -391,8 +385,7 @@ export default async function AccountingReportsPage() {
                     icon: ClipboardList,
                     href: "/accounting/reports/purchase-order",
                     color: "text-blue-400",
-                    bg: "bg-blue-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-blue-500/10"
                 },
                 {
                     title: "Cotización Comercial",
@@ -401,8 +394,7 @@ export default async function AccountingReportsPage() {
                     icon: Landmark,
                     href: "/accounting/reports/quotation-template",
                     color: "text-violet-400",
-                    bg: "bg-violet-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-violet-500/10"
                 }
             ]
         }
