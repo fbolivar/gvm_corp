@@ -22,7 +22,8 @@ import {
     TrendingUp,
     Search,
     Filter,
-    Download
+    Download,
+    Receipt,
 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/shared/components/ui/badge"
@@ -47,6 +48,14 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
         if (!confirm("¿Convertir esta cotización en un Pedido de Venta confirmado?")) return;
         setProcessingId(docId);
         const result = await convertDocumentAction(docId, 'SALES_ORDER');
+        setProcessingId(null);
+        if (result?.error) alert(result.error);
+    };
+
+    const handleConvertToInvoice = async (docId: string) => {
+        if (!confirm("¿Convertir esta cotización en una Factura de Venta?")) return;
+        setProcessingId(docId + '-invoice');
+        const result = await convertDocumentAction(docId, 'INVOICE');
         setProcessingId(null);
         if (result?.error) alert(result.error);
     };
@@ -199,13 +208,30 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
                                                         variant="ghost"
                                                         className="h-16 px-10 rounded-[1.5rem] bg-primary text-white text-[11px] font-black uppercase tracking-[0.3em] hover:bg-slate-950 hover:text-white transition-all shadow-active hover:translate-y-[-4px] active:scale-95 group/approve relative overflow-hidden"
                                                         onClick={() => handleConvertToOrder(quote.id!)}
-                                                        disabled={processingId === quote.id}
+                                                        disabled={!!processingId}
                                                     >
                                                         <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/approve:translate-y-0 transition-transform duration-500" />
                                                         {processingId === quote.id ? <Loader2 className="h-6 w-6 animate-spin text-white" /> : (
                                                             <div className="flex items-center gap-4 relative z-10">
                                                                 <Zap className="h-5 w-5 fill-white animate-pulse" />
                                                                 EJECUTAR PEDIDO
+                                                            </div>
+                                                        )}
+                                                    </Button>
+                                                )}
+
+                                                {(quote.status === 'ACCEPTED' || quote.status === 'DRAFT') && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="h-16 px-10 rounded-[1.5rem] bg-emerald-600 text-white text-[11px] font-black uppercase tracking-[0.3em] hover:bg-emerald-700 hover:text-white transition-all shadow-active hover:translate-y-[-4px] active:scale-95 group/invoice relative overflow-hidden"
+                                                        onClick={() => handleConvertToInvoice(quote.id!)}
+                                                        disabled={!!processingId}
+                                                    >
+                                                        <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/invoice:translate-y-0 transition-transform duration-500" />
+                                                        {processingId === quote.id + '-invoice' ? <Loader2 className="h-6 w-6 animate-spin text-white" /> : (
+                                                            <div className="flex items-center gap-4 relative z-10">
+                                                                <Receipt className="h-5 w-5" />
+                                                                FACTURAR
                                                             </div>
                                                         )}
                                                     </Button>

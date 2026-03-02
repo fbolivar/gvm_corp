@@ -13,10 +13,12 @@ export async function convertDocumentAction(sourceId: string, targetType: Docume
         const newDocId = await salesService.convertDocument(supabase, sourceId, targetType);
 
         let path = '/documents';
-        if (targetType === 'QUOTATION') path = '/sales/quotations';
+        if (targetType === 'QUOTATION')   path = '/sales/quotations';
         if (targetType === 'SALES_ORDER') path = '/sales/orders';
+        if (targetType === 'INVOICE')     path = '/sales/invoices';
 
         revalidatePath(path);
+        revalidatePath('/sales/quotations');
         redirect(`${path}/${newDocId}/edit`); // Redirect to the new document for editing
     } catch (error: any) {
         return { error: error.message };
