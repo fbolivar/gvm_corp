@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { ARAgingWidget } from '@/features/dashboard/components/ARAgingWidget'
 import { TopProductsWidget } from '@/features/dashboard/components/TopProductsWidget'
 import { Metadata } from 'next'
-import { TrendingUp, Cpu, PieChart, Zap, Activity } from 'lucide-react'
+import { TrendingUp, Cpu, PieChart, Zap, Activity, BarChart2, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
     title: 'Business Intelligence | SaaS Factory',
@@ -46,6 +47,71 @@ export default async function AnalyticsPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* 🔭 BI SUB-DASHBOARDS QUICK ACCESS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Link href="/analytics/sales" className="group block">
+                    <div className="relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-premium hover:shadow-active hover:border-indigo-100 hover:translate-y-[-6px] transition-all duration-500">
+                        <div className="absolute top-0 right-0 p-8 opacity-[0.04] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-700">
+                            <TrendingUp className="h-32 w-32 text-indigo-600" />
+                        </div>
+                        <div className="flex items-start justify-between gap-4 relative z-10">
+                            <div className="space-y-3">
+                                <div className="h-14 w-14 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100 shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                                    <TrendingUp className="h-7 w-7 text-indigo-600 group-hover:text-white transition-colors" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black italic tracking-tighter text-slate-900 uppercase leading-none">
+                                        Ventas BI
+                                    </h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                        Comparativo anual · Top 10 clientes · KPIs
+                                    </p>
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                    {['Comparativo', 'Top Clientes', 'MoM Growth'].map((tag) => (
+                                        <span key={tag} className="text-[8px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full border border-indigo-100">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                            <ArrowRight className="h-6 w-6 text-slate-200 group-hover:text-indigo-600 group-hover:translate-x-2 transition-all duration-300 shrink-0 mt-1" />
+                        </div>
+                    </div>
+                </Link>
+
+                <Link href="/analytics/financial" className="group block">
+                    <div className="relative overflow-hidden bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-premium hover:shadow-active hover:border-emerald-100 hover:translate-y-[-6px] transition-all duration-500">
+                        <div className="absolute top-0 right-0 p-8 opacity-[0.04] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-700">
+                            <BarChart2 className="h-32 w-32 text-emerald-600" />
+                        </div>
+                        <div className="flex items-start justify-between gap-4 relative z-10">
+                            <div className="space-y-3">
+                                <div className="h-14 w-14 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                                    <BarChart2 className="h-7 w-7 text-emerald-600 group-hover:text-white transition-colors" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black italic tracking-tighter text-slate-900 uppercase leading-none">
+                                        Financiero BI
+                                    </h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                        P&amp;L mensual · Margen · Salud financiera
+                                    </p>
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                    {['P&L', 'Margen', 'Radar Score'].map((tag) => (
+                                        <span key={tag} className="text-[8px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-100">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                            <ArrowRight className="h-6 w-6 text-slate-200 group-hover:text-emerald-600 group-hover:translate-x-2 transition-all duration-300 shrink-0 mt-1" />
+                        </div>
+                    </div>
+                </Link>
             </div>
 
             {/* 💎 STRATEGIC BI ROW */}

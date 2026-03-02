@@ -42,7 +42,9 @@ import {
     Sparkles,
     CreditCard,
     Upload,
-    Bell
+    Bell,
+    TrendingUp,
+    BarChart2
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -92,7 +94,16 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
             group: t.sidebar.dashboard.toUpperCase(),
             links: [
                 { title: t.sidebar.dashboard, href: "/dashboard", icon: LayoutDashboard, moduleKey: 'dashboard' },
-                { title: t.sidebar.analytics, href: "/analytics", icon: BarChart3, moduleKey: 'analytics' },
+                {
+                    title: t.sidebar.analytics,
+                    href: "/analytics",
+                    icon: BarChart3,
+                    moduleKey: 'analytics',
+                    children: [
+                        { title: 'Ventas BI', href: '/analytics/sales', icon: TrendingUp },
+                        { title: 'Financiero BI', href: '/analytics/financial', icon: BarChart2 },
+                    ]
+                },
                 {
                     title: t.sidebar.sales,
                     href: "/sales",

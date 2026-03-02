@@ -1,0 +1,122 @@
+import { createClient } from '@/lib/supabase/server'
+import { SalesDashboard } from '@/features/analytics/components/SalesDashboard'
+import { Metadata } from 'next'
+import { TrendingUp, Activity } from 'lucide-react'
+
+export const metadata: Metadata = {
+    title: 'BI Ventas | GVM Corp',
+    description: 'Dashboard de Business Intelligence de Ventas',
+}
+
+export interface MonthlySalesRow {
+    month: string
+    total: number
+    count: number
+    year: number
+}
+
+export interface TopClientRow {
+    legal_name: string
+    total: number
+}
+
+async function getMonthlySales(): Promise<MonthlySalesRow[]> {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('execute_sql_internal', {
+        query: `
+            SELECT
+                to_char(date_trunc('month', issue_date), 'YYYY-MM-DD') AS month,
+                SUM(total)::float AS total,
+                COUNT(*)::int AS count,
+                EXTRACT(YEAR FROM issue_date)::int AS year
+            FROM documents
+            WHERE doc_type = 'INVOICE'
+              AND status != 'VOIDED'
+              AND EXTRACT(YEAR FROM issue_date) IN (
+                  EXTRACT(YEAR FROM NOW()),
+                  EXTRACT(YEAR FROM NOW()) - 1
+              )
+            GROUP BY date_trunc('month', issue_date), EXTRACT(YEAR FROM issue_date)
+            ORDER BY date_trunc('month', issue_date)
+        `
+    })
+
+    if (error || !data) {
+        console.error('[sales/page] monthlySales error:', error?.message)
+        return []
+    }
+
+    return (data as MonthlySalesRow[]) ?? []
+}
+
+async function getTopClients(): Promise<TopClientRow[]> {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('execute_sql_internal', {
+        query: `
+            SELECT
+                p.legal_name,
+                SUM(d.total)::float AS total
+            FROM documents d
+            JOIN parties p ON d.party_id = p.id
+            WHERE d.doc_type = 'INVOICE'
+              AND d.status != 'VOIDED'
+              AND EXTRACT(YEAR FROM d.issue_date) = EXTRACT(YEAR FROM NOW())
+            GROUP BY p.legal_name
+            ORDER BY total DESC
+            LIMIT 10
+        `
+    })
+
+    if (error || !data) {
+        console.error('[sales/page] topClients error:', error?.message)
+        return []
+    }
+
+    return (data as TopClientRow[]) ?? []
+}
+
+export default async function SalesAnalyticsPage() {
+    const [monthlySales, topClients] = await Promise.all([
+        getMonthlySales(),
+        getTopClients(),
+    ])
+
+    return (
+        <div className="page-container space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            {/* Header */}
+            <div className="relative group overflow-hidden bg-slate-900 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 text-white shadow-active">
+                <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000">
+                    <TrendingUp className="h-64 w-64" />
+                </div>
+
+                <div className="relative z-10 space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="h-2 w-10 bg-indigo-500 rounded-full" />
+                        <span className="text-xs font-black uppercase tracking-[0.5em] text-indigo-400">
+                            Sales Intelligence v3.2
+                        </span>
+                    </div>
+                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        Ventas <br />
+                        <span className="text-slate-400 text-3xl sm:text-5xl md:text-7xl">Análisis</span>
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-4">
+                        <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.4em]">
+                            Comparativo anual · Top clientes · KPIs de crecimiento
+                        </p>
+                        <div className="flex items-center gap-2 bg-indigo-500/10 px-4 py-1.5 rounded-full backdrop-blur-md border border-indigo-500/20">
+                            <Activity className="h-3 w-3 text-indigo-400 animate-pulse" />
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest">
+                                Datos en tiempo real
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <SalesDashboard monthlySales={monthlySales} topClients={topClients} />
+        </div>
+    )
+}
