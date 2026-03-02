@@ -41,7 +41,8 @@ import {
     TrendingDown,
     Sparkles,
     CreditCard,
-    Upload
+    Upload,
+    Bell
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -186,6 +187,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
         {
             group: t.sidebar.tools.toUpperCase(),
             links: [
+                { title: 'Notificaciones', href: "/notifications", icon: Bell }, // siempre visible
                 { title: 'GVM AI', href: "/ai-assistant", icon: Sparkles }, // siempre visible
                 { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare }, // siempre visible
                 { title: 'Importación', href: "/settings/import", icon: Upload }, // siempre visible
