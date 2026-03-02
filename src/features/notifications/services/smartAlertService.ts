@@ -23,6 +23,10 @@ export const smartAlertService = {
             this.checkCriticalStockAlert(client),
             this.checkOverdueInvoicesAlert(client),
             this.checkUpcomingPaymentsAlert(client),
+            this.checkRecurringInvoicesDueAlert(client),
+            this.checkBankReconciliationPendingAlert(client),
+            this.checkFiscalPeriodClosingAlert(client),
+            this.checkFixedAssetsNeverDepreciatedAlert(client),
         ]);
     },
 
@@ -190,6 +194,124 @@ export const smartAlertService = {
             }, 'MEDIUM');
         } catch (e) {
             console.error('[smartAlerts] upcoming_payments:', e);
+        }
+    },
+
+    // ─── Recurring Invoices Due ───────────────────────────────────────────────
+
+    async checkRecurringInvoicesDueAlert(client: SupabaseClient) {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const { data: due } = await client
+                .from('recurring_invoices')
+                .select('id, name, next_run_date')
+                .eq('status', 'ACTIVE')
+                .lte('next_run_date', today);
+
+            if (!due || due.length === 0) return;
+
+            const count = due.length;
+            const sample = due.slice(0, 2).map((r: { name: string }) => r.name).join(', ');
+            const suffix = count > 2 ? ` y ${count - 2} más` : '';
+
+            await this.triggerAlert(client, {
+                title: `${count} Factura${count > 1 ? 's' : ''} Recurrente${count > 1 ? 's' : ''} por Generar`,
+                body: `Tienes plantillas de facturación recurrente con fecha de ejecución vencida: ${sample}${suffix}. Genera las facturas pendientes.`,
+                category: 'BILLING',
+                link: '/sales/recurring',
+            }, 'HIGH');
+        } catch (e) {
+            console.error('[smartAlerts] recurring_invoices_due:', e);
+        }
+    },
+
+    // ─── Bank Reconciliation Pending ──────────────────────────────────────────
+
+    async checkBankReconciliationPendingAlert(client: SupabaseClient) {
+        try {
+            // Check for DRAFT statements whose end_date is in a previous month
+            const firstOfMonth = new Date();
+            firstOfMonth.setDate(1);
+            const cutoff = firstOfMonth.toISOString().split('T')[0];
+
+            const { data: pending } = await client
+                .from('bank_statements')
+                .select('id, end_date')
+                .eq('status', 'DRAFT')
+                .lt('end_date', cutoff);
+
+            if (!pending || pending.length === 0) return;
+
+            const count = pending.length;
+            await this.triggerAlert(client, {
+                title: `${count} Extracto${count > 1 ? 's' : ''} Bancario${count > 1 ? 's' : ''} sin Conciliar`,
+                body: `Tienes ${count} extracto${count > 1 ? 's' : ''} de períodos anteriores pendiente${count > 1 ? 's' : ''} de conciliación. Completa la conciliación bancaria para cerrar los libros.`,
+                category: 'OPERATIONS',
+                link: '/treasury/reconcile',
+            }, 'MEDIUM');
+        } catch (e) {
+            console.error('[smartAlerts] bank_reconciliation_pending:', e);
+        }
+    },
+
+    // ─── Fiscal Period Closing ────────────────────────────────────────────────
+
+    async checkFiscalPeriodClosingAlert(client: SupabaseClient) {
+        try {
+            const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
+            const { data: stuckPeriods } = await client
+                .from('fiscal_periods')
+                .select('id, period')
+                .eq('status', 'CLOSING')
+                .lt('period', currentPeriod);
+
+            if (!stuckPeriods || stuckPeriods.length === 0) return;
+
+            const count = stuckPeriods.length;
+            const sample = stuckPeriods.slice(0, 2).map((p: { period: string }) => p.period).join(', ');
+
+            await this.triggerAlert(client, {
+                title: `${count} Período${count > 1 ? 's' : ''} Contable${count > 1 ? 's' : ''} sin Cerrar`,
+                body: `El período ${sample} está en estado "En Cierre" desde el mes anterior. Completa el checklist de cierre para bloquearlo.`,
+                category: 'OPERATIONS',
+                link: '/accounting/period-close',
+            }, 'HIGH');
+        } catch (e) {
+            console.error('[smartAlerts] fiscal_period_closing:', e);
+        }
+    },
+
+    // ─── Fixed Assets Never Depreciated ──────────────────────────────────────
+
+    async checkFixedAssetsNeverDepreciatedAlert(client: SupabaseClient) {
+        try {
+            // Assets active for more than 30 days with zero accumulated depreciation (excluding LAND)
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 30);
+            const cutoffStr = cutoff.toISOString().split('T')[0];
+
+            const { data: assets } = await client
+                .from('fixed_assets')
+                .select('id, name, category')
+                .eq('status', 'ACTIVE')
+                .neq('category', 'LAND')
+                .eq('accumulated_depreciation', 0)
+                .lt('acquisition_date', cutoffStr);
+
+            if (!assets || assets.length === 0) return;
+
+            const count = assets.length;
+            const sample = assets.slice(0, 2).map((a: { name: string }) => a.name).join(', ');
+            const suffix = count > 2 ? ` y ${count - 2} más` : '';
+
+            await this.triggerAlert(client, {
+                title: `${count} Activo${count > 1 ? 's' : ''} Fijo${count > 1 ? 's' : ''} sin Depreciar`,
+                body: `Los siguientes activos están activos hace más de 30 días y aún no tienen depreciación registrada: ${sample}${suffix}.`,
+                category: 'OPERATIONS',
+                link: '/accounting/fixed-assets',
+            }, 'MEDIUM');
+        } catch (e) {
+            console.error('[smartAlerts] fixed_assets_never_depreciated:', e);
         }
     },
 
