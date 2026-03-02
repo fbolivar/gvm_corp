@@ -4,7 +4,8 @@ import { settingsService } from '@/features/settings/services/settingsService';
 import { TrialBalanceTable } from '@/features/accounting/components/TrialBalanceTable';
 import { ReportingFilters } from '@/features/accounting/components/ReportingFilters';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
-import { Scale, Info, ShieldCheck, Activity, ArrowRight } from 'lucide-react';
+import { TrialBalanceExportActions } from '@/features/accounting/components/TrialBalanceExportActions';
+import { Scale, ShieldCheck, Activity, ArrowRight } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { Button } from '@/shared/components/ui/button';
 
@@ -51,6 +52,16 @@ export default async function TrialBalancePage({
                 </div>
                 <div className="flex items-center gap-4">
                     <ReportingFilters />
+                    <TrialBalanceExportActions
+                        data={data}
+                        options={{
+                            title: 'Balance de Comprobación',
+                            companyName: tenant?.name ?? '',
+                            companyNit: tenant?.nit ?? '',
+                            period: `${startDate} - ${endDate}`,
+                        }}
+                        fileName={`balance-comprobacion-${startDate}`}
+                    />
                     <div className="h-14 border-l border-slate-100 mx-2 hidden md:block" />
                     <div className="bg-emerald-50 px-6 py-4 rounded-2xl border border-emerald-100 flex items-center gap-3">
                         <ShieldCheck className="h-5 w-5 text-emerald-500" />

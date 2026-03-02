@@ -19,6 +19,7 @@ import { redirect } from 'next/navigation';
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 import Link from 'next/link';
+import { TableExportClient } from '@/features/accounting/components/TableExportClient'
 
 const DAYS_OPTIONS = [30, 60, 90, 180];
 
@@ -130,6 +131,16 @@ export default async function SlowMoversPage({
     const fmt = (n: number) =>
         `$${n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+    const exportRows = enriched.map(p => ({
+        'Producto':          p.name,
+        'SKU':               p.sku ?? '',
+        'Stock (Und)':       p.stock,
+        'Salidas (período)': p.outQty,
+        'Último Movimiento': p.lastDate ?? '',
+        'Valor Inmovilizado': p.value,
+        'Estado':            ROTATION_CONFIG[p.level].label,
+    }));
+
     return (
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
@@ -155,22 +166,29 @@ export default async function SlowMoversPage({
                     </div>
                 </div>
 
-                {/* Period tabs */}
-                <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl">
-                    {DAYS_OPTIONS.map(d => (
-                        <Link
-                            key={d}
-                            href={`?days=${d}`}
-                            className={cn(
-                                "px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                days === d
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-400 hover:text-slate-600"
-                            )}
-                        >
-                            {d}d
-                        </Link>
-                    ))}
+                <div className="flex items-center gap-3">
+                    {/* Period tabs */}
+                    <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl">
+                        {DAYS_OPTIONS.map(d => (
+                            <Link
+                                key={d}
+                                href={`?days=${d}`}
+                                className={cn(
+                                    "px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                    days === d
+                                        ? "bg-white text-slate-900 shadow-sm"
+                                        : "text-slate-400 hover:text-slate-600"
+                                )}
+                            >
+                                {d}d
+                            </Link>
+                        ))}
+                    </div>
+                    <TableExportClient
+                        rows={exportRows}
+                        fileName={`baja-rotacion-${today}-${days}d`}
+                        sheetName="Baja Rotación"
+                    />
                 </div>
             </div>
 

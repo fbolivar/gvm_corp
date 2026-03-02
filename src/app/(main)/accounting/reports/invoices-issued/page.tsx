@@ -21,6 +21,7 @@ import {
 import { redirect } from 'next/navigation';
 import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
+import { TableExportClient } from '@/features/accounting/components/TableExportClient'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
     DRAFT:    { label: 'Borrador',  cls: 'bg-slate-100 text-slate-500' },
@@ -85,6 +86,19 @@ export default async function InvoicesIssuedPage({
     const fmt = (n: number) =>
         `$${n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+    const exportRows = docs.map(d => ({
+        'Tipo':     DOC_TYPE_LABEL[d.doc_type] ?? d.doc_type,
+        'Número':   d.number ?? '',
+        'Fecha':    d.issue_date ?? '',
+        'Cliente':  (d.party as { legal_name?: string } | null)?.legal_name ?? 'Consumidor Final',
+        'NIT':      (d.party as { doc_number?: string } | null)?.doc_number ?? '',
+        'Subtotal': Number(d.subtotal) || 0,
+        'IVA':      Number(d.taxes) || 0,
+        'Total':    Number(d.total) || 0,
+        'Estado':   STATUS_LABEL[d.status]?.label ?? d.status,
+        'CUFE':     (d.electronic_document as { cufe?: string } | null)?.cufe ?? '',
+    }));
+
     return (
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
@@ -111,7 +125,14 @@ export default async function InvoicesIssuedPage({
                         </div>
                     </div>
                 </div>
-                <ReportingFilters />
+                <div className="flex items-center gap-3">
+                    <ReportingFilters />
+                    <TableExportClient
+                        rows={exportRows}
+                        fileName={`facturas-emitidas-${startDate}`}
+                        sheetName="Facturas Emitidas"
+                    />
+                </div>
             </div>
 
             {/* Metrics Row */}
@@ -337,9 +358,11 @@ export default async function InvoicesIssuedPage({
                         </p>
                     </div>
                 </div>
-                <Button variant="outline" className="h-16 rounded-[2rem] border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest px-12 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-premium group shrink-0">
-                    Exportar Registro <ArrowRight className="ml-4 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
+                <TableExportClient
+                    rows={exportRows}
+                    fileName={`facturas-emitidas-${startDate}`}
+                    sheetName="Facturas Emitidas"
+                />
             </div>
         </div>
     );
