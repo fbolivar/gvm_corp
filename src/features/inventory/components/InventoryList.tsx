@@ -39,7 +39,7 @@ export function InventoryList({ movements }: InventoryListProps) {
                     const Icon = isIn ? ArrowDownLeft : ArrowUpRight;
 
                     return (
-                        <div key={mov.id} className="group relative p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-white hover:bg-slate-50 transition-all duration-500 border border-transparent hover:border-slate-100 hover:shadow-premium overflow-hidden">
+                        <div key={mov.id ?? `${mov.product_id}-${mov.warehouse_id}-${mov.occurred_at}`} className="group relative p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] bg-white hover:bg-slate-50 transition-all duration-500 border border-transparent hover:border-slate-100 hover:shadow-premium overflow-hidden">
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full w-24 bg-gradient-to-l from-slate-50 translate-x-full group-hover:translate-x-0 transition-transform duration-700 pointer-events-none" />
 
                             <div className="flex items-center gap-6 relative z-10">

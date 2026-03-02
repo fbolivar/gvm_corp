@@ -159,6 +159,40 @@ export async function getNotificationsAction(
     }
 }
 
+// ─── getUnreadCountAction ─────────────────────────────────────────────────────
+
+export async function getUnreadCountAction(): Promise<number> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return 0
+
+        const { data: userTenant } = await supabase
+            .from('user_tenants')
+            .select('tenant_id')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        let query = supabase
+            .from('app_notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_read', false)
+
+        if (userTenant?.tenant_id) {
+            query = query.or(
+                `user_id.eq.${user.id},and(user_id.is.null,tenant_id.eq.${userTenant.tenant_id})`
+            )
+        } else {
+            query = query.eq('user_id', user.id)
+        }
+
+        const { count } = await query
+        return count ?? 0
+    } catch {
+        return 0
+    }
+}
+
 // ─── triggerSystemAlertsAction ───────────────────────────────────────────────
 
 export async function triggerSystemAlertsAction(): Promise<ActionResult> {

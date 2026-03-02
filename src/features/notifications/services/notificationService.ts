@@ -18,7 +18,7 @@ export const notificationService = {
     }) {
         let finalTenantId = data.tenant_id;
         if (!finalTenantId) {
-            const { data: tid } = await client.rpc('get_current_tenant_id');
+            const { data: tid } = await client.rpc('get_my_tenant_id');
             finalTenantId = tid;
         }
 
@@ -83,7 +83,7 @@ export const notificationService = {
 
         // 3. Evaluar
         if (currentStock <= product.min_stock) {
-            const { data: tid } = await client.rpc('get_current_tenant_id');
+            const { data: tid } = await client.rpc('get_my_tenant_id');
             // Mock: get language (default es)
             const dict = getServerDictionary('es');
 

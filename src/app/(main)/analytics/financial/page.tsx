@@ -21,52 +21,62 @@ export interface MonthlyExpenseRow {
 
 async function getMonthlyIncome(): Promise<MonthlyPnLRow[]> {
     const supabase = await createClient()
+    const year = new Date().getFullYear()
 
-    const { data, error } = await supabase.rpc('execute_sql_internal', {
-        query: `
-            SELECT
-                to_char(date_trunc('month', issue_date), 'YYYY-MM-DD') AS month,
-                COALESCE(SUM(total), 0)::float AS income,
-                COALESCE(SUM(taxes), 0)::float AS tax
-            FROM documents
-            WHERE doc_type = 'INVOICE'
-              AND status != 'VOIDED'
-              AND EXTRACT(YEAR FROM issue_date) = EXTRACT(YEAR FROM NOW())
-            GROUP BY date_trunc('month', issue_date)
-            ORDER BY 1
-        `
-    })
+    const { data, error } = await supabase
+        .from('documents')
+        .select('issue_date, total, taxes')
+        .eq('doc_type', 'INVOICE')
+        .neq('status', 'VOIDED')
+        .gte('issue_date', `${year}-01-01`)
+        .lte('issue_date', `${year}-12-31`)
 
     if (error || !data) {
         console.error('[financial/page] income error:', error?.message)
         return []
     }
 
-    return (data as MonthlyPnLRow[]) ?? []
+    // Aggregate by month in TypeScript
+    const map = new Map<string, { income: number; tax: number }>()
+    data.forEach(row => {
+        const month = (row.issue_date as string).slice(0, 7) + '-01'
+        const entry = map.get(month) ?? { income: 0, tax: 0 }
+        entry.income += Number(row.total ?? 0)
+        entry.tax += Number((row as { taxes?: number }).taxes ?? 0)
+        map.set(month, entry)
+    })
+
+    return Array.from(map.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, { income, tax }]) => ({ month, income, tax }))
 }
 
 async function getMonthlyExpenses(): Promise<MonthlyExpenseRow[]> {
     const supabase = await createClient()
+    const year = new Date().getFullYear()
 
-    const { data, error } = await supabase.rpc('execute_sql_internal', {
-        query: `
-            SELECT
-                to_char(date_trunc('month', issue_date), 'YYYY-MM-DD') AS month,
-                COALESCE(SUM(total), 0)::float AS expense
-            FROM documents
-            WHERE doc_type = 'VENDOR_BILL'
-              AND EXTRACT(YEAR FROM issue_date) = EXTRACT(YEAR FROM NOW())
-            GROUP BY date_trunc('month', issue_date)
-            ORDER BY 1
-        `
-    })
+    const { data, error } = await supabase
+        .from('documents')
+        .select('issue_date, total')
+        .eq('doc_type', 'VENDOR_BILL')
+        .gte('issue_date', `${year}-01-01`)
+        .lte('issue_date', `${year}-12-31`)
 
     if (error || !data) {
         console.error('[financial/page] expenses error:', error?.message)
         return []
     }
 
-    return (data as MonthlyExpenseRow[]) ?? []
+    // Aggregate by month in TypeScript
+    const map = new Map<string, number>()
+    data.forEach(row => {
+        const month = (row.issue_date as string).slice(0, 7) + '-01'
+        map.set(month, (map.get(month) ?? 0) + Number(row.total ?? 0))
+    })
+
+    return Array.from(map.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, expense]) => ({ month, expense }))
 }
 
 export default async function FinancialAnalyticsPage() {

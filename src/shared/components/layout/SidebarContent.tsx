@@ -61,6 +61,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { useI18n } from "@/shared/stores/useLanguageStore"
+import { getUnreadCountAction } from "@/features/notifications/actions"
 
 interface SubLink {
     title: string
@@ -191,10 +192,10 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.accounting.auxiliary, href: "/accounting/reports/auxiliary", icon: BookOpen },
                         { title: t.accounting.portfolio, href: "/accounting/cartera", icon: CreditCard },
                         { title: t.accounting.entries, href: "/accounting/entries", icon: Banknote },
+                        { title: 'Presupuesto', href: "/budget", icon: Target },
                     ]
                 },
                 { title: t.sidebar.logistics, href: "/logistics", icon: Truck, moduleKey: 'logistics' },
-                { title: 'Presupuesto', href: "/budget", icon: Target, moduleKey: 'accounting' },
             ]
         },
         {
@@ -216,10 +217,12 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(true);
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+    const [unreadCount, setUnreadCount] = useState(0);
     const supabase = createClient();
 
     useEffect(() => {
         setMounted(true);
+        getUnreadCountAction().then(setUnreadCount).catch(() => {});
     }, []);
 
     // Auto-expand the section that matches current path
@@ -402,10 +405,15 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                                     )}
                                                 >
                                                     <div className={cn(
-                                                        "h-7 w-7 rounded-lg flex items-center justify-center transition-all",
+                                                        "h-7 w-7 rounded-lg flex items-center justify-center transition-all relative",
                                                         isActive ? "bg-white/20 text-white" : "bg-slate-50 text-slate-400 group-hover/link:bg-slate-100 group-hover/link:text-slate-600"
                                                     )}>
                                                         <link.icon className="h-3.5 w-3.5" />
+                                                        {link.href === '/notifications' && unreadCount > 0 && (
+                                                            <span className="absolute -top-1 -right-1 h-4 min-w-4 px-0.5 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center leading-none">
+                                                                {unreadCount > 99 ? '99+' : unreadCount}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <span className="uppercase tracking-widest italic">{link.title}</span>
                                                 </Link>
