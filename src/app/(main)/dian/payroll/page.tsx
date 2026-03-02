@@ -32,6 +32,7 @@ import {
     DialogTrigger
 } from "@/shared/components/ui/dialog"
 import { PaymentSlip } from "@/features/payroll/components/PaymentSlip"
+import { getPayrollXmlAction } from "@/features/dian/actions"
 
 export default function DianPayrollDashboard() {
     const supabase = createClient()
@@ -40,6 +41,7 @@ export default function DianPayrollDashboard() {
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedDoc, setSelectedDoc] = useState<any>(null)
     const [isSlipOpen, setIsSlipOpen] = useState(false)
+    const [downloadingXml, setDownloadingXml] = useState<string | null>(null)
 
     useEffect(() => {
         async function loadElectronicPayroll() {
@@ -94,6 +96,29 @@ export default function DianPayrollDashboard() {
     const handleViewSlip = (doc: any) => {
         setSelectedDoc(doc);
         setIsSlipOpen(true);
+    };
+
+    const handleDownloadXml = async (electronicDocId: string, docNumber: string) => {
+        setDownloadingXml(electronicDocId)
+        try {
+            const result = await getPayrollXmlAction(electronicDocId)
+            if ('error' in result) {
+                toast.error(`Error: ${result.error}`)
+                return
+            }
+            const blob = new Blob([result.xml], { type: 'application/xml' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = result.filename
+            a.click()
+            URL.revokeObjectURL(url)
+            toast.success(`XML descargado: ${result.filename}`)
+        } catch {
+            toast.error("Error al descargar XML")
+        } finally {
+            setDownloadingXml(null)
+        }
     };
 
     const filteredDocs = documents.filter(d =>
@@ -223,8 +248,18 @@ export default function DianPayrollDashboard() {
                                         </td>
                                         <td className="p-8 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm" title="Ver XML">
-                                                    <FileText className="h-4 w-4 text-indigo-600" />
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-10 w-10 rounded-xl hover:bg-white hover:shadow-sm"
+                                                    title="Descargar XML"
+                                                    disabled={downloadingXml === doc.id}
+                                                    onClick={() => handleDownloadXml(doc.id, doc.document.number)}
+                                                >
+                                                    {downloadingXml === doc.id
+                                                        ? <Loader2 className="h-4 w-4 text-indigo-600 animate-spin" />
+                                                        : <FileText className="h-4 w-4 text-indigo-600" />
+                                                    }
                                                 </Button>
                                                 <Button
                                                     size="icon"

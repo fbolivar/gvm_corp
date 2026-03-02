@@ -2,6 +2,24 @@ import { Document } from "@/features/documents/types";
 import { format } from "date-fns";
 
 /**
+ * Split "APELLIDO APELLIDO NOMBRE NOMBRE" → first name token
+ * Colombian convention: last names come first when stored as full_name
+ * Fallback: use full string as PrimerNombre
+ */
+const getFirstName = (fullName?: string | null): string => {
+    if (!fullName) return 'Empleado';
+    const parts = fullName.trim().split(/\s+/);
+    // If 4 tokens: "A1 A2 N1 N2" → N1; if 3: "A1 N1 N2" → N1; else last token
+    return parts.length >= 3 ? parts[parts.length - 2] : (parts[parts.length - 1] ?? fullName);
+};
+
+const getFirstLastName = (fullName?: string | null): string => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    return parts[0] ?? '';
+};
+
+/**
  * Helper to escape XML special characters
  */
 const escapeXml = (unsafe: string) => {
@@ -90,8 +108,8 @@ export const generatePayrollXml = ({ document, cune, softwareId, pin, provider }
 
     <Trabajador>
         <TipoTrabajador>01</TipoTrabajador>
-        <PrimerApellido>TEST</PrimerApellido>
-        <PrimerNombre>${escapeXml(document.party?.legal_name || 'Empleado')}</PrimerNombre>
+        <PrimerNombre>${escapeXml(getFirstName(document.party?.legal_name))}</PrimerNombre>
+        <PrimerApellido>${escapeXml(getFirstLastName(document.party?.legal_name))}</PrimerApellido>
         <TipoDocumento>13</TipoDocumento>
         <NumeroDocumento>${document.party?.doc_number || ''}</NumeroDocumento>
     </Trabajador>
