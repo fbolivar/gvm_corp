@@ -9,7 +9,7 @@ import NewMovementClient from './client';
 export default async function NewMovementPage() {
     const supabase = await createClient();
 
-    const { data: products } = await productService.getProducts(supabase, { status: 'active', page: 1, per_page: 1000 });
+    const { data: products } = await productService.getProducts(supabase, { status: 'ACTIVE', page: 1, per_page: 1000 });
     const warehouses = await inventoryService.getWarehouses(supabase);
 
     return (

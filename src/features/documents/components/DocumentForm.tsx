@@ -63,7 +63,8 @@ const DocumentTotals = ({ control, products }: { control: any; products: Product
         subtotal += lineTotal;
         if (line.product_id) {
             const prod = products.find(p => p.id === line.product_id);
-            if (prod?.tax_rate) taxes += lineTotal * (prod.tax_rate / 100);
+            const taxRate = { IVA_0: 0, IVA_5: 5, IVA_19: 19 }[(prod?.tax_category ?? 'IVA_0')] ?? 0;
+            if (taxRate) taxes += lineTotal * (taxRate / 100);
         }
     });
     const total = subtotal + taxes;
@@ -122,8 +123,9 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
         const product = products.find(p => p.id === productId);
         if (product) {
             form.setValue(`lines.${index}.description`, product.name);
-            form.setValue(`lines.${index}.unit_price`, product.price || 0);
-            form.setValue(`lines.${index}.tax_config`, [{ rate: product.tax_rate, type: 'IVA', name: 'IVA' }]);
+            form.setValue(`lines.${index}.unit_price`, product.selling_price || 0);
+            const taxRate = { IVA_0: 0, IVA_5: 5, IVA_19: 19 }[(product.tax_category ?? 'IVA_0')] ?? 0;
+            form.setValue(`lines.${index}.tax_config`, [{ rate: taxRate, type: 'IVA', name: 'IVA' }]);
         }
     };
 
@@ -136,7 +138,8 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
             subtotal += lineTotal;
             if (line.product_id) {
                 const prod = products.find(p => p.id === line.product_id);
-                if (prod?.tax_rate) taxes += lineTotal * (prod.tax_rate / 100);
+                const taxRate = { IVA_0: 0, IVA_5: 5, IVA_19: 19 }[(prod?.tax_category ?? 'IVA_0')] ?? 0;
+                if (taxRate) taxes += lineTotal * (taxRate / 100);
             }
         });
         data.subtotal = subtotal;

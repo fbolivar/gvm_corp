@@ -7,15 +7,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Button } from "@/shared/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
 import { useDebounce } from "@/shared/hooks/useDebounce"
-import {
-    Plus,
-    Search,
-    Package,
-    ChevronRight,
-    Box,
-    MoreHorizontal,
-    Edit3
-} from "lucide-react"
+import { Plus, Search, Package, Box, Edit3 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/shared/components/ui/badge"
 
@@ -101,7 +93,7 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                             </TableRow>
                         ) : (
                             initialData.map((prod) => (
-                                <TableRow key={prod.id} className="border-slate-800/50 hover:bg-slate-800/30 transition-all duration-300 group">
+                                <TableRow key={prod.id ?? prod.sku} className="border-slate-800/50 hover:bg-slate-800/30 transition-all duration-300 group">
                                     <TableCell className="py-6 pl-8">
                                         <div className="flex items-center gap-4">
                                             <div className="h-12 w-12 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-center shadow-lg group-hover:bg-blue-600/10 group-hover:border-blue-500/50 transition-all">
@@ -125,8 +117,8 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                                     </TableCell>
                                     <TableCell className="py-6">
                                         <div className="flex flex-col">
-                                            <span className="text-white font-black font-mono text-sm">${prod.price?.toLocaleString('es-CO', { minimumFractionDigits: 2 })}</span>
-                                            <span className="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-widest">IVA {prod.tax_rate}% Incl.</span>
+                                            <span className="text-white font-black font-mono text-sm">${(prod.selling_price ?? 0).toLocaleString('es-CO', { minimumFractionDigits: 0 })}</span>
+                                            <span className="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-widest">{prod.tax_category ?? 'IVA_0'}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="py-6 text-center">
@@ -139,7 +131,7 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                                     </TableCell>
                                     <TableCell className="py-6 text-right pr-8">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black uppercase border tracking-widest ${prod.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/10 text-slate-500 border-slate-800'
+                                            <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black uppercase border tracking-widest ${prod.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/10 text-slate-500 border-slate-800'
                                                 }`}>
                                                 {prod.status}
                                             </Badge>

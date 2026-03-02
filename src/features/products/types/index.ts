@@ -1,10 +1,20 @@
 import { z } from 'zod';
 
 export const ProductTypeEnum = z.enum(['GOOD', 'SERVICE']);
-export const ProductStatusEnum = z.enum(['active', 'inactive', 'archived']);
+export const ProductStatusEnum = z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']);
+export const TaxCategoryEnum = z.enum(['IVA_0', 'IVA_5', 'IVA_19']);
 
 export type ProductType = z.infer<typeof ProductTypeEnum>;
 export type ProductStatus = z.infer<typeof ProductStatusEnum>;
+export type TaxCategory = z.infer<typeof TaxCategoryEnum>;
+
+export const TAX_LABELS: Record<TaxCategory, string> = {
+    IVA_0: '0% — Excluido / Exento',
+    IVA_5: '5% — Tarifa diferencial',
+    IVA_19: '19% — Tarifa general',
+};
+
+export const UOM_OPTIONS = ['UND', 'KG', 'GR', 'LT', 'ML', 'MT', 'CM', 'M2', 'CJ', 'PAR', 'DOC', 'HR'];
 
 export const productSchema = z.object({
     id: z.string().uuid().optional(),
@@ -12,22 +22,19 @@ export const productSchema = z.object({
 
     sku: z.string().min(1, "SKU es requerido"),
     name: z.string().min(3, "Nombre es requerido"),
+    description: z.string().optional(),
     type: ProductTypeEnum,
-    uom: z.string().default('UNIT'), // Unit of Measure
+    uom: z.string().default('UND'),
+    status: ProductStatusEnum.default('ACTIVE'),
 
-    status: ProductStatusEnum.default('active'),
-
-    // Optional pricing/cost fields for quick access, though might be in price lists later
-    // For V3 MVP, we keep it simple
-    price: z.number().min(0).optional(),
+    selling_price: z.number().min(0).default(0),
     cost: z.number().min(0).optional(),
-
-    // Tax config (simple for now)
-    tax_rate: z.number().min(0).default(0), // % IVA
+    tax_category: TaxCategoryEnum.default('IVA_19'),
+    min_stock: z.number().min(0).default(0),
 
     created_at: z.string().optional(),
 
-    // Virtual field for UI
+    // Virtual — from product_stock join
     stock_qty: z.number().optional(),
 });
 
@@ -38,7 +45,7 @@ export const productFilterSchema = z.object({
     type: ProductTypeEnum.optional(),
     status: ProductStatusEnum.optional(),
     page: z.number().default(1),
-    per_page: z.number().default(10),
+    per_page: z.number().default(20),
 });
 
 export type ProductFilters = z.infer<typeof productFilterSchema>;

@@ -18,7 +18,7 @@ export default async function NewRecipePage() {
     const { data: products } = await productService.getProducts(supabase, {
         page: 1,
         per_page: 500,
-        status: 'active'
+        status: 'ACTIVE'
     })
 
     async function handleCreateRecipe(data: any) {

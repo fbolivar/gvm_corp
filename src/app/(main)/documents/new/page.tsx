@@ -7,7 +7,7 @@ export default async function NewDocumentPage() {
     const supabase = await createClient();
 
     // Fetch active products and parties using existing services
-    const productsResponse = await productService.getProducts(supabase, { status: 'active', page: 1, per_page: 1000 });
+    const productsResponse = await productService.getProducts(supabase, { status: 'ACTIVE', page: 1, per_page: 1000 });
     const partiesResponse = await partyService.getParties(supabase, { role: 'all', page: 1, per_page: 1000 });
 
     const products = productsResponse.data;

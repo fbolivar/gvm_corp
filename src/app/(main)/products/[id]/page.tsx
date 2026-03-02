@@ -23,13 +23,7 @@ export default async function EditProductPage({ params }: PageProps) {
         }
 
         return (
-            <div className="container mx-auto py-6 max-w-4xl">
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        {product.name} <span className="text-gray-400 text-lg font-normal">#{product.sku}</span>
-                    </h1>
-                </div>
-
+            <div className="pb-20">
                 <EditProductClient product={product} movements={movements || []} />
             </div>
         );
