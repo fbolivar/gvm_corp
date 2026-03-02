@@ -111,7 +111,7 @@ export function PayrollDashboard({ stats }: PayrollDashboardProps) {
                     { title: "Personal", desc: "Gestión de contratos y expedientes.", icon: UserPlus, href: "/payroll/employees", color: "indigo" },
                     { title: "Liquidación", desc: "Cálculo de nómina y prestaciones.", icon: Calculator, href: "/payroll/settlement", color: "emerald" },
                     { title: "Dispersión", desc: "Pago masivo Bancolombia/Davivienda.", icon: Landmark, href: "/payroll/dispersion", color: "rose" },
-                    { title: "Reportes", desc: "Certificados y desprendibles.", icon: FileText, href: "/reports/payroll", color: "amber" }
+                    { title: "Consolidada", desc: "Nómina consolidada del período.", icon: FileText, href: "/payroll/summary", color: "amber" }
                 ].map((action, i) => (
                     <Link key={i} href={action.href} className="group">
                         <Card className="h-full rounded-[3rem] border-none bg-white shadow-premium overflow-hidden transition-all duration-700 group-hover:shadow-active group-hover:scale-[1.02] border border-slate-50 hover:border-indigo-100">
