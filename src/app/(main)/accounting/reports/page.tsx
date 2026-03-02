@@ -278,7 +278,6 @@ export default async function AccountingReportsPage() {
                     href: "/accounting/reports/payroll-summary",
                     color: "text-violet-400",
                     bg: "bg-violet-500/10",
-                    badge: "Próximamente"
                 },
                 {
                     title: "Costos de Empleador",
@@ -288,7 +287,6 @@ export default async function AccountingReportsPage() {
                     href: "/accounting/reports/employer-cost",
                     color: "text-pink-400",
                     bg: "bg-pink-500/10",
-                    badge: "Próximamente"
                 },
                 {
                     title: "Provisiones de Prestaciones",
@@ -298,7 +296,6 @@ export default async function AccountingReportsPage() {
                     href: "/accounting/reports/benefits-provision",
                     color: "text-rose-400",
                     bg: "bg-rose-500/10",
-                    badge: "Próximamente"
                 }
             ]
         },
@@ -322,7 +319,6 @@ export default async function AccountingReportsPage() {
                     href: "/accounting/reports/vat",
                     color: "text-amber-400",
                     bg: "bg-amber-500/10",
-                    badge: "Próximamente"
                 },
                 {
                     title: "Retenciones Practicadas",
@@ -332,7 +328,6 @@ export default async function AccountingReportsPage() {
                     href: "/accounting/reports/withholdings",
                     color: "text-red-400",
                     bg: "bg-red-500/10",
-                    badge: "Próximamente"
                 },
                 {
                     title: "Medios Magnéticos DIAN",

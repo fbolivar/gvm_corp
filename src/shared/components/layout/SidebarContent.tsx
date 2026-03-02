@@ -179,6 +179,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     ]
                 },
                 { title: t.sidebar.logistics, href: "/logistics", icon: Truck, moduleKey: 'logistics' },
+                { title: 'Presupuesto', href: "/budget", icon: Target, moduleKey: 'accounting' },
             ]
         },
         {
