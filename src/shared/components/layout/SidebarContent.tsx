@@ -173,6 +173,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.payroll.settlement, href: "/payroll/settlement", icon: Calculator },
                         { title: t.payroll.social_security, href: "/payroll/social-security", icon: ShieldCheck },
+                        { title: 'Control de Asistencia', href: "/payroll/attendance", icon: ClipboardList },
                         { title: t.payroll.finance_portal, href: "/payroll/finance", icon: Wallet },
                         { title: t.payroll.simulator, href: "/payroll/simulator", icon: Sparkles },
                         { title: t.payroll.terminations, href: "/payroll/settlement/termination", icon: TrendingDown },
