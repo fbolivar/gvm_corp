@@ -184,8 +184,7 @@ export default async function AccountingReportsPage() {
                     icon: Receipt,
                     href: "/accounting/reports/invoices-issued",
                     color: "text-emerald-400",
-                    bg: "bg-emerald-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-emerald-500/10"
                 }
             ]
         },
@@ -240,8 +239,7 @@ export default async function AccountingReportsPage() {
                     icon: Activity,
                     href: "/accounting/reports/slow-movers",
                     color: "text-fuchsia-400",
-                    bg: "bg-fuchsia-500/10",
-                    badge: "Próximamente"
+                    bg: "bg-fuchsia-500/10"
                 }
             ]
         },

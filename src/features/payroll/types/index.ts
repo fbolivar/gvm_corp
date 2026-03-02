@@ -2,6 +2,37 @@ import { z } from 'zod';
 import { Party } from "@/features/parties/types";
 import { partySchema } from "@/features/parties/types";
 
+// ─── OVERTIME REQUESTS ────────────────────────────────────────────────────────
+export const OvertimeStatusEnum = z.enum(['PENDING', 'APPROVED', 'REJECTED']);
+
+export const overtimeRequestSchema = z.object({
+    id: z.string().uuid().optional(),
+    tenant_id: z.string().uuid().optional(),
+    employee_id: z.string().uuid(),
+    date: z.string().refine(v => !isNaN(Date.parse(v)), 'Fecha inválida'),
+    start_time: z.string().optional().nullable(),
+    end_time: z.string().optional().nullable(),
+    hours: z.number().min(0.5).max(24),
+    reason: z.string().min(10, 'Mínimo 10 caracteres'),
+    status: OvertimeStatusEnum.default('PENDING'),
+    reviewed_by: z.string().uuid().optional().nullable(),
+    reviewed_at: z.string().optional().nullable(),
+    reviewer_notes: z.string().optional().nullable(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+    // join
+    employee: z.object({
+        id: z.string(),
+        salary: z.number(),
+        contract_type: z.string(),
+        party: z.object({ legal_name: z.string() }).optional(),
+    }).optional(),
+});
+
+export type OvertimeRequest = z.infer<typeof overtimeRequestSchema>;
+export type OvertimeStatus = z.infer<typeof OvertimeStatusEnum>;
+
+// ─── CONTRACT TYPE ────────────────────────────────────────────────────────────
 // Enum for Contract Type
 export const ContractTypeEnum = z.enum(['INDEFINIDO', 'FIJO', 'OBRA_LABOR', 'APRENDIZAJE', 'PRESTACION_SERVICIOS']);
 

@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { employeeService } from "@/features/payroll/services/employeeService"
 import { financeService } from "@/features/payroll/services/financeService"
+import { overtimeService } from "@/features/payroll/services/overtimeService"
 import { redirect } from "next/navigation"
 import { AttendanceWidget } from "@/features/payroll/components/AttendanceWidget"
 import { PayrollSlipButton } from "@/features/payroll/components/PayrollSlipButton"
+import { OvertimePanel } from "@/features/payroll/components/OvertimePanel"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import {
     Wallet,
@@ -41,10 +43,11 @@ export default async function MyPayrollPage() {
         )
     }
 
-    const [loans, benefits, documents] = await Promise.all([
+    const [loans, benefits, documents, overtimeRequests] = await Promise.all([
         financeService.getEmployeeLoans(supabase, employee.id!),
         financeService.getEmployeeBenefits(supabase, employee.id!),
-        supabase.from('documents').select('id, number, issue_date, total, status').eq('party_id', employee.party_id).eq('doc_type', 'PAYROLL').order('issue_date', { ascending: false }).limit(5)
+        supabase.from('documents').select('id, number, issue_date, total, status').eq('party_id', employee.party_id).eq('doc_type', 'PAYROLL').order('issue_date', { ascending: false }).limit(5),
+        overtimeService.getMyOvertimeRequests(supabase, employee.id!).catch(() => []),
     ])
 
     return (
@@ -227,6 +230,20 @@ export default async function MyPayrollPage() {
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    {/* OVERTIME REQUESTS */}
+                    <div className="bg-white rounded-[3.5rem] shadow-premium p-8">
+                        <div className="mb-6">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-amber-500 italic">Horas Extra</h3>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Solicita y sigue tus HE</p>
+                        </div>
+                        <OvertimePanel
+                            employeeId={employee.id!}
+                            salary={Number(employee.salary)}
+                            tenantId={employee.tenant_id || ''}
+                            requests={overtimeRequests}
+                        />
                     </div>
 
                     {/* QUICK CERTIFICATES */}
