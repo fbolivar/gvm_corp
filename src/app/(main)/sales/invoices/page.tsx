@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { documentService } from '@/features/documents/services/documentService';
 import { SalesInvoiceList } from '@/features/sales/components/SalesInvoiceList';
 import { Button } from "@/shared/components/ui/button"
-import { Plus, Receipt, Sparkles, Activity, ShieldCheck, Banknote, ArrowRight } from "lucide-react"
+import { Plus, Receipt, Sparkles, Activity, ShieldCheck, Banknote, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { redirect } from 'next/navigation';
 import { settingsService } from '@/features/settings/services/settingsService';
@@ -48,6 +48,15 @@ export default async function InvoicesPage() {
                     </div>
 
                     <div className="flex gap-4">
+                        <Button variant="outline" asChild className="h-20 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
+                            <Link href="/sales/recurring" className="flex items-center gap-4">
+                                <RefreshCw className="h-6 w-6 text-violet-400" />
+                                <div className="flex flex-col items-start leading-none">
+                                    <span className="text-[10px] uppercase tracking-widest opacity-40">Automático</span>
+                                    <span className="text-xs uppercase tracking-widest">Recurrentes</span>
+                                </div>
+                            </Link>
+                        </Button>
                         <Button variant="outline" asChild className="h-20 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
                             <Link href="/sales" className="flex items-center gap-4">
                                 <Sparkles className="h-6 w-6 text-indigo-400" />
