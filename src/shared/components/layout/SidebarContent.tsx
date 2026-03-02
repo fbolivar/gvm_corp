@@ -135,6 +135,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     ]
                 },
                 { title: t.sidebar.parties, href: "/parties", icon: Users, moduleKey: 'crm' },
+                { title: 'Portal Cliente', href: "/client-portal", icon: UserPlus, moduleKey: 'crm' },
                 { title: t.sidebar.my_payroll, href: "/my-payroll", icon: Banknote }, // siempre visible
             ]
         },
