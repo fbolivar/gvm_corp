@@ -10,10 +10,19 @@ import { Badge } from "@/shared/components/ui/badge";
 
 export default async function ReconcileIndexPage() {
     const supabase = await createClient();
-    const [accounts, tenant] = await Promise.all([
+    const [accounts, tenant, statementsRes] = await Promise.all([
         treasuryService.getAccounts(supabase),
-        settingsService.getTenantInfo(supabase)
+        settingsService.getTenantInfo(supabase),
+        supabase
+            .from('bank_statements')
+            .select('id, status, start_date, end_date, opening_balance, closing_balance, account_id, created_at, account:treasury_accounts(name)')
+            .order('created_at', { ascending: false })
+            .limit(20),
     ]);
+
+    const allStatements       = statementsRes.data ?? [];
+    const pendingStatements   = allStatements.filter(s => s.status === 'DRAFT');
+    const completedStatements = allStatements.filter(s => s.status === 'COMPLETED').slice(0, 5);
 
     // Filter only for BANK accounts
     const bankAccounts = accounts.filter(acc => acc.type === 'BANK');
@@ -112,10 +121,25 @@ export default async function ReconcileIndexPage() {
                             <CardTitle className="text-lg font-black text-slate-900 uppercase italic tracking-tight">Pendientes de Conciliar</CardTitle>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100/50 text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No se detectaron borradores de conciliación activos en el sistema.</p>
-                        </div>
+                    <CardContent className="p-0 space-y-3">
+                        {pendingStatements.length === 0 ? (
+                            <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100/50 text-center">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No se detectaron borradores de conciliación activos en el sistema.</p>
+                            </div>
+                        ) : (
+                            pendingStatements.map((s: any) => (
+                                <Link key={s.id} href={`/treasury/reconcile/${s.account_id}/match/${s.id}`} className="flex items-center justify-between p-5 bg-amber-50/50 rounded-2xl border border-amber-100/50 hover:bg-amber-50 transition-colors group">
+                                    <div className="space-y-0.5">
+                                        <p className="text-xs font-black text-slate-900 uppercase italic">{s.account?.name ?? 'Cuenta'}</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.start_date} → {s.end_date}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Badge className="bg-amber-100 text-amber-700 border-none text-[8px] font-black uppercase tracking-widest rounded-full px-3">Borrador</Badge>
+                                        <ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
+                                    </div>
+                                </Link>
+                            ))
+                        )}
                     </CardContent>
                 </Card>
 
@@ -131,10 +155,25 @@ export default async function ReconcileIndexPage() {
                             <CardTitle className="text-lg font-black text-slate-900 uppercase italic tracking-tight">Últimas Completadas</CardTitle>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100/50 text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Historial de conciliación vacío. Inicie un nuevo protocolo para ver registros.</p>
-                        </div>
+                    <CardContent className="p-0 space-y-3">
+                        {completedStatements.length === 0 ? (
+                            <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100/50 text-center">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Historial de conciliación vacío. Inicie un nuevo protocolo para ver registros.</p>
+                            </div>
+                        ) : (
+                            completedStatements.map((s: any) => (
+                                <div key={s.id} className="flex items-center justify-between p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
+                                    <div className="space-y-0.5">
+                                        <p className="text-xs font-black text-slate-900 uppercase italic">{s.account?.name ?? 'Cuenta'}</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.start_date} → {s.end_date}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <p className="text-xs font-black text-emerald-700 italic">${Number(s.closing_balance).toLocaleString()}</p>
+                                        <Badge className="bg-emerald-100 text-emerald-700 border-none text-[8px] font-black uppercase tracking-widest rounded-full px-3">Completada</Badge>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </CardContent>
                 </Card>
             </div>
