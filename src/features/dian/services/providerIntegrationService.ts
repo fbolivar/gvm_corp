@@ -144,8 +144,9 @@ export const providerIntegrationService = {
             sent_at: new Date().toISOString()
         }, { onConflict: 'document_id' });
 
-        // 6. Actualizar status maestro
-        await client.from('documents').update({ status: 'SENT' }).eq('id', doc.id);
+        // 6. Actualizar status maestro según respuesta del proveedor
+        const newDocStatus = providerResponse.status === 'ACCEPTED' ? 'ACCEPTED' : 'SENT';
+        await client.from('documents').update({ status: newDocStatus }).eq('id', doc.id);
 
         return {
             success: true,

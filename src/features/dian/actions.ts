@@ -12,6 +12,8 @@ export async function emitDianAction(documentId: string) {
         const result = await providerIntegrationService.sendToProvider(supabase, documentId);
         revalidatePath('/documents');
         revalidatePath('/dian');
+        revalidatePath('/sales/invoices');
+        revalidatePath('/accounting/cartera');
         return result;
     } catch (error: any) {
         return { error: error.message };

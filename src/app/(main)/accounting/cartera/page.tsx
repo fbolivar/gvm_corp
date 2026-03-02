@@ -14,7 +14,8 @@ import {
     AlertCircle,
     ShieldCheck,
     Brain,
-    Bot
+    Bot,
+    Inbox,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
@@ -25,6 +26,7 @@ export default async function CarteraPage() {
     let receivables: any[] = [];
     let payables: any[] = [];
     let error: string | null = null;
+    let pendingPaymentReports = 0;
 
     try {
         const [rRes, pRes] = await Promise.all([
@@ -47,6 +49,13 @@ export default async function CarteraPage() {
                 is_ai_managed: managedIds.has(r.id)
             }));
         }
+
+        // Pending payment reports count
+        const { count } = await supabase
+            .from('payment_reports')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'PENDING');
+        pendingPaymentReports = count ?? 0;
     } catch (err: any) {
         console.error("Error fetching cartera data:", err);
         error = err.message || "Error al cargar datos de cartera";
@@ -101,6 +110,20 @@ export default async function CarteraPage() {
                                     <span className="text-[10px] uppercase tracking-widest opacity-60 italic text-indigo-200">Autonomous Unit</span>
                                     <span className="text-xs uppercase tracking-widest">Portfolio AI Agent</span>
                                 </div>
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild className="h-20 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md relative">
+                            <Link href="/accounting/cartera/cobros" className="flex items-center gap-4">
+                                <Inbox className="h-6 w-6 text-amber-400" />
+                                <div className="flex flex-col items-start leading-none">
+                                    <span className="text-[10px] uppercase tracking-widest opacity-40 italic">Recaudo</span>
+                                    <span className="text-xs uppercase tracking-widest">Comprobantes de Pago</span>
+                                </div>
+                                {pendingPaymentReports > 0 && (
+                                    <span className="absolute -top-2 -right-2 h-6 min-w-6 px-1.5 bg-amber-500 text-white text-[9px] font-black rounded-full flex items-center justify-center leading-none shadow-lg">
+                                        {pendingPaymentReports}
+                                    </span>
+                                )}
                             </Link>
                         </Button>
                     </div>
