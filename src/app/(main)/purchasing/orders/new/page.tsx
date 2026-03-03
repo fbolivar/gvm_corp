@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { partyService } from '@/features/parties/services/partyService';
 import { productService } from '@/features/products/services/productService';
+import { inventoryService } from '@/features/inventory/services/inventoryService';
 import NewOrderClient from './client';
 import { ShoppingBag } from 'lucide-react';
 import { redirect } from 'next/navigation';
@@ -14,11 +15,12 @@ export default async function NewOrderPage() {
 
     const { data: parties } = await partyService.getParties(supabase, { page: 1, per_page: 500, role: 'vendor', search: '' } as any);
     const { data: products } = await productService.getProducts(supabase, { page: 1, per_page: 500 });
+    const warehouses = await inventoryService.getWarehouses(supabase);
     const tenant = await settingsService.getTenantInfo(supabase);
 
     return (
         <div className="page-container space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {/* 🏎️ PREMIUM HEADER INDUSTRIAL V3 */}
+            {/* PREMIUM HEADER INDUSTRIAL V3 */}
             <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5">
                 {/* Decorative Layers */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-all duration-1000">
@@ -53,7 +55,11 @@ export default async function NewOrderPage() {
             </div>
 
             <div className="max-w-5xl mx-auto">
-                <NewOrderClient parties={parties || []} products={products || []} />
+                <NewOrderClient
+                    parties={parties || []}
+                    products={products || []}
+                    warehouses={warehouses || []}
+                />
             </div>
         </div>
     );

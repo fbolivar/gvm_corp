@@ -128,23 +128,18 @@ export function POActionButtons({ orderId, status }: POActionButtonsProps) {
                 </>
             )}
 
-            {/* APPROVED → Mark as received */}
-            {status === "APPROVED" && (
+            {/* APPROVED or PARTIALLY_RECEIVED → Navigate to receive page */}
+            {(status === "APPROVED" || status === "PARTIALLY_RECEIVED") && (
                 <Button
                     variant="ghost"
-                    className="h-11 px-5 rounded-2xl bg-blue-50 border border-blue-100 text-blue-700 font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95 group/btn"
-                    disabled={busy("receive")}
-                    onClick={() => run("receive", () => approveOrderAction(orderId))}
-                    title="Marcar como Recibida"
+                    className="h-11 px-5 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 font-black text-[9px] uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all active:scale-95 group/btn"
+                    title="Recibir Mercancía"
+                    asChild
                 >
-                    {busy("receive") ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <>
-                            <PackageCheck className="h-3.5 w-3.5 mr-1.5 group-hover/btn:scale-110 transition-transform" />
-                            Recibir
-                        </>
-                    )}
+                    <Link href={`/purchasing/orders/${orderId}/receive`}>
+                        <PackageCheck className="h-3.5 w-3.5 mr-1.5 group-hover/btn:scale-110 transition-transform" />
+                        Recibir
+                    </Link>
                 </Button>
             )}
 

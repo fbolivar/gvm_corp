@@ -52,7 +52,8 @@ import {
     Wrench,
     GraduationCap,
     Tag,
-    FlaskConical
+    FlaskConical,
+    Shield as ShieldAudit
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -209,7 +210,17 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     ]
                 },
                 { title: t.sidebar.logistics, href: "/logistics", icon: Truck, moduleKey: 'logistics' },
-                { title: 'Tesorería', href: "/treasury", icon: Landmark, moduleKey: 'accounting' },
+                {
+                    title: 'Tesorería',
+                    href: '/treasury',
+                    icon: Landmark,
+                    moduleKey: 'accounting',
+                    children: [
+                        { title: 'Cuentas & Movimientos', href: '/treasury', icon: Wallet },
+                        { title: 'Cartera', href: '/treasury/cartera', icon: DollarSign },
+                        { title: 'Flujo de Caja', href: '/treasury/cash-flow', icon: TrendingUp },
+                    ]
+                },
                 { title: 'Calidad QC', href: "/quality", icon: ShieldQC, moduleKey: 'production' },
                 { title: 'Mantenimiento', href: "/maintenance", icon: Wrench, moduleKey: 'production' },
                 { title: 'Contratos', href: "/contracts", icon: FileText, moduleKey: 'documents' },
@@ -224,6 +235,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare }, // siempre visible
                 { title: 'Importación', href: "/settings/import", icon: Upload }, // siempre visible
                 { title: t.sidebar.settings, href: "/settings", icon: Settings, moduleKey: 'settings' },
+                { title: 'Auditoría', href: "/settings/audit", icon: ShieldAudit, moduleKey: 'settings' },
                 { title: t.sidebar.help, href: "/help", icon: HelpCircle }, // siempre visible
             ]
         }
@@ -233,7 +245,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<string>("Miembro");
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
-    const [loading, setLoading] = useState(true);
+
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
     const [unreadCount, setUnreadCount] = useState(0);
     const supabase = createClient();
@@ -313,8 +325,6 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
             } catch (error) {
                 console.error("Error fetching user or permissions:", error);
                 setPermissions({});
-            } finally {
-                setLoading(false);
             }
         };
         getUser();
