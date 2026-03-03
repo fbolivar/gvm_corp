@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { TreasuryAccount, TreasuryTransaction, PaymentAllocation, TaxWithholding, TransactionWithholding } from '../types';
+import { TreasuryAccount, TreasuryTransaction, TaxWithholding } from '../types';
 
 export const treasuryService = {
     // Helper to get tenant with MULTIPLE FALLBACKS
@@ -66,9 +66,7 @@ export const treasuryService = {
     /**
      * Fetches documents that are potentially unpaid for a party
      */
-    async getPendingDocuments(client: SupabaseClient, partyId: string, type: 'RECEIPT' | 'PAYMENT') {
-        const docType = type === 'RECEIPT' ? 'INVOICE' : 'BILL'; // Simplified assumption
-
+    async getPendingDocuments(client: SupabaseClient, partyId: string, _type: 'RECEIPT' | 'PAYMENT') {
         const { data, error } = await client
             .from('documents')
             .select('id,number,doc_type,issue_date,due_date,total,status')
@@ -364,7 +362,6 @@ export const treasuryService = {
 
         // 4. Reverse Accounting if integrated
         if (tx.accounting_entry_id) {
-            const { accountingService } = await import('../../accounting/services/accountingService');
             await client.from('accounting_entries').delete().eq('id', tx.accounting_entry_id);
         }
 

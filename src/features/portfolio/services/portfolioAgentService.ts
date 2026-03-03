@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { CollectionAgentConfig, CollectionAction, DebtorProfile } from '../types';
+import { CollectionAgentConfig, CollectionAction } from '../types';
 import { collectionTemplates, CollectionTone } from '../templates/collectionTemplates';
 import { notificationService } from '../../notifications/services/notificationService';
 import { differenceInDays } from 'date-fns';
@@ -83,7 +83,7 @@ export const portfolioAgentService = {
     /**
      * Motor del Agente: Procesa facturas y decide acciones
      */
-    async runAgentInference(client: SupabaseClient, tenantId: string) {
+    async runAgentInference(_client: SupabaseClient, _tenantId: string) {
         // ... (existing logic for manual/fallback run) ...
         return { processed: 0, actions: [] }; // Placeholder for refactoring if needed
     },
