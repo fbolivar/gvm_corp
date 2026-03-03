@@ -15,13 +15,16 @@ export const chatService = {
             `)
             .order('updated_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            // Table may not exist yet — return empty instead of crashing
+            console.warn('chatService.getChannels:', error.message);
+            return [];
+        }
 
         // Filter in JS for now if complex OR query with joins is tricky in PostgREST
-        // Actually, let's try to filter correctly
         return (data as any[]).filter(channel =>
             channel.type === 'public' ||
-            channel.chat_channel_members.some((m: any) => m.user_id === user.id)
+            channel.chat_channel_members?.some((m: { user_id: string }) => m.user_id === user.id)
         ) as ChatChannel[];
     },
 
