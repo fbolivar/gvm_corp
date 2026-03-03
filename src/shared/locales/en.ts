@@ -21,6 +21,7 @@ export const en: Dictionary = {
         movements: "Movements",
         warehouses: "Warehouses",
         valuation: "Valuation",
+        lots: "Lots & Expiry",
         crm: "CRM",
         leads: "Leads",
         pipeline: "Pipeline",

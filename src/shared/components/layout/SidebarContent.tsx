@@ -51,7 +51,8 @@ import {
     ShieldCheck as ShieldQC,
     Wrench,
     GraduationCap,
-    Tag
+    Tag,
+    FlaskConical
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -131,6 +132,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.sidebar.movements, href: "/inventory/new", icon: History },
                         { title: t.sidebar.warehouses, href: "/inventory/warehouses", icon: Warehouse },
                         { title: t.sidebar.valuation, href: "/accounting/reports/inventory-valuation", icon: Package2 },
+                        { title: t.sidebar.lots, href: "/inventory/lots", icon: FlaskConical },
                     ]
                 },
                 {

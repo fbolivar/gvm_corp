@@ -19,6 +19,7 @@ export const es = {
         movements: "Movimientos",
         warehouses: "Bodegas",
         valuation: "Valoración",
+        lots: "Lotes y Vencimientos",
         crm: "CRM",
         leads: "Prospectos",
         pipeline: "Pipeline",
