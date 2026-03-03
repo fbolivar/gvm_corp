@@ -56,6 +56,14 @@ import {
     Shield as ShieldAudit,
     FileX,
     FilePlus2,
+    FileDigit,
+    Repeat,
+    UsersRound,
+    Send,
+    Building2,
+    PiggyBank,
+    CalendarCheck,
+    ArrowLeftRight,
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -124,6 +132,8 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.sidebar.quotations, href: "/sales/quotations", icon: ClipboardList },
                         { title: t.sidebar.orders, href: "/sales/orders", icon: FileBarChart },
+                        { title: 'Facturas', href: "/sales/invoices", icon: FileDigit },
+                        { title: 'Recurrentes', href: "/sales/recurring", icon: Repeat },
                         { title: 'Notas Credito', href: "/sales/credit-notes", icon: FileX },
                         { title: 'Notas Debito', href: "/sales/debit-notes", icon: FilePlus2 },
                     ]
@@ -134,6 +144,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     icon: Package,
                     moduleKey: 'inventory',
                     children: [
+                        { title: 'Productos', href: "/products", icon: Tag },
                         { title: t.sidebar.movements, href: "/inventory/new", icon: History },
                         { title: t.sidebar.warehouses, href: "/inventory/warehouses", icon: Warehouse },
                         { title: t.sidebar.valuation, href: "/accounting/reports/inventory-valuation", icon: Package2 },
@@ -178,6 +189,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.sidebar.purchase_orders, href: "/purchasing/orders", icon: ClipboardList },
                         { title: t.sidebar.bills, href: "/purchasing/bills", icon: Receipt },
+                        { title: 'Proveedores', href: "/purchasing/vendors", icon: Building2 },
                     ]
                 },
                 { title: t.sidebar.reports, href: "/documents", icon: Receipt, moduleKey: 'documents' },
@@ -188,9 +200,12 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     icon: Calculator,
                     moduleKey: 'payroll',
                     children: [
+                        { title: 'Empleados', href: "/payroll/employees", icon: UsersRound },
                         { title: t.payroll.settlement, href: "/payroll/settlement", icon: Calculator },
+                        { title: 'Consolidada', href: "/payroll/summary", icon: FileBarChart },
                         { title: t.payroll.social_security, href: "/payroll/social-security", icon: ShieldCheck },
                         { title: 'Control de Asistencia', href: "/payroll/attendance", icon: ClipboardList },
+                        { title: 'Dispersión', href: "/payroll/dispersion", icon: Send },
                         { title: t.payroll.finance_portal, href: "/payroll/finance", icon: Wallet },
                         { title: t.payroll.simulator, href: "/payroll/simulator", icon: Sparkles },
                         { title: t.payroll.terminations, href: "/payroll/settlement/termination", icon: TrendingDown },
@@ -211,6 +226,9 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.accounting.auxiliary, href: "/accounting/reports/auxiliary", icon: BookOpen },
                         { title: t.accounting.portfolio, href: "/accounting/cartera", icon: CreditCard },
                         { title: t.accounting.entries, href: "/accounting/entries", icon: Banknote },
+                        { title: 'Cuentas Contables', href: "/accounting/accounts", icon: BookOpen },
+                        { title: 'Activos Fijos', href: "/accounting/fixed-assets", icon: PiggyBank },
+                        { title: 'Cierre Periodos', href: "/accounting/period-close", icon: CalendarCheck },
                         { title: 'Presupuesto', href: "/budget", icon: Target },
                     ]
                 },
@@ -224,6 +242,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Cuentas & Movimientos', href: '/treasury', icon: Wallet },
                         { title: 'Cartera', href: '/treasury/cartera', icon: DollarSign },
                         { title: 'Flujo de Caja', href: '/treasury/cash-flow', icon: TrendingUp },
+                        { title: 'Conciliación', href: '/treasury/reconcile', icon: ArrowLeftRight },
                     ]
                 },
                 { title: 'Calidad QC', href: "/quality", icon: ShieldQC, moduleKey: 'production' },
@@ -239,6 +258,16 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: 'GVM AI', href: "/ai-assistant", icon: Sparkles }, // siempre visible
                 { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare }, // siempre visible
                 { title: 'Importación', href: "/settings/import", icon: Upload }, // siempre visible
+                {
+                    title: 'DIAN',
+                    href: '/dian',
+                    icon: FileDigit,
+                    moduleKey: 'accounting',
+                    children: [
+                        { title: 'Facturación Electrónica', href: '/dian', icon: FileText },
+                        { title: 'Nómina Electrónica', href: '/dian/payroll', icon: Calculator },
+                    ]
+                },
                 { title: t.sidebar.settings, href: "/settings", icon: Settings, moduleKey: 'settings' },
                 { title: 'Auditoría', href: "/settings/audit", icon: ShieldAudit, moduleKey: 'settings' },
                 { title: t.sidebar.help, href: "/help", icon: HelpCircle }, // siempre visible

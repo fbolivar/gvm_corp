@@ -45,8 +45,11 @@ export function DianConfigForm({ initialConfig }: Props) {
         setCertificateName(file.name)
         const reader = new FileReader()
         reader.onload = async (event) => {
-            const base64 = event.target?.result as string
-            setConfig((prev: any) => ({ ...prev, certificate_p12: base64 }))
+            // FileReader.readAsDataURL returns "data:<mime>;base64,<data>"
+            // We strip the prefix so we store only the raw base64 bytes in the DB.
+            const dataUrl = event.target?.result as string
+            const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl
+            setConfig((prev: any) => ({ ...prev, certificate_b64: base64 }))
         }
         reader.readAsDataURL(file)
     }

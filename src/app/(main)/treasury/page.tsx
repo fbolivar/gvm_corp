@@ -17,7 +17,6 @@ import {
     ArrowUpRight,
     ArrowDownRight,
     ChevronRight,
-    Zap,
     ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
@@ -112,26 +111,14 @@ export default async function TreasuryPage() {
                     </Button>
                 </Card>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 rounded-[3rem] p-8 border border-slate-100 flex flex-col justify-between group hover:bg-indigo-50 transition-colors">
-                        <div className="h-12 w-12 rounded-2xl bg-white shadow-premium flex items-center justify-center text-indigo-600 mb-4">
-                            <ArrowUpRight className="h-6 w-6" />
-                        </div>
-                        <div className="space-y-1 text-center lg:text-left">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cartera Activa</p>
-                            <h4 className="text-2xl font-black text-indigo-600 tracking-tighter italic">$245M+</h4>
-                        </div>
+                <div className="bg-slate-50 rounded-[3rem] p-8 border border-slate-100 flex flex-col justify-between group hover:bg-indigo-50 transition-colors">
+                    <div className="h-12 w-12 rounded-2xl bg-white shadow-premium flex items-center justify-center text-indigo-600 mb-4">
+                        <ArrowUpRight className="h-6 w-6" />
                     </div>
-                    <Link href="/treasury/test-reconciliation" className="bg-slate-950 rounded-[3rem] p-8 border border-white/5 flex flex-col justify-between group hover:bg-indigo-900 transition-all shadow-active overflow-hidden relative">
-                        <Zap className="absolute -bottom-4 -right-4 h-24 w-24 text-white/5 rotate-12" />
-                        <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center text-indigo-400 mb-4">
-                            <ShieldCheck className="h-5 w-5" />
-                        </div>
-                        <div className="space-y-1 relative z-10">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Integrity Lab</p>
-                            <h4 className="text-xl font-black text-white tracking-tighter italic uppercase group-hover:text-indigo-400">Validación V3</h4>
-                        </div>
-                    </Link>
+                    <div className="space-y-1 text-center lg:text-left">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cartera Activa</p>
+                        <h4 className="text-2xl font-black text-indigo-600 tracking-tighter italic">$245M+</h4>
+                    </div>
                 </div>
             </div>
 

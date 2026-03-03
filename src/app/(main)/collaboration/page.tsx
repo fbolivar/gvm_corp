@@ -1,11 +1,32 @@
 import { ChatInterface } from "@/features/collaboration/components/ChatInterface";
 import { MessageSquare, ShieldCheck, Zap, Radio } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function CollaborationPage() {
+export default async function CollaborationPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login");
+    }
+
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    const userFullName =
+        profile?.full_name ||
+        user.user_metadata?.full_name ||
+        user.email?.split("@")[0] ||
+        "Usuario";
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-12">
-            {/* 🏎️ PREMIUM HEADER V3 */}
+            {/* PREMIUM HEADER V3 */}
             <div className="relative overflow-hidden bg-slate-950 rounded-[4rem] p-12 text-white shadow-active group">
                 {/* Decorators */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-transform duration-1000">
@@ -44,7 +65,7 @@ export default function CollaborationPage() {
             </div>
 
             {/* Chat Interface */}
-            <ChatInterface />
+            <ChatInterface userId={user.id} userFullName={userFullName} />
         </div>
     );
 }
