@@ -210,27 +210,27 @@ export function AIAssistantChat({ mode = 'floating' }: Props) {
             {!open && (
                 <button
                     onClick={() => setOpen(true)}
-                    className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-2xl bg-slate-900 shadow-[0_4px_24px_rgba(0,0,0,0.2)] flex items-center justify-center hover:bg-indigo-600 hover:scale-110 transition-all group print:hidden"
+                    className="fixed bottom-8 right-8 z-50 h-14 w-14 rounded-2xl bg-slate-900 shadow-[0_8px_32px_rgba(0,0,0,0.25)] flex items-center justify-center hover:bg-indigo-600 hover:scale-110 transition-all group print:hidden"
                 >
                     <Sparkles className="h-6 w-6 text-white group-hover:rotate-12 transition-transform" />
-                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
-                        <div className="h-1.5 w-1.5 bg-white rounded-full animate-pulse" />
+                    <div className="absolute top-0 right-0 h-3.5 w-3.5 bg-emerald-500 rounded-full border-2 border-white">
+                        <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-40" />
                     </div>
                 </button>
             )}
 
             {/* Chat Window */}
             {open && !minimized && (
-                <div className="fixed bottom-6 right-6 z-50 print:hidden">
+                <div className="fixed bottom-8 right-8 z-50 print:hidden">
                     {chatContent}
                 </div>
             )}
 
             {/* Minimized pill */}
             {open && minimized && (
-                <div className="fixed bottom-6 right-6 z-50">
+                <div className="fixed bottom-8 right-8 z-50">
                     <button onClick={() => setMinimized(false)}
-                        className="flex items-center gap-3 px-5 py-3 bg-slate-900 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.2)] text-white hover:bg-indigo-600 transition-all print:hidden">
+                        className="flex items-center gap-3 px-5 py-3 bg-slate-900 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.25)] text-white hover:bg-indigo-600 transition-all print:hidden">
                         <Sparkles className="h-4 w-4" />
                         <span className="text-[10px] font-black uppercase tracking-widest">GVM AI</span>
                         <ChevronDown className="h-3.5 w-3.5 rotate-180" />
