@@ -30,6 +30,7 @@ export const es = {
         payroll: "Nómina",
         my_payroll: "Mi Nómina",
         purchasing: "Compras",
+        purchase_orders: "Órdenes de Compra",
         bills: "Facturas",
         production: "Producción",
         accounting: "Contabilidad",

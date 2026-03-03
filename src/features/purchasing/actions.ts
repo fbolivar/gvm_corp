@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { documentService } from '@/features/documents/services/documentService';
 import { documentSchema, Document, DocumentType } from '@/features/documents/types';
 import { purchasingService } from './services/purchasingService';
+import { purchaseOrderService } from './services/purchaseOrderService';
 
 export async function createPurchasingDocumentAction(data: Document, redirectPath: string) {
     const supabase = await createClient();
@@ -56,6 +57,39 @@ export async function approveVendorBillAction(docId: string) {
     try {
         await purchasingService.approveVendorBill(supabase, docId);
         revalidatePath('/purchasing/bills');
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+export async function submitOrderForApprovalAction(docId: string) {
+    const supabase = await createClient();
+    try {
+        await purchaseOrderService.submitForApproval(supabase, docId);
+        revalidatePath('/purchasing/orders');
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+export async function approveOrderAction(docId: string) {
+    const supabase = await createClient();
+    try {
+        await purchaseOrderService.approveOrder(supabase, docId);
+        revalidatePath('/purchasing/orders');
+        return { success: true };
+    } catch (error: any) {
+        return { error: error.message };
+    }
+}
+
+export async function cancelOrderAction(docId: string) {
+    const supabase = await createClient();
+    try {
+        await purchaseOrderService.cancelOrder(supabase, docId);
+        revalidatePath('/purchasing/orders');
         return { success: true };
     } catch (error: any) {
         return { error: error.message };

@@ -32,6 +32,7 @@ export const en: Dictionary = {
         payroll: "Payroll",
         my_payroll: "My Payroll",
         purchasing: "Purchasing",
+        purchase_orders: "Purchase Orders",
         bills: "Bills",
         production: "Production",
         accounting: "Accounting",

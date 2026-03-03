@@ -170,7 +170,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     icon: ShoppingBag,
                     moduleKey: 'purchasing',
                     children: [
-                        { title: t.sidebar.orders, href: "/purchasing/orders", icon: FileBarChart },
+                        { title: t.sidebar.purchase_orders, href: "/purchasing/orders", icon: ClipboardList },
                         { title: t.sidebar.bills, href: "/purchasing/bills", icon: Receipt },
                     ]
                 },

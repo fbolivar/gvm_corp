@@ -20,7 +20,8 @@ import {
     AlertCircle,
     CheckCircle2,
     DollarSign,
-    Layers
+    Layers,
+    FlaskConical
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { inventoryService } from "../services/inventoryService";
@@ -41,6 +42,7 @@ const labelClass = "text-[10px] font-black text-slate-400 uppercase tracking-wid
 export function InventoryMovementForm({ products, warehouses, onSubmit, isLoading }: InventoryMovementFormProps) {
     const [currentStock, setCurrentStock] = useState<number | null>(null);
     const [loadingStock, setLoadingStock] = useState(false);
+    const [availableLots, setAvailableLots] = useState<Array<{ id: string; lot_number: string; batch_code: string | null; qty: number; expiration_date: string | null; status: string }>>([]);
     const supabase = createClient();
 
     const form = useForm<InventoryMovement>({
@@ -60,8 +62,10 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
     useEffect(() => {
         if (watchProductId && watchWarehouseId) {
             fetchStock();
+            fetchLots();
         } else {
             setCurrentStock(null);
+            setAvailableLots([]);
         }
     }, [watchProductId, watchWarehouseId]);
 
@@ -74,6 +78,21 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
             console.error("Error fetching stock preview:", error);
         } finally {
             setLoadingStock(false);
+        }
+    };
+
+    const fetchLots = async () => {
+        try {
+            const { data } = await supabase
+                .from('product_lots')
+                .select('id, lot_number, batch_code, qty, expiration_date, status')
+                .eq('product_id', watchProductId)
+                .eq('warehouse_id', watchWarehouseId)
+                .in('status', ['ACTIVE', 'QUARANTINE'])
+                .order('expiration_date', { ascending: true });
+            setAvailableLots(data || []);
+        } catch {
+            setAvailableLots([]);
         }
     };
 
@@ -197,6 +216,37 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
                                 {form.formState.errors.product_id && <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-1 ml-1">{form.formState.errors.product_id.message}</p>}
                             </div>
                         </div>
+
+                        {/* Lot Selector — shows when product+warehouse selected and lots exist */}
+                        {availableLots.length > 0 && (
+                            <div className="space-y-2">
+                                <Label className={labelClass}>
+                                    <span className="flex items-center gap-1.5">
+                                        <FlaskConical className="h-3 w-3" />
+                                        Lote {watchType === 'OUT' ? '(FEFO — Primero en Vencer)' : '(Opcional)'}
+                                    </span>
+                                </Label>
+                                <div className="relative">
+                                    <FlaskConical className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-400 pointer-events-none z-10" />
+                                    <select {...form.register('lot_id')} className={selectClass}>
+                                        <option value="">Sin lote específico</option>
+                                        {availableLots.map(lot => {
+                                            const expDate = lot.expiration_date ? new Date(lot.expiration_date) : null;
+                                            const daysLeft = expDate ? Math.ceil((expDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                                            const expLabel = daysLeft !== null
+                                                ? daysLeft <= 0 ? ' — VENCIDO' : daysLeft <= 30 ? ` — ${daysLeft}d restantes` : ` — Vence ${expDate!.toLocaleDateString('es-CO')}`
+                                                : '';
+                                            return (
+                                                <option key={lot.id} value={lot.id}>
+                                                    {lot.lot_number}{lot.batch_code ? ` / ${lot.batch_code}` : ''} — {lot.qty} UND{expLabel}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-2">

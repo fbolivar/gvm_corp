@@ -125,7 +125,8 @@ export const inventoryService = {
             .select(`
                 *,
                 products(name, sku),
-                warehouses(name)
+                warehouses(name),
+                lot:product_lots(lot_number, batch_code, expiration_date)
             `)
             .order('occurred_at', { ascending: false });
 

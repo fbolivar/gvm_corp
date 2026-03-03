@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { dashboardService, PreviousMonthKPIs } from '@/features/dashboard/services/dashboardService';
+import { dashboardService } from '@/features/dashboard/services/dashboardService';
 import { KPICard } from '@/features/dashboard/components/KPICard';
 import { RecentSalesWidget } from '@/features/dashboard/components/RecentSalesWidget';
 import { ActionGrid } from '@/features/dashboard/components/ActionGrid';
@@ -14,20 +14,18 @@ import {
   Package,
   Activity,
   UserCheck,
-  Calendar,
   LayoutDashboard,
-  ShieldCheck,
   Zap,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  FlaskConical
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Card } from "@/shared/components/ui/card";
 import { settingsService } from '@/features/settings/services/settingsService';
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { cn } from "@/shared/lib/utils";
 
 import { smartAlertService } from "@/features/notifications/services/smartAlertService";
 import { CriticalAlertsPanel } from '@/features/dashboard/components/CriticalAlertsPanel';
@@ -132,7 +130,7 @@ export default async function DashboardPage() {
         {/* 🏗️ OPERATIONAL ANALYTICS */}
         <div className="grid gap-8 grid-cols-1 lg:grid-cols-12 items-start">
           <div className="lg:col-span-8 space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="bg-white border-none shadow-sm p-6 flex items-center gap-4 rounded-xl group hover:bg-slate-50 transition-all duration-300">
                 <div className="h-10 w-10 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 shadow-inner group-hover:rotate-6 transition-transform">
                   <TrendingDown className="h-5 w-5" />
@@ -161,6 +159,23 @@ export default async function DashboardPage() {
                   </div>
                 </div>
               </Card>
+
+              <Link href="/inventory/lots" className="block">
+                <Card className={`bg-white border-none shadow-sm p-6 flex items-center gap-4 rounded-xl group hover:bg-slate-50 transition-all duration-300 ${kpis.expiringLots30d > 0 ? 'ring-1 ring-amber-200' : ''}`}>
+                  <div className={`h-10 w-10 rounded-lg flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform ${kpis.expiringLots30d > 0 ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                    <FlaskConical className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none italic">Lotes por Vencer</h4>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-extrabold text-slate-900 tracking-tight italic tabular-nums">{kpis.expiringLots30d}</span>
+                      <Badge className={`border-none font-bold text-[7px] uppercase px-1 py-0.5 rounded-full ${kpis.expiringLots30d > 0 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                        {kpis.expiringLots30d > 0 ? 'próx 30d' : 'sin alertas'}
+                      </Badge>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
             </div>
 
             {/* 💎 NEW STRATEGIC ANALYTICS ROW */}

@@ -10,6 +10,7 @@ export const movementSchema = z.object({
 
     warehouse_id: z.string().uuid(),
     product_id: z.string().uuid(),
+    lot_id: z.string().uuid().optional().nullable(),
 
     type: MovementTypeEnum,
     qty: z.number().positive("Cantidad debe ser positiva"),

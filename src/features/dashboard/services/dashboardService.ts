@@ -10,6 +10,7 @@ export interface DashboardKPIs {
     newCustomers: number;
     inventoryValue: number;
     contributionMargin: number;
+    expiringLots30d: number;
     arAging: {
         current: number;
         overdue30: number;
@@ -129,6 +130,16 @@ export const dashboardService = {
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
+        // Lots expiring in next 30 days
+        const in30Days = new Date();
+        in30Days.setDate(in30Days.getDate() + 30);
+        const { count: expiringLots30d } = await client
+            .from('product_lots')
+            .select('*', { count: 'exact', head: true })
+            .in('status', ['ACTIVE', 'QUARANTINE'])
+            .lte('expiration_date', in30Days.toISOString().split('T')[0])
+            .gte('expiration_date', new Date().toISOString().split('T')[0]);
+
         return {
             totalIncome: financials.totalIncome,
             totalExpenses: financials.totalExpenses,
@@ -139,6 +150,7 @@ export const dashboardService = {
             lowStockProducts: lowStockCount,
             inventoryValue: inventoryValuation,
             contributionMargin: financials.totalIncome - financials.totalExpenses,
+            expiringLots30d: expiringLots30d || 0,
             arAging: aging,
             salesByUOM: [],
             topProducts: topProducts as any[]

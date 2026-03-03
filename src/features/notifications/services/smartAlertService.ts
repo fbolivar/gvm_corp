@@ -28,6 +28,7 @@ export const smartAlertService = {
             this.checkFiscalPeriodClosingAlert(client),
             this.checkFixedAssetsNeverDepreciatedAlert(client),
             this.checkContractsExpiringAlert(client),
+            this.checkExpiringLotsAlert(client),
         ]);
     },
 
@@ -347,6 +348,52 @@ export const smartAlertService = {
             }, 'HIGH');
         } catch (e) {
             console.error('[smartAlerts] contracts_expiring:', e);
+        }
+    },
+
+    // ─── Expiring Lots ───────────────────────────────────────────────────────
+
+    async checkExpiringLotsAlert(client: SupabaseClient) {
+        try {
+            const today = new Date();
+            const in30Days = new Date(today);
+            in30Days.setDate(today.getDate() + 30);
+            const todayStr = today.toISOString().split('T')[0];
+            const in30Str = in30Days.toISOString().split('T')[0];
+
+            const { data: expiring } = await client
+                .from('product_lots')
+                .select('id, lot_number, expiration_date, qty, products(name)')
+                .in('status', ['ACTIVE', 'QUARANTINE'])
+                .gte('expiration_date', todayStr)
+                .lte('expiration_date', in30Str)
+                .gt('qty', 0);
+
+            if (!expiring || expiring.length === 0) return;
+
+            const count = expiring.length;
+            const totalUnits = expiring.reduce((sum, l) => sum + Number(l.qty), 0);
+            const sample = expiring.slice(0, 3).map((l: any) => {
+                const productName = Array.isArray(l.products) ? l.products[0]?.name : l.products?.name;
+                return `${l.lot_number} (${productName || 'N/A'})`;
+            }).join(', ');
+            const suffix = count > 3 ? ` y ${count - 3} más` : '';
+
+            // Lots expiring within 7 days are CRITICAL, within 30 is HIGH
+            const minDays = Math.min(...expiring.map(l => {
+                const exp = new Date(l.expiration_date!);
+                return Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            }));
+            const priority = minDays <= 7 ? 'CRITICAL' as const : 'HIGH' as const;
+
+            await this.triggerAlert(client, {
+                title: `${count} Lote${count > 1 ? 's' : ''} por Vencer (${totalUnits} UND)`,
+                body: `Los siguientes lotes vencen en los próximos 30 días: ${sample}${suffix}. Gestiona rotación FEFO o cuarentena.`,
+                category: 'INVENTORY',
+                link: '/inventory/lots'
+            }, priority);
+        } catch (e) {
+            console.error('[smartAlerts] expiring_lots:', e);
         }
     },
 
