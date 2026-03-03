@@ -184,14 +184,14 @@ export function BarcodeScannerOverlay() {
 
     return (
         <>
-            <div className="fixed bottom-8 right-8 z-50">
+            <div className="fixed bottom-[6.5rem] right-8 z-50">
                 <Button
                     onClick={() => setIsOpen(true)}
-                    className="h-16 w-16 rounded-full bg-slate-900 border-4 border-white shadow-2xl hover:scale-110 active:scale-95 transition-all group"
+                    className="h-12 w-12 rounded-2xl bg-slate-900 border-2 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.25)] hover:scale-110 active:scale-95 transition-all group"
                 >
-                    <Barcode className="h-8 w-8 text-white group-hover:animate-pulse" />
-                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-primary rounded-full border-2 border-white flex items-center justify-center">
-                        <Zap className="h-3 w-3 text-white fill-white" />
+                    <Barcode className="h-5 w-5 text-white group-hover:animate-pulse" />
+                    <div className="absolute top-0 right-0 h-3 w-3 bg-primary rounded-full border-2 border-white">
+                        <Zap className="h-1.5 w-1.5 text-white fill-white" />
                     </div>
                 </Button>
             </div>
