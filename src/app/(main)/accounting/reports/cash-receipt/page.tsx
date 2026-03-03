@@ -54,9 +54,9 @@ function ListView({ transactions }: { transactions: TreasuryTransaction[] }) {
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* Dark header */}
-            <div className="bg-slate-900 rounded-[3.5rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
-                    <Receipt className="h-80 w-80" />
+                    <Receipt className="h-24 w-24" />
                 </div>
                 <div className="relative z-10 space-y-6">
                     <div className="flex items-center gap-3">
@@ -65,7 +65,7 @@ function ListView({ transactions }: { transactions: TreasuryTransaction[] }) {
                             Cash Receipt Module v3.0
                         </span>
                     </div>
-                    <h1 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                         Recibo de <br /><span className="text-slate-500">Caja</span>
                     </h1>
                     <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">
@@ -81,7 +81,7 @@ function ListView({ transactions }: { transactions: TreasuryTransaction[] }) {
                         Total Recibos Recientes
                     </span>
                     <div className="flex items-baseline gap-4">
-                        <h2 className="text-6xl font-black text-emerald-600 tracking-tighter italic leading-none">
+                        <h2 className="text-4xl font-black text-emerald-600 tracking-tight leading-none">
                             {fmt(transactions.reduce((s, t) => s + Number(t.amount), 0))}
                         </h2>
                         <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">

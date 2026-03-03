@@ -110,13 +110,13 @@ export default async function SalesDashboard() {
             )}
 
             {/* Premium Header */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[3rem] p-10 md:p-14 text-white shadow-active border border-white/5">
+            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5">
                 {/* Decorative Background Icons */}
                 <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-transform duration-1000">
-                    <TrendingUp className="h-40 w-40" />
+                    <TrendingUp className="h-24 w-24" />
                 </div>
                 <div className="absolute -bottom-10 -left-10 opacity-[0.05] pointer-events-none">
-                    <Cpu className="h-48 w-48 text-primary" />
+                    <Cpu className="h-20 w-20 text-primary" />
                 </div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-30 pointer-events-none" />
 
@@ -126,7 +126,7 @@ export default async function SalesDashboard() {
                             <div className="h-1.5 w-10 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Terminal de Ventas V3</span>
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter italic uppercase leading-none mb-2">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight mb-2">
                             Embudo & <br /><span className="text-slate-500">Facturación</span>
                         </h1>
                         <div className="flex items-center gap-4">
@@ -139,7 +139,7 @@ export default async function SalesDashboard() {
                     </div>
 
                     <div className="flex gap-4 w-full md:w-auto">
-                        <Button variant="outline" asChild className="h-16 flex-1 md:flex-none px-8 rounded-2xl border-none bg-white/5 hover:bg-white/10 text-white font-black transition-all active:scale-95 backdrop-blur-xl shadow-premium">
+                        <Button variant="outline" asChild className="h-12 flex-1 md:flex-none px-8 rounded-2xl border-none bg-white/5 hover:bg-white/10 text-white font-black transition-all active:scale-95 backdrop-blur-xl shadow-premium">
                             <Link href="/sales/invoices" className="flex items-center gap-4">
                                 <Receipt className="h-5 w-5 text-primary" />
                                 <div className="flex flex-col items-start leading-none">
@@ -148,7 +148,7 @@ export default async function SalesDashboard() {
                                 </div>
                             </Link>
                         </Button>
-                        <Button asChild className="h-16 flex-1 md:flex-none px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-active transition-all active:scale-95 border-none">
+                        <Button asChild className="h-12 flex-1 md:flex-none px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-active transition-all active:scale-95 border-none">
                             <Link href="/sales/orders/new" className="flex items-center gap-4">
                                 <Plus className="h-6 w-6" />
                                 <div className="flex flex-col items-start leading-none">
@@ -176,7 +176,7 @@ export default async function SalesDashboard() {
                         </CardHeader>
                         <CardContent className="px-10 pb-10 space-y-6 relative z-10">
                             <div className="space-y-1">
-                                <div className="text-5xl font-black text-slate-950 tracking-tighter italic leading-none uppercase">
+                                <div className="text-3xl font-black text-slate-950 tracking-tight leading-none uppercase">
                                     {stat.count}
                                 </div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{stat.desc}</p>
@@ -204,7 +204,7 @@ export default async function SalesDashboard() {
                             <div className="space-y-2 text-center md:text-left">
                                 <div className="flex items-center gap-3 justify-center md:justify-start">
                                     <Target className="h-5 w-5 text-primary" />
-                                    <h2 className="text-3xl font-black text-slate-950 tracking-tight italic uppercase leading-none">Operaciones</h2>
+                                    <h2 className="text-3xl font-black text-slate-950 tracking-tight uppercase leading-tight">Operaciones</h2>
                                 </div>
                                 <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] pl-1">Centro de Protocolos Comerciales</p>
                             </div>
@@ -243,7 +243,7 @@ export default async function SalesDashboard() {
                         <div className="pt-10 border-t border-slate-50">
                             <div className="flex items-center justify-between mb-8">
                                 <div className="space-y-1">
-                                    <h3 className="text-2xl font-black text-slate-950 italic uppercase leading-none tracking-tighter">Facturación de Alto Impacto</h3>
+                                    <h3 className="text-2xl font-black text-slate-950 uppercase leading-tight tracking-tight">Facturación de Alto Impacto</h3>
                                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none">Flujo Vital de Efectivo</p>
                                 </div>
                                 <Button variant="ghost" asChild className="rounded-full text-primary hover:bg-slate-50 px-6 h-10 font-black uppercase text-[9px] tracking-[0.2em] gap-3 leading-none border border-slate-100 shadow-sm">
@@ -289,7 +289,7 @@ export default async function SalesDashboard() {
 
                 {/* Performance & Visualization */}
                 <div className="lg:col-span-4 space-y-10">
-                    <Card className="bg-slate-950 border-none shadow-active rounded-[3rem] p-2 relative overflow-hidden group">
+                    <Card className="bg-slate-950 border-none shadow-active rounded-[2.5rem] p-2 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-10 opacity-[0.1] pointer-events-none group-hover:scale-150 group-hover:rotate-12 transition-transform duration-1000">
                             <Zap className="h-32 w-32 text-primary" />
                         </div>
@@ -304,7 +304,7 @@ export default async function SalesDashboard() {
                             <div className="space-y-4">
                                 <div className="flex items-baseline gap-2 uppercase">
                                     <span className="text-primary font-black italic text-2xl tracking-tighter">$</span>
-                                    <h3 className="text-6xl font-black italic leading-none tracking-tighter text-white">
+                                    <h3 className="text-4xl font-black leading-none tracking-tighter text-white">
                                         {totalRevenue.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                                     </h3>
                                 </div>
@@ -330,7 +330,7 @@ export default async function SalesDashboard() {
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-gradient-to-br from-indigo-50 to-white border-none shadow-premium rounded-[3rem] p-10 space-y-8 relative group overflow-hidden">
+                    <Card className="bg-gradient-to-br from-indigo-50 to-white border-none shadow-premium rounded-[2.5rem] p-10 space-y-8 relative group overflow-hidden">
                         <div className="absolute -bottom-10 -right-10 opacity-[0.05] pointer-events-none group-hover:scale-125 transition-transform duration-1000">
                             <Users className="h-32 w-32 text-indigo-950" />
                         </div>
@@ -339,7 +339,7 @@ export default async function SalesDashboard() {
                             <Users className="h-8 w-8 text-primary" />
                         </div>
                         <div className="space-y-2 leading-none">
-                            <h3 className="text-3xl font-black text-slate-950 tracking-tighter italic uppercase">Top Terceros</h3>
+                            <h3 className="text-3xl font-black text-slate-950 tracking-tight uppercase">Top Terceros</h3>
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] leading-relaxed">Identifica los nodos de mayor rentabilidad.</p>
                         </div>
                         <Button variant="outline" className="w-full h-14 rounded-2xl border-none bg-white text-slate-900 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary hover:text-white shadow-premium transition-all duration-500 leading-none">
@@ -350,7 +350,7 @@ export default async function SalesDashboard() {
             </div>
 
             {/* 🛡️ AUDIT FOOTER */}
-            <div className="bg-slate-950 p-12 rounded-[3.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-10 shadow-active relative overflow-hidden group mb-12 border border-white/5">
+            <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-10 shadow-active relative overflow-hidden group mb-12 border border-white/5">
                 <div className="absolute top-0 right-0 p-10 opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform duration-1000">
                     <ShieldCheck className="h-40 w-40 text-white" />
                 </div>
@@ -361,7 +361,7 @@ export default async function SalesDashboard() {
                     <div className="space-y-2">
                         <div className="flex items-center gap-3 justify-center lg:justify-start">
                             <div className="h-1 w-4 bg-primary rounded-full" />
-                            <h4 className="text-xl font-black italic tracking-tighter uppercase leading-none text-white">Protocolo de Auditoría Comercial</h4>
+                            <h4 className="text-xl font-black tracking-tight uppercase leading-tight text-white">Protocolo de Auditoría Comercial</h4>
                         </div>
                         <p className="text-[11px] text-white/40 leading-relaxed font-black uppercase tracking-[0.2em] max-w-2xl">
                             Validación por motor contable industrial. Integridad de datos asegurada mediante protocolos de cifrado y auditoría de transacciones en tiempo real.

@@ -25,9 +25,9 @@ export default async function EntriesPage() {
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* 🛡️ PREMIUM HEADER POD */}
-            <div className="bg-slate-900 rounded-[3.5rem] p-12 md:p-16 text-white shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000">
-                    <BookOpen className="h-64 w-64" />
+                    <BookOpen className="h-24 w-24" />
                 </div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
@@ -36,7 +36,7 @@ export default async function EntriesPage() {
                             <div className="h-2 w-10 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Libro Diario Maestro v3.0</span>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.8] mb-2">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight mb-2">
                             Asientos <br /><span className="text-slate-400">Contables</span>
                         </h1>
                         <div className="flex items-center gap-4">
@@ -49,7 +49,7 @@ export default async function EntriesPage() {
                     </div>
 
                     <div className="flex gap-4 w-full md:w-auto">
-                        <Button variant="outline" asChild className="h-20 flex-1 md:flex-none px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all active:scale-95 backdrop-blur-md">
+                        <Button variant="outline" asChild className="h-14 flex-1 md:flex-none px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all active:scale-95 backdrop-blur-md">
                             <Link href="/accounting/reports" className="flex items-center gap-4">
                                 <Calculator className="h-6 w-6 text-indigo-500" />
                                 <div className="flex flex-col items-start leading-none text-left">
@@ -58,7 +58,7 @@ export default async function EntriesPage() {
                                 </div>
                             </Link>
                         </Button>
-                        <Button asChild className="h-20 flex-1 md:flex-none px-12 rounded-[2rem] bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
+                        <Button asChild className="h-14 flex-1 md:flex-none px-12 rounded-[2rem] bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
                             <Link href="/accounting/entries/new" className="flex items-center gap-4">
                                 <Plus className="h-7 w-7" />
                                 <div className="flex flex-col items-start leading-none text-left">
@@ -73,7 +73,7 @@ export default async function EntriesPage() {
 
             {/* 📊 INDUSTRIAL STATS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-white rounded-[3rem] p-10 shadow-premium flex items-center justify-between group hover:translate-y-[-4px] transition-all border border-slate-50">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium flex items-center justify-between group hover:translate-y-[-4px] transition-all border border-slate-50">
                     <div className="space-y-1">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Volumen Movimientos</p>
                         <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter">{totalToday}</h3>
@@ -84,7 +84,7 @@ export default async function EntriesPage() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-[3rem] p-10 shadow-premium flex items-center justify-between group hover:translate-y-[-4px] transition-all border border-slate-50">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium flex items-center justify-between group hover:translate-y-[-4px] transition-all border border-slate-50">
                     <div className="space-y-1">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Flujo Transaccional</p>
                         <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter">
@@ -97,7 +97,7 @@ export default async function EntriesPage() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-[3rem] p-10 shadow-premium flex items-center justify-between group hover:translate-y-[-4px] transition-all border border-slate-50">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium flex items-center justify-between group hover:translate-y-[-4px] transition-all border border-slate-50">
                     <div className="space-y-1">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Período Fiscal</p>
                         <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter">FEBRERO</h3>

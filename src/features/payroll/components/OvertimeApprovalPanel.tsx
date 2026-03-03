@@ -183,7 +183,7 @@ export function OvertimeApprovalPanel({ pendingRequests, allRequests }: Props) {
                 </div>
 
                 {pendingRequests.length === 0 ? (
-                    <div className="py-16 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-3">
+                    <div className="py-16 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-3">
                         <CheckCircle2 className="h-10 w-10 text-emerald-300" />
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">
                             Sin solicitudes pendientes de aprobación

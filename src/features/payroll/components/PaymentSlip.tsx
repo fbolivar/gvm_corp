@@ -19,7 +19,7 @@ export function PaymentSlip({ document, employee, cune, qrData }: Props) {
     const netPay = totalEarnings - totalDeductions;
 
     return (
-        <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl border border-slate-100 max-w-4xl mx-auto space-y-12 relative overflow-hidden group">
+        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 max-w-4xl mx-auto space-y-12 relative overflow-hidden group">
             {/* Background Texture */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full -mr-48 -mt-48 blur-3xl animate-pulse" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-50 rounded-full -ml-32 -mb-32 blur-2xl" />
@@ -123,9 +123,9 @@ export function PaymentSlip({ document, employee, cune, qrData }: Props) {
                     )}
                 </div>
 
-                <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 min-w-[300px] text-center space-y-2">
+                <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 min-w-[300px] text-center space-y-2">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Neto Recibido</p>
-                    <h3 className="text-5xl font-black italic tracking-tighter text-slate-900">
+                    <h3 className="text-4xl font-black tracking-tight text-slate-900">
                         ${new Intl.NumberFormat('es-CO').format(Math.round(netPay))}
                     </h3>
                     <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Pesos Colombianos</p>

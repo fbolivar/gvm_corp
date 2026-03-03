@@ -114,7 +114,7 @@ export default async function PayrollSummaryPage({
                         Total a Pagar
                     </span>
                     <div className="flex items-baseline gap-4">
-                        <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                             {fmt(totalNet)}
                         </h2>
                         <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">
@@ -206,7 +206,7 @@ export default async function PayrollSummaryPage({
             </div>
 
             {/* Payroll Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">
@@ -317,7 +317,7 @@ export default async function PayrollSummaryPage({
             </Card>
 
             {/* PILA Banner */}
-            <div className="bg-slate-100 p-12 rounded-[4rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200">
+            <div className="bg-slate-100 p-10 rounded-[2.5rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200">
                 <div className="flex items-center gap-8">
                     <div className="h-20 w-20 bg-white rounded-[2rem] flex items-center justify-center text-violet-600 shadow-premium border border-white">
                         <ShieldCheck className="h-10 w-10" />

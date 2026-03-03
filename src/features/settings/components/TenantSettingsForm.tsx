@@ -71,7 +71,7 @@ export function TenantSettingsForm({ initialData }: Props) {
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 px-4 md:px-0 pb-20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 italic leading-none">Datos de Empresa</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 leading-tight">Datos de Empresa</h2>
                     <p className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-1">Configuración Legal, Contacto y Ubicación</p>
                 </div>
                 <Button
@@ -92,7 +92,7 @@ export function TenantSettingsForm({ initialData }: Props) {
                 {/* Identidad Corporativa (Logo) */}
                 <Card className="border-none bg-slate-900 shadow-active rounded-[2.5rem] overflow-hidden md:col-span-2 relative group">
                     <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
-                        <Building2 className="h-48 w-48 text-white" />
+                        <Building2 className="h-20 w-20 text-white" />
                     </div>
                     <CardContent className="p-8 md:p-12 relative z-10 flex flex-col md:flex-row items-center gap-10">
                         <div className="relative group/logo">
@@ -129,7 +129,7 @@ export function TenantSettingsForm({ initialData }: Props) {
                             </label>
                         </div>
                         <div className="flex-1 space-y-4 text-center md:text-left">
-                            <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Identidad Visual</h3>
+                            <h3 className="text-2xl font-black text-white tracking-tight uppercase leading-tight">Identidad Visual</h3>
                             <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.3em] max-w-md">
                                 El logo cargado se utilizará automáticamente en todos los reportes PDF, facturas electrónicas y comunicaciones oficiales. Recomendamos fondo transparente (PNG).
                             </p>
@@ -286,7 +286,7 @@ export function TenantSettingsForm({ initialData }: Props) {
                         <Fingerprint className="h-7 w-7" />
                     </div>
                     <div className="space-y-2 text-center md:text-left">
-                        <h4 className="font-black text-indigo-900 italic uppercase tracking-tight text-lg">Verificación Electrónica</h4>
+                        <h4 className="font-black text-indigo-900 uppercase tracking-tight text-lg">Verificación Electrónica</h4>
                         <p className="text-[11px] md:text-sm font-medium text-indigo-600/80 leading-relaxed">
                             Estos datos son utilizados para la generación de facturación electrónica y nómina electrónica ante la DIAN. Asegúrese de que coincidan con su RUT actualizado para evitar rechazos en el procesamiento.
                         </p>

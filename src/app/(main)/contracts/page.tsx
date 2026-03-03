@@ -30,9 +30,9 @@ export default async function ContractsPage() {
         <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* HEADER */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[4rem] p-16 text-white shadow-active group">
+            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <FileText className="h-64 w-64 text-white" />
+                    <FileText className="h-24 w-24 text-white" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
                     <div className="space-y-4">
@@ -40,7 +40,7 @@ export default async function ContractsPage() {
                             <div className="h-2 w-8 bg-violet-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-violet-400">Gestión Legal</span>
                         </div>
-                        <h1 className="text-6xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-tight">
                             Contratos<br /><span className="text-slate-500">& Acuerdos</span>
                         </h1>
                         <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">
@@ -67,7 +67,7 @@ export default async function ContractsPage() {
                         </div>
                         <div>
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                            <p className="text-2xl font-black text-slate-900 italic tracking-tighter">{kpi.value}</p>
+                            <p className="text-xl font-black text-slate-900 tracking-tight">{kpi.value}</p>
                         </div>
                     </div>
                 ))}
@@ -75,13 +75,13 @@ export default async function ContractsPage() {
 
             {/* Type breakdown */}
             {byType.length > 0 && (
-                <div className="bg-white rounded-[3rem] p-10 shadow-premium">
-                    <h3 className="text-sm font-black text-slate-900 uppercase italic tracking-tight mb-6">Distribución por Tipo</h3>
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-6">Distribución por Tipo</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         {byType.map(t => (
                             <div key={t.type} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.label}</p>
-                                <p className="text-2xl font-black text-slate-900 italic tracking-tighter">{t.count}</p>
+                                <p className="text-xl font-black text-slate-900 tracking-tight">{t.count}</p>
                                 {t.value > 0 && (
                                     <p className="text-[9px] font-black text-violet-500 uppercase tracking-widest">${(t.value / 1e6).toFixed(1)}M</p>
                                 )}

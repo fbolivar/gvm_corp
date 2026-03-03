@@ -70,7 +70,7 @@ export default function NewFixedAssetClient() {
     return (
         <form onSubmit={handleSubmit} className="space-y-10 max-w-3xl mx-auto">
             {/* General Info */}
-            <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-8">
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-8">
                 <div className="flex items-center gap-4 mb-2">
                     <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                         <Package className="h-6 w-6" />
@@ -113,7 +113,7 @@ export default function NewFixedAssetClient() {
             </div>
 
             {/* Depreciation Config */}
-            <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-8">
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-8">
                 <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight">Parámetros de Depreciación</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

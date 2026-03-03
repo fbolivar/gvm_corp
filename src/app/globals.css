@@ -98,6 +98,14 @@
   animation: float 3s ease-in-out infinite;
 }
 
+/* ──── DESIGN SYSTEM: PAGE HERO STANDARDS ──── */
+/* Max title size:   text-4xl md:text-5xl  (NEVER text-7xl/8xl/9xl)   */
+/* Hero padding:     p-10                  (NEVER p-16)                */
+/* Hero radius:      rounded-[2.5rem]      (NEVER rounded-[4rem])      */
+/* BG deco icons:    h-24 w-24 max         (NEVER h-64 w-64)           */
+/* Line height:      leading-tight/snug    (NEVER leading-none on h1)  */
+/* Italic rule:      only accent numbers   (NEVER on h1 uppercase)     */
+
 /* ──── RESPONSIVE UTILITIES ──── */
 
 /* Horizontal scroll for tables on mobile */

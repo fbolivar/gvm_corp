@@ -34,7 +34,7 @@ export default async function MyPayrollPage() {
                     <BadgeInfo className="h-10 w-10" />
                 </div>
                 <div className="space-y-2">
-                    <h1 className="text-4xl font-black text-slate-900 italic tracking-tighter">Portal No Vinculado</h1>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Portal No Vinculado</h1>
                     <p className="text-slate-400 font-medium max-w-md">Tu cuenta de usuario no está vinculada a un registro de empleado. Contacta a RRHH para habilitar tu autoservicio.</p>
                 </div>
             </div>
@@ -51,10 +51,10 @@ export default async function MyPayrollPage() {
     return (
         <div className="space-y-12 pb-24 animate-in fade-in duration-1000 px-4 md:px-0">
             {/* 🛡️ EMPLOYEE COMMAND CENTER HEADER */}
-            <div className="bg-slate-900 rounded-[4rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                 {/* Background Decor */}
-                <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <ShieldCheck className="h-80 w-80 text-white" />
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
+                    <ShieldCheck className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-end gap-12">
@@ -63,7 +63,7 @@ export default async function MyPayrollPage() {
                             <div className="h-2 w-12 bg-emerald-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-emerald-400">Employee Portal v3.0</span>
                         </div>
-                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Hola, <br /><span className="text-slate-500">{employee.party?.legal_name.split(' ')[0]}</span>
                         </h1>
                         <div className="flex items-center gap-4">
@@ -76,13 +76,13 @@ export default async function MyPayrollPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-4">
-                        <div className="h-24 px-10 rounded-[2rem] bg-white/5 backdrop-blur-md border border-white/10 flex flex-col justify-center items-end group/stat hover:bg-white/10 transition-all">
-                            <span className="text-[10px] uppercase tracking-widest text-slate-400 font-black italic">Sueldo Básico</span>
-                            <span className="text-3xl font-black italic tracking-tighter">${Number(employee.salary).toLocaleString('es-CO')}</span>
+                        <div className="h-14 px-10 rounded-[2rem] bg-white/5 backdrop-blur-md border border-white/10 flex flex-col justify-center items-end group/stat hover:bg-white/10 transition-all">
+                            <span className="text-[10px] uppercase tracking-widest text-slate-400 font-black">Sueldo Básico</span>
+                            <span className="text-xl font-black tracking-tight">${Number(employee.salary).toLocaleString('es-CO')}</span>
                         </div>
-                        <div className="h-24 px-10 rounded-[2rem] bg-indigo-500/20 backdrop-blur-md border border-indigo-500/20 flex flex-col justify-center items-end group/stat hover:bg-indigo-500/30 transition-all">
-                            <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-black italic">Tipo Contrato</span>
-                            <span className="text-2xl font-black italic tracking-tight uppercase text-indigo-100">{employee.contract_type}</span>
+                        <div className="h-14 px-10 rounded-[2rem] bg-indigo-500/20 backdrop-blur-md border border-indigo-500/20 flex flex-col justify-center items-end group/stat hover:bg-indigo-500/30 transition-all">
+                            <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-black">Tipo Contrato</span>
+                            <span className="text-2xl font-black tracking-tight uppercase text-indigo-100">{employee.contract_type}</span>
                         </div>
                     </div>
                 </div>
@@ -96,7 +96,7 @@ export default async function MyPayrollPage() {
                     <section className="space-y-8">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <h2 className="text-2xl font-black tracking-tighter italic uppercase text-slate-900 leading-none">Desprendibles</h2>
+                                <h2 className="text-2xl font-black tracking-tight uppercase text-slate-900 leading-tight">Desprendibles</h2>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tus últimos 5 pagos certificados</p>
                             </div>
                         </div>
@@ -110,7 +110,7 @@ export default async function MyPayrollPage() {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-3 mb-1">
-                                                <h3 className="text-xl font-black text-slate-900 italic tracking-tighter">{doc.number}</h3>
+                                                <h3 className="text-xl font-black text-slate-900 tracking-tight">{doc.number}</h3>
                                                 <Badge variant="outline" className="text-[8px] font-black px-2 py-0 border-slate-200">PAYROLL</Badge>
                                             </div>
                                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{doc.issue_date}</p>
@@ -120,7 +120,7 @@ export default async function MyPayrollPage() {
                                     <div className="flex items-center justify-between w-full md:w-auto gap-12">
                                         <div className="text-right">
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Neto Liquidado</p>
-                                            <p className="text-3xl font-black text-emerald-600 italic tracking-tighter">${(Number((doc as any).total) || 0).toLocaleString('es-CO')}</p>
+                                            <p className="text-2xl font-black text-emerald-600 tracking-tight">${(Number((doc as any).total) || 0).toLocaleString('es-CO')}</p>
                                         </div>
                                         <PayrollSlipButton
                                             docNumber={doc.number || ''}
@@ -153,7 +153,7 @@ export default async function MyPayrollPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {benefits.map((benefit) => (
-                                <div key={benefit.id} className="relative group bg-indigo-50/30 rounded-[3rem] p-10 overflow-hidden border border-indigo-50/50 transition-all hover:bg-indigo-50/50">
+                                <div key={benefit.id} className="relative group bg-indigo-50/30 rounded-[2.5rem] p-10 overflow-hidden border border-indigo-50/50 transition-all hover:bg-indigo-50/50">
                                     <div className="absolute -top-4 -right-4 p-8 opacity-[0.05] text-indigo-600">
                                         <TrendingUp className="h-24 w-24" />
                                     </div>
@@ -167,8 +167,8 @@ export default async function MyPayrollPage() {
                                             </Badge>
                                         </div>
                                         <div className="space-y-2">
-                                            <h4 className="text-2xl font-black text-slate-900 italic tracking-tighter leading-none">{benefit.name}</h4>
-                                            <p className="text-4xl font-black text-indigo-700 italic tracking-tighter leading-none">${Number(benefit.amount).toLocaleString('es-CO')}</p>
+                                            <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{benefit.name}</h4>
+                                            <p className="text-2xl font-black text-indigo-700 tracking-tight">${Number(benefit.amount).toLocaleString('es-CO')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -180,12 +180,12 @@ export default async function MyPayrollPage() {
                 {/* 🛡️ SIDEBAR COLUMN */}
                 <aside className="lg:col-span-4 space-y-10">
                     {/* ATTENDANCE WIDGET */}
-                    <div className="bg-white rounded-[3.5rem] shadow-premium overflow-hidden">
+                    <div className="bg-white rounded-[2.5rem] shadow-premium overflow-hidden">
                         <AttendanceWidget employeeId={employee.id!} tenantId={employee.tenant_id || ''} />
                     </div>
 
                     {/* FINANCIAL HEALTH / LOANS */}
-                    <div className="bg-slate-900 rounded-[3.5rem] p-10 text-white shadow-active relative overflow-hidden group">
+                    <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform duration-700">
                             <Wallet className="h-32 w-32" />
                         </div>
@@ -204,7 +204,7 @@ export default async function MyPayrollPage() {
                                                 <p className="text-sm font-black italic uppercase tracking-tight">{loan.description || 'Crédito Libranza'}</p>
                                                 <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Saldo Pendiente</p>
                                             </div>
-                                            <p className="text-lg font-black tracking-tighter italic text-indigo-100">${(Number(loan.amount_total) - Number(loan.amount_paid)).toLocaleString('es-CO')}</p>
+                                            <p className="text-lg font-black tracking-tight text-indigo-100">${(Number(loan.amount_total) - Number(loan.amount_paid)).toLocaleString('es-CO')}</p>
                                         </div>
                                         <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                                             <div
@@ -231,7 +231,7 @@ export default async function MyPayrollPage() {
                     </div>
 
                     {/* OVERTIME REQUESTS */}
-                    <div className="bg-white rounded-[3.5rem] shadow-premium p-8">
+                    <div className="bg-white rounded-[2.5rem] shadow-premium p-8">
                         <div className="mb-6">
                             <h3 className="text-xs font-black uppercase tracking-widest text-amber-500 italic">Horas Extra</h3>
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Solicita y sigue tus HE</p>

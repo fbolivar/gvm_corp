@@ -27,7 +27,7 @@ export default async function WithholdingCertificatePage({ searchParams }: PageP
 
         return (
             <div className="page-container space-y-8 pb-20 animate-in fade-in duration-700">
-                <div className="bg-slate-900 rounded-[3rem] p-10 text-white">
+                <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white">
                     <div className="flex items-center gap-4 mb-6">
                         <Link href="/accounting/reports" className="text-slate-400 hover:text-white transition-colors print:hidden">
                             <ArrowLeft className="h-5 w-5" />

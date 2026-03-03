@@ -73,7 +73,7 @@ export default async function KardexReportPage({
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Movimientos de Inventario</span>
                         <div className="flex items-baseline gap-4">
-                            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                                 {filteredMovements.length}
                             </h2>
                             <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">Actividades</span>
@@ -137,7 +137,7 @@ export default async function KardexReportPage({
             </div>
 
             {/* Movements Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Libro de Kardex Cronológico</h3>
@@ -232,16 +232,16 @@ export default async function KardexReportPage({
             </Card>
 
             {/* Advisory */}
-            <div className="bg-slate-900 p-16 rounded-[4rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <Package className="h-48 w-48" />
+            <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
+                    <Package className="h-20 w-20" />
                 </div>
                 <div className="flex items-center gap-10 relative z-10">
-                    <div className="h-20 w-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-indigo-400 border border-white/10 shadow-inner -rotate-12 group-hover:rotate-0 transition-transform duration-700">
+                    <div className="h-14 w-14 bg-white/10 rounded-[2rem] flex items-center justify-center text-indigo-400 border border-white/10 shadow-inner -rotate-12 group-hover:rotate-0 transition-transform duration-700">
                         <ArrowRight className="h-10 w-10" />
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-white">Consolidación de Inventarios</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-white">Consolidación de Inventarios</h4>
                         <p className="text-sm text-white/40 leading-relaxed font-medium max-w-xl">
                             El Kardex provee la trazabilidad forense de cada unidad física en <span className="text-amber-400 font-black uppercase">{tenant?.name}</span>.
                             Garantiza la correspondencia entre el stock real y los registros contables de costo de ventas.

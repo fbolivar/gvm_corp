@@ -111,7 +111,7 @@ export default function ValuationPage() {
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Capital Mobiliario</span>
                         <div className="flex items-center gap-6">
-                            <h2 className="text-7xl font-black text-slate-900 tracking-tighter italic tabular-nums leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight tabular-nums leading-tight">
                                 ${totalInventoryValue.toLocaleString('es-CO')}
                             </h2>
                             <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm group hover:scale-110 transition-transform">
@@ -123,7 +123,7 @@ export default function ValuationPage() {
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Items Activos</span>
                         <div className="flex items-baseline gap-4">
-                            <span className="text-4xl font-black text-slate-900 tracking-tighter italic leading-none">{data.length}</span>
+                            <span className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{data.length}</span>
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg ml-2">SKUs Únicos</span>
                         </div>
                     </div>
@@ -177,7 +177,7 @@ export default function ValuationPage() {
 
             {/* Graphics Row */}
             <div className="grid gap-8 lg:grid-cols-2">
-                <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
+                <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden">
                     <CardHeader className="p-8">
                         <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-3 tracking-tight">
                             <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-premium">
@@ -221,7 +221,7 @@ export default function ValuationPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
+                <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden">
                     <CardHeader className="p-8">
                         <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-3 tracking-tight">
                             <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-premium">
@@ -285,7 +285,7 @@ export default function ValuationPage() {
                     </div>
                 </div>
 
-                <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
+                <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden">
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <Table>

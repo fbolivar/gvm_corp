@@ -29,7 +29,7 @@ export default async function WarehousesPage() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
                 <div className="space-y-2">
-                    <h1 className="page-title text-5xl md:text-6xl">Bodegas</h1>
+                    <h1 className="page-title text-3xl md:text-4xl">Bodegas</h1>
                     <div className="flex items-center gap-4">
                         <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Puntos de Almacenamiento & Logística</p>
                         <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full">
@@ -85,7 +85,7 @@ export default async function WarehousesPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="md:col-span-8 rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
+                <Card className="md:col-span-8 rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden">
                     <CardHeader className="p-10 pb-6 flex flex-row items-center justify-between bg-slate-50/50">
                         <div className="space-y-1">
                             <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">Red Logística</CardTitle>

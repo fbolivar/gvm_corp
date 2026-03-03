@@ -86,7 +86,7 @@ export default function NewRecurringInvoiceClient({ parties }: Props) {
                     <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                         <RefreshCw className="h-6 w-6" />
                     </div>
-                    <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight">Información General</h2>
+                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Información General</h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -130,7 +130,7 @@ export default function NewRecurringInvoiceClient({ parties }: Props) {
             {/* Lines */}
             <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight">Líneas de Servicio / Producto</h2>
+                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Líneas de Servicio / Producto</h2>
                     <Button type="button" onClick={addLine} variant="outline" className="h-10 px-5 rounded-xl border-slate-200 text-indigo-600 font-black text-[10px] uppercase tracking-widest">
                         <Plus className="h-4 w-4 mr-1.5" /> Agregar
                     </Button>

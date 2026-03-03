@@ -46,9 +46,9 @@ export default async function ProductionPage() {
     return (
         <div className="page-container space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 🏭 PREMIUM INDUSTRIAL HEADER */}
-            <div className="relative group overflow-hidden bg-slate-900 rounded-[4rem] p-16 text-white shadow-active">
+            <div className="relative group overflow-hidden bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <Factory className="h-64 w-64 text-white" />
+                    <Factory className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
@@ -57,7 +57,7 @@ export default async function ProductionPage() {
                             <div className="h-2 w-10 bg-rose-500 rounded-full" />
                             <span className="text-xs font-black uppercase tracking-[0.5em] text-rose-500">Terminal de Manufactura</span>
                         </div>
-                        <h1 className="text-7xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-4xl font-black tracking-tight uppercase leading-tight">
                             Planta de <br /><span className="text-slate-400">Producción</span>
                         </h1>
                         <div className="flex items-center gap-4">
@@ -70,7 +70,7 @@ export default async function ProductionPage() {
                     </div>
 
                     <div className="flex gap-4">
-                        <Button variant="outline" asChild className="h-20 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
+                        <Button variant="outline" asChild className="h-12 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
                             <Link href="/production/recipes" className="flex items-center gap-4">
                                 <Settings2 className="h-6 w-6 text-indigo-400" />
                                 <div className="flex flex-col items-start leading-none">
@@ -79,7 +79,7 @@ export default async function ProductionPage() {
                                 </div>
                             </Link>
                         </Button>
-                        <Button asChild className="h-20 px-12 rounded-[2rem] bg-rose-600 hover:bg-rose-500 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
+                        <Button asChild className="h-12 px-12 rounded-[2rem] bg-rose-600 hover:bg-rose-500 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
                             <Link href="/production/orders/new" className="flex items-center gap-4">
                                 <Plus className="h-7 w-7" />
                                 <div className="flex flex-col items-start leading-none">
@@ -120,7 +120,7 @@ export default async function ProductionPage() {
                                 <Hammer className="h-6 w-6" />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black text-slate-900 tracking-tight italic leading-none">Panel de Control OP</h2>
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Panel de Control OP</h2>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Órdenes de Producción en Tiempo Real</p>
                             </div>
                         </div>
@@ -131,7 +131,7 @@ export default async function ProductionPage() {
                         </Button>
                     </div>
 
-                    <Card className="border-none bg-white shadow-premium rounded-[4rem] overflow-hidden p-2">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden p-2">
                         <CardContent className="p-0">
                             <OrderList orders={orders} />
                         </CardContent>
@@ -144,7 +144,7 @@ export default async function ProductionPage() {
                             <Activity className="h-6 w-6" />
                         </div>
                         <div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight italic leading-none">Smart BOM</h2>
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Smart BOM</h2>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Fichas Técnicas Destacadas</p>
                         </div>
                     </div>
@@ -179,16 +179,16 @@ export default async function ProductionPage() {
             </div>
 
             {/* 🛡️ AUDIT FOOTER */}
-            <div className="bg-slate-950 p-16 rounded-[4rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
+            <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <ShieldCheck className="h-48 w-48 text-white" />
+                    <ShieldCheck className="h-20 w-20 text-white" />
                 </div>
                 <div className="flex items-center gap-10 relative z-10 text-center lg:text-left flex-col lg:flex-row">
                     <div className="h-20 w-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white border border-white/10 shadow-inner rotate-12 group-hover:rotate-0 transition-transform duration-700">
                         <Box className="h-10 w-10 text-rose-400" />
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-white">Certificación Industrial</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-white">Certificación Industrial</h4>
                         <p className="text-sm text-white/40 leading-relaxed font-medium max-w-xl">
                             Todas las operaciones en la planta de <span className="text-rose-400 font-black uppercase">{tenant?.name}</span> están sujetas a protocolos de control de calidad V3. El reporte de insumos es obligatorio para cerrar cada Orden de Producción.
                         </p>

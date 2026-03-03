@@ -153,7 +153,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                                 <span className="text-xs uppercase tracking-widest text-[10px]">Liquidación Masiva</span>
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px] border-none shadow-2xl rounded-[3rem] p-10 bg-slate-50">
+                        <DialogContent className="sm:max-w-[500px] border-none shadow-2xl rounded-[2.5rem] p-10 bg-slate-50">
                             <DialogHeader>
                                 <DialogTitle className="text-3xl font-black text-slate-900 tracking-tighter italic">Liquidación de Periodo</DialogTitle>
                             </DialogHeader>
@@ -317,17 +317,17 @@ export function EmployeeList({ employees }: EmployeeListProps) {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredEmployees.length === 0 ? (
-                        <div className="col-span-full py-20 text-center bg-white rounded-[3rem] shadow-premium">
+                        <div className="col-span-full py-20 text-center bg-white rounded-[2.5rem] shadow-premium">
                             <Users className="h-16 w-16 text-slate-100 mx-auto mb-6" />
                             <h3 className="text-xl font-black text-slate-900 italic">No hay resultados</h3>
                             <p className="text-slate-400 text-xs font-bold uppercase mt-2">Prueba con otro término de búsqueda</p>
                         </div>
                     ) : (
                         filteredEmployees.map((emp) => (
-                            <Card key={emp.id} className="border-none shadow-premium bg-white rounded-[3rem] group hover:scale-[1.02] transition-all duration-500 overflow-hidden">
+                            <Card key={emp.id} className="border-none shadow-premium bg-white rounded-[2.5rem] group hover:scale-[1.02] transition-all duration-500 overflow-hidden">
                                 <CardContent className="p-8 space-y-6">
                                     <div className="flex items-start justify-between">
-                                        <div className="h-20 w-20 rounded-[2rem] bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                                        <div className="h-14 w-14 rounded-[2rem] bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-500">
                                             <User className="h-10 w-10" />
                                         </div>
                                         <div className="flex flex-col items-end gap-2">

@@ -76,7 +76,7 @@ export default async function ProfitAndLossPage({
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] leading-none mb-3">Resultado Neto del Ejercicio</span>
                         <div className="flex items-center gap-4">
                             <h2 className={cn(
-                                "text-5xl font-black tracking-tighter italic leading-none",
+                                "text-3xl font-black tracking-tight leading-none",
                                 isProfit ? 'text-emerald-600' : 'text-rose-600'
                             )}>
                                 ${data.netProfit.toLocaleString('es-CO')}
@@ -121,7 +121,7 @@ export default async function ProfitAndLossPage({
 
             {/* 🎯 KPI V3 DASHBOARD */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <div className="bg-white rounded-[3.5rem] p-10 shadow-premium border border-slate-50 group hover:translate-y-[-8px] transition-all relative overflow-hidden">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50 group hover:translate-y-[-8px] transition-all relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
                         <TrendingUp className="h-32 w-32 text-slate-900" />
                     </div>
@@ -131,7 +131,7 @@ export default async function ProfitAndLossPage({
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Ingresos Operativos</p>
-                            <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter leading-none">
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
                                 ${data.totalIncome.toLocaleString('es-CO')}
                             </h3>
                             <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest mt-2">Ventas Netas Consolidadas</p>
@@ -139,7 +139,7 @@ export default async function ProfitAndLossPage({
                     </div>
                 </div>
 
-                <div className="bg-white rounded-[3.5rem] p-10 shadow-premium border border-slate-50 group hover:translate-y-[-8px] transition-all relative overflow-hidden">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50 group hover:translate-y-[-8px] transition-all relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
                         <TrendingDown className="h-32 w-32 text-slate-900" />
                     </div>
@@ -149,7 +149,7 @@ export default async function ProfitAndLossPage({
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Egresos & Costos</p>
-                            <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter leading-none">
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
                                 ${data.totalExpenses.toLocaleString('es-CO')}
                             </h3>
                             <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest mt-2">Costo de Ventas + Gastos Admin</p>
@@ -158,7 +158,7 @@ export default async function ProfitAndLossPage({
                 </div>
 
                 <div className={cn(
-                    "rounded-[3.5rem] p-10 shadow-active transition-all relative overflow-hidden group hover:translate-y-[-8px]",
+                    "rounded-[2.5rem] p-10 shadow-active transition-all relative overflow-hidden group hover:translate-y-[-8px]",
                     isProfit ? "bg-slate-900 text-white" : "bg-rose-900 text-white"
                 )}>
                     <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform">
@@ -175,7 +175,7 @@ export default async function ProfitAndLossPage({
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Utilidad del Periodo</p>
-                            <h3 className="text-4xl font-black text-white italic tracking-tighter leading-none">
+                            <h3 className="text-2xl font-black text-white tracking-tight leading-none">
                                 ${data.netProfit.toLocaleString('es-CO')}
                             </h3>
                             <div className="flex items-center gap-2 mt-3 text-emerald-400">
@@ -189,7 +189,7 @@ export default async function ProfitAndLossPage({
 
             {/* 📊 PERIOD COMPARISON */}
             {compareData && (
-                <div className="bg-white rounded-[3.5rem] p-10 shadow-premium border border-slate-50">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50">
                     <div className="flex items-center gap-4 mb-8">
                         <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
                             <Scale className="h-7 w-7" />
@@ -254,7 +254,7 @@ export default async function ProfitAndLossPage({
             </div>
 
             {/* 🛡️ FOOTNOTE ADVISORY */}
-            <div className="bg-slate-50 p-12 rounded-[3.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
                 <div className="flex items-center gap-8">
                     <div className="h-16 w-16 bg-white rounded-3xl flex items-center justify-center text-slate-300 shadow-premium border border-slate-50">
                         <Info className="h-8 w-8" />

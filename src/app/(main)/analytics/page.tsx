@@ -20,13 +20,13 @@ export default async function AnalyticsPage() {
     return (
         <div className="page-container space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 🛡️ PREMIUM INDUSTRIAL HEADER */}
-            <div className="relative group overflow-hidden bg-slate-900 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 text-white shadow-active">
+            <div className="relative group overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-active">
                 {/* Decorative Background Icons */}
                 <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000">
-                    <TrendingUp className="h-64 w-64" />
+                    <TrendingUp className="h-24 w-24" />
                 </div>
                 <div className="absolute -bottom-20 -left-20 opacity-[0.05] pointer-events-none">
-                    <Cpu className="h-80 w-80" />
+                    <Cpu className="h-20 w-20" />
                 </div>
 
                 <div className="relative z-10 space-y-8">
@@ -35,8 +35,8 @@ export default async function AnalyticsPage() {
                             <div className="h-2 w-10 bg-indigo-500 rounded-full" />
                             <span className="text-xs font-black uppercase tracking-[0.5em] text-indigo-400">Intelligence Nexus v3.2</span>
                         </div>
-                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8] mb-2">
-                            Métrica & <br /><span className="text-slate-400 text-3xl sm:text-5xl md:text-7xl">Rentabilidad</span>
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-tight mb-2">
+                            Métrica & <br /><span className="text-slate-400">Rentabilidad</span>
                         </h1>
                         <div className="flex flex-wrap items-center gap-4">
                             <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.4em]">Análisis Algorítmico de Desempeño (2026)</p>
@@ -62,7 +62,7 @@ export default async function AnalyticsPage() {
                                     <TrendingUp className="h-7 w-7 text-indigo-600 group-hover:text-white transition-colors" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-black italic tracking-tighter text-slate-900 uppercase leading-none">
+                                    <h3 className="text-xl font-black tracking-tight text-slate-900 uppercase leading-none">
                                         Ventas BI
                                     </h3>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
@@ -93,7 +93,7 @@ export default async function AnalyticsPage() {
                                     <BarChart2 className="h-7 w-7 text-emerald-600 group-hover:text-white transition-colors" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-black italic tracking-tighter text-slate-900 uppercase leading-none">
+                                    <h3 className="text-xl font-black tracking-tight text-slate-900 uppercase leading-none">
                                         Financiero BI
                                     </h3>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">

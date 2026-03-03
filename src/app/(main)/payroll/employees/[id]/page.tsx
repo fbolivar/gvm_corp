@@ -32,7 +32,7 @@ export default async function EditEmployeePage({ params }: PageProps) {
                         </Button>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Volver al Maestro</span>
                     </div>
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Editar Colaborador</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900">Editar Colaborador</h1>
                     <div className="flex items-center gap-4">
                         <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Gestión de Información y Contrato</p>
                         <div className="flex items-center gap-2 bg-amber-50 px-3 py-1 rounded-full">

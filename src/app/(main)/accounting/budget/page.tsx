@@ -23,9 +23,9 @@ export default async function BudgetsPage() {
         <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* HEADER */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[4rem] p-16 text-white shadow-active group">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <BarChart3 className="h-64 w-64 text-white" />
+            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
+                    <BarChart3 className="h-24 w-24 text-white" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
                     <div className="space-y-4">
@@ -33,7 +33,7 @@ export default async function BudgetsPage() {
                             <div className="h-2 w-8 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Control de Gestión</span>
                         </div>
-                        <h1 className="text-6xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Presupuesto<br /><span className="text-slate-500">Anual</span>
                         </h1>
                         <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">
@@ -48,7 +48,7 @@ export default async function BudgetsPage() {
 
             {/* LIST */}
             {budgets.length === 0 ? (
-                <div className="py-32 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
+                <div className="py-32 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
                     <BarChart3 className="h-16 w-16 text-slate-200" />
                     <div className="space-y-2">
                         <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Sin Presupuestos</h3>
@@ -64,7 +64,7 @@ export default async function BudgetsPage() {
                         const si = STATUS_MAP[b.status];
                         const Icon = si.icon;
                         return (
-                            <Link key={b.id} href={`/accounting/budget/${b.id}`} className="group bg-white rounded-[3rem] p-10 shadow-premium border border-transparent hover:border-indigo-100 hover:shadow-active hover:translate-y-[-4px] transition-all duration-500 block">
+                            <Link key={b.id} href={`/accounting/budget/${b.id}`} className="group bg-white rounded-[2.5rem] p-10 shadow-premium border border-transparent hover:border-indigo-100 hover:shadow-active hover:translate-y-[-4px] transition-all duration-500 block">
                                 <div className="flex items-start justify-between mb-8">
                                     <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
                                         <BarChart3 className="h-7 w-7" />

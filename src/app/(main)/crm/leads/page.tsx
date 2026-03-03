@@ -27,7 +27,7 @@ export default async function LeadsPage() {
     return (
         <div className="space-y-16 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 🏎️ PREMIUM HEADER INDUSTRIAL V3 */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[4rem] p-12 md:p-24 text-white shadow-active border border-white/5 mx-6 mt-6">
+            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5 mx-6 mt-6">
                 {/* Decorative Layers */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-all duration-[2000ms]">
                     <Target className="h-[25rem] w-[25rem] text-indigo-500" />
@@ -52,11 +52,11 @@ export default async function LeadsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <h1 className="text-7xl md:text-9xl font-black tracking-tighter italic leading-[0.85] uppercase">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight uppercase">
                                 Directorio de <br />
                                 <span className="text-indigo-500">Prospectos</span>
                             </h1>
-                            <p className="text-white/40 text-sm md:text-xl font-black uppercase tracking-[0.4em] italic flex items-center gap-4">
+                            <p className="text-white/40 text-sm font-black uppercase tracking-[0.4em] flex items-center gap-4">
                                 <Activity className="h-6 w-6 text-indigo-500 animate-pulse" />
                                 Gestión Maestra de Leads & Calificación
                             </p>
@@ -88,7 +88,7 @@ export default async function LeadsPage() {
                             />
                         </div>
 
-                        <Button asChild className="h-20 px-12 rounded-[2rem] bg-indigo-600 hover:bg-white hover:text-slate-950 text-white font-black italic uppercase tracking-[0.2em] transform transition-all duration-500 hover:scale-105 active:scale-95 shadow-active group/btn border-none whitespace-nowrap">
+                        <Button asChild className="h-12 px-12 rounded-[2rem] bg-indigo-600 hover:bg-white hover:text-slate-950 text-white font-black uppercase tracking-[0.2em] transform transition-all duration-500 hover:scale-105 active:scale-95 shadow-active group/btn border-none whitespace-nowrap">
                             <Link href="/crm/leads/new" className="flex items-center gap-6">
                                 <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center group-hover/btn:bg-slate-950/10 transition-all">
                                     <Plus className="h-6 w-6" />
@@ -115,7 +115,7 @@ export default async function LeadsPage() {
                         </div>
                         <div>
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-2 italic">Captura Total de Leads</p>
-                            <h3 className="text-6xl font-black text-slate-950 tracking-tighter italic leading-none">{leads.length}</h3>
+                            <h3 className="text-4xl font-black text-slate-950 tracking-tight leading-none">{leads.length}</h3>
                         </div>
                         <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden shadow-inner border border-slate-100/50">
                             <div className="h-full w-full bg-indigo-500 rounded-full shadow-[0_0_12px_theme(colors.indigo.500/40)]" />
@@ -136,7 +136,7 @@ export default async function LeadsPage() {
                         </div>
                         <div>
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-2 italic">Nuevos / 24 Horas</p>
-                            <h3 className="text-6xl font-black text-slate-950 tracking-tighter italic leading-none">{newLeadsCount}</h3>
+                            <h3 className="text-4xl font-black text-slate-950 tracking-tight leading-none">{newLeadsCount}</h3>
                         </div>
                         <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden shadow-inner border border-slate-100/50">
                             <div className="h-full w-1/4 bg-amber-500 rounded-full shadow-[0_0_12px_theme(colors.amber.500/40)]" />
@@ -157,7 +157,7 @@ export default async function LeadsPage() {
                         </div>
                         <div>
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-2 italic">Tasa de Conversión</p>
-                            <h3 className="text-6xl font-black text-slate-950 tracking-tighter italic leading-none">{conversionRate}%</h3>
+                            <h3 className="text-4xl font-black text-slate-950 tracking-tight leading-none">{conversionRate}%</h3>
                         </div>
                         <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden shadow-inner border border-slate-100/50">
                             <div className="h-full w-2/3 bg-emerald-500 rounded-full shadow-[0_0_12px_theme(colors.emerald.500/40)]" />
@@ -173,7 +173,7 @@ export default async function LeadsPage() {
                         <Users className="h-7 w-7 text-indigo-400" />
                     </div>
                     <div className="space-y-1">
-                        <h3 className="text-4xl font-black text-slate-950 tracking-tighter italic uppercase leading-none">Entidades en Prospección</h3>
+                        <h3 className="text-3xl font-black text-slate-950 tracking-tight uppercase leading-tight">Entidades en Prospección</h3>
                         <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.6em] italic">REGISTRO ACCIONABLE DE POTENCIALES CLIENTES</p>
                     </div>
                     <div className="ml-auto flex items-center gap-4">
@@ -183,9 +183,9 @@ export default async function LeadsPage() {
                     </div>
                 </div>
 
-                <Card className="border-none shadow-premium bg-white rounded-[4rem] overflow-hidden p-6 relative">
+                <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden p-6 relative">
                     <div className="absolute top-0 right-0 p-12 opacity-[0.01] pointer-events-none">
-                        <Target className="h-64 w-64" />
+                        <Target className="h-24 w-24" />
                     </div>
                     <LeadViewManager leads={leads} />
                 </Card>
@@ -193,7 +193,7 @@ export default async function LeadsPage() {
 
             {/* 🛡️ AUDIT FOOTER INDUSTRIAL V3 - PROTOCOLO DE PRIVACIDAD */}
             <div className="px-6">
-                <div className="bg-slate-950 p-16 rounded-[4.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group border border-white/5">
+                <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group border border-white/5">
                     <div className="absolute top-0 right-0 p-12 opacity-[0.05] pointer-events-none group-hover:scale-125 transition-transform duration-[3000ms]">
                         <Target className="h-[20rem] w-[20rem] text-indigo-500" />
                     </div>
@@ -208,7 +208,7 @@ export default async function LeadsPage() {
                         <div className="space-y-4">
                             <div className="flex items-center gap-4 justify-center lg:justify-start">
                                 <div className="h-1.5 w-12 bg-indigo-500 rounded-full" />
-                                <h4 className="text-3xl font-black italic tracking-tighter uppercase leading-none text-white">Cumplimiento Habeas Data</h4>
+                                <h4 className="text-3xl font-black tracking-tight uppercase leading-tight text-white">Cumplimiento Habeas Data</h4>
                             </div>
                             <p className="text-sm text-white/40 leading-relaxed font-black uppercase tracking-widest italic">
                                 Este directorio contiene información sensible. El manejo de estos datos está regido por la política de protección de datos de <span className="text-indigo-400 font-bold underline decoration-indigo-500/30">{tenant?.name}</span>. SISTEMA AUDITADO EN TIEMPO REAL.
@@ -216,7 +216,7 @@ export default async function LeadsPage() {
                         </div>
                     </div>
 
-                    <Button variant="outline" className="h-20 bg-white/5 border-white/10 text-white text-[11px] font-black uppercase tracking-[0.4em] px-12 hover:bg-white hover:text-slate-950 transition-all rounded-[2rem] relative z-10 shadow-active italic group/audit shrink-0">
+                    <Button variant="outline" className="h-12 bg-white/5 border-white/10 text-white text-[11px] font-black uppercase tracking-[0.4em] px-12 hover:bg-white hover:text-slate-950 transition-all rounded-[2rem] relative z-10 shadow-active group/audit shrink-0">
                         Protocolo de Privacidad <ArrowRight className="ml-4 h-5 w-5 group-hover:translate-x-3 transition-transform" />
                     </Button>
                 </div>

@@ -31,9 +31,9 @@ export default async function OrdersPage() {
     return (
         <div className="page-container space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 🏭 PREMIUM HEADER DARK */}
-            <div className="relative group overflow-hidden bg-slate-900 rounded-[4rem] p-16 text-white shadow-active">
+            <div className="relative group overflow-hidden bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <ShoppingCart className="h-64 w-64 text-white" />
+                    <ShoppingCart className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
@@ -42,14 +42,14 @@ export default async function OrdersPage() {
                             <div className="h-2 w-10 bg-emerald-500 rounded-full" />
                             <span className="text-xs font-black uppercase tracking-[0.5em] text-emerald-500">Logística de Despacho</span>
                         </div>
-                        <h1 className="text-7xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Gestión de <br /><span className="text-slate-400">Pedidos</span>
                         </h1>
                         <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.4em]">Compromisos de Entrega & Operaciones (v3.0)</p>
                     </div>
 
                     <div className="flex gap-4">
-                        <Button variant="outline" asChild className="h-20 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
+                        <Button variant="outline" asChild className="h-12 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
                             <Link href="/sales" className="flex items-center gap-4">
                                 <Activity className="h-6 w-6 text-indigo-400" />
                                 <div className="flex flex-col items-start leading-none">
@@ -58,7 +58,7 @@ export default async function OrdersPage() {
                                 </div>
                             </Link>
                         </Button>
-                        <Button asChild className="h-20 px-12 rounded-[2rem] bg-primary hover:bg-primary/90 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
+                        <Button asChild className="h-12 px-12 rounded-[2rem] bg-primary hover:bg-primary/90 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
                             <Link href="/sales/orders/new" className="flex items-center gap-4">
                                 <Plus className="h-7 w-7" />
                                 <div className="flex flex-col items-start leading-none">
@@ -84,7 +84,7 @@ export default async function OrdersPage() {
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{stat.label}</p>
-                            <p className="text-3xl font-black text-slate-900 tracking-tighter italic">{stat.value}</p>
+                            <p className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</p>
                         </div>
                     </div>
                 ))}
@@ -94,7 +94,7 @@ export default async function OrdersPage() {
             <div className="space-y-6">
                 <div className="flex items-center gap-4 px-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <h3 className="text-xl font-black text-slate-900 tracking-tighter italic uppercase">Entregas & Despachos</h3>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">Entregas & Despachos</h3>
                 </div>
                 <div className="bg-white rounded-[3.5rem] shadow-premium p-4 md:p-8 overflow-hidden">
                     <SalesOrderList orders={orders} />
@@ -102,16 +102,16 @@ export default async function OrdersPage() {
             </div>
 
             {/* 🛡️ AUDIT FOOTER */}
-            <div className="bg-slate-900 p-16 rounded-[4rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <PackageCheck className="h-48 w-48 text-white" />
+                    <PackageCheck className="h-20 w-20 text-white" />
                 </div>
                 <div className="flex items-center gap-10 relative z-10 text-center lg:text-left flex-col lg:flex-row">
                     <div className="h-20 w-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white border border-white/10 shadow-inner rotate-12 group-hover:rotate-0 transition-transform duration-700">
                         <ShieldCheck className="h-10 w-10 text-emerald-400" />
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-white">Cumplimiento de Entrega</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-white">Cumplimiento de Entrega</h4>
                         <p className="text-sm text-white/40 leading-relaxed font-medium max-w-xl">
                             Cada pedido en firme bajo <span className="text-emerald-400 font-black uppercase">{tenant?.name}</span> activa una reserva de inventario. La facturación debe realizarse inmediatamente tras la confirmación logística para asegurar el flujo de caja.
                         </p>

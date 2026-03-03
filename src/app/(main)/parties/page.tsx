@@ -46,7 +46,7 @@ export default async function PartiesPage({ searchParams }: PageProps) {
             {/* 💎 PREMIUM HEADER */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
                 <div className="space-y-2">
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Centro de Identidades</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900">Centro de Identidades</h1>
                     <div className="flex items-center gap-4">
                         <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Directorio & CRM Inteligente</p>
                         <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">

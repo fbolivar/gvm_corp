@@ -122,7 +122,7 @@ export default function SocialSecurityPage() {
                     <Link href="/payroll" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-colors mb-4">
                         <ChevronLeft className="h-4 w-4" /> Volver a Nómina
                     </Link>
-                    <h1 className="text-5xl font-black text-slate-900 tracking-tighter italic">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                         Centro de <span className="text-primary">Seguridad Social</span>
                     </h1>
                     <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em]">Consolidado PILA y Parafiscales - Periodo Actual</p>
@@ -130,7 +130,7 @@ export default function SocialSecurityPage() {
                 <div className="flex items-center gap-4">
                     <Button
                         onClick={handleExportCsv}
-                        className="h-16 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black italic tracking-tight text-xl transition-all shadow-xl flex items-center gap-3"
+                        className="h-12 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black tracking-tight text-base transition-all shadow-xl flex items-center gap-3"
                     >
                         EXPORTAR PILA <FileSpreadsheet className="h-6 w-6" />
                     </Button>
@@ -153,7 +153,7 @@ export default function SocialSecurityPage() {
                 <Card className="border-none bg-indigo-600 shadow-premium rounded-[2.5rem] p-8 space-y-4 text-white">
                     <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">Aportes Salud & Pensión</p>
                     <div className="flex items-baseline justify-between">
-                        <span className="text-3xl font-black italic tracking-tighter">
+                        <span className="text-2xl font-black tracking-tight">
                             ${new Intl.NumberFormat('es-CO').format((consolidatedData?.totals.health || 0) + (consolidatedData?.totals.pension || 0))}
                         </span>
                         <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
@@ -164,7 +164,7 @@ export default function SocialSecurityPage() {
                 <Card className="border-none bg-emerald-500 shadow-premium rounded-[2.5rem] p-8 space-y-4 text-white">
                     <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Total Parafiscales</p>
                     <div className="flex items-baseline justify-between">
-                        <span className="text-3xl font-black italic tracking-tighter">
+                        <span className="text-2xl font-black tracking-tight">
                             ${new Intl.NumberFormat('es-CO').format(consolidatedData?.totals.parafiscales || 0)}
                         </span>
                         <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
@@ -175,7 +175,7 @@ export default function SocialSecurityPage() {
                 <Card className="border-none bg-slate-900 shadow-premium rounded-[2.5rem] p-8 space-y-4 text-white">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gasto Total Periodo</p>
                     <div className="flex items-baseline justify-between">
-                        <span className="text-3xl font-black italic tracking-tighter">
+                        <span className="text-2xl font-black tracking-tight">
                             ${new Intl.NumberFormat('es-CO').format(consolidatedData?.totals.total || 0)}
                         </span>
                         <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">

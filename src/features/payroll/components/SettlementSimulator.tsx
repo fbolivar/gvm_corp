@@ -61,7 +61,7 @@ export function SettlementSimulator() {
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
                 {/* 🔧 INPUT SECTION */}
-                <Card className="lg:col-span-12 border-none bg-white shadow-premium rounded-[3rem] overflow-hidden group">
+                <Card className="lg:col-span-12 border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden group">
                     <CardHeader className="p-10 border-b border-slate-50 bg-slate-50/30">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-5">
@@ -80,7 +80,7 @@ export function SettlementSimulator() {
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-12">
+                    <CardContent className="p-10">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
                             {/* Fecha Inicio */}
                             <div className="space-y-3">
@@ -157,13 +157,13 @@ export function SettlementSimulator() {
                 </Card>
 
                 {/* 📊 RESULTS DASHBOARD */}
-                <Card className="lg:col-span-12 border-none bg-slate-900 shadow-2xl rounded-[3rem] overflow-hidden group p-1 origin-top transition-all duration-500">
-                    <CardHeader className="p-12 relative overflow-hidden">
+                <Card className="lg:col-span-12 border-none bg-slate-900 shadow-2xl rounded-[2.5rem] overflow-hidden group p-1 origin-top transition-all duration-500">
+                    <CardHeader className="p-10 relative overflow-hidden">
                         <Sparkles className="absolute -top-10 -right-10 h-40 w-40 text-white/5 -rotate-12" />
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
                             <div>
                                 <h3 className="text-xl font-black text-white/60 uppercase tracking-[0.3em] mb-2">Liquidación Estimada</h3>
-                                <div className="text-6xl font-black text-white italic tracking-tighter tabular-nums drop-shadow-sm">
+                                <div className="text-4xl font-black text-white tracking-tight tabular-nums drop-shadow-sm">
                                     {formatCurrency(results.total)}
                                 </div>
                             </div>

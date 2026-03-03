@@ -407,9 +407,9 @@ export default async function AccountingReportsPage() {
         <div className="space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* 🛡️ PREMIUM INDUSTRIAL HEADER */}
-            <div className="bg-slate-900 rounded-[3.5rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
-                    <PieChart className="h-80 w-80" />
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
+                    <PieChart className="h-24 w-24" />
                 </div>
 
                 <div className="relative z-10 space-y-8">
@@ -418,7 +418,7 @@ export default async function AccountingReportsPage() {
                             <div className="h-2 w-12 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Intelligence Core v3.0</span>
                         </div>
-                        <h1 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Centro de <br /><span className="text-slate-500">Inteligencia</span>
                         </h1>
                     </div>
@@ -450,14 +450,14 @@ export default async function AccountingReportsPage() {
                 {/* Stats Sidebar */}
                 <div className="lg:col-span-4 space-y-10">
                     <div className="sticky top-10 space-y-10">
-                        <div className="bg-white rounded-[3.5rem] p-10 shadow-premium border border-slate-50 relative overflow-hidden">
+                        <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-6 opacity-[0.05] pointer-events-none">
                                 <TrendingUp className="h-24 w-24 text-slate-900" />
                             </div>
                             <div className="space-y-8 relative z-10">
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Salud Financiera v3</p>
-                                    <h3 className="text-4xl font-black text-slate-900 italic tracking-tighter">Overview</h3>
+                                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">Overview</h3>
                                 </div>
 
                                 <div className="space-y-4">
@@ -478,7 +478,7 @@ export default async function AccountingReportsPage() {
                         </div>
 
                         {/* Compliance card */}
-                        <div className="bg-indigo-600 rounded-[3rem] p-10 text-white shadow-active space-y-6 relative overflow-hidden">
+                        <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white shadow-active space-y-6 relative overflow-hidden">
                             <div className="absolute -bottom-8 -right-8 opacity-10 pointer-events-none">
                                 <ShieldCheck className="h-40 w-40" />
                             </div>
@@ -494,7 +494,7 @@ export default async function AccountingReportsPage() {
                         </div>
 
                         {/* Export formats */}
-                        <div className="bg-white rounded-[3rem] p-8 shadow-premium border border-slate-50">
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-premium border border-slate-50">
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mb-5">Formatos de Exportación</p>
                             <div className="flex flex-wrap gap-2">
                                 {["PDF", "Excel", "CSV", "XML"].map(fmt => (

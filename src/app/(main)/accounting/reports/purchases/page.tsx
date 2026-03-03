@@ -69,7 +69,7 @@ export default async function PurchasesReportPage({
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Total Egresos Facturados</span>
                         <div className="flex items-baseline gap-4">
-                            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                                 {fmt(totalPurchases)}
                             </h2>
                             <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">Comprometido</span>
@@ -133,7 +133,7 @@ export default async function PurchasesReportPage({
             </div>
 
             {/* Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Detalle de Compras y Gastos</h3>
@@ -204,23 +204,23 @@ export default async function PurchasesReportPage({
             </Card>
 
             {/* Aesthetic Advisory */}
-            <div className="bg-slate-900 p-12 rounded-[4rem] text-white flex flex-col lg:flex-row items-center justify-between gap-10 shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-10 shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform">
-                    <Layers className="h-48 w-48 text-white" />
+                    <Layers className="h-20 w-20 text-white" />
                 </div>
                 <div className="flex items-center gap-8 relative z-10">
-                    <div className="h-20 w-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-orange-400 border border-white/10 shadow-inner">
+                    <div className="h-14 w-14 bg-white/10 rounded-[2rem] flex items-center justify-center text-orange-400 border border-white/10 shadow-inner">
                         <TrendingDown className="h-10 w-10" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none">Gestión de Egresos</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight">Gestión de Egresos</h4>
                         <p className="text-sm text-white/40 leading-relaxed font-medium max-w-xl">
                             Consolidación técnica de costos y gastos registrados bajo la figura de Factura de Proveedor.
                             Este reporte alimenta directamente el Estado de Resultados (P&L).
                         </p>
                     </div>
                 </div>
-                <Button variant="outline" className="h-16 rounded-[2rem] bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest px-12 hover:bg-orange-500 hover:text-white transition-all shadow-active group relative z-10">
+                <Button variant="outline" className="h-12 rounded-[2rem] bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest px-12 hover:bg-orange-500 hover:text-white transition-all shadow-active group relative z-10">
                     Certificar Compras <ArrowRight className="ml-4 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
             </div>

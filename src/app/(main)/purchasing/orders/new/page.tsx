@@ -19,7 +19,7 @@ export default async function NewOrderPage() {
     return (
         <div className="page-container space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 🏎️ PREMIUM HEADER INDUSTRIAL V3 */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[4rem] p-12 md:p-20 text-white shadow-active border border-white/5">
+            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5">
                 {/* Decorative Layers */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-all duration-1000">
                     <ShoppingBag className="h-96 w-96" />
@@ -38,7 +38,7 @@ export default async function NewOrderPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <h1 className="text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.85] mb-2">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight mb-2">
                                 Nueva <br /><span className="text-slate-500">Orden de Compra</span>
                             </h1>
                             <div className="flex items-center gap-6">

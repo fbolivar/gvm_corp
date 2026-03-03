@@ -94,7 +94,7 @@ export default function PortfolioAIPage() {
                         <div className="h-1 w-8 bg-indigo-500 rounded-full" />
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-500 italic">Autonomous Collections Unit</span>
                     </div>
-                    <h1 className="text-5xl font-black tracking-tighter italic uppercase text-slate-900 flex items-center gap-4">
+                    <h1 className="text-3xl font-black tracking-tight uppercase text-slate-900 flex items-center gap-4">
                         Portfolio <span className="text-indigo-600 flex items-center gap-2">IQ <Brain className="w-10 h-10" /></span>
                     </h1>
                 </div>
@@ -153,9 +153,9 @@ export default function PortfolioAIPage() {
                         <div className="xl:col-span-2 space-y-10">
                             <DebtorRiskMatrix riskStats={metrics?.riskStats || []} />
 
-                            <Card className="rounded-[3rem] border-none shadow-premium bg-slate-900 p-12 text-white relative overflow-hidden group">
+                            <Card className="rounded-[2.5rem] border-none shadow-premium bg-slate-900 p-10 text-white relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
-                                    <Bot className="h-40 w-40" />
+                                    <Bot className="h-20 w-20" />
                                 </div>
                                 <div className="relative z-10 space-y-6">
                                     <h3 className="text-3xl font-black italic uppercase tracking-tighter">Próximo Escaneo Inteligente</h3>

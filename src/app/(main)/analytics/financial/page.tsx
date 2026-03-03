@@ -88,9 +88,9 @@ export default async function FinancialAnalyticsPage() {
     return (
         <div className="page-container space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* Header */}
-            <div className="relative group overflow-hidden bg-slate-900 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 text-white shadow-active">
+            <div className="relative group overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-active">
                 <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000">
-                    <BarChart2 className="h-64 w-64" />
+                    <BarChart2 className="h-24 w-24" />
                 </div>
 
                 <div className="relative z-10 space-y-6">
@@ -100,9 +100,9 @@ export default async function FinancialAnalyticsPage() {
                             Financial Intelligence v3.2
                         </span>
                     </div>
-                    <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-tight">
                         Financiero <br />
-                        <span className="text-slate-400 text-3xl sm:text-5xl md:text-7xl">P&amp;L</span>
+                        <span className="text-slate-400">P&amp;L</span>
                     </h1>
                     <div className="flex flex-wrap items-center gap-4">
                         <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.4em]">

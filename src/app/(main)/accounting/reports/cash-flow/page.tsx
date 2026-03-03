@@ -201,7 +201,7 @@ export default async function CashFlowPage({
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] leading-none mb-3">Variación Neta del Efectivo</span>
                         <div className="flex items-center gap-4">
                             <h2 className={cn(
-                                "text-5xl font-black tracking-tighter italic leading-none",
+                                "text-3xl font-black tracking-tight leading-none",
                                 isPositive ? 'text-emerald-600' : 'text-rose-600'
                             )}>
                                 {isPositive ? '+' : '-'}{fmt(netCashChange)}
@@ -285,7 +285,7 @@ export default async function CashFlowPage({
             {/* Cash Flow Sections */}
             <div className="space-y-10">
                 {sections.map((section, idx) => (
-                    <Card key={section.title} className={cn("border shadow-premium bg-white rounded-[3rem] overflow-hidden", section.borderColor)}>
+                    <Card key={section.title} className={cn("border shadow-premium bg-white rounded-[2.5rem] overflow-hidden", section.borderColor)}>
                         {/* Section Header */}
                         <div className={cn("px-10 py-8 flex items-center gap-5 border-b", section.borderColor, section.bg)}>
                             <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", section.bg, section.color)}>
@@ -347,16 +347,16 @@ export default async function CashFlowPage({
 
             {/* Grand Total Bar */}
             <div className={cn(
-                "rounded-[3rem] p-10 shadow-active relative overflow-hidden",
+                "rounded-[2.5rem] p-10 shadow-active relative overflow-hidden",
                 isPositive ? "bg-slate-900 text-white" : "bg-rose-900 text-white"
             )}>
                 <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none">
-                    <DollarSign className="h-48 w-48" />
+                    <DollarSign className="h-20 w-20" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="space-y-2">
                         <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.5em]">Variación Neta Total del Efectivo</p>
-                        <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter">
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tight">
                             {isPositive ? '+' : '-'}{fmt(netCashChange)}
                         </h2>
                         <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">
@@ -373,7 +373,7 @@ export default async function CashFlowPage({
             </div>
 
             {/* Accounts Detail */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 bg-slate-50 border-b border-slate-100">
                     <h3 className="text-lg font-black text-slate-900 italic tracking-tight">Detalle de Cuentas</h3>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Saldo actual por cuenta bancaria y caja</p>
@@ -405,7 +405,7 @@ export default async function CashFlowPage({
             </Card>
 
             {/* Footnote */}
-            <div className="bg-slate-50 p-12 rounded-[3.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
                 <div className="flex items-center gap-8">
                     <div className="h-16 w-16 bg-white rounded-3xl flex items-center justify-center text-slate-300 shadow-premium border border-slate-50">
                         <Info className="h-8 w-8" />

@@ -143,7 +143,7 @@ export default async function EquityChangesPage({
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] leading-none mb-3">Variación Neta del Patrimonio</span>
                         <div className="flex items-center gap-4">
                             <h2 className={cn(
-                                "text-5xl font-black tracking-tighter italic leading-none",
+                                "text-3xl font-black tracking-tight leading-none",
                                 isPositive ? 'text-emerald-600' : 'text-rose-600'
                             )}>
                                 {isPositive ? '+' : '-'}{fmt(netChange)}
@@ -221,7 +221,7 @@ export default async function EquityChangesPage({
             </div>
 
             {/* Main Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 {/* Table Header */}
                 <div className="bg-slate-50 border-b border-slate-100">
                     <div className="grid grid-cols-12 px-10 py-6">
@@ -310,13 +310,13 @@ export default async function EquityChangesPage({
             </Card>
 
             {/* Footnote */}
-            <div className="bg-slate-50 p-12 rounded-[3.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
                 <div className="flex items-center gap-8">
-                    <div className="h-16 w-16 bg-white rounded-3xl flex items-center justify-center text-slate-300 shadow-premium border border-slate-50">
+                    <div className="h-14 w-14 bg-white rounded-3xl flex items-center justify-center text-slate-300 shadow-premium border border-slate-50">
                         <Info className="h-8 w-8" />
                     </div>
                     <div className="space-y-1">
-                        <h5 className="text-slate-900 font-black text-sm uppercase italic tracking-tight">Normativa NIC 1 • NIIF Plenas</h5>
+                        <h5 className="text-slate-900 font-black text-sm uppercase tracking-tight">Normativa NIC 1 • NIIF Plenas</h5>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
                             Estado preparado conforme a la Sección 6 de NIIF para PYMES y NIC 1 para el periodo fiscal {currentYear}.
                         </p>

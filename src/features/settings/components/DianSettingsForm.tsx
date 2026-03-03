@@ -147,7 +147,7 @@ export function DianSettingsForm({ initialData, tenantId }: Props) {
 
                 {/* Wizard Content - Right */}
                 <div className="lg:col-span-8">
-                    <Card className="border-none shadow-premium rounded-[3rem] overflow-hidden bg-white h-full flex flex-col">
+                    <Card className="border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white h-full flex flex-col">
                         <CardHeader className="p-10 pb-2">
                             <CardTitle className="text-2xl font-black text-slate-900 italic">
                                 {STEPS[currentStep - 1].title}
@@ -316,7 +316,7 @@ export function DianSettingsForm({ initialData, tenantId }: Props) {
                                     Gestionar Rangos de Numeración
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-5xl h-[80vh] overflow-y-auto p-10 bg-slate-50 border-none rounded-[3rem]">
+                            <DialogContent className="max-w-5xl h-[80vh] overflow-y-auto p-10 bg-slate-50 border-none rounded-[2.5rem]">
                                 <DialogHeader className="mb-6">
                                     <DialogTitle className="text-3xl font-black text-slate-900 italic">Gestión de Numeración DIAN</DialogTitle>
                                     <DialogDescription className="text-slate-500 font-medium">

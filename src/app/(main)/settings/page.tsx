@@ -103,10 +103,10 @@ export default function SettingsPage() {
     return (
         <div className="space-y-12 pb-24 animate-in fade-in duration-1000 px-4 md:px-0">
             {/* 🛡️ MASTER CONTROL HEADER */}
-            <div className="bg-slate-900 rounded-[4rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <Settings className="h-80 w-80 text-white" />
+                    <Settings className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 space-y-8">
@@ -115,7 +115,7 @@ export default function SettingsPage() {
                             <div className="h-2 w-12 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">System Configuration Hub v3.0</span>
                         </div>
-                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-tight">
                             Panel de <br /><span className="text-slate-500">Control</span>
                         </h1>
                     </div>
@@ -133,7 +133,7 @@ export default function SettingsPage() {
             {/* Settings Categories Grid */}
             <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
                 {categories.map((cat) => (
-                    <div key={cat.title} className="group bg-white rounded-[3rem] p-4 shadow-premium hover:shadow-active transition-all duration-500 border border-transparent hover:border-slate-100/50 overflow-hidden">
+                    <div key={cat.title} className="group bg-white rounded-[2.5rem] p-4 shadow-premium hover:shadow-active transition-all duration-500 border border-transparent hover:border-slate-100/50 overflow-hidden">
                         <div className="p-10 space-y-8">
                             <div className="flex items-center justify-between">
                                 <div className={cn(
@@ -149,7 +149,7 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="space-y-3">
-                                <h3 className="text-2xl font-black text-slate-900 tracking-tighter italic uppercase group-hover:text-indigo-600 transition-colors">
+                                <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase group-hover:text-indigo-600 transition-colors">
                                     {cat.title}
                                 </h3>
                                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-relaxed opacity-70">

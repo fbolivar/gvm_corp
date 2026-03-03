@@ -80,9 +80,9 @@ function ListView({ orders }: ListViewProps) {
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* Dark hero header */}
-            <div className="bg-slate-900 rounded-[3.5rem] p-12 md:p-16 text-white shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
-                    <ClipboardList className="h-80 w-80" />
+                    <ClipboardList className="h-24 w-24" />
                 </div>
                 <div className="relative z-10 space-y-6">
                     <div className="flex items-center gap-3">
@@ -91,7 +91,7 @@ function ListView({ orders }: ListViewProps) {
                             Compras · Purchase Order
                         </span>
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                         Orden de<br />
                         <span className="text-slate-500">Compra</span>
                     </h1>

@@ -45,7 +45,7 @@ export default async function InventoryValuationPage({
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Capital en Inventario</span>
                         <div className="flex items-center gap-6">
-                            <h2 className="text-7xl font-black text-slate-900 tracking-tighter italic tabular-nums leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight tabular-nums leading-none">
                                 ${totalValuation.toLocaleString('es-CO')}
                             </h2>
                             <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm group hover:scale-110 transition-transform">
@@ -93,15 +93,15 @@ export default async function InventoryValuationPage({
             </div>
 
             {/* 🏗️ MAIN DATA POD */}
-            <Card className="rounded-[4rem] border-none bg-white shadow-premium overflow-hidden group">
-                <CardHeader className="py-12 px-14 border-b border-slate-50 bg-slate-50/20">
+            <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden group">
+                <CardHeader className="py-10 px-14 border-b border-slate-50 bg-slate-50/20">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-8">
-                            <div className="h-20 w-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white shadow-active transition-transform group-hover:rotate-6 duration-700">
+                            <div className="h-14 w-14 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white shadow-active transition-transform group-hover:rotate-6 duration-700">
                                 <Box className="h-10 w-10" />
                             </div>
                             <div>
-                                <CardTitle className="text-3xl font-black text-slate-900 tracking-tighter italic leading-none uppercase">
+                                <CardTitle className="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">
                                     Liquidación de Stock
                                 </CardTitle>
                                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-3 underline decoration-slate-200 underline-offset-4">Reporte maestro de auditoría forense de mercancías</p>
@@ -170,7 +170,7 @@ export default async function InventoryValuationPage({
                                     <TableRow className="hover:bg-transparent">
                                         <TableCell colSpan={4} className="py-48 text-center">
                                             <div className="flex flex-col items-center gap-10 opacity-60">
-                                                <div className="h-32 w-32 rounded-[3.5rem] bg-slate-50 flex items-center justify-center border-8 border-white shadow-premium">
+                                                <div className="h-32 w-32 rounded-[2.5rem] bg-slate-50 flex items-center justify-center border-8 border-white shadow-premium">
                                                     <Activity className="h-14 w-14 text-slate-200" />
                                                 </div>
                                                 <div className="space-y-3">
@@ -189,16 +189,16 @@ export default async function InventoryValuationPage({
 
             {/* 🛡️ BOTTOM INFRASTRUCTURE pods */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <div className="bg-slate-900 p-12 rounded-[4rem] text-white shadow-active relative overflow-hidden group">
+                <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white shadow-active relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-10 opacity-[0.05] pointer-events-none group-hover:rotate-12 transition-transform">
-                        <Zap className="h-40 w-40" />
+                        <Zap className="h-20 w-20" />
                     </div>
                     <div className="flex items-center gap-10 relative z-10">
-                        <div className="h-20 w-20 bg-white/10 rounded-[2.5rem] flex items-center justify-center border border-white/10 shadow-inner group-hover:-rotate-6 transition-transform">
+                        <div className="h-14 w-14 bg-white/10 rounded-[2.5rem] flex items-center justify-center border border-white/10 shadow-inner group-hover:-rotate-6 transition-transform">
                             <TrendingUp className="h-10 w-10 text-amber-400" />
                         </div>
                         <div className="space-y-3">
-                            <h4 className="text-2xl font-black italic uppercase tracking-tighter leading-none">Liquidez en Stock</h4>
+                            <h4 className="text-2xl font-black uppercase tracking-tight leading-tight">Liquidez en Stock</h4>
                             <p className="text-sm text-white/40 leading-relaxed font-medium pr-10">
                                 Este reporte representa el valor realizable de inventarios, base crucial para el cálculo de capital de trabajo operativo según metodología NIIF.
                             </p>
@@ -206,13 +206,13 @@ export default async function InventoryValuationPage({
                     </div>
                 </div>
 
-                <div className="bg-white p-12 rounded-[4rem] shadow-premium flex flex-col md:flex-row items-center justify-between gap-10 border border-slate-50 group">
+                <div className="bg-white p-10 rounded-[2.5rem] shadow-premium flex flex-col md:flex-row items-center justify-between gap-10 border border-slate-50 group">
                     <div className="flex items-center gap-8">
-                        <div className="h-16 w-16 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 shadow-inner">
+                        <div className="h-14 w-14 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 shadow-inner">
                             <Info className="h-8 w-8" />
                         </div>
                         <div className="space-y-1">
-                            <h5 className="text-slate-900 font-black text-lg uppercase italic tracking-tighter">Sincronía Contable</h5>
+                            <h5 className="text-slate-900 font-black text-lg uppercase tracking-tight">Sincronía Contable</h5>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Cruce automático con la cuenta 1435: <span className="text-indigo-400">Verificada</span></p>
                         </div>
                     </div>

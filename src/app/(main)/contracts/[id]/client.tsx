@@ -83,7 +83,7 @@ export function ContractDetailClient({ contract: initial, initialAmendments }: P
             {/* Amendments */}
             <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-black text-slate-900 italic uppercase tracking-tight flex items-center gap-3">
+                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
                         <GitMerge className="h-5 w-5 text-violet-500" />
                         Otrosíes / Modificaciones
                     </h3>

@@ -186,7 +186,7 @@ function EmptyState() {
                 <Bell className="h-7 w-7 text-slate-200" />
             </div>
             <div className="text-center space-y-1">
-                <p className="text-sm font-black text-slate-300 uppercase italic tracking-widest">
+                <p className="text-sm font-black text-slate-300 uppercase tracking-widest">
                     Sin notificaciones pendientes
                 </p>
                 <p className="text-[10px] text-slate-200 font-medium italic">
@@ -320,7 +320,7 @@ export function NotificationCenter({ initialNotifications }: NotificationCenterP
             {/* Header premium */}
             <div className="bg-slate-900 rounded-[2.5rem] p-8 relative overflow-hidden">
                 {/* Decorative background glow */}
-                <div className="absolute top-0 right-0 h-48 w-48 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute top-0 right-0 h-20 w-20 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute bottom-0 left-0 h-32 w-32 bg-violet-600/10 rounded-full blur-2xl pointer-events-none" />
 
                 <div className="relative z-10 flex items-start justify-between gap-4">

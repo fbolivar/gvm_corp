@@ -63,9 +63,9 @@ export default async function DashboardPage() {
       <div className="page-container space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
 
         {/* 💎 PREMIUM COMMAND CENTER HEADER */}
-        <div className="relative group overflow-hidden bg-slate-900 rounded-3xl p-8 md:p-12 text-white shadow-active">
+        <div className="relative group overflow-hidden bg-slate-900 rounded-3xl p-8 md:p-10 text-white shadow-active">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-all duration-1000">
-            <LayoutDashboard className="h-48 w-48 text-white" />
+            <LayoutDashboard className="h-24 w-24 text-white" />
           </div>
 
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
                 <div className="h-1.5 w-8 bg-primary rounded-full" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">Terminal de Gestión</span>
               </div>
-              <h1 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8] mb-4">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-tight mb-4">
                 Reporte <br /><span className="text-slate-500/50">Gerencial</span>
               </h1>
               <div className="flex items-center gap-4">
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
               <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-active">
                 <Zap className="h-5 w-5" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight italic uppercase leading-none">Acciones</h2>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight uppercase leading-tight">Acciones</h2>
             </div>
             <ActionGrid />
           </div>
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
 
         {/* 🛡️ NOTIFICATION / ALERT V3 */}
         {kpis.lowStockProducts > 0 && (
-          <div className="bg-amber-900 p-10 md:p-12 rounded-3xl text-white flex flex-col lg:flex-row items-center justify-between gap-8 shadow-active relative overflow-hidden group">
+          <div className="bg-amber-900 p-10 rounded-3xl text-white flex flex-col lg:flex-row items-center justify-between gap-8 shadow-active relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
               <AlertCircle className="h-40 w-40 text-white" />
             </div>
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
                 <Sparkles className="h-10 w-10 text-amber-400" />
               </div>
               <div className="space-y-2">
-                <h4 className="text-2xl font-extrabold italic tracking-tight uppercase leading-none text-white">Stock Crítico Detectado</h4>
+                <h4 className="text-2xl font-extrabold tracking-tight uppercase leading-tight text-white">Stock Crítico Detectado</h4>
                 <p className="text-xs text-white/40 leading-relaxed font-medium max-w-lg">
                   <span className="text-amber-400 font-bold">{kpis.lowStockProducts} SKUs</span> operando bajo el nivel de seguridad.
                   Se recomienda gestionar la reposición para evitar interrupciones.
@@ -222,7 +222,7 @@ export default async function DashboardPage() {
             <AlertCircle className="h-8 w-8" />
           </div>
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight italic uppercase">Error de Sistema</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight uppercase">Error de Sistema</h1>
             <p className="text-slate-400 font-bold text-[8px] uppercase tracking-widest leading-relaxed">Falla en Sincronización de Datos</p>
           </div>
           <p className="text-slate-500 font-medium leading-relaxed bg-slate-50 p-4 rounded-xl text-xs">{error.message}</p>

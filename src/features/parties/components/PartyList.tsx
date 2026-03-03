@@ -99,8 +99,8 @@ export function PartyList({ initialData, totalCount, currentPage, perPage, vendo
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000 pb-20">
             {/* Header de Alto Impacto */}
-            <div className="relative group overflow-hidden rounded-[3.5rem] bg-slate-900 p-12 lg:p-16 shadow-2xl">
-                <Sparkles className="absolute -right-20 -top-20 h-80 w-80 text-white/5 animate-pulse" />
+            <div className="relative group overflow-hidden rounded-[2.5rem] bg-slate-900 p-10 shadow-2xl">
+                <Sparkles className="absolute -right-20 -top-20 h-24 w-24 text-white/5 animate-pulse" />
                 <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Users className="h-40 w-40 text-white" />
                 </div>
@@ -110,7 +110,7 @@ export function PartyList({ initialData, totalCount, currentPage, perPage, vendo
                         <div className="h-12 w-1 space-x-1 bg-primary rounded-full" />
                         <span className="text-primary font-black uppercase tracking-[0.4em] text-[10px]">Ecosistema Logístico & CRM</span>
                     </div>
-                    <h1 className="text-5xl lg:text-7xl font-black text-white italic tracking-tighter leading-none">
+                    <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
                         Comando de <span className="text-slate-500">Identidades</span>
                     </h1>
                     <p className="text-slate-400 font-bold max-w-2xl text-sm lg:text-base leading-relaxed">
@@ -223,19 +223,19 @@ export function PartyList({ initialData, totalCount, currentPage, perPage, vendo
             ) : (
                 <div className="grid grid-cols-1 gap-6">
                     {initialData.length === 0 ? (
-                        <Card className="bg-white border-none shadow-premium py-40 text-center rounded-[4rem]">
+                        <Card className="bg-white border-none shadow-premium py-40 text-center rounded-[2.5rem]">
                             <div className="relative inline-block">
                                 <div className="absolute inset-0 bg-slate-100 rounded-full animate-ping opacity-25" />
                                 <div className="relative h-32 w-32 rounded-[2.5rem] bg-slate-50 flex items-center justify-center text-slate-200 mx-auto mb-10 border-4 border-white shadow-xl">
                                     <Search className="h-14 w-14" />
                                 </div>
                             </div>
-                            <h3 className="text-slate-900 font-black text-4xl tracking-tighter italic uppercase">Cero Coincidencias</h3>
+                            <h3 className="text-slate-900 font-black text-3xl tracking-tight uppercase">Cero Coincidencias</h3>
                             <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] mt-4 underline decoration-slate-100 underline-offset-8 decoration-4">Refina el campo de búsqueda o ajusta filtros maestros</p>
                         </Card>
                     ) : (
                         initialData.map((party) => (
-                            <Card key={party.id} className="bg-white border-none shadow-premium rounded-[3rem] hover:ring-2 hover:ring-primary/10 transition-all duration-500 group overflow-hidden">
+                            <Card key={party.id} className="bg-white border-none shadow-premium rounded-[2.5rem] hover:ring-2 hover:ring-primary/10 transition-all duration-500 group overflow-hidden">
                                 <CardContent className="p-0">
                                     <div className="flex flex-col lg:flex-row lg:items-center relative">
                                         <div className="absolute right-0 top-0 p-12 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
@@ -265,7 +265,7 @@ export function PartyList({ initialData, totalCount, currentPage, perPage, vendo
                                             <div className="xl:col-span-8 space-y-6">
                                                 <div className="space-y-2">
                                                     <div className="flex flex-wrap items-center gap-4">
-                                                        <h3 className="text-3xl font-black text-slate-900 tracking-tighter group-hover:text-primary transition-all duration-500 leading-none italic uppercase">
+                                                        <h3 className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-primary transition-all duration-500 leading-tight uppercase">
                                                             {party.legal_name}
                                                         </h3>
                                                         <div className="flex gap-2">

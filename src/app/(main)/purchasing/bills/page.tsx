@@ -42,7 +42,7 @@ export default async function VendorBillsPage() {
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Pasivo Circulante</span>
                         <div className="flex items-baseline gap-4">
-                            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">
                                 {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(totalAP)}
                             </h2>
                             <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest leading-none">Saldo</span>
@@ -90,7 +90,7 @@ export default async function VendorBillsPage() {
                     <div className="h-8 w-8 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-active">
                         <Banknote className="h-4 w-4" />
                     </div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tighter italic uppercase">Maestro de Obligaciones</h3>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">Maestro de Obligaciones</h3>
                 </div>
                 <div className="bg-white rounded-[3.5rem] shadow-premium p-4 md:p-8 overflow-hidden">
                     <VendorBillList bills={bills} />
@@ -98,16 +98,16 @@ export default async function VendorBillsPage() {
             </div>
 
             {/* 🛡️ AUDIT FOOTER */}
-            <div className="bg-slate-950 p-16 rounded-[4rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
+            <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <ShieldCheck className="h-48 w-48 text-white" />
+                    <ShieldCheck className="h-20 w-20 text-white" />
                 </div>
                 <div className="flex items-center gap-10 relative z-10 text-center lg:text-left flex-col lg:flex-row">
                     <div className="h-20 w-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white border border-white/10 shadow-inner rotate-12 group-hover:rotate-0 transition-transform duration-700">
                         <Activity className="h-10 w-10 text-indigo-400" />
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-white">Consolidación Pasiva</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-white">Consolidación Pasiva</h4>
                         <p className="text-sm text-white/40 leading-relaxed font-medium max-w-xl">
                             Estas obligaciones impactan directamente el balance de <span className="text-indigo-400 font-black uppercase">{tenant?.name}</span>.
                             Asegúrese de validar que el soporte XML/PDF coincida con los valores registrados.

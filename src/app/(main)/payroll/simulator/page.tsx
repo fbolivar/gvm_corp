@@ -18,7 +18,7 @@ export default function PayrollSimulatorPage() {
                             <Sparkles className="h-8 w-8" />
                         </div>
                         <div className="space-y-1">
-                            <h1 className="text-5xl font-black text-slate-900 tracking-tighter italic">
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                                 Inteligencia <span className="text-indigo-600">Simulada</span>
                             </h1>
                             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] flex items-center gap-2">
@@ -44,7 +44,7 @@ export default function PayrollSimulatorPage() {
                 <div className="absolute top-0 right-0 h-full w-1/2 bg-gradient-to-l from-indigo-500/10 to-transparent" />
                 <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
                     <div className="space-y-4 flex-1">
-                        <h2 className="text-3xl font-black text-white italic tracking-tighter">¿Cómo funciona la desvinculación?</h2>
+                        <h2 className="text-3xl font-black text-white tracking-tight">¿Cómo funciona la desvinculación?</h2>
                         <p className="text-slate-400 font-medium leading-relaxed">
                             El simulador proyecta el costo total de una terminación de contrato, incluyendo Prima, Cesantías e Intereses proporcionales al tiempo laborado, más las vacaciones no disfrutadas.
                             <span className="text-indigo-400 italic"> Ideal para negociaciones de retiro voluntario o proyecciones presupuestales de RRHH.</span>

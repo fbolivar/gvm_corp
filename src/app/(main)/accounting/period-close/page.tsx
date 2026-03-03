@@ -32,16 +32,16 @@ export default async function PeriodClosePage() {
         <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* 🔒 HEADER */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[4rem] p-16 text-white shadow-active group">
+            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <CalendarRange className="h-64 w-64 text-white" />
+                    <CalendarRange className="h-24 w-24 text-white" />
                 </div>
                 <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="h-2 w-8 bg-rose-500 rounded-full" />
                         <span className="text-[10px] font-black uppercase tracking-[0.5em] text-rose-400">Gobernanza Contable</span>
                     </div>
-                    <h1 className="text-6xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85] mb-4">
+                    <h1 className="text-4xl font-black tracking-tight uppercase leading-tight mb-4">
                         Cierre<br /><span className="text-slate-500">Contable</span>
                     </h1>
                     <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em] max-w-lg">

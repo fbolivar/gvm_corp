@@ -12,7 +12,7 @@ export default function ImportPage() {
         <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 mb-1">
           Configuración / Herramientas
         </p>
-        <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">
+        <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
           Importación Masiva
         </h1>
         <p className="text-sm text-slate-500 mt-2 font-medium max-w-xl">

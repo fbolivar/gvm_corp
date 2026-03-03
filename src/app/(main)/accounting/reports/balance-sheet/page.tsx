@@ -53,7 +53,7 @@ export default async function BalanceSheetPage({
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Masa Patrimonial Activa</span>
                         <div className="flex items-center gap-6">
-                            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                                 ${data.totalAssets.toLocaleString('es-CO')}
                             </h2>
                             <div className="flex flex-col">
@@ -90,7 +90,7 @@ export default async function BalanceSheetPage({
                 <div className="lg:col-span-4 space-y-10">
                     <div className="sticky top-10 space-y-10">
                         {/* Ecuación Contable Master Card */}
-                        <div className="bg-slate-900 rounded-[3.5rem] p-10 text-white shadow-active relative overflow-hidden group">
+                        <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform">
                                 <Calculator className="h-40 w-40 text-white" />
                             </div>
@@ -132,7 +132,7 @@ export default async function BalanceSheetPage({
                         </div>
 
                         {/* Patrimonio Composition Card */}
-                        <div className="bg-white rounded-[3.5rem] p-10 shadow-premium border border-slate-50 relative overflow-hidden group">
+                        <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50 relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform text-slate-900">
                                 <PieChart className="h-32 w-32" />
                             </div>
@@ -171,7 +171,7 @@ export default async function BalanceSheetPage({
                         </div>
 
                         {/* Technical Advisory */}
-                        <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 space-y-6">
+                        <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 space-y-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
                                     <Landmark className="h-5 w-5" />
@@ -209,12 +209,12 @@ export default async function BalanceSheetPage({
                     />
 
                     {/* Finalization Footer */}
-                    <div className="bg-slate-900 p-12 rounded-[4rem] text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-active relative overflow-hidden group">
+                    <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-active relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                            <Scale className="h-40 w-40" />
+                            <Scale className="h-20 w-20" />
                         </div>
                         <div className="flex items-center gap-8 relative z-10">
-                            <div className="h-16 w-16 bg-white/10 rounded-3xl flex items-center justify-center text-white backdrop-blur-md shadow-inner border border-white/10 rotate-12 transition-transform group-hover:rotate-0">
+                            <div className="h-14 w-14 bg-white/10 rounded-3xl flex items-center justify-center text-white backdrop-blur-md shadow-inner border border-white/10 rotate-12 transition-transform group-hover:rotate-0">
                                 <ShieldCheck className="h-8 w-8" />
                             </div>
                             <div className="space-y-1">

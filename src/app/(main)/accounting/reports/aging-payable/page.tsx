@@ -113,7 +113,7 @@ export default async function AgingPayablePage({
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Total Pasivos Operacionales</span>
                         <div className="flex items-baseline gap-4">
-                            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                                 {fmt(totalPayable)}
                             </h2>
                             <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">Saldo CxP</span>
@@ -160,7 +160,7 @@ export default async function AgingPayablePage({
             </div>
 
             {/* Detailed Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Calendario de Pagos</h3>
@@ -240,13 +240,13 @@ export default async function AgingPayablePage({
             </Card>
 
             {/* Treasury Advisory */}
-            <div className="bg-slate-100 p-12 rounded-[4rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200 shadow-inner">
+            <div className="bg-slate-100 p-10 rounded-[2.5rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200 shadow-inner">
                 <div className="flex items-center gap-8">
-                    <div className="h-20 w-20 bg-white rounded-[2rem] flex items-center justify-center text-slate-900 shadow-premium border border-white">
+                    <div className="h-14 w-14 bg-white rounded-[2rem] flex items-center justify-center text-slate-900 shadow-premium border border-white">
                         <TrendingUp className="h-10 w-10" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-slate-900">Proyección de Flujo Saliente</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-slate-900">Proyección de Flujo Saliente</h4>
                         <p className="text-sm text-slate-500 leading-relaxed font-medium max-w-xl">
                             Este reporte permite anticipar las necesidades de caja para cumplir con obligaciones comerciales.
                             Mantener las cuentas por pagar al día optimiza el cupo de crédito y la relación con proveedores clave de <span className="text-blue-600 font-bold">{tenant?.name}</span>.

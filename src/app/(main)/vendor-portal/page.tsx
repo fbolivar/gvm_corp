@@ -21,9 +21,9 @@ export default async function VendorPortalPage() {
         <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* HEADER */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[4rem] p-16 text-white shadow-active group">
+            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <Users className="h-64 w-64 text-white" />
+                    <Users className="h-24 w-24 text-white" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
                     <div className="space-y-4">
@@ -31,7 +31,7 @@ export default async function VendorPortalPage() {
                             <div className="h-2 w-8 bg-amber-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-amber-400">Gestión de Proveedores</span>
                         </div>
-                        <h1 className="text-6xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase leading-tight">
                             Portal de<br /><span className="text-slate-500">Proveedores</span>
                         </h1>
                         <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">
@@ -58,7 +58,7 @@ export default async function VendorPortalPage() {
                         </div>
                         <div>
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                            <p className="text-2xl font-black text-slate-900 italic tracking-tighter">{kpi.value}</p>
+                            <p className="text-xl font-black text-slate-900 tracking-tight">{kpi.value}</p>
                         </div>
                     </div>
                 ))}
@@ -66,10 +66,10 @@ export default async function VendorPortalPage() {
 
             {/* Vendor List */}
             {vendors.length === 0 ? (
-                <div className="py-32 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
+                <div className="py-32 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
                     <Users className="h-16 w-16 text-slate-200" />
                     <div className="space-y-2">
-                        <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Sin Proveedores con Actividad</h3>
+                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Sin Proveedores con Actividad</h3>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Crea órdenes de compra o facturas de proveedor para ver sus estados de cuenta aquí</p>
                     </div>
                 </div>
@@ -118,7 +118,7 @@ export default async function VendorPortalPage() {
                                         </div>
                                         <div className="text-right space-y-1">
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Por Pagar</p>
-                                            <p className={`text-2xl font-black italic tracking-tighter ${vendor.pending_payment > 0 ? 'text-rose-600' : 'text-slate-300'}`}>
+                                            <p className={`text-xl font-black tracking-tight ${vendor.pending_payment > 0 ? 'text-rose-600' : 'text-slate-300'}`}>
                                                 ${Number(vendor.pending_payment).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                                             </p>
                                         </div>

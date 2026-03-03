@@ -45,7 +45,7 @@ export default function NewBudgetPage() {
                 </Button>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] p-10 shadow-premium space-y-8">
+            <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
                         <label className={LABEL_CLASS}>Nombre del Presupuesto *</label>

@@ -96,7 +96,7 @@ export function NotificationSettingsForm({ initialData }: Props) {
             {/* Main Content */}
             <div className="grid gap-8">
                 {categories.map((cat) => (
-                    <Card key={cat.id} className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden">
+                    <Card key={cat.id} className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden">
                         <CardContent className="p-0">
                             {/* Category Header */}
                             <div className="p-10 pb-6 flex items-start gap-6 leading-none border-b border-slate-50">
@@ -168,7 +168,7 @@ export function NotificationSettingsForm({ initialData }: Props) {
                         <Sparkles className="h-8 w-8" />
                     </div>
                     <div className="space-y-2 text-center md:text-left">
-                        <h4 className="text-lg font-black text-indigo-900 italic uppercase tracking-tight">Optimización Inteligente</h4>
+                        <h4 className="text-lg font-black text-indigo-900 uppercase tracking-tight">Optimización Inteligente</h4>
                         <p className="text-sm font-medium text-indigo-600/80 leading-relaxed">
                             Nuestro motor de notificaciones agrupa alertas similares para evitar saturar su bandeja de entrada.
                             Las notificaciones críticas de seguridad siempre se enviarán independientemente de estos ajustes.

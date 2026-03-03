@@ -124,7 +124,7 @@ export function AuditLogList({ logs }: Props) {
     return (
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 px-4 md:px-0">
             <div>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 italic leading-none">Registro de Actividad</h2>
+                <h2 className="text-3xl font-black tracking-tight text-slate-900 leading-tight">Registro de Actividad</h2>
                 <p className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-1 uppercase">Audit Log de Seguridad y Cambios</p>
             </div>
 

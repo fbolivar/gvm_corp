@@ -96,7 +96,7 @@ export default function TerminationPage() {
                     <Link href="/payroll" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-colors mb-4">
                         <ChevronLeft className="h-4 w-4" /> Volver a Nómina
                     </Link>
-                    <h1 className="text-5xl font-black text-slate-900 tracking-tighter italic">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                         Liquidación <span className="text-rose-600">Definitiva</span>
                     </h1>
                     <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em]">Cálculo de Prestaciones Sociales por Fin de Contrato</p>
@@ -217,16 +217,16 @@ export default function TerminationPage() {
                                 </Card>
 
                                 {/* Total Card */}
-                                <div className="rounded-[4rem] bg-slate-900 p-12 text-white flex flex-col justify-center items-center text-center gap-6 shadow-active relative overflow-hidden">
+                                <div className="rounded-[2.5rem] bg-slate-900 p-10 text-white flex flex-col justify-center items-center text-center gap-6 shadow-active relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse" />
                                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Gran Total Prestacional</p>
                                     <div className="space-y-1">
-                                        <p className="text-7xl font-black italic tracking-tighter text-white">
+                                        <p className="text-4xl font-black tracking-tighter text-white">
                                             ${new Intl.NumberFormat('es-CO').format(Math.round(result.amounts.total))}
                                         </p>
                                         <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Pesos Colombianos</p>
                                     </div>
-                                    <Button className="w-full h-16 rounded-2xl bg-white text-slate-900 hover:bg-primary hover:text-white font-black italic tracking-tighter text-xl transition-all shadow-xl flex items-center gap-3 mt-4">
+                                    <Button className="w-full h-12 rounded-2xl bg-white text-slate-900 hover:bg-primary hover:text-white font-black tracking-tight text-base transition-all shadow-xl flex items-center gap-3 mt-4">
                                         DESCARGAR PDF <Download className="h-6 w-6" />
                                     </Button>
                                 </div>

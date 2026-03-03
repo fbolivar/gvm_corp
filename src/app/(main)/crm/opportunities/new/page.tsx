@@ -26,7 +26,7 @@ export default async function NewOpportunityPage() {
     return (
         <div className="space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 🛡️ PREMIUM HEADER */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[4rem] p-12 md:p-24 text-white shadow-active border border-white/5 mx-6 mt-6">
+            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5 mx-6 mt-6">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-125 transition-all">
                     <Target className="h-[20rem] w-[20rem] text-indigo-500" />
                 </div>
@@ -43,10 +43,10 @@ export default async function NewOpportunityPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <h1 className="text-7xl md:text-9xl font-black tracking-tighter italic uppercase leading-[0.8] mb-4">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight mb-4">
                             Nueva <br /><span className="text-slate-600">Oportunidad</span>
                         </h1>
-                        <p className="text-white/40 text-sm md:text-xl font-black uppercase tracking-[0.4em] italic flex items-center gap-4">
+                        <p className="text-white/40 text-sm font-black uppercase tracking-[0.4em] flex items-center gap-4">
                             <Activity className="h-6 w-6 text-indigo-500 animate-pulse" />
                             Apertura de Negocio en Pipeline Industrial
                         </p>

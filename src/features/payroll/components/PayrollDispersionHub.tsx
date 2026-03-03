@@ -180,19 +180,19 @@ export function PayrollDispersionHub() {
             </div>
 
             {/* 🏭 INDUSTRIAL HEADER */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[4rem] p-16 text-white shadow-active">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <Landmark className="h-64 w-64 text-white" />
+            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
+                    <Landmark className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-10">
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">
                             <div className="h-2 w-12 bg-indigo-500 rounded-full" />
-                            <span className="text-xs font-black uppercase tracking-[0.5em] text-indigo-500 italic">Dispersión Bancaria Masiva</span>
+                            <span className="text-xs font-black uppercase tracking-[0.5em] text-indigo-500">Dispersión Bancaria Masiva</span>
                         </div>
-                        <h1 className="text-6xl font-black tracking-tighter italic uppercase leading-[0.8]">
-                            Central de <br /><span className="text-slate-500 text-5xl">Pagos Electrónicos</span>
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
+                            Central de <br /><span className="text-slate-500">Pagos Electrónicos</span>
                         </h1>
                         <p className="text-white/30 font-black text-[10px] uppercase tracking-[0.4em] italic">Generación de archivos planos multi-banco (PAB/TXT)</p>
                     </div>
@@ -205,7 +205,7 @@ export function PayrollDispersionHub() {
                             </Badge>
                         </div>
                         <div className="flex items-baseline gap-3">
-                            <span className="text-4xl font-black text-white italic tracking-tighter">
+                            <span className="text-2xl font-black text-white tracking-tight">
                                 ${new Intl.NumberFormat('es-CO').format(stats.totalAmount)}
                             </span>
                             <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest italic">COP</span>
@@ -233,7 +233,7 @@ export function PayrollDispersionHub() {
             </div>
 
             {/* 📋 SETTLEMENT LIST */}
-            <Card className="border-none shadow-premium rounded-[3rem] bg-white overflow-hidden group">
+            <Card className="border-none shadow-premium rounded-[2.5rem] bg-white overflow-hidden group">
                 <CardHeader className="p-10 border-b border-slate-50 bg-slate-50/20">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-1">
@@ -261,7 +261,7 @@ export function PayrollDispersionHub() {
                 <CardContent className="p-0">
                     {settlements.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-32 text-center gap-6 opacity-40">
-                            <FileText className="h-20 w-20 text-slate-200" />
+                            <FileText className="h-16 w-16 text-slate-200" />
                             <p className="text-[10px] font-black uppercase tracking-[0.5em] italic">No hay registros de nómina disponibles</p>
                         </div>
                     ) : (
@@ -340,8 +340,8 @@ export function PayrollDispersionHub() {
             </Card>
 
             {/* 🛡️ SECURITY AUDIT */}
-            <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-                <div className="h-20 w-20 rounded-[1.5rem] bg-indigo-600 flex items-center justify-center text-white rotate-6 hover:rotate-0 transition-transform shadow-active duration-700">
+            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                <div className="h-14 w-14 rounded-[1.5rem] bg-indigo-600 flex items-center justify-center text-white rotate-6 hover:rotate-0 transition-transform shadow-active duration-700">
                     <CheckCircle2 className="h-10 w-10 shrink-0" />
                 </div>
                 <div className="space-y-2">

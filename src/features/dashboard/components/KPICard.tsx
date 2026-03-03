@@ -46,7 +46,7 @@ export function KPICard({ title, value, description, icon: Icon, className, vari
                             </CardTitle>
                         </div>
                         <div className={cn(
-                            "text-2xl md:text-3xl font-black tracking-tight italic leading-none whitespace-nowrap",
+                            "text-xl md:text-2xl font-black tracking-tight leading-snug",
                             isPrimary ? "text-white" : "text-slate-900"
                         )}>
                             {value}

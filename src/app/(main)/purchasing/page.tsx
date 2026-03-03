@@ -111,10 +111,10 @@ export default async function PurchasingDashboard() {
         <div className="page-container space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* 🏎️ PREMIUM HEADER INDUSTRIAL V3 */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[4rem] p-12 md:p-24 text-white shadow-active border border-white/5 mx-6 mt-6">
+            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5 mx-6 mt-6">
                 {/* Decorative Layers */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-all duration-[2000ms]">
-                    <Truck className="h-[25rem] w-[25rem] text-primary" />
+                    <Truck className="h-24 w-24 text-primary" />
                 </div>
                 <div className="absolute -bottom-24 -left-24 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform duration-[3000ms]">
                     <Cpu className="h-[40rem] w-[40rem]" />
@@ -136,7 +136,7 @@ export default async function PurchasingDashboard() {
                         </div>
 
                         <div className="space-y-6">
-                            <h1 className="text-7xl md:text-9xl font-black tracking-tighter italic uppercase leading-[0.8] mb-4">
+                            <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase leading-tight mb-4">
                                 Cadena de <br /><span className="text-slate-600">Suministros</span>
                             </h1>
                             <div className="flex flex-wrap items-center gap-8">
@@ -153,7 +153,7 @@ export default async function PurchasingDashboard() {
                     </div>
 
                     <div className="flex flex-wrap gap-8 w-full lg:w-auto">
-                        <Button variant="ghost" asChild className="h-28 flex-1 lg:flex-none px-12 rounded-[2.5rem] border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all shadow-active active:scale-95 group/btn relative overflow-hidden">
+                        <Button variant="ghost" asChild className="h-14 flex-1 lg:flex-none px-12 rounded-[2.5rem] border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all shadow-active active:scale-95 group/btn relative overflow-hidden">
                             <Link href="/purchasing/vendors" className="flex items-center gap-6">
                                 <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-amber-500 to-transparent translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
                                 <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center text-amber-500 group-hover/btn:scale-110 transition-transform relative z-10 border border-white/5">
@@ -165,7 +165,7 @@ export default async function PurchasingDashboard() {
                                 </div>
                             </Link>
                         </Button>
-                        <Button asChild className="h-28 flex-1 lg:flex-none px-14 rounded-[2.5rem] bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none group/action relative overflow-hidden">
+                        <Button asChild className="h-14 flex-1 lg:flex-none px-14 rounded-[2.5rem] bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none group/action relative overflow-hidden">
                             <Link href="/purchasing/orders/new" className="flex items-center gap-6">
                                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/action:translate-y-0 transition-transform duration-500" />
                                 <div className="h-16 w-16 rounded-2xl bg-slate-950/20 flex items-center justify-center group-hover/action:scale-110 transition-transform relative z-10">
@@ -184,12 +184,12 @@ export default async function PurchasingDashboard() {
             {/* 📊 INDUSTRIAL STAT CARDS V3 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 px-6">
                 {stats.map((stat, idx) => (
-                    <Card key={idx} className="border border-slate-100 bg-white shadow-premium rounded-[3.5rem] group hover:-translate-y-3 transition-all duration-700 overflow-hidden relative">
+                    <Card key={idx} className="border border-slate-100 bg-white shadow-premium rounded-[2.5rem] group hover:-translate-y-3 transition-all duration-700 overflow-hidden relative">
                         <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-125 transition-transform duration-1000">
                             <stat.icon className="h-24 w-24" />
                         </div>
                         <CardHeader className="flex flex-row items-center justify-between pb-8 pt-14 px-14 gap-6 relative z-10">
-                            <div className={cn("h-20 w-20 rounded-[1.8rem] flex items-center justify-center shadow-active group-hover:rotate-12 transition-all duration-700", stat.bg, stat.color)}>
+                            <div className={cn("h-14 w-14 rounded-[1.8rem] flex items-center justify-center shadow-active group-hover:rotate-12 transition-all duration-700", stat.bg, stat.color)}>
                                 <stat.icon className="h-10 w-10" />
                             </div>
                             <div className="flex flex-col items-end">
@@ -201,7 +201,7 @@ export default async function PurchasingDashboard() {
                         </CardHeader>
                         <CardContent className="px-14 pb-14 space-y-8 relative z-10">
                             <div className="space-y-3 text-center md:text-left">
-                                <div className="text-7xl font-black text-slate-950 tracking-[calc(-0.05em)] italic leading-none group-hover:text-amber-600 transition-all duration-500 uppercase">
+                                <div className="text-4xl font-black text-slate-950 tracking-tight leading-tight group-hover:text-amber-600 transition-all duration-500 uppercase">
                                     {stat.count}
                                 </div>
                                 <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] leading-relaxed max-w-[240px] italic">
@@ -222,10 +222,10 @@ export default async function PurchasingDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start px-6">
 
                 {/* 🤝 VENDOR ALLIANCE HUB */}
-                <Card className="lg:col-span-4 border-none bg-white shadow-premium rounded-[4rem] p-4 relative overflow-hidden group">
+                <Card className="lg:col-span-4 border-none bg-white shadow-premium rounded-[2.5rem] p-4 relative overflow-hidden group">
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-125 group-hover:-rotate-12 transition-all duration-1000">
-                        <Users className="h-64 w-64 text-slate-950" />
+                        <Users className="h-24 w-24 text-slate-950" />
                     </div>
 
                     <CardHeader className="p-14 pb-10 border-b border-slate-50 flex flex-col items-start gap-6 relative z-10">
@@ -233,7 +233,7 @@ export default async function PurchasingDashboard() {
                             <Users className="h-8 w-8" />
                         </div>
                         <div>
-                            <h3 className="text-5xl font-black text-slate-950 tracking-tighter italic uppercase leading-[0.9]">Aliados <br /><span className="text-slate-400 italic">Estratégicos</span></h3>
+                            <h3 className="text-3xl font-black text-slate-950 tracking-tight uppercase leading-tight">Aliados <br /><span className="text-slate-400">Estratégicos</span></h3>
                             <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.6em] mt-4 italic">Control de Alianzas</p>
                         </div>
                     </CardHeader>
@@ -260,7 +260,7 @@ export default async function PurchasingDashboard() {
                                 </div>
                             ))}
                         </div>
-                        <Button variant="ghost" asChild className="w-full h-20 mt-8 rounded-[2rem] text-slate-400 hover:text-white hover:bg-slate-950 font-black uppercase tracking-[0.4em] text-[11px] transition-all italic">
+                        <Button variant="ghost" asChild className="w-full h-12 mt-8 rounded-[2rem] text-slate-400 hover:text-white hover:bg-slate-950 font-black uppercase tracking-[0.4em] text-[11px] transition-all italic">
                             <Link href="/purchasing/vendors" className="flex items-center justify-center gap-4">
                                 EXPLORAR DIRECTORIO
                                 <ArrowRight className="h-5 w-5" />
@@ -270,7 +270,7 @@ export default async function PurchasingDashboard() {
                 </Card>
 
                 {/* 📝 RECENT SUPPLY ACTIVITY */}
-                <Card className="lg:col-span-8 bg-white border border-slate-100 shadow-premium rounded-[4rem] overflow-hidden group relative">
+                <Card className="lg:col-span-8 bg-white border border-slate-100 shadow-premium rounded-[2.5rem] overflow-hidden group relative">
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 p-20 opacity-[0.02] pointer-events-none group-hover:scale-125 group-hover:rotate-6 transition-all duration-[2000ms]">
                         <PackageCheck className="h-[30rem] w-[30rem] text-slate-950" />
@@ -282,11 +282,11 @@ export default async function PurchasingDashboard() {
                                 <PackageCheck className="h-8 w-8" />
                             </div>
                             <div>
-                                <h3 className="text-5xl font-black text-slate-950 tracking-tighter italic uppercase leading-[0.9]">Tráfico de <br /><span className="text-slate-400 italic">Suministros</span></h3>
+                                <h3 className="text-3xl font-black text-slate-950 tracking-tight uppercase leading-tight">Tráfico de <br /><span className="text-slate-400">Suministros</span></h3>
                                 <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.6em] mt-4 italic">Protocolo Logístico</p>
                             </div>
                         </div>
-                        <Button variant="outline" asChild className="h-16 px-12 rounded-[1.5rem] border-slate-100 text-slate-400 font-black uppercase text-[11px] tracking-[0.4em] hover:bg-slate-950 hover:text-white hover:border-slate-950 transition-all shadow-premium italic group/btn">
+                        <Button variant="outline" asChild className="h-12 px-12 rounded-[1.5rem] border-slate-100 text-slate-400 font-black uppercase text-[11px] tracking-[0.4em] hover:bg-slate-950 hover:text-white hover:border-slate-950 transition-all shadow-premium italic group/btn">
                             <Link href="/purchasing/orders" className="flex items-center gap-4">
                                 PROTOCOLO COMPLETO
                                 <ArrowRight className="h-5 w-5 group-hover/btn:translate-x-2 transition-transform" />
@@ -332,7 +332,7 @@ export default async function PurchasingDashboard() {
 
             {/* 🤖 SMART PURCHASING AGENT V3 */}
             <div className="px-6">
-                <Card className="bg-slate-950 border border-white/5 shadow-active rounded-[4.5rem] p-4 relative overflow-hidden group">
+                <Card className="bg-slate-950 border border-white/5 shadow-active rounded-[2.5rem] p-4 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-20 opacity-[0.06] pointer-events-none group-hover:scale-150 transition-transform duration-[3000ms]">
                         <Cpu className="h-[25rem] w-[25rem] text-amber-500" />
                     </div>
@@ -340,7 +340,7 @@ export default async function PurchasingDashboard() {
                         <Zap className="h-[35 rem] w-[35rem] text-white" />
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 p-14 md:p-24 relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 p-10 relative z-10">
                         <div className="space-y-12">
                             <div className="space-y-8">
                                 <div className="flex items-center gap-8">
@@ -348,7 +348,7 @@ export default async function PurchasingDashboard() {
                                         <Sparkles className="h-10 w-10" />
                                     </div>
                                     <div>
-                                        <h2 className="text-6xl font-black text-white tracking-tighter italic uppercase leading-none">Smart <br /><span className="text-amber-500">Purchasing</span></h2>
+                                        <h2 className="text-4xl font-black text-white tracking-tight uppercase leading-tight">Smart <br /><span className="text-amber-500">Purchasing</span></h2>
                                         <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.6em] mt-4 italic">Unidad de IA Predictiva</p>
                                     </div>
                                 </div>
@@ -358,13 +358,13 @@ export default async function PurchasingDashboard() {
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-8">
-                                <Button asChild className="h-24 px-12 rounded-[2rem] bg-white text-slate-950 font-black text-sm uppercase tracking-[0.3em] hover:bg-amber-500 hover:text-white transition-all group/btn shadow-active border-none italic">
+                                <Button asChild className="h-14 px-12 rounded-[2rem] bg-white text-slate-950 font-black text-sm uppercase tracking-[0.3em] hover:bg-amber-500 hover:text-white transition-all group/btn shadow-active border-none italic">
                                     <Link href="/purchasing/bills/new" className="flex items-center justify-center">
                                         CARGAR GASTO DIRECTO
                                         <ArrowRight className="ml-6 h-6 w-6 group-hover/btn:translate-x-3 transition-transform" />
                                     </Link>
                                 </Button>
-                                <div className="h-24 px-10 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-3xl flex items-center gap-6 shadow-active group/sec">
+                                <div className="h-14 px-10 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-3xl flex items-center gap-6 shadow-active group/sec">
                                     <ShieldCheck className="h-8 w-8 text-emerald-500 group-hover/sec:scale-110 transition-transform" />
                                     <div className="flex flex-col">
                                         <span className="text-[11px] font-black text-white uppercase tracking-[0.4em] italic uppercase">PROTOCOLO SEGURO</span>
@@ -407,16 +407,16 @@ export default async function PurchasingDashboard() {
 
             {/* 🛡️ AUDIT FOOTER INDUSTRIAL V3 */}
             <div className="px-6 mb-12">
-                <div className="bg-slate-950 p-16 rounded-[4.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group border border-white/5">
+                <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group border border-white/5">
                     {/* Background decoration */}
                     <div className="absolute inset-0 opacity-[0.02] bg-grid-white pointer-events-none" />
 
                     <div className="flex flex-col lg:flex-row items-center gap-12 relative z-10 w-full lg:w-auto">
-                        <div className="h-24 w-24 bg-white/5 p-4 rounded-[2rem] border border-white/10 flex items-center justify-center group-hover:rotate-[360deg] transition-transform duration-[2000ms] shadow-active">
+                        <div className="h-14 w-14 bg-white/5 p-4 rounded-[2rem] border border-white/10 flex items-center justify-center group-hover:rotate-[360deg] transition-transform duration-[2000ms] shadow-active">
                             <ShieldCheck className="h-12 w-12 text-primary animate-pulse" />
                         </div>
                         <div className="space-y-3 text-center lg:text-left">
-                            <h4 className="text-3xl font-black italic tracking-tighter uppercase leading-none">Blindaje de Operaciones</h4>
+                            <h4 className="text-2xl font-black tracking-tight uppercase leading-tight">Blindaje de Operaciones</h4>
                             <p className="text-slate-500 font-extrabold text-[11px] uppercase tracking-[0.6em] italic">Cada transacción en esta terminal está auditada y certificada bajo el Protocolo Fiscal v3.2.</p>
                         </div>
                     </div>

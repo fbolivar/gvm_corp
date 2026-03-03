@@ -28,7 +28,7 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
                             </div>
                         )}
                         <div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight italic leading-tight">
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
                                 {tenant.name}
                             </h2>
                             <div className="flex items-center gap-2 mt-1">
@@ -70,7 +70,7 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
                 </div>
 
                 <div className="text-left md:text-right space-y-2 border-l-4 md:border-l-0 md:border-r-4 border-slate-900 pl-6 md:pl-0 md:pr-6 py-2">
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-tight">
                         {title}
                     </h1>
                     {subtitle && (

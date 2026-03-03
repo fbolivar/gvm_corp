@@ -14,7 +14,7 @@ export default async function InventoryHistoryPage() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
                 <div className="space-y-2">
-                    <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 italic">Historial Maestro</h1>
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">Historial Maestro</h1>
                     <div className="flex items-center gap-4">
                         <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Libro de Auditoría Logística</p>
                         <div className="flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-full">

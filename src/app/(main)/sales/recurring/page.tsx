@@ -23,9 +23,9 @@ export default async function RecurringInvoicesPage() {
         <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* 💜 HEADER */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[4rem] p-16 text-white shadow-active group">
+            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <RefreshCw className="h-64 w-64 text-white" />
+                    <RefreshCw className="h-24 w-24 text-white" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
                     <div className="space-y-4">
@@ -33,7 +33,7 @@ export default async function RecurringInvoicesPage() {
                             <div className="h-2 w-8 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Facturación Automatizada</span>
                         </div>
-                        <h1 className="text-6xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Facturas<br /><span className="text-slate-500">Recurrentes</span>
                         </h1>
                         <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em] max-w-sm">
@@ -54,7 +54,7 @@ export default async function RecurringInvoicesPage() {
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Activas</p>
-                        <p className="text-4xl font-black text-slate-900 italic tracking-tighter">{active}</p>
+                        <p className="text-2xl font-black text-slate-900 tracking-tight">{active}</p>
                     </div>
                 </div>
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-premium flex items-center gap-6">
@@ -63,7 +63,7 @@ export default async function RecurringInvoicesPage() {
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pausadas</p>
-                        <p className="text-4xl font-black text-slate-900 italic tracking-tighter">{paused}</p>
+                        <p className="text-2xl font-black text-slate-900 tracking-tight">{paused}</p>
                     </div>
                 </div>
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-premium flex items-center gap-6">
@@ -72,7 +72,7 @@ export default async function RecurringInvoicesPage() {
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Próxima Ejecución</p>
-                        <p className="text-2xl font-black text-slate-900 italic tracking-tighter">{nextRun}</p>
+                        <p className="text-xl font-black text-slate-900 tracking-tight">{nextRun}</p>
                     </div>
                 </div>
             </div>

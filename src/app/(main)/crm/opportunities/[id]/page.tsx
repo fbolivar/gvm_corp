@@ -71,7 +71,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                             <Badge className={cn("border-none font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full", meta.bg, meta.color)}>
                                 {meta.label}
                             </Badge>
-                            <h1 className="text-4xl md:text-6xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                                 {opp.name}
                             </h1>
                             {party && (

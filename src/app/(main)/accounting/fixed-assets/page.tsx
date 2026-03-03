@@ -31,9 +31,9 @@ export default async function FixedAssetsPage() {
         <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* 🏭 HEADER */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[4rem] p-16 text-white shadow-active group">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <Package className="h-64 w-64 text-white" />
+            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
+                    <Package className="h-24 w-24 text-white" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
                     <div className="space-y-4">
@@ -41,7 +41,7 @@ export default async function FixedAssetsPage() {
                             <div className="h-2 w-8 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Control de Patrimonio</span>
                         </div>
-                        <h1 className="text-6xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Activos<br /><span className="text-slate-500">Fijos</span>
                         </h1>
                         <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">
@@ -76,7 +76,7 @@ export default async function FixedAssetsPage() {
 
             {/* Category breakdown */}
             {byCategory.length > 0 && (
-                <div className="bg-white rounded-[3rem] p-10 shadow-premium">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium">
                     <h3 className="text-sm font-black text-slate-900 uppercase italic tracking-tight mb-6">Distribución por Categoría</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {byCategory.map(c => (

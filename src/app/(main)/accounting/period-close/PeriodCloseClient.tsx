@@ -80,7 +80,7 @@ export function PeriodCloseClient({ periods: initialPeriods }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Sidebar: period list */}
             <aside className="lg:col-span-4 space-y-4">
-                <div className="bg-white rounded-[3rem] p-8 shadow-premium space-y-4">
+                <div className="bg-white rounded-[2.5rem] p-8 shadow-premium space-y-4">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-black text-slate-900 uppercase italic tracking-tight">Períodos Fiscales</h3>
                         <Button
@@ -163,7 +163,7 @@ export function PeriodCloseClient({ periods: initialPeriods }: Props) {
                 {selected ? (
                     <PeriodClosePanel period={selected.period} items={selected.items} />
                 ) : (
-                    <div className="py-32 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
+                    <div className="py-32 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
                         <CalendarRange className="h-16 w-16 text-slate-200" />
                         <div className="space-y-2">
                             <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Seleccione un Período</h3>

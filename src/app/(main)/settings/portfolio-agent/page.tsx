@@ -78,7 +78,7 @@ export default function PortfolioAgentPage() {
                     <Sparkles className="w-8 h-8 text-indigo-500" />
                     <span className="text-sm font-black text-indigo-500 uppercase tracking-[0.5em] italic">Intelligence Hub</span>
                 </div>
-                <h1 className="text-6xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
+                <h1 className="text-4xl font-black tracking-tighter uppercase text-slate-900 leading-tight">
                     Agentes <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Autónomos</span>
                 </h1>
                 <p className="text-xl font-bold text-slate-400 uppercase tracking-widest italic max-w-2xl">
@@ -103,7 +103,7 @@ export default function PortfolioAgentPage() {
                                 <Brain className="w-16 h-16 text-indigo-400" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black text-white italic uppercase tracking-tight mb-4">¿Cómo funciona el agente?</h2>
+                                <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-4">¿Cómo funciona el agente?</h2>
                                 <p className="text-indigo-200/70 font-medium text-lg leading-relaxed">
                                     Portfolio IQ analiza diariamente tus facturas de venta. Si detecta una mora superior a tus <span className="text-white font-black italic underline decoration-indigo-500 underline-offset-4">días de gracia</span>, el sistema activará una <span className="text-white font-black italic">Acción de Cobro</span> automática enviando recordatorios y escalando los casos según el riesgo del deudor.
                                 </p>

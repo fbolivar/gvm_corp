@@ -147,7 +147,7 @@ export function EmailIntegrationWizard({ initialData, tenantId }: Props) {
 
                 {/* Content */}
                 <div className="lg:col-span-9">
-                    <Card className="border-none shadow-premium rounded-[3rem] overflow-hidden bg-white h-full flex flex-col">
+                    <Card className="border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white h-full flex flex-col">
                         <CardHeader className="p-10 pb-2">
                             <CardTitle className="text-2xl font-black text-slate-900 italic">
                                 {STEPS[currentStep - 1].title}

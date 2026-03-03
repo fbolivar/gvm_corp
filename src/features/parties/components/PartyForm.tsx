@@ -74,10 +74,10 @@ export function PartyForm({ initialData, onSubmit, isLoading }: PartyFormProps) 
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 max-w-5xl mx-auto pb-20">
-            <div className="relative group overflow-hidden bg-white rounded-[4rem] shadow-premium border-none p-12 md:p-16">
+            <div className="relative group overflow-hidden bg-white rounded-[2.5rem] shadow-premium border-none p-10">
                 {/* Industrial Background Element */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-1000">
-                    <Cpu className="h-64 w-64 text-slate-900" />
+                    <Cpu className="h-24 w-24 text-slate-900" />
                 </div>
 
                 {/* Header */}
@@ -87,8 +87,8 @@ export function PartyForm({ initialData, onSubmit, isLoading }: PartyFormProps) 
                             {initialData ? <Save className="h-10 w-10" /> : <User className="h-10 w-10" />}
                         </div>
                         <div className="space-y-1">
-                            <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter italic uppercase leading-none">
-                                {initialData ? 'Sincronizar' : 'Alta de'} <span className="text-primary italic">Registro</span>
+                            <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-tight">
+                                {initialData ? 'Sincronizar' : 'Alta de'} <span className="text-primary">Registro</span>
                             </h2>
                             <p className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-[0.5em] pl-1">Identidad de Alianza Industrial v3.0</p>
                         </div>
@@ -98,7 +98,7 @@ export function PartyForm({ initialData, onSubmit, isLoading }: PartyFormProps) 
                 <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-12 relative z-10">
 
                     {/* Pod 1: Definición Legal */}
-                    <section className="space-y-8 bg-slate-50/50 p-10 rounded-[3rem] border border-white shadow-inner relative group/pod">
+                    <section className="space-y-8 bg-slate-50/50 p-10 rounded-[2.5rem] border border-white shadow-inner relative group/pod">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">01</div>
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] italic">Matriz Legal de Identidad</h3>
@@ -172,7 +172,7 @@ export function PartyForm({ initialData, onSubmit, isLoading }: PartyFormProps) 
                     </section>
 
                     {/* Pod 2: Canales de Enlace */}
-                    <section className="space-y-8 bg-slate-50/50 p-10 rounded-[3rem] border border-white shadow-inner relative">
+                    <section className="space-y-8 bg-slate-50/50 p-10 rounded-[2.5rem] border border-white shadow-inner relative">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">02</div>
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] italic">Protocolos de Contacto</h3>
@@ -205,7 +205,7 @@ export function PartyForm({ initialData, onSubmit, isLoading }: PartyFormProps) 
                     </section>
 
                     {/* Pod 3: Vector Comercial */}
-                    <section className="space-y-8 bg-slate-50/50 p-10 rounded-[3rem] border border-white shadow-inner relative">
+                    <section className="space-y-8 bg-slate-50/50 p-10 rounded-[2.5rem] border border-white shadow-inner relative">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">03</div>
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] italic">Configuración de Alianza</h3>
@@ -229,7 +229,7 @@ export function PartyForm({ initialData, onSubmit, isLoading }: PartyFormProps) 
                                         <Globe className="h-7 w-7" />
                                     </div>
                                     <div className="space-y-1">
-                                        <span className="text-lg font-black text-slate-900 tracking-tighter italic uppercase block">Ecosistema Cliente</span>
+                                        <span className="text-lg font-black text-slate-900 tracking-tight uppercase block">Ecosistema Cliente</span>
                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Habilitar Flujo de Ventas</span>
                                     </div>
                                 </div>
@@ -258,7 +258,7 @@ export function PartyForm({ initialData, onSubmit, isLoading }: PartyFormProps) 
                                         <CreditCard className="h-7 w-7" />
                                     </div>
                                     <div className="space-y-1">
-                                        <span className="text-lg font-black text-slate-900 tracking-tighter italic uppercase block">Ecosistema Proveedor</span>
+                                        <span className="text-lg font-black text-slate-900 tracking-tight uppercase block">Ecosistema Proveedor</span>
                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Habilitar Flujo de Compras</span>
                                     </div>
                                 </div>

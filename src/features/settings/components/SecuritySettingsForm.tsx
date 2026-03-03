@@ -50,13 +50,13 @@ export function SecuritySettingsForm() {
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 px-4 md:px-0">
             <div>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 italic leading-none">Seguridad & Acceso</h2>
+                <h2 className="text-3xl font-black tracking-tight text-slate-900 leading-tight">Seguridad & Acceso</h2>
                 <p className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-1">Protección de Cuenta y Verificación</p>
             </div>
 
             <div className="grid gap-8 lg:grid-cols-12">
                 <div className="lg:col-span-7">
-                    <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden">
                         <CardHeader className="p-8 md:p-10 pb-4">
                             <CardTitle className="text-lg md:text-xl font-black text-slate-900 flex items-center gap-3 italic">
                                 <Lock className="h-6 w-6 text-primary" />
@@ -103,7 +103,7 @@ export function SecuritySettingsForm() {
                 </div>
 
                 <div className="lg:col-span-5 space-y-8">
-                    <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-10 overflow-hidden relative group">
+                    <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] md:rounded-[2.5rem] p-8 md:p-10 overflow-hidden relative group">
                         <Smartphone className="absolute -bottom-6 -right-6 h-32 w-32 text-white/5 rotate-12 transition-transform group-hover:scale-110" />
                         <div className="relative z-10 space-y-4">
                             <div className="flex items-center gap-3">
@@ -120,7 +120,7 @@ export function SecuritySettingsForm() {
                         </div>
                     </Card>
 
-                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-10">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] md:rounded-[2.5rem] p-8 md:p-10">
                         <div className="space-y-6">
                             <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm">
                                 <RefreshCcw className="h-6 w-6" />

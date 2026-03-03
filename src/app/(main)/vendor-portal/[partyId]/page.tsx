@@ -41,7 +41,7 @@ export default async function VendorStatementPage({ params }: { params: Promise<
                         <Users className="h-8 w-8" />
                     </div>
                     <div className="space-y-2">
-                        <h1 className="text-4xl font-black tracking-tighter text-slate-900 italic">{vendor.legal_name}</h1>
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900">{vendor.legal_name}</h1>
                         <div className="flex flex-wrap items-center gap-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">
                             <span>NIT {vendor.nit}</span>
                             {vendor.city && <span>· {vendor.city}</span>}
@@ -69,7 +69,7 @@ export default async function VendorStatementPage({ params }: { params: Promise<
                         </div>
                         <div>
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                            <p className="text-2xl font-black text-slate-900 italic tracking-tighter">{kpi.value}</p>
+                            <p className="text-xl font-black text-slate-900 tracking-tight">{kpi.value}</p>
                         </div>
                     </div>
                 ))}
@@ -90,9 +90,9 @@ export default async function VendorStatementPage({ params }: { params: Promise<
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Purchase Orders */}
-                <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-6">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-6">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-black text-slate-900 italic uppercase tracking-tight flex items-center gap-3">
+                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
                             <ShoppingBag className="h-5 w-5 text-amber-500" />
                             Órdenes de Compra
                         </h3>
@@ -129,9 +129,9 @@ export default async function VendorStatementPage({ params }: { params: Promise<
                 </div>
 
                 {/* Vendor Bills */}
-                <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-6">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-6">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-black text-slate-900 italic uppercase tracking-tight flex items-center gap-3">
+                        <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
                             <Receipt className="h-5 w-5 text-rose-500" />
                             Facturas de Proveedor
                         </h3>

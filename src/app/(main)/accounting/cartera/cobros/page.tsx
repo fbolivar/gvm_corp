@@ -28,9 +28,9 @@ export default async function CobrosPage() {
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
             {/* Header */}
-            <div className="bg-slate-900 rounded-[4rem] p-12 text-white relative overflow-hidden group">
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-all duration-1000">
-                    <Inbox className="h-80 w-80 text-white" />
+                    <Inbox className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 space-y-6">
@@ -49,7 +49,7 @@ export default async function CobrosPage() {
                                     Gestión de Recaudo
                                 </span>
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                                 Comprobantes <br />
                                 <span className="text-slate-500">de Pago</span>
                             </h1>
@@ -85,7 +85,7 @@ export default async function CobrosPage() {
             <PaymentReportsClient initialReports={reports} />
 
             {/* Footer info */}
-            <div className="flex items-center gap-6 p-10 bg-slate-50 rounded-[3rem] border border-slate-100">
+            <div className="flex items-center gap-6 p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                 <TrendingUp className="h-8 w-8 text-indigo-400 shrink-0" />
                 <div>
                     <p className="text-sm font-black italic tracking-tight text-slate-700 uppercase">

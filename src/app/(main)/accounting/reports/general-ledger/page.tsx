@@ -51,7 +51,7 @@ export default async function GeneralLedgerPage({
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Jerarquía de Saldos Maestro</span>
                         <div className="flex items-baseline gap-4">
-                            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                                 {trialBalanceData.length}
                             </h2>
                             <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">Cuentas Consolidadas</span>
@@ -75,16 +75,16 @@ export default async function GeneralLedgerPage({
             />
 
             {/* 🛡️ AUDIT OVERVIEW */}
-            <div className="bg-slate-900 p-16 rounded-[4rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <BookOpen className="h-48 w-48" />
+            <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
+                    <BookOpen className="h-20 w-20" />
                 </div>
                 <div className="flex items-center gap-10 relative z-10">
-                    <div className="h-20 w-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white border border-white/10 shadow-inner -rotate-6 group-hover:rotate-0 transition-transform duration-700">
+                    <div className="h-14 w-14 bg-white/10 rounded-[2rem] flex items-center justify-center text-white border border-white/10 shadow-inner -rotate-6 group-hover:rotate-0 transition-transform duration-700">
                         <Activity className="h-10 w-10 text-emerald-400" />
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-white">Integridad Multinivel</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-white">Integridad Multinivel</h4>
                         <p className="text-sm text-white/40 leading-relaxed font-medium max-w-xl">
                             El Libro Mayor presenta la vista estructural de <span className="text-amber-400 font-black uppercase">{tenant?.name}</span> desde las clases maestras hasta los auxiliares de ejecución.
                             Actualizado en tiempo real con cada asiento contable verificado.

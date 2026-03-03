@@ -91,7 +91,7 @@ export default async function DailyCashFlowPage({
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Flujo Neto del PeriodO</span>
                         <div className="flex items-baseline gap-4">
                             <h2 className={cn(
-                                "text-6xl font-black tracking-tighter italic leading-none",
+                                "text-4xl font-black tracking-tight leading-none",
                                 netFlow >= 0 ? "text-slate-900" : "text-rose-600"
                             )}>
                                 {fmt(netFlow)}
@@ -157,7 +157,7 @@ export default async function DailyCashFlowPage({
             </div>
 
             {/* Daily Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Consolidado Diario de Caja</h3>
@@ -212,13 +212,13 @@ export default async function DailyCashFlowPage({
             </Card>
 
             {/* Advisory */}
-            <div className="bg-slate-100 p-16 rounded-[4rem] text-slate-900 flex flex-col lg:flex-row items-center justify-between gap-12 border border-slate-200 shadow-inner group">
+            <div className="bg-slate-100 p-10 rounded-[2.5rem] text-slate-900 flex flex-col lg:flex-row items-center justify-between gap-12 border border-slate-200 shadow-inner group">
                 <div className="flex items-center gap-10">
-                    <div className="h-20 w-20 bg-white rounded-[2rem] flex items-center justify-center text-emerald-600 shadow-premium border border-white rotate-6 group-hover:rotate-0 transition-transform duration-700">
+                    <div className="h-14 w-14 bg-white rounded-[2rem] flex items-center justify-center text-emerald-600 shadow-premium border border-white rotate-6 group-hover:rotate-0 transition-transform duration-700">
                         <PiggyBank className="h-10 w-10" />
                     </div>
                     <div className="space-y-3">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none">Cultura de Liquidez</h4>
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight">Cultura de Liquidez</h4>
                         <p className="text-sm text-slate-500 leading-relaxed font-medium max-w-xl">
                             El análisis diario permite identificar patrones de recaudo y picos de gasto.
                             Garantizar que el flujo neto acumulado sea positivo es la métrica vital para la sostenibilidad de <span className="text-emerald-600 font-bold">{tenant?.name}</span>.

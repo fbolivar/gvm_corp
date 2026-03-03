@@ -29,7 +29,7 @@ export default async function CRMDashboard() {
     return (
         <div className="page-container space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 💎 PREMIUM HEADER INDUSTRIAL V3 */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[4rem] p-12 md:p-24 text-white shadow-active border border-white/5 mx-6 mt-6">
+            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5 mx-6 mt-6">
                 {/* Decorative Layers */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-all duration-[2000ms]">
                     <Target className="h-[25rem] w-[25rem] text-primary" />
@@ -54,7 +54,7 @@ export default async function CRMDashboard() {
                         </div>
 
                         <div className="space-y-6">
-                            <h1 className="text-7xl md:text-9xl font-black tracking-tighter italic uppercase leading-[0.8] mb-4">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight mb-4">
                                 Centro de <br /><span className="text-slate-600">Inteligencia</span>
                             </h1>
                             <div className="flex flex-wrap items-center gap-8">
@@ -71,7 +71,7 @@ export default async function CRMDashboard() {
                     </div>
 
                     <div className="flex flex-wrap gap-8 w-full lg:w-auto">
-                        <Button variant="ghost" asChild className="h-28 flex-1 lg:flex-none px-12 rounded-[2.5rem] border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all shadow-active active:scale-95 group/btn relative overflow-hidden">
+                        <Button variant="ghost" asChild className="h-14 flex-1 lg:flex-none px-12 rounded-[2.5rem] border border-white/10 bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all shadow-active active:scale-95 group/btn relative overflow-hidden">
                             <Link href="/crm/pipeline" className="flex items-center gap-6">
                                 <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-indigo-500 to-transparent translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500" />
                                 <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center text-indigo-500 group-hover/btn:scale-110 transition-transform relative z-10 border border-white/5">
@@ -83,7 +83,7 @@ export default async function CRMDashboard() {
                                 </div>
                             </Link>
                         </Button>
-                        <Button asChild className="h-28 flex-1 lg:flex-none px-14 rounded-[2.5rem] bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none group/action relative overflow-hidden">
+                        <Button asChild className="h-14 flex-1 lg:flex-none px-14 rounded-[2.5rem] bg-indigo-500 hover:bg-indigo-400 text-slate-950 font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none group/action relative overflow-hidden">
                             <Link href="/crm/leads/new" className="flex items-center gap-6">
                                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/action:translate-y-0 transition-transform duration-500" />
                                 <div className="h-16 w-16 rounded-2xl bg-slate-950/20 flex items-center justify-center group-hover/action:scale-110 transition-transform relative z-10">
@@ -106,7 +106,7 @@ export default async function CRMDashboard() {
 
             {/* 🛡️ AUDIT FOOTER INDUSTRIAL V3 */}
             <div className="px-6 mb-12">
-                <div className="bg-slate-950 p-16 rounded-[4.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group border border-white/5">
+                <div className="bg-slate-950 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-center justify-between gap-12 shadow-active relative overflow-hidden group border border-white/5">
                     {/* Background decoration */}
                     <div className="absolute inset-0 opacity-[0.02] bg-grid-white pointer-events-none" />
 
@@ -115,7 +115,7 @@ export default async function CRMDashboard() {
                             <Target className="h-12 w-12 text-primary animate-pulse" />
                         </div>
                         <div className="space-y-3 text-center lg:text-left">
-                            <h4 className="text-3xl font-black italic tracking-tighter uppercase leading-none">Blindaje de Prospección</h4>
+                            <h4 className="text-3xl font-black tracking-tight uppercase leading-tight">Blindaje de Prospección</h4>
                             <p className="text-slate-500 font-extrabold text-[11px] uppercase tracking-[0.6em] italic">Cada contacto y oportunidad está blindado bajo el Protocolo Habeas Data v3.2.</p>
                         </div>
                     </div>

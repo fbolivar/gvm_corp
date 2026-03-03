@@ -29,7 +29,7 @@ export default async function BudgetDetailPage({ params }: Props) {
             <div className="flex items-center justify-between px-1">
                 <div className="space-y-1">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Presupuesto Anual</p>
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">{budget.year}</h1>
+                    <h1 className="text-4xl font-black tracking-tight text-slate-900">{budget.year}</h1>
                 </div>
                 <Button variant="outline" className="h-12 border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest" asChild>
                     <Link href="/accounting/budget"><ArrowLeft className="h-4 w-4 mr-2" />Presupuestos</Link>

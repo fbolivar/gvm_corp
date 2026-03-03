@@ -18,7 +18,7 @@ export default async function NewFixedAssetPage() {
                         <Package className="h-6 w-6" />
                     </div>
                     <div>
-                        <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Nuevo Activo</h1>
+                        <h1 className="text-4xl font-black tracking-tight text-slate-900">Nuevo Activo</h1>
                         <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Registro de activo fijo con depreciación automática</p>
                     </div>
                 </div>

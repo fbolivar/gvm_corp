@@ -42,13 +42,13 @@ interface PartyTableProps {
 export function PartyTable({ data }: PartyTableProps) {
     if (data.length === 0) {
         return (
-            <div className="relative group overflow-hidden text-center py-40 bg-white rounded-[4rem] shadow-premium border-none">
+            <div className="relative group overflow-hidden text-center py-40 bg-white rounded-[2.5rem] shadow-premium border-none">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-100 to-transparent" />
                 <div className="relative z-10">
                     <div className="h-24 w-24 rounded-[2rem] bg-slate-50 flex items-center justify-center text-slate-100 mx-auto mb-8 border border-slate-50 shadow-inner">
                         <Contact className="h-12 w-12" />
                     </div>
-                    <h3 className="text-slate-900 font-black text-3xl tracking-tighter italic uppercase">Archivo Inexistente</h3>
+                    <h3 className="text-slate-900 font-black text-3xl tracking-tight uppercase">Archivo Inexistente</h3>
                     <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] mt-4">No se detectaron registros bajo los parámetros de búsqueda actuales.</p>
                 </div>
             </div>
@@ -56,7 +56,7 @@ export function PartyTable({ data }: PartyTableProps) {
     }
 
     return (
-        <div className="relative rounded-[3.5rem] border-none bg-white shadow-premium overflow-hidden animate-in fade-in duration-1000">
+        <div className="relative rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden animate-in fade-in duration-1000">
             {/* Zap Decorator */}
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
                 <Zap className="h-40 w-40 text-slate-900" />
@@ -88,7 +88,7 @@ export function PartyTable({ data }: PartyTableProps) {
                             </TableCell>
                             <TableCell>
                                 <div className="space-y-2">
-                                    <div className="font-black text-slate-900 text-xl tracking-tighter group-hover:text-primary transition-colors duration-500 italic uppercase">
+                                    <div className="font-black text-slate-900 text-xl tracking-tight group-hover:text-primary transition-colors duration-500 uppercase">
                                         {party.legal_name}
                                     </div>
                                     <div className="flex items-center gap-3">

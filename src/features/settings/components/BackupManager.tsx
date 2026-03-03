@@ -90,7 +90,7 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                 {/* Main Status Card */}
                 <Card className="lg:col-span-2 border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-slate-900 text-white relative">
                     <div className="absolute top-0 right-0 p-12 opacity-5">
-                        <Server className="h-64 w-64" />
+                        <Server className="h-24 w-24" />
                     </div>
 
                     <CardContent className="p-10 space-y-8 relative z-10">

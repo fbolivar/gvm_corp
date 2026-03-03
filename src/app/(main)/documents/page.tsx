@@ -38,10 +38,10 @@ export default async function DocumentsPage() {
     return (
         <div className="page-container space-y-8 md:space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {/* 🛡️ MASTER CONTROL HEADER */}
-            <div className="bg-slate-900 rounded-[4rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <FileText className="h-80 w-80 text-white" />
+                    <FileText className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 space-y-8">
@@ -50,7 +50,7 @@ export default async function DocumentsPage() {
                             <div className="h-2 w-12 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Documentation Core v3.0</span>
                         </div>
-                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Centro <br /><span className="text-slate-500">Documental</span>
                         </h1>
                     </div>
@@ -93,7 +93,7 @@ export default async function DocumentsPage() {
                             <Badge className="bg-blue-50 text-blue-600 border-none text-[8px] font-black px-2 py-0">TOTAL</Badge>
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Documentos</p>
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none italic">
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
                             {data.length}
                         </h3>
                     </CardContent>
@@ -108,7 +108,7 @@ export default async function DocumentsPage() {
                             <Badge className="bg-amber-50 text-amber-600 border-none text-[8px] font-black px-2 py-0">PENDIENTE</Badge>
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Borradores</p>
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none italic">
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
                             {drafts}
                         </h3>
                     </CardContent>
@@ -123,7 +123,7 @@ export default async function DocumentsPage() {
                             <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black px-2 py-0">DIAN</Badge>
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-60">Emitidos</p>
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none italic">
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
                             {emitted}
                         </h3>
                     </CardContent>
@@ -139,7 +139,7 @@ export default async function DocumentsPage() {
                             <Badge className="bg-white/10 text-white border-none text-[8px] font-black px-2 py-0">VOLUMEN</Badge>
                         </div>
                         <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Facturación Total</p>
-                        <h3 className="text-2xl font-black tracking-tighter leading-none italic truncate">
+                        <h3 className="text-xl font-black tracking-tight leading-tight truncate">
                             ${totalAmount.toLocaleString('es-CO')}
                         </h3>
                     </CardContent>
@@ -153,7 +153,7 @@ export default async function DocumentsPage() {
                         <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
                             <Zap className="h-5 w-5" />
                         </div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight italic">Registro Documental</h2>
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Registro Documental</h2>
                     </div>
                     <Badge variant="outline" className="bg-slate-50 text-slate-400 border-none px-4 py-1.5 font-black text-[10px] uppercase tracking-widest">
                         {data.length} registros

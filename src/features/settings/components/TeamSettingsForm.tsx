@@ -269,7 +269,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
                         <div className="h-10 w-2 bg-indigo-500 rounded-full" />
-                        <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 italic uppercase leading-none">Gestión de Equipo</h2>
+                        <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase leading-tight">Gestión de Equipo</h2>
                     </div>
                     <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.3em] leading-none ml-6">
                         Administración de Roles, Permisos y Zonas Geográficas
@@ -310,7 +310,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                         <stat.icon className={`h-8 w-8 ${stat.color}`} />
                                     </div>
                                     <div>
-                                        <p className="text-3xl font-black text-slate-900 tracking-tighter italic">{stat.value}</p>
+                                        <p className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</p>
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mt-1">{stat.label}</p>
                                     </div>
                                 </CardContent>
@@ -320,10 +320,10 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
 
                     {/* Add Member Card */}
                     {isCurrentUserAdmin && (
-                        <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden mx-4 md:mx-0 border-t-4 border-indigo-500">
+                        <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden mx-4 md:mx-0 border-t-4 border-indigo-500">
                             <CardHeader className="p-8 pb-0">
                                 <div className="flex items-center justify-between flex-wrap gap-4">
-                                    <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 italic uppercase tracking-tighter">
+                                    <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tight">
                                         <div className="h-10 w-10 rounded-xl bg-violet-600 flex items-center justify-center shrink-0">
                                             <UserPlus className="h-5 w-5 text-white" />
                                         </div>
@@ -467,9 +467,9 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                     )}
 
                     {/* Members Table-like List */}
-                    <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden mx-4 md:mx-0">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden mx-4 md:mx-0">
                         <CardHeader className="p-10 pb-4 flex flex-row items-center justify-between">
-                            <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 italic uppercase tracking-tighter">
+                            <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tight">
                                 <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center">
                                     <Users className="h-5 w-5 text-white" />
                                 </div>
@@ -604,11 +604,11 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
 
                 {/* TAB: SECURITY & GOVERNANCE MATRIX REDESIGNED */}
                 <TabsContent value="permissions" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-700 outline-none">
-                    <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden border-t-4 border-slate-900">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden border-t-4 border-slate-900">
                         <CardHeader className="p-10 pb-8 space-y-8">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                                 <div className="space-y-2">
-                                    <CardTitle className="text-3xl font-black text-slate-900 italic uppercase tracking-tighter flex items-center gap-4">
+                                    <CardTitle className="text-3xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-4">
                                         <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white rotate-3 group-hover:rotate-0 transition-transform">
                                             <ShieldCheck className="h-6 w-6" />
                                         </div>
@@ -659,7 +659,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                                 <th className="sticky left-0 z-40 bg-white p-6 text-left border-b border-r border-slate-100 min-w-[280px] shadow-[4px_0_12px_-6px_rgba(0,0,0,0.05)]">
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Estructura de</span>
-                                                        <span className="text-sm font-black text-slate-900 uppercase italic tracking-tighter">Módulos Funcionales</span>
+                                                        <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Módulos Funcionales</span>
                                                     </div>
                                                 </th>
                                                 {roles.filter(r => !roleFilter || r.name.toLowerCase().includes(roleFilter)).map((role) => (
@@ -786,7 +786,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                         <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white flex flex-col justify-center gap-2 shadow-2xl">
                             <p className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-500 italic">Total Conexiones</p>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-4xl font-black italic tracking-tighter">{(roles.length * modules.length).toLocaleString()}</span>
+                                <span className="text-2xl font-black tracking-tight">{(roles.length * modules.length).toLocaleString()}</span>
                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Nodos</span>
                             </div>
                         </div>
@@ -796,14 +796,14 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 leading-none">Status RLS</p>
-                                <p className="text-lg font-black text-slate-900 italic uppercase tracking-tighter">Sincronizado</p>
+                                <p className="text-lg font-black text-slate-900 uppercase tracking-tight">Sincronizado</p>
                             </div>
                         </div>
                         <div className="md:col-span-2 bg-slate-50/50 rounded-[2.5rem] p-8 border border-dashed border-slate-200 flex items-center gap-6">
                             <div className="h-10 w-10 shrink-0 rounded-full bg-white flex items-center justify-center shadow-sm">
                                 <Zap className="h-4 w-4 text-indigo-600" />
                             </div>
-                            <p className="text-[10px] font-black text-slate-500 leading-relaxed italic uppercase tracking-[0.15em]">
+                            <p className="text-[10px] font-black text-slate-500 leading-relaxed uppercase tracking-[0.15em]">
                                 Los cambios aplicados se despliegan instantáneamente en el Sidebar y el motor de rutas.
                                 <span className="text-slate-900 ml-1">Para administradores, el acceso es omnipotente por diseño.</span>
                             </p>
@@ -815,9 +815,9 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                 <TabsContent value="zones" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 outline-none">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mx-4 md:mx-0">
                         {/* Zone Config */}
-                        <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden lg:col-span-1 border-t-4 border-emerald-500">
+                        <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden lg:col-span-1 border-t-4 border-emerald-500">
                             <CardHeader className="p-10 pb-4">
-                                <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 italic uppercase tracking-tighter">
+                                <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tight">
                                     <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center">
                                         <MapPin className="h-5 w-5 text-white" />
                                     </div>
@@ -844,9 +844,9 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                         </Card>
 
                         {/* Zone List */}
-                        <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden lg:col-span-2">
+                        <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden lg:col-span-2">
                             <CardHeader className="p-10 pb-4">
-                                <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 italic uppercase tracking-tighter">
+                                <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tight">
                                     <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-900">
                                         <Table className="h-5 w-5" />
                                     </div>

@@ -12,14 +12,14 @@ export default async function BillingPage() {
     return (
         <div className="p-8 lg:p-12 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div>
-                <h2 className="text-3xl font-black tracking-tighter text-slate-900 italic">Facturación & Plan</h2>
+                <h2 className="text-3xl font-black tracking-tight text-slate-900">Facturación & Plan</h2>
                 <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Gestión de Suscripción y Pagos</p>
             </div>
 
             <div className="grid gap-8 lg:grid-cols-12">
                 <div className="lg:col-span-8 space-y-8">
-                    <Card className="border-none bg-slate-900 text-white rounded-[3rem] overflow-hidden relative group">
-                        <Zap className="absolute -bottom-10 -right-10 h-48 w-48 text-white/5 rotate-12 transition-transform duration-700 group-hover:scale-110" />
+                    <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] overflow-hidden relative group">
+                        <Zap className="absolute -bottom-10 -right-10 h-20 w-20 text-white/5 rotate-12 transition-transform duration-700 group-hover:scale-110" />
                         <CardContent className="p-12 relative z-10">
                             <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                                 <div className="space-y-4">
@@ -27,20 +27,20 @@ export default async function BillingPage() {
                                         <Sparkles className="h-5 w-5 text-amber-400" />
                                         <span className="text-[10px] font-black uppercase tracking-widest leading-none">Tu Plan Actual</span>
                                     </div>
-                                    <h3 className="text-5xl font-black tracking-tighter italic">Enterprise Pro</h3>
+                                    <h3 className="text-3xl font-black tracking-tight">Enterprise Pro</h3>
                                     <p className="text-slate-400 font-medium max-w-md">
                                         Tienes acceso ilimitado a todos los módulos: Nómina, Contabilidad, Facturación Electrónica e Inteligencia de Datos.
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-3xl font-black italic">$450,000<span className="text-sm font-bold text-slate-500">/mes</span></p>
+                                    <p className="text-2xl font-black">$450,000<span className="text-sm font-bold text-slate-500">/mes</span></p>
                                     <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mt-2">Siguiente cobro: Mar 15, 2026</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden">
                         <CardContent className="p-10 space-y-8">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xl font-black text-slate-900 italic">Métodos de Pago</h4>
@@ -64,7 +64,7 @@ export default async function BillingPage() {
                 </div>
 
                 <div className="lg:col-span-4 space-y-8">
-                    <Card className="border-none bg-white shadow-premium rounded-[3rem] h-full">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] h-full">
                         <CardContent className="p-10 space-y-8">
                             <div className="flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">

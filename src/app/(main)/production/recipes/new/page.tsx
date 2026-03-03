@@ -39,7 +39,7 @@ export default async function NewRecipePage() {
                             <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
                                 <BookOpen className="h-5 w-5" />
                             </div>
-                            <h1 className="text-4xl font-black tracking-tight text-slate-900 italic">Nueva Receta</h1>
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900">Nueva Receta</h1>
                         </div>
                         <div className="flex items-center gap-3">
                             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]">Ficha Técnica de Manufactura</p>

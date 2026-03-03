@@ -157,7 +157,7 @@ export function SettlementForm() {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             {/* Configuration Sidebar */}
-            <Card className="lg:col-span-4 border-none bg-white shadow-premium rounded-[3rem] overflow-hidden group">
+            <Card className="lg:col-span-4 border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden group">
                 <CardHeader className="p-10 pb-6 border-b border-slate-50">
                     <CardTitle className="text-xl font-black text-slate-900 tracking-tight italic">Parámetros</CardTitle>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configuración del periodo</p>
@@ -236,7 +236,7 @@ export function SettlementForm() {
             </Card>
 
             {/* Main Results View */}
-            <Card className="lg:col-span-8 border-none bg-white shadow-premium rounded-[3rem] overflow-hidden">
+            <Card className="lg:col-span-8 border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden">
                 <CardHeader className="p-10 pb-6 border-b border-slate-50 flex flex-row items-center justify-between bg-slate-50/50">
                     <div className="space-y-1">
                         <CardTitle className="text-2xl font-black text-slate-900 tracking-tight italic">Resumen de Liquidación</CardTitle>
@@ -327,13 +327,13 @@ export function SettlementForm() {
 
                             {/* Summation Footer */}
                             <div className="p-10 pt-0">
-                                <div className="bg-slate-900 rounded-[3rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-active group relative overflow-hidden">
+                                <div className="bg-slate-900 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-active group relative overflow-hidden">
                                     <Sparkles className="absolute -bottom-10 -right-10 h-60 w-60 text-white/5 rotate-12" />
 
                                     <div className="space-y-2 text-center md:text-left relative z-10">
                                         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Total Neto a Pagar</p>
                                         <div className="flex items-baseline gap-4">
-                                            <span className="text-6xl font-black text-white italic tracking-tighter leading-none">
+                                            <span className="text-4xl font-black text-white tracking-tight leading-none">
                                                 ${new Intl.NumberFormat('es-CO').format(Math.round(settlement.net_pay))}
                                             </span>
                                             <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">COP</span>

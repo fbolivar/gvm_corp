@@ -134,7 +134,7 @@ export default async function PayrollSummaryPage({
                         Costo Total del Período
                     </span>
                     <div className="flex items-baseline gap-4">
-                        <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
                             {fmt(totalCost)}
                         </h2>
                         <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">
@@ -374,9 +374,9 @@ export default async function PayrollSummaryPage({
             </Card>
 
             {/* Company cost breakdown banner */}
-            <div className="bg-slate-900 p-14 rounded-[4rem] text-white flex flex-col lg:flex-row items-start justify-between gap-12 shadow-active relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.04] pointer-events-none">
-                    <Building2 className="h-48 w-48" />
+            <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white flex flex-col lg:flex-row items-start justify-between gap-12 shadow-active relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.04] pointer-events-none">
+                    <Building2 className="h-20 w-20" />
                 </div>
                 <div className="relative z-10 space-y-6 flex-1">
                     <div>
@@ -412,7 +412,7 @@ export default async function PayrollSummaryPage({
                 </div>
                 <div className="relative z-10 text-right shrink-0">
                     <p className="text-[9px] text-white/40 uppercase tracking-widest font-bold mb-2">Costo Total Empresa</p>
-                    <p className="text-4xl font-black text-white italic tracking-tighter">{fmt(totalCost)}</p>
+                    <p className="text-3xl font-black text-white tracking-tight">{fmt(totalCost)}</p>
                 </div>
             </div>
         </div>

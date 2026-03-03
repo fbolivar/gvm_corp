@@ -32,12 +32,12 @@ export function ContractList({ initialContracts }: Props) {
 
     if (contracts.length === 0) {
         return (
-            <div className="py-32 text-center bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
+            <div className="py-32 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
                 <div className="h-20 w-20 rounded-[2rem] bg-white shadow-sm border border-slate-50 flex items-center justify-center">
                     <FileText className="h-10 w-10 text-slate-200" />
                 </div>
                 <div className="space-y-2">
-                    <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Sin Contratos</h3>
+                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Sin Contratos</h3>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Registra tu primer contrato para centralizar la gestión</p>
                 </div>
                 <Button className="bg-slate-900 hover:bg-violet-600 text-white font-black text-[10px] uppercase tracking-widest h-14 px-10 rounded-2xl shadow-active" asChild>

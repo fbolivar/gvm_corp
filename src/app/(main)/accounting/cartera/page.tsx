@@ -70,9 +70,9 @@ export default async function CarteraPage() {
     return (
         <div className="space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 🛡️ MASTER COMMAND HEADER */}
-            <div className="bg-slate-900 rounded-[4rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <CreditCard className="h-80 w-80 text-white" />
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
+                    <CreditCard className="h-24 w-24 text-white" />
                 </div>
 
                 <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-end gap-12">
@@ -81,7 +81,7 @@ export default async function CarteraPage() {
                             <div className="h-2 w-12 bg-indigo-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Financial Control Matrix v3.0</span>
                         </div>
-                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Gestión de <br /><span className="text-slate-500">Cartera</span>
                         </h1>
                         <div className="flex items-center gap-4">
@@ -94,7 +94,7 @@ export default async function CarteraPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-4">
-                        <Button variant="outline" asChild className="h-20 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
+                        <Button variant="outline" asChild className="h-14 px-10 rounded-[2rem] border-none bg-white/5 hover:bg-white/10 text-white font-black hover:scale-105 transition-all backdrop-blur-md">
                             <Link href="/reports/aging" className="flex items-center gap-4">
                                 <Clock className="h-6 w-6 text-indigo-400" />
                                 <div className="flex flex-col items-start leading-none">
@@ -103,7 +103,7 @@ export default async function CarteraPage() {
                                 </div>
                             </Link>
                         </Button>
-                        <Button asChild className="h-20 px-12 rounded-[2rem] bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
+                        <Button asChild className="h-14 px-12 rounded-[2rem] bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
                             <Link href="/accounting/cartera/ai" className="flex items-center gap-4">
                                 <Bot className="h-6 w-6" />
                                 <div className="flex flex-col items-start leading-none">
@@ -131,7 +131,7 @@ export default async function CarteraPage() {
             </div>
 
             {error && (
-                <div className="p-10 bg-rose-50 border border-rose-100 rounded-[3rem] flex items-center gap-6 text-rose-600 shadow-premium animate-bounce">
+                <div className="p-10 bg-rose-50 border border-rose-100 rounded-[2.5rem] flex items-center gap-6 text-rose-600 shadow-premium animate-bounce">
                     <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-rose-500 shadow-sm shrink-0">
                         <AlertCircle className="h-8 w-8" />
                     </div>
@@ -144,7 +144,7 @@ export default async function CarteraPage() {
 
             {/* 📊 PROTOCOL SUMMARY GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <Card className="rounded-[4rem] border-none bg-white shadow-premium p-12 group overflow-hidden relative">
+                <Card className="rounded-[2.5rem] border-none bg-white shadow-premium p-10 group overflow-hidden relative">
                     <div className="absolute -right-8 -top-8 opacity-[0.03] group-hover:scale-125 transition-transform duration-1000">
                         <TrendingUp className="h-40 w-40 text-slate-900" />
                     </div>
@@ -153,12 +153,12 @@ export default async function CarteraPage() {
                             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Activos Circulantes (AR)</span>
                         </div>
-                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter italic leading-none">{formatCurrency(totalAR)}</h2>
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">{formatCurrency(totalAR)}</h2>
                         <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest">+5.2% VELOCIDAD</Badge>
                     </div>
                 </Card>
 
-                <Card className="rounded-[4rem] border-none bg-white shadow-premium p-12 group overflow-hidden relative">
+                <Card className="rounded-[2.5rem] border-none bg-white shadow-premium p-10 group overflow-hidden relative">
                     <div className="absolute -right-8 -top-8 opacity-[0.03] group-hover:scale-125 transition-transform duration-1000">
                         <TrendingDown className="h-40 w-40 text-slate-900" />
                     </div>
@@ -167,17 +167,17 @@ export default async function CarteraPage() {
                             <div className="h-2 w-2 rounded-full bg-rose-500" />
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Obligaciones (AP)</span>
                         </div>
-                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter italic leading-none">{formatCurrency(totalAP)}</h2>
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">{formatCurrency(totalAP)}</h2>
                         <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest">3 ALERTAS HOY</Badge>
                     </div>
                 </Card>
 
-                <Card className="rounded-[4rem] border-none bg-slate-900 shadow-active p-12 col-span-1 md:col-span-2 relative overflow-hidden group">
+                <Card className="rounded-[2.5rem] border-none bg-slate-900 shadow-active p-10 col-span-1 md:col-span-2 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 h-64 w-64 bg-primary/20 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse-slow" />
                     <div className="relative z-10 flex flex-col justify-between h-full">
                         <div className="space-y-2">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Balance Operativo Neto</span>
-                            <h2 className="text-7xl font-black text-white tracking-tighter italic leading-none transition-all group-hover:scale-105 origin-left">{formatCurrency(totalAR - totalAP)}</h2>
+                            <h2 className="text-4xl font-black text-white tracking-tight leading-tight transition-all group-hover:scale-105 origin-left">{formatCurrency(totalAR - totalAP)}</h2>
                         </div>
                         <div className="flex items-center gap-6 mt-10">
                             <div className="flex -space-x-4">
@@ -211,7 +211,7 @@ export default async function CarteraPage() {
                         </Button>
                     </div>
 
-                    <Card className="rounded-[4rem] border-none bg-white shadow-premium overflow-hidden">
+                    <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden">
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="border-slate-50 hover:bg-transparent">
@@ -275,7 +275,7 @@ export default async function CarteraPage() {
                         </Button>
                     </div>
 
-                    <Card className="rounded-[4rem] border-none bg-white shadow-premium overflow-hidden">
+                    <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden">
                         <Table>
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow className="border-slate-50 hover:bg-transparent">

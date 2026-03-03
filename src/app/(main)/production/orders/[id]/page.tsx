@@ -42,7 +42,7 @@ export default async function ProductionOrderDetailPage({ params }: { params: Pr
         <div className="page-container space-y-10 pb-24 animate-in fade-in slide-in-from-bottom-6 duration-700">
 
             {/* HEADER */}
-            <div className="relative overflow-hidden bg-slate-900 rounded-[3.5rem] p-10 md:p-14 text-white shadow-active">
+            <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-10 md:p-14 text-white shadow-active">
                 <div className="absolute top-0 right-0 p-10 opacity-[0.04] pointer-events-none">
                     <Factory className="h-56 w-56" />
                 </div>
@@ -65,7 +65,7 @@ export default async function ProductionOrderDetailPage({ params }: { params: Pr
                                     {meta.label}
                                 </Badge>
                             </div>
-                            <h1 className="text-4xl md:text-5xl font-black tracking-tighter italic uppercase leading-[0.85]">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                                 {recipe?.name || 'Orden de Producción'}
                             </h1>
                             {finishedProduct && (
@@ -78,7 +78,7 @@ export default async function ProductionOrderDetailPage({ params }: { params: Pr
 
                         <div className="flex flex-col items-end gap-2">
                             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Rendimiento</span>
-                            <span className="text-5xl font-black italic tracking-tighter">
+                            <span className="text-3xl font-black tracking-tight leading-tight">
                                 {order.qty_produced}<span className="text-slate-500 text-2xl ml-2">/ {order.qty_target}</span>
                             </span>
                             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">{finishedProduct?.uom || 'UNIDADES'}</span>
@@ -141,7 +141,7 @@ export default async function ProductionOrderDetailPage({ params }: { params: Pr
 
             {/* BOM MATERIALS */}
             {recipe?.items && recipe.items.length > 0 && (
-                <div className="bg-white rounded-[3rem] shadow-premium border border-slate-50 overflow-hidden">
+                <div className="bg-white rounded-[2.5rem] shadow-premium border border-slate-50 overflow-hidden">
                     <div className="px-10 py-8 bg-slate-50 border-b border-slate-100 flex items-center gap-4">
                         <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
                             <FlaskConical className="h-5 w-5" />

@@ -110,7 +110,7 @@ export default async function BankReconciliationPage({
                         Saldo en Libros
                     </span>
                     <div className="flex items-baseline gap-4">
-                        <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                             {fmt(Number(selectedAccount?.balance ?? 0))}
                         </h2>
                         <span className="text-lg font-black text-slate-300 uppercase italic tracking-widest">
@@ -218,7 +218,7 @@ export default async function BankReconciliationPage({
             </div>
 
             {/* Transactions Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">
@@ -341,13 +341,13 @@ export default async function BankReconciliationPage({
                 )}
             </Card>
 
-            <div className="bg-slate-100 p-12 rounded-[4rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200">
+            <div className="bg-slate-100 p-10 rounded-[2.5rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200">
                 <div className="flex items-center gap-8">
-                    <div className="h-20 w-20 bg-white rounded-[2rem] flex items-center justify-center text-indigo-600 shadow-premium border border-white">
+                    <div className="h-14 w-14 bg-white rounded-[2rem] flex items-center justify-center text-indigo-600 shadow-premium border border-white">
                         <Building2 className="h-10 w-10" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-slate-900">
                             Proceso de Conciliación
                         </h4>
                         <p className="text-sm text-slate-500 leading-relaxed font-medium max-w-xl">
@@ -357,7 +357,7 @@ export default async function BankReconciliationPage({
                         </p>
                     </div>
                 </div>
-                <Button variant="outline" className="h-16 rounded-[2rem] border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest px-12 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-premium group shrink-0">
+                <Button variant="outline" className="h-12 rounded-[2rem] border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest px-12 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-premium group shrink-0">
                     Importar Extracto <ArrowRight className="ml-4 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
             </div>

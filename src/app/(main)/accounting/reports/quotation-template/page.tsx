@@ -466,9 +466,9 @@ export default async function QuotationTemplatePage({
         <div className="space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
             {/* Header card */}
-            <div className="bg-violet-700 rounded-[3.5rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
+            <div className="bg-violet-700 rounded-[2.5rem] p-10 text-white shadow-active relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-16 opacity-[0.04] pointer-events-none group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-1000">
-                    <Landmark className="h-80 w-80" />
+                    <Landmark className="h-24 w-24" />
                 </div>
 
                 <div className="relative z-10 space-y-8">
@@ -479,7 +479,7 @@ export default async function QuotationTemplatePage({
                                 Sales Quotation v3.0
                             </span>
                         </div>
-                        <h1 className="text-5xl md:text-8xl font-black tracking-tighter italic uppercase leading-[0.8]">
+                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
                             Cotizacion <br />
                             <span className="text-violet-400">Comercial</span>
                         </h1>
@@ -617,13 +617,13 @@ export default async function QuotationTemplatePage({
             )}
 
             {/* Footer tip */}
-            <div className="bg-violet-50 p-12 rounded-[4rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-violet-100">
+            <div className="bg-violet-50 p-10 rounded-[2.5rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-violet-100">
                 <div className="flex items-center gap-8">
-                    <div className="h-20 w-20 bg-white rounded-[2rem] flex items-center justify-center text-violet-600 shadow-premium border border-violet-100">
+                    <div className="h-14 w-14 bg-white rounded-[2rem] flex items-center justify-center text-violet-600 shadow-premium border border-violet-100">
                         <Landmark className="h-10 w-10" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-slate-900">
                             Formato de Cotizacion
                         </h4>
                         <p className="text-sm text-slate-500 leading-relaxed font-medium max-w-xl">

@@ -55,7 +55,7 @@ export function ProfileSettingsForm({ initialData }: Props) {
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 px-4 md:px-0">
                 <div>
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 italic leading-none">Mi Perfil</h2>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 leading-tight">Mi Perfil</h2>
                     <p className="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-1">Gestión de Identidad de Usuario</p>
                 </div>
                 <Button
@@ -74,7 +74,7 @@ export function ProfileSettingsForm({ initialData }: Props) {
 
             <div className="grid gap-8 lg:grid-cols-12">
                 <div className="lg:col-span-4 space-y-8">
-                    <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden group">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden group">
                         <CardContent className="p-10 flex flex-col items-center text-center space-y-6">
                             <div className="relative group/avatar cursor-pointer">
                                 <Avatar className="h-28 w-28 md:h-32 md:w-32 border-4 border-slate-50 shadow-inner group-hover:scale-105 transition-transform duration-500">
@@ -107,7 +107,7 @@ export function ProfileSettingsForm({ initialData }: Props) {
                 </div>
 
                 <div className="lg:col-span-8">
-                    <Card className="border-none bg-white shadow-premium rounded-[3rem] overflow-hidden h-full">
+                    <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden h-full">
                         <CardHeader className="p-10 pb-4">
                             <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-3 italic">
                                 <User className="h-6 w-6 text-primary" />

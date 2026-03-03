@@ -25,7 +25,7 @@ export default async function NewContractPage() {
                         <FileText className="h-6 w-6" />
                     </div>
                     <div>
-                        <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Nuevo Contrato</h1>
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900">Nuevo Contrato</h1>
                         <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Registro de contrato con seguimiento automático de vencimiento</p>
                     </div>
                 </div>

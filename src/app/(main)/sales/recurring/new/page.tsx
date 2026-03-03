@@ -22,7 +22,7 @@ export default async function NewRecurringInvoicePage() {
                             <RefreshCw className="h-6 w-6" />
                         </div>
                         <div>
-                            <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic">Nueva Recurrencia</h1>
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900">Nueva Recurrencia</h1>
                             <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Configurar plantilla de facturación automática</p>
                         </div>
                     </div>

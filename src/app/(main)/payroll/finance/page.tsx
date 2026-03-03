@@ -64,7 +64,7 @@ export default function PayrollFinancePage() {
                     <Link href="/payroll" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-colors mb-4">
                         <ChevronLeft className="h-4 w-4" /> Volver a Nómina
                     </Link>
-                    <h1 className="text-5xl font-black text-slate-900 tracking-tighter italic">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                         Módulo <span className="text-indigo-600">Financiero HCM</span>
                     </h1>
                     <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em]">Libranzas, Préstamos y Auxilios Extralegales</p>
@@ -85,7 +85,7 @@ export default function PayrollFinancePage() {
                 <Card className="rounded-[2.5rem] border-none bg-white shadow-premium p-8 flex items-center justify-between group hover:bg-slate-900 transition-all duration-500">
                     <div className="space-y-2">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white/40">Cartera de Préstamos</p>
-                        <p className="text-4xl font-black text-slate-900 tracking-tighter italic group-hover:text-white">${totalLoans.toLocaleString('es-CO')}</p>
+                        <p className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-white">${totalLoans.toLocaleString('es-CO')}</p>
                     </div>
                     <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-500 group-hover:text-white transition-all">
                         <DollarSign className="h-8 w-8" />
@@ -95,7 +95,7 @@ export default function PayrollFinancePage() {
                 <Card className="rounded-[2.5rem] border-none bg-white shadow-premium p-8 flex items-center justify-between group hover:bg-slate-900 transition-all duration-500">
                     <div className="space-y-2">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white/40">Beneficios Activos</p>
-                        <p className="text-4xl font-black text-slate-900 tracking-tighter italic group-hover:text-white">{activeBenefitsCount}</p>
+                        <p className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-white">{activeBenefitsCount}</p>
                     </div>
                     <div className="h-14 w-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                         <Briefcase className="h-8 w-8" />
@@ -106,7 +106,7 @@ export default function PayrollFinancePage() {
                     <Wallet className="absolute -bottom-10 -right-10 h-40 w-40 text-white/10 rotate-12" />
                     <div className="space-y-2 relative z-10">
                         <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">Ahorro en Retención</p>
-                        <p className="text-4xl font-black tracking-tighter italic">OPTIMIZADO</p>
+                        <p className="text-2xl font-black tracking-tight">OPTIMIZADO</p>
                     </div>
                     <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center relative z-10">
                         <TrendingUp className="h-8 w-8" />

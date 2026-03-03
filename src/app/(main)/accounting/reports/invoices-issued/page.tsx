@@ -116,7 +116,7 @@ export default async function InvoicesIssuedPage({
                             Total Facturado
                         </span>
                         <div className="flex items-baseline gap-4">
-                            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic leading-none">
+                            <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
                                 {fmt(totalBilled)}
                             </h2>
                             <span className="text-xl font-black text-slate-300 uppercase italic tracking-widest">
@@ -187,7 +187,7 @@ export default async function InvoicesIssuedPage({
             </div>
 
             {/* Invoice Table */}
-            <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
+            <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
                 <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">
@@ -342,13 +342,13 @@ export default async function InvoicesIssuedPage({
             </Card>
 
             {/* DIAN Compliance Banner */}
-            <div className="bg-slate-100 p-12 rounded-[4rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200">
+            <div className="bg-slate-100 p-10 rounded-[2.5rem] flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-200">
                 <div className="flex items-center gap-8">
-                    <div className="h-20 w-20 bg-white rounded-[2rem] flex items-center justify-center text-indigo-600 shadow-premium border border-white">
+                    <div className="h-14 w-14 bg-white rounded-[2rem] flex items-center justify-center text-indigo-600 shadow-premium border border-white">
                         <ShieldCheck className="h-10 w-10" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-slate-900">
+                        <h4 className="text-2xl font-black tracking-tight uppercase leading-tight text-slate-900">
                             Trazabilidad DIAN
                         </h4>
                         <p className="text-sm text-slate-500 leading-relaxed font-medium max-w-xl">

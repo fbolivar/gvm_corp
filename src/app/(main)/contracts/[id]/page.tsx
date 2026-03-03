@@ -31,7 +31,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
                     </div>
                     <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-3">
-                            <h1 className="text-4xl font-black tracking-tighter text-slate-900 italic">{contract.title}</h1>
+                            <h1 className="text-3xl font-black tracking-tight text-slate-900">{contract.title}</h1>
                             {contract.contract_number && (
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{contract.contract_number}</span>
                             )}
@@ -86,7 +86,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
 
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-premium space-y-4">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor</h3>
-                    <p className="text-4xl font-black text-slate-900 italic tracking-tighter">
+                    <p className="text-2xl font-black text-slate-900">
                         ${Number(contract.value).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                     </p>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{contract.currency}</p>

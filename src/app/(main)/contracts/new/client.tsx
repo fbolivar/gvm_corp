@@ -75,12 +75,12 @@ export default function NewContractClient({ parties }: Props) {
     return (
         <form onSubmit={handleSubmit} className="space-y-10 max-w-3xl mx-auto">
             {/* General Info */}
-            <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-8">
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-8">
                 <div className="flex items-center gap-4 mb-2">
                     <div className="h-12 w-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600">
                         <FileText className="h-6 w-6" />
                     </div>
-                    <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight">Información del Contrato</h2>
+                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Información del Contrato</h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -111,8 +111,8 @@ export default function NewContractClient({ parties }: Props) {
             </div>
 
             {/* Dates & Value */}
-            <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-8">
-                <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight">Vigencia y Valor</h2>
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-8">
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Vigencia y Valor</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label className={LABEL_CLASS}>Fecha de Inicio *</label>
@@ -149,8 +149,8 @@ export default function NewContractClient({ parties }: Props) {
             </div>
 
             {/* Signatories & Notes */}
-            <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-8">
-                <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight">Firma y Notas</h2>
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-8">
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Firma y Notas</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className={LABEL_CLASS}>Firmado por</label>
