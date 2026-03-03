@@ -4,7 +4,7 @@ import { TreasuryAccount, TreasuryTransaction, PaymentAllocation, TaxWithholding
 export const treasuryService = {
     // Helper to get tenant with MULTIPLE FALLBACKS
     async getTenantId(client: SupabaseClient) {
-        const { data: rpcData, error: rpcError } = await client.rpc('get_current_tenant_id');
+        const { data: rpcData, error: rpcError } = await client.rpc('get_my_tenant_id');
         if (!rpcError && rpcData) return rpcData;
 
         const { data: tenantData } = await client

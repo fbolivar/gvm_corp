@@ -380,7 +380,7 @@ export const portfolioAgentService = {
      */
     async sendTestEmail(client: SupabaseClient, templateId: string, customTemplates: any) {
         // 1. Obtener nombre del tenant
-        const { data: tid } = await client.rpc('get_current_tenant_id');
+        const { data: tid } = await client.rpc('get_my_tenant_id');
         const { data: tenant } = await client.from('tenants').select('name, email').eq('id', tid).single();
         const { data: user } = await client.auth.getUser();
 

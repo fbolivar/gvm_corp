@@ -14,7 +14,7 @@ export const dianService = {
 
     async saveConfig(client: SupabaseClient, config: any) {
         // Get current tenant_id
-        const { data: tenant } = await client.rpc('get_current_tenant_id');
+        const { data: tenant } = await client.rpc('get_my_tenant_id');
 
         const { data, error } = await client
             .from('dian_config')

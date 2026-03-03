@@ -25,8 +25,8 @@ async function verifyValuationFlow() {
             tenant_id,
             sku,
             name: "Valuation Test Product",
-            type: "GOODS",
-            price: 500,
+            type: "GOOD",
+            selling_price: 500,
             cost: 0
         }).select().single();
 

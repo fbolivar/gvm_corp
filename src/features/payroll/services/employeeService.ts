@@ -37,8 +37,8 @@ export const employeeService = {
 
     // Helper to get tenant with MULTIPLE FALLBACKS
     async getTenantId(client: SupabaseClient) {
-        console.log("getTenantId: 1. Trying RPC 'get_current_tenant_id'...");
-        const { data: rpcData, error: rpcError } = await client.rpc('get_current_tenant_id');
+        console.log("getTenantId: 1. Trying RPC 'get_my_tenant_id'...");
+        const { data: rpcData, error: rpcError } = await client.rpc('get_my_tenant_id');
 
         if (!rpcError && rpcData) {
             console.log("getTenantId: RPC success. Tenant:", rpcData);
