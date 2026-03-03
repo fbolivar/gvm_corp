@@ -48,7 +48,10 @@ import {
     Clock,
     Landmark,
     CalendarDays,
-    ShieldCheck as ShieldQC
+    ShieldCheck as ShieldQC,
+    Wrench,
+    GraduationCap,
+    Tag
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -152,6 +155,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 },
                 { title: t.sidebar.parties, href: "/parties", icon: Users, moduleKey: 'crm' },
                 { title: 'Portal Cliente', href: "/client-portal", icon: UserPlus, moduleKey: 'crm' },
+                { title: 'Catálogo', href: "/catalog", icon: Tag, moduleKey: 'sales' },
                 { title: t.sidebar.my_payroll, href: "/my-payroll", icon: Banknote }, // siempre visible
             ]
         },
@@ -184,6 +188,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.payroll.terminations, href: "/payroll/settlement/termination", icon: TrendingDown },
                         { title: 'Horas Extra', href: "/payroll/overtime", icon: Clock },
                         { title: 'Ausencias', href: "/payroll/absences", icon: CalendarDays },
+                        { title: 'Capacitación', href: "/payroll/training", icon: GraduationCap },
                     ]
                 },
                 {
@@ -204,6 +209,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: t.sidebar.logistics, href: "/logistics", icon: Truck, moduleKey: 'logistics' },
                 { title: 'Tesorería', href: "/treasury", icon: Landmark, moduleKey: 'accounting' },
                 { title: 'Calidad QC', href: "/quality", icon: ShieldQC, moduleKey: 'production' },
+                { title: 'Mantenimiento', href: "/maintenance", icon: Wrench, moduleKey: 'production' },
                 { title: 'Contratos', href: "/contracts", icon: FileText, moduleKey: 'documents' },
                 { title: 'Portal Proveedores', href: "/vendor-portal", icon: Users, moduleKey: 'purchasing' },
             ]
