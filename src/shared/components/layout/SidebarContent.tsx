@@ -53,7 +53,9 @@ import {
     GraduationCap,
     Tag,
     FlaskConical,
-    Shield as ShieldAudit
+    Shield as ShieldAudit,
+    FileX,
+    FilePlus2,
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -122,6 +124,8 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.sidebar.quotations, href: "/sales/quotations", icon: ClipboardList },
                         { title: t.sidebar.orders, href: "/sales/orders", icon: FileBarChart },
+                        { title: 'Notas Credito', href: "/sales/credit-notes", icon: FileX },
+                        { title: 'Notas Debito', href: "/sales/debit-notes", icon: FilePlus2 },
                     ]
                 },
                 {
@@ -134,6 +138,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.sidebar.warehouses, href: "/inventory/warehouses", icon: Warehouse },
                         { title: t.sidebar.valuation, href: "/accounting/reports/inventory-valuation", icon: Package2 },
                         { title: t.sidebar.lots, href: "/inventory/lots", icon: FlaskConical },
+                        { title: 'Análisis ABC', href: "/inventory/analysis", icon: BarChart3 },
                     ]
                 },
                 {
