@@ -7,6 +7,7 @@ import { AttendanceWidget } from "@/features/payroll/components/AttendanceWidget
 import { PayrollSlipButton } from "@/features/payroll/components/PayrollSlipButton"
 import { OvertimePanel } from "@/features/payroll/components/OvertimePanel"
 import { CertificateButtons } from "@/features/payroll/components/CertificateButtons"
+import { AbsenceRequestForm } from "@/features/payroll/components/AbsenceRequestForm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import {
     Wallet,
@@ -242,6 +243,15 @@ export default async function MyPayrollPage() {
                             tenantId={employee.tenant_id || ''}
                             requests={overtimeRequests}
                         />
+                    </div>
+
+                    {/* AUSENCIAS */}
+                    <div className="bg-white rounded-[2.5rem] shadow-premium p-8">
+                        <div className="mb-6">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-amber-500">Vacaciones & Ausencias</h3>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Solicita permisos y ausencias</p>
+                        </div>
+                        <AbsenceRequestForm />
                     </div>
 
                     {/* QUICK CERTIFICATES */}

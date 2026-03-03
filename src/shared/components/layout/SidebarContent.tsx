@@ -46,7 +46,9 @@ import {
     TrendingUp,
     BarChart2,
     Clock,
-    Landmark
+    Landmark,
+    CalendarDays,
+    ShieldCheck as ShieldQC
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -181,6 +183,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.payroll.simulator, href: "/payroll/simulator", icon: Sparkles },
                         { title: t.payroll.terminations, href: "/payroll/settlement/termination", icon: TrendingDown },
                         { title: 'Horas Extra', href: "/payroll/overtime", icon: Clock },
+                        { title: 'Ausencias', href: "/payroll/absences", icon: CalendarDays },
                     ]
                 },
                 {
@@ -200,6 +203,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 },
                 { title: t.sidebar.logistics, href: "/logistics", icon: Truck, moduleKey: 'logistics' },
                 { title: 'Tesorería', href: "/treasury", icon: Landmark, moduleKey: 'accounting' },
+                { title: 'Calidad QC', href: "/quality", icon: ShieldQC, moduleKey: 'production' },
                 { title: 'Contratos', href: "/contracts", icon: FileText, moduleKey: 'documents' },
                 { title: 'Portal Proveedores', href: "/vendor-portal", icon: Users, moduleKey: 'purchasing' },
             ]

@@ -32,6 +32,37 @@ export const overtimeRequestSchema = z.object({
 export type OvertimeRequest = z.infer<typeof overtimeRequestSchema>;
 export type OvertimeStatus = z.infer<typeof OvertimeStatusEnum>;
 
+// ─── ABSENCE REQUESTS ─────────────────────────────────────────────────────────
+export const AbsenceTypeEnum = z.enum(['VACATION', 'SICK_LEAVE', 'PERSONAL', 'UNPAID', 'MATERNITY', 'PATERNITY']);
+export const AbsenceStatusEnum = z.enum(['PENDING', 'APPROVED', 'REJECTED']);
+
+export const absenceRequestSchema = z.object({
+    id: z.string().uuid().optional(),
+    tenant_id: z.string().uuid().optional(),
+    employee_id: z.string().uuid(),
+    absence_type: AbsenceTypeEnum,
+    start_date: z.string().refine(v => !isNaN(Date.parse(v)), 'Fecha inválida'),
+    end_date: z.string().refine(v => !isNaN(Date.parse(v)), 'Fecha inválida'),
+    days: z.number().int().min(1),
+    reason: z.string().optional().nullable(),
+    status: AbsenceStatusEnum.default('PENDING'),
+    reviewed_by: z.string().uuid().optional().nullable(),
+    reviewed_at: z.string().optional().nullable(),
+    reviewer_notes: z.string().optional().nullable(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+    employee: z.object({
+        id: z.string(),
+        salary: z.number(),
+        contract_type: z.string(),
+        party: z.object({ legal_name: z.string() }).optional(),
+    }).optional(),
+});
+
+export type AbsenceRequest = z.infer<typeof absenceRequestSchema>;
+export type AbsenceType = z.infer<typeof AbsenceTypeEnum>;
+export type AbsenceStatus = z.infer<typeof AbsenceStatusEnum>;
+
 // ─── CONTRACT TYPE ────────────────────────────────────────────────────────────
 // Enum for Contract Type
 export const ContractTypeEnum = z.enum(['INDEFINIDO', 'FIJO', 'OBRA_LABOR', 'APRENDIZAJE', 'PRESTACION_SERVICIOS']);

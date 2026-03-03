@@ -5,7 +5,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
-import { Plus, Building2, MapPin, Calendar, Hash, ArrowLeft } from 'lucide-react';
+import { Plus, Building2, MapPin, Calendar, Hash, ArrowLeft, ChevronRight } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 import { Badge } from "@/shared/components/ui/badge";
@@ -114,11 +114,11 @@ export default async function WarehousesPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="py-6">
-                                                <span className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">
+                                                <Link href={`/inventory/warehouses/${w.id}`} className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors hover:underline">
                                                     {w.name}
-                                                </span>
+                                                </Link>
                                             </TableCell>
-                                            <TableCell className="py-6 pr-10 text-right">
+                                            <TableCell className="py-6 pr-10 text-right flex items-center justify-end gap-3">
                                                 <span className="text-xs font-bold text-slate-400">
                                                     {new Date(w.created_at!).toLocaleDateString('es-CO', {
                                                         year: 'numeric',
@@ -126,6 +126,9 @@ export default async function WarehousesPage() {
                                                         day: 'numeric'
                                                     })}
                                                 </span>
+                                                <Link href={`/inventory/warehouses/${w.id}`} className="h-7 w-7 rounded-full bg-slate-50 hover:bg-indigo-50 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors">
+                                                    <ChevronRight className="h-4 w-4" />
+                                                </Link>
                                             </TableCell>
                                         </TableRow>
                                     ))}
