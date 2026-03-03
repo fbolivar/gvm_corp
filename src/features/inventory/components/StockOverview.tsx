@@ -65,8 +65,8 @@ export function StockOverview({ stock }: StockOverviewProps) {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                stock.map((s) => (
-                                    <TableRow key={s.id ?? `${s.product_id}-${s.warehouse_id}`} className="border-slate-50 hover:bg-slate-50/80 transition-all duration-500 group/row">
+                                stock.map((s, idx) => (
+                                    <TableRow key={s.id ?? `${s.product_id}-${s.warehouse_id}-${idx}`} className="border-slate-50 hover:bg-slate-50/80 transition-all duration-500 group/row">
                                         <TableCell className="pl-12 py-10">
                                             <div className="flex items-center gap-6">
                                                 <div className="h-16 w-16 rounded-[1.2rem] bg-white border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm group-hover/row:scale-110 group-hover/row:border-primary/20 transition-all duration-700 relative overflow-hidden">
