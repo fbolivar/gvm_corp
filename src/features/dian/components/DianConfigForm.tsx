@@ -39,9 +39,9 @@ export function DianConfigForm({ initialConfig }: Props) {
         }
         if (!initialConfig) return defaults
         // Replace null values with empty strings to avoid React warnings
-        const merged: Record<string, unknown> = { ...defaults }
-        for (const key of Object.keys(defaults)) {
-            merged[key] = initialConfig[key] ?? defaults[key as keyof typeof defaults]
+        const merged = { ...defaults }
+        for (const key of Object.keys(defaults) as Array<keyof typeof defaults>) {
+            merged[key] = String(initialConfig[key] ?? defaults[key])
         }
         return merged
     })
