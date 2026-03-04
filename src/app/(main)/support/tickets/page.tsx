@@ -22,7 +22,7 @@ export default async function TicketsPage() {
     try {
         tickets = await supportService.getTickets(supabase);
     } catch (error: unknown) {
-        const errCode = error instanceof Error ? (error as Record<string, unknown>).code : 'UNKNOWN';
+        const errCode = (error as { code?: string })?.code ?? 'UNKNOWN';
         return (
             <div className="m-4 p-8 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 space-y-4">
                 <div className="flex items-center gap-3">
