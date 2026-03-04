@@ -95,7 +95,7 @@ export function NotificationBell() {
                     return [n, ...prev].slice(0, 10);
                 });
             })
-            .subscribe((status, err) => {
+            .subscribe((status: string, err?: Error) => {
                 if (err) console.error('[NotificationBell] realtime error:', err);
             });
 
