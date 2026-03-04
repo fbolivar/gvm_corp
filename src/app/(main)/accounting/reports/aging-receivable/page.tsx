@@ -44,7 +44,7 @@ export default async function AgingReceivablePage({
         .gt('total', 0)
         .order('issue_date', { ascending: true });
 
-    if (error) throw error;
+    if (error) console.error('[aging-receivable]', error.message);
 
     const [tenant] = await Promise.all([settingsService.getTenantInfo(supabase)]);
 

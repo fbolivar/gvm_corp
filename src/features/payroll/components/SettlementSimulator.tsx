@@ -1,21 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
+import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import {
     Calculator,
     Calendar,
-    ArrowRight,
     Download,
     AlertCircle,
     TrendingUp,
     ShieldCheck,
     Coins,
-    Sparkles,
     FileText,
-    ArrowUpRight
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import { cn } from "@/shared/lib/utils"
@@ -23,219 +20,257 @@ import { cn } from "@/shared/lib/utils"
 export function SettlementSimulator() {
     const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
     const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-    const [salary, setSalary] = useState(1300606) // Salario Mínimo 2024
+    const [salary, setSalary] = useState(1300606)
     const [transportAllowance, setTransportAllowance] = useState(162000)
 
     const calculateSettlement = () => {
         const days = differenceInDays(new Date(endDate), new Date(startDate)) + 1
         const baseSalary = salary + transportAllowance
 
-        // Simplified Colombian labor law logic
-        const severancePay = (baseSalary * days) / 360 // Cesantías
-        const severanceInterest = (severancePay * days * 0.12) / 360 // Intereses Cesantías
-        const serviceBonus = (baseSalary * days) / 360 // Prima de Servicios
-        const vacation = (salary * days) / 720 // Vacaciones
+        const severancePay = (baseSalary * days) / 360
+        const severanceInterest = (severancePay * days * 0.12) / 360
+        const serviceBonus = (baseSalary * days) / 360
+        const vacation = (salary * days) / 720
 
         const total = severancePay + severanceInterest + serviceBonus + vacation
 
-        return {
-            days,
-            severancePay,
-            severanceInterest,
-            serviceBonus,
-            vacation,
-            total
-        }
+        return { days, severancePay, severanceInterest, serviceBonus, vacation, total }
     }
 
     const results = calculateSettlement()
 
-    const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            maximumFractionDigits: 0
-        }).format(val)
+    const fmt = (val: number) =>
+        `$${new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(val)}`
+
+    const concepts = [
+        { label: 'Cesantias', value: results.severancePay, icon: Coins, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { label: 'Int. Cesantias', value: results.severanceInterest, icon: TrendingUp, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { label: 'Prima de Servicios', value: results.serviceBonus, icon: ShieldCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Vacaciones', value: results.vacation, icon: FileText, color: 'text-rose-600', bg: 'bg-rose-50' },
+    ]
+
+    const handleDownloadPdf = async () => {
+        const { default: jsPDF } = await import('jspdf')
+        const doc = new jsPDF('p', 'mm', 'letter')
+        const w = doc.internal.pageSize.getWidth()
+        let y = 20
+
+        // Header
+        doc.setFontSize(16)
+        doc.setFont('helvetica', 'bold')
+        doc.text('SIMULACION DE LIQUIDACION', w / 2, y, { align: 'center' })
+        y += 8
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(100)
+        doc.text('Documento informativo — No constituye documento legal', w / 2, y, { align: 'center' })
+        y += 12
+
+        // Parameters box
+        doc.setDrawColor(200)
+        doc.setFillColor(248, 250, 252)
+        doc.roundedRect(15, y, w - 30, 36, 3, 3, 'FD')
+        y += 8
+        doc.setTextColor(60)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'bold')
+        doc.text('PARAMETROS', 20, y)
+        y += 7
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        const params = [
+            ['Fecha de Ingreso:', startDate],
+            ['Fecha de Retiro:', endDate],
+            ['Salario Base:', fmt(salary)],
+            ['Aux. Transporte:', fmt(transportAllowance)],
+            ['Dias Laborados:', `${results.days} dias`],
+        ]
+        for (const [label, value] of params) {
+            doc.text(label, 20, y)
+            doc.setFont('helvetica', 'bold')
+            doc.text(value, 80, y)
+            doc.setFont('helvetica', 'normal')
+            y += 5
+        }
+        y += 10
+
+        // Results table
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(60)
+        doc.text('CONCEPTO', 20, y)
+        doc.text('VALOR', w - 20, y, { align: 'right' })
+        y += 2
+        doc.setDrawColor(200)
+        doc.line(20, y, w - 20, y)
+        y += 6
+
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(10)
+        doc.setTextColor(30)
+        const rows = [
+            ['Cesantias', fmt(results.severancePay)],
+            ['Intereses sobre Cesantias', fmt(results.severanceInterest)],
+            ['Prima de Servicios', fmt(results.serviceBonus)],
+            ['Vacaciones', fmt(results.vacation)],
+        ]
+        for (const [label, value] of rows) {
+            doc.text(label, 20, y)
+            doc.text(value, w - 20, y, { align: 'right' })
+            y += 7
+        }
+
+        // Total
+        y += 2
+        doc.setDrawColor(100)
+        doc.line(20, y, w - 20, y)
+        y += 7
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.text('TOTAL LIQUIDACION ESTIMADA', 20, y)
+        doc.text(fmt(results.total), w - 20, y, { align: 'right' })
+        y += 14
+
+        // Disclaimer
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'italic')
+        doc.setTextColor(120)
+        const disclaimer = 'Este calculo es una simulacion informativa basada en las normas laborales vigentes en Colombia. Los valores reales pueden variar segun pactos extralegales, deducciones de nomina o novedades del contrato.'
+        const lines = doc.splitTextToSize(disclaimer, w - 40)
+        doc.text(lines, 20, y)
+        y += lines.length * 4 + 6
+
+        // Footer
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(160)
+        doc.text(`Generado el ${new Date().toLocaleDateString('es-CO')} — GVM Corp`, w / 2, y, { align: 'center' })
+
+        doc.save(`simulacion-liquidacion-${endDate}.pdf`)
+    }
 
     return (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-                {/* 🔧 INPUT SECTION */}
-                <Card className="lg:col-span-12 border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden group">
-                    <CardHeader className="p-10 border-b border-slate-50 bg-slate-50/30">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-5">
-                                <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm transition-transform group-hover:scale-110 duration-500">
-                                    <Calculator className="h-7 w-7" />
-                                </div>
-                                <div className="space-y-1">
-                                    <CardTitle className="text-3xl font-black text-slate-900 tracking-tight italic">Parámetros de Cálculo</CardTitle>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Define las fechas y montos base</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 px-5 py-2.5 bg-indigo-50/50 rounded-full">
-                                <Sparkles className="h-3 w-3 text-indigo-500 animate-pulse" />
-                                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none">Simulación Activa</span>
-                            </div>
-                        </div>
-                    </CardHeader>
+        <div className="space-y-6">
+            {/* Input parameters */}
+            <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                        <Calculator className="h-4 w-4" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900">Parametros de Calculo</h3>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">Fechas y montos base</p>
+                    </div>
+                </div>
 
-                    <CardContent className="p-10">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-                            {/* Fecha Inicio */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Fecha de Ingreso</label>
-                                <div className="relative group/field">
-                                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
-                                    <Input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className="h-16 pl-14 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all placeholder:text-slate-300"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Fecha Fin */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Fecha de Retiro</label>
-                                <div className="relative group/field">
-                                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
-                                    <Input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        className="h-16 pl-14 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all placeholder:text-slate-300"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Salario Base */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Salario Base (COP)</label>
-                                <div className="relative group/field">
-                                    <Coins className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
-                                    <Input
-                                        type="number"
-                                        value={salary}
-                                        onChange={(e) => setSalary(Number(e.target.value))}
-                                        className="h-16 pl-14 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Auxilio Transporte */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Aux. Transporte</label>
-                                <div className="relative group/field">
-                                    <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
-                                    <Input
-                                        type="number"
-                                        value={transportAllowance}
-                                        onChange={(e) => setTransportAllowance(Number(e.target.value))}
-                                        className="h-16 pl-14 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all"
-                                    />
-                                </div>
+                <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha de Ingreso</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
+                                <Input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="h-9 pl-9 rounded-xl text-xs"
+                                />
                             </div>
                         </div>
 
-                        <div className="mt-10 p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100/50 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
-                                    <TrendingUp className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black text-slate-900 italic tracking-tight">Tiempo Total Calculado</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{results.days} Días de prestación social</p>
-                                </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha de Retiro</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
+                                <Input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="h-9 pl-9 rounded-xl text-xs"
+                                />
                             </div>
-                            <Button className="h-12 px-8 rounded-xl bg-slate-900 hover:bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-active transition-all group/btn">
-                                Recalcular Simulación <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                            </Button>
                         </div>
-                    </CardContent>
-                </Card>
 
-                {/* 📊 RESULTS DASHBOARD */}
-                <Card className="lg:col-span-12 border-none bg-slate-900 shadow-2xl rounded-[2.5rem] overflow-hidden group p-1 origin-top transition-all duration-500">
-                    <CardHeader className="p-10 relative overflow-hidden">
-                        <Sparkles className="absolute -top-10 -right-10 h-40 w-40 text-white/5 -rotate-12" />
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Salario Base (COP)</label>
+                            <div className="relative">
+                                <Coins className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
+                                <Input
+                                    type="number"
+                                    value={salary}
+                                    onChange={(e) => setSalary(Number(e.target.value))}
+                                    className="h-9 pl-9 rounded-xl text-xs"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Aux. Transporte</label>
+                            <div className="relative">
+                                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
+                                <Input
+                                    type="number"
+                                    value={transportAllowance}
+                                    onChange={(e) => setTransportAllowance(Number(e.target.value))}
+                                    className="h-9 pl-9 rounded-xl text-xs"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0">
+                                <TrendingUp className="h-4 w-4" />
+                            </div>
                             <div>
-                                <h3 className="text-xl font-black text-white/60 uppercase tracking-[0.3em] mb-2">Liquidación Estimada</h3>
-                                <div className="text-4xl font-black text-white tracking-tight tabular-nums drop-shadow-sm">
-                                    {formatCurrency(results.total)}
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <Button variant="outline" className="h-14 px-8 rounded-2xl border-white/10 bg-white/5 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">
-                                    <Download className="mr-3 h-5 w-5 text-indigo-400" /> Descargar PDF
-                                </Button>
+                                <p className="text-xs font-bold text-slate-900">Tiempo Total Calculado</p>
+                                <p className="text-[10px] text-slate-400">{results.days} dias de prestacion social</p>
                             </div>
                         </div>
-                    </CardHeader>
+                        <Button size="sm" className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs">
+                            Recalcular
+                        </Button>
+                    </div>
+                </div>
+            </Card>
 
-                    <CardContent className="p-1 relative z-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1 p-1">
-                            {/* Cesantías */}
-                            <div className="bg-white/5 backdrop-blur-md p-10 rounded-[2rem] border border-white/10 group/item hover:bg-white/10 transition-all">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="h-12 w-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-300">
-                                        <Coins className="h-6 w-6" />
-                                    </div>
-                                    <ArrowUpRight className="h-5 w-5 text-white/10 group-hover/item:text-white/40 transition-colors" />
-                                </div>
-                                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Cesantías</p>
-                                <p className="text-2xl font-black text-white italic tracking-tight mt-1">{formatCurrency(results.severancePay)}</p>
-                            </div>
+            {/* Results */}
+            <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900">Liquidacion Estimada</h3>
+                        <p className="text-lg font-bold text-slate-900 font-mono tabular-nums">{fmt(results.total)}</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl gap-2 text-xs" onClick={handleDownloadPdf}>
+                        <Download className="h-3.5 w-3.5" /> Descargar PDF
+                    </Button>
+                </div>
 
-                            {/* Intereses Cesantías */}
-                            <div className="bg-white/5 backdrop-blur-md p-10 rounded-[2rem] border border-white/10 group/item hover:bg-white/10 transition-all">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="h-12 w-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-300">
-                                        <TrendingUp className="h-6 w-6" />
-                                    </div>
-                                    <ArrowUpRight className="h-5 w-5 text-white/10 group-hover/item:text-white/40 transition-colors" />
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {concepts.map((c, i) => (
+                        <div key={i} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", c.bg, c.color)}>
+                                    <c.icon className="h-4 w-4" />
                                 </div>
-                                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Int. Cesantías</p>
-                                <p className="text-2xl font-black text-white italic tracking-tight mt-1">{formatCurrency(results.severanceInterest)}</p>
                             </div>
-
-                            {/* Prima de Servicios */}
-                            <div className="bg-white/5 backdrop-blur-md p-10 rounded-[2rem] border border-white/10 group/item hover:bg-white/10 transition-all">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-300">
-                                        <ShieldCheck className="h-6 w-6" />
-                                    </div>
-                                    <ArrowUpRight className="h-5 w-5 text-white/10 group-hover/item:text-white/40 transition-colors" />
-                                </div>
-                                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Prima de Servicios</p>
-                                <p className="text-2xl font-black text-white italic tracking-tight mt-1">{formatCurrency(results.serviceBonus)}</p>
-                            </div>
-
-                            {/* Vacaciones */}
-                            <div className="bg-white/5 backdrop-blur-md p-10 rounded-[2rem] border border-white/10 group/item hover:bg-white/10 transition-all">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="h-12 w-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-rose-300">
-                                        <FileText className="h-6 w-6" />
-                                    </div>
-                                    <ArrowUpRight className="h-5 w-5 text-white/10 group-hover/item:text-white/40 transition-colors" />
-                                </div>
-                                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Vacaciones</p>
-                                <p className="text-2xl font-black text-white italic tracking-tight mt-1">{formatCurrency(results.vacation)}</p>
-                            </div>
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{c.label}</p>
+                            <p className="text-sm font-bold text-slate-900 font-mono tabular-nums mt-0.5">{fmt(c.value)}</p>
                         </div>
+                    ))}
+                </div>
 
-                        {/* Legal Disclaim */}
-                        <div className="p-10 flex items-start gap-4 text-white/40">
-                            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                            <p className="text-[11px] font-medium leading-relaxed italic">
-                                Este cálculo es una <span className="text-white/60 font-black">simulación informativa</span> basada en las normas laborales vigentes en Colombia. Los valores reales pueden variar según pactos extralegales, deducciones de nómina o novedades específicas del contrato.
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                {/* Disclaimer */}
+                <div className="px-6 pb-6">
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-start gap-3">
+                        <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-amber-700 leading-relaxed">
+                            Este calculo es una <span className="font-bold">simulacion informativa</span> basada en las normas laborales vigentes en Colombia. Los valores reales pueden variar segun pactos extralegales, deducciones de nomina o novedades del contrato.
+                        </p>
+                    </div>
+                </div>
+            </Card>
         </div>
     )
 }

@@ -1,154 +1,130 @@
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/shared/components/ui/table";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import {
-    BookOpen,
-    Calendar,
-    Hash,
-    Layers,
-    ArrowRightLeft,
-    CheckCircle2,
-    ArrowUpRight,
-    Search,
-    ChevronRight,
-    Box
-} from "lucide-react";
+import { BookOpen, CheckCircle2, Activity, FileX2, ExternalLink } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import Link from "next/link";
 import { Button } from "@/shared/components/ui/button";
 
 interface EntryListProps {
-    entries: any[];
+    entries: Record<string, unknown>[];
 }
 
 export function EntryList({ entries }: EntryListProps) {
     if (!entries.length) {
         return (
-            <div className="flex flex-col items-center justify-center py-32 bg-slate-50 rounded-[4rem] border border-dashed border-slate-200 shadow-inner">
-                <Box className="h-16 w-16 text-slate-200 mb-6" />
-                <p className="text-slate-400 font-black uppercase tracking-[0.4em] text-xs underline decoration-slate-200 underline-offset-8">Bóveda de Asientos Vacía</p>
-            </div>
+            <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <CardContent className="py-16 flex flex-col items-center justify-center text-center">
+                    <div className="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 mb-4">
+                        <FileX2 className="h-7 w-7" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-1">Sin asientos contables</h3>
+                    <p className="text-xs text-slate-400">No hay movimientos registrados en el periodo actual</p>
+                </CardContent>
+            </Card>
         );
     }
 
+    const fmt = (val: number) => `$${val.toLocaleString('es-CO')}`;
+
     return (
-        <div className="space-y-12">
+        <div className="space-y-6">
             {entries.map((entry) => {
-                const totalDebit = entry.lines?.reduce((sum: number, l: any) => sum + Number(l.debit), 0) || 0;
-                const totalCredit = entry.lines?.reduce((sum: number, l: any) => sum + Number(l.credit), 0) || 0;
+                const lines = entry.lines as Array<Record<string, unknown>> | null;
+                const totalDebit = lines?.reduce((sum, l) => sum + Number(l.debit), 0) || 0;
+                const totalCredit = lines?.reduce((sum, l) => sum + Number(l.credit), 0) || 0;
 
                 return (
-                    <Card key={entry.id} className="rounded-[4rem] border-none bg-white shadow-premium overflow-hidden group hover:translate-y-[-4px] transition-all duration-500">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 py-10 px-12">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                                <div className="flex items-center gap-6">
-                                    <div className="h-16 w-16 bg-slate-900 rounded-2xl flex items-center justify-center shadow-active rotate-3 group-hover:rotate-0 transition-all shrink-0">
-                                        <Layers className="h-8 w-8 text-white" />
+                    <Card key={entry.id as string} className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                        <CardHeader className="py-4 px-6 border-b border-slate-100 bg-slate-50/30">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-9 w-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shrink-0">
+                                        <BookOpen className="h-4 w-4" />
                                     </div>
-                                    <div className="space-y-1">
-                                        <CardTitle className="text-slate-900 text-2xl font-black italic tracking-tighter uppercase leading-none">
-                                            {entry.description}
+                                    <div>
+                                        <CardTitle className="text-sm font-bold text-slate-900 line-clamp-1">
+                                            {entry.description as string}
                                         </CardTitle>
-                                        <div className="flex items-center gap-4 text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">
-                                            <span className="flex items-center gap-2">
-                                                <Calendar className="h-3 w-3 text-indigo-500" />
-                                                {format(new Date(entry.entry_date), 'PPP', { locale: es })}
+                                        <div className="flex items-center gap-3 mt-0.5">
+                                            <span className="text-[10px] text-slate-400">
+                                                {format(new Date(entry.entry_date as string), 'dd MMM yyyy', { locale: es })}
                                             </span>
-                                            <span className="h-1 w-1 rounded-full bg-slate-200" />
-                                            <span className="flex items-center gap-2 font-mono">
-                                                <Hash className="h-3 w-3 text-amber-500" />
-                                                {entry.id.substring(0, 8).toUpperCase()}
+                                            <span className="text-[10px] font-mono text-slate-300">
+                                                #{(entry.id as string).substring(0, 8)}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 rounded-full px-6 py-2 flex items-center gap-2 text-[10px] font-black tracking-widest uppercase">
-                                        <CheckCircle2 className="h-3 w-3" /> {entry.status}
+                                <div className="flex items-center gap-2">
+                                    <Badge className="bg-emerald-50 text-emerald-600 border-none text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider gap-1">
+                                        <CheckCircle2 className="h-3 w-3" /> {entry.status as string}
                                     </Badge>
-                                    <Button variant="ghost" size="icon" asChild className="h-12 w-12 rounded-2xl text-slate-200 hover:text-indigo-600 hover:bg-white hover:shadow-premium transition-all active:scale-90">
-                                        <Link href={`/accounting/entries/${entry.id}`}><Search className="h-6 w-6" /></Link>
+                                    <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0 text-slate-300 hover:text-indigo-600">
+                                        <Link href={`/accounting/entries/${entry.id}`}><ExternalLink className="h-4 w-4" /></Link>
                                     </Button>
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
                             <Table>
-                                <TableHeader className="bg-slate-50/30">
-                                    <TableRow className="border-slate-50 hover:bg-transparent">
-                                        <TableHead className="text-slate-400 font-black uppercase text-[9px] tracking-[0.4em] py-8 pl-14">Cuenta Maestría (PUC)</TableHead>
-                                        <TableHead className="text-slate-400 font-black uppercase text-[9px] tracking-[0.4em] py-8">Descriptor / Tercero</TableHead>
-                                        <TableHead className="text-slate-400 font-black uppercase text-[9px] tracking-[0.4em] py-8 text-right">Débito Ejecutivo</TableHead>
-                                        <TableHead className="text-slate-400 font-black uppercase text-[9px] tracking-[0.4em] py-8 text-right pr-14">Crédito Ejecutivo</TableHead>
+                                <TableHeader>
+                                    <TableRow className="border-slate-100 hover:bg-transparent bg-slate-50/50">
+                                        <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 pl-6">Cuenta (PUC)</TableHead>
+                                        <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3">Descripción / Tercero</TableHead>
+                                        <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 text-right w-[130px]">Débito</TableHead>
+                                        <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 text-right pr-6 w-[130px]">Crédito</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {entry.lines?.map((line: any) => (
-                                        <TableRow key={line.id} className="border-slate-50 hover:bg-slate-50/50 transition-all group/row">
-                                            <TableCell className="py-8 pl-14">
-                                                <div className="flex items-center gap-6">
-                                                    <div className={cn(
-                                                        "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-inner group-hover/row:rotate-12 transition-transform",
-                                                        line.debit > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                                                    )}>
-                                                        <ArrowRightLeft className="h-4 w-4" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-black text-xs text-slate-900 tracking-widest font-mono italic underline decoration-slate-200 underline-offset-4">{line.account?.code}</div>
-                                                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-tight mt-1">{line.account?.name}</div>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-8">
-                                                <div className="text-[11px] text-slate-600 font-bold max-w-[300px] line-clamp-1 italic uppercase">{line.description}</div>
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <Badge className="bg-slate-50 text-slate-400 border-none text-[8px] font-black uppercase tracking-widest px-2">
-                                                        Tercero: {line.party?.legal_name || 'GENERAL'}
-                                                    </Badge>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-8 text-right font-mono text-base font-black tracking-tighter text-emerald-600 italic">
-                                                {line.debit > 0 ? `$${line.debit.toLocaleString('es-CO')}` : '-'}
-                                            </TableCell>
-                                            <TableCell className="py-8 text-right pr-14 font-mono text-base font-black tracking-tighter text-rose-600 italic">
-                                                {line.credit > 0 ? `$${line.credit.toLocaleString('es-CO')}` : '-'}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {lines?.map((line) => {
+                                        const account = line.account as { code?: string; name?: string } | null;
+                                        const party = line.party as { legal_name?: string } | null;
+                                        return (
+                                            <TableRow key={line.id as string} className="border-slate-50 hover:bg-indigo-50/20 transition-colors">
+                                                <TableCell className="py-3 pl-6">
+                                                    <span className="font-mono text-xs font-semibold text-slate-900">{account?.code}</span>
+                                                    <p className="text-[10px] text-slate-400 line-clamp-1">{account?.name}</p>
+                                                </TableCell>
+                                                <TableCell className="py-3">
+                                                    <p className="text-xs text-slate-600 line-clamp-1">{(line.description as string) || (entry.description as string)}</p>
+                                                    {party?.legal_name && (
+                                                        <p className="text-[10px] text-slate-400 mt-0.5">{party.legal_name}</p>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className={cn(
+                                                    "py-3 text-right font-mono text-sm font-medium",
+                                                    Number(line.debit) > 0 ? "text-slate-900" : "text-slate-200"
+                                                )}>
+                                                    {Number(line.debit) > 0 ? fmt(Number(line.debit)) : '—'}
+                                                </TableCell>
+                                                <TableCell className={cn(
+                                                    "py-3 text-right pr-6 font-mono text-sm font-medium",
+                                                    Number(line.credit) > 0 ? "text-slate-900" : "text-slate-200"
+                                                )}>
+                                                    {Number(line.credit) > 0 ? fmt(Number(line.credit)) : '—'}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
 
-                                    {/* Subtotal Balance Row */}
-                                    <TableRow className="bg-slate-900 border-none hover:bg-slate-950 transition-colors">
-                                        <TableCell colSpan={2} className="py-10 pl-14">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-8 w-8 bg-indigo-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                                                    <ChevronRight className="h-5 w-5" />
-                                                </div>
-                                                <div className="space-y-0.5">
-                                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em]">Liquidación del Asiento</p>
-                                                    <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest italic font-mono">Partida Doble Verificada</p>
-                                                </div>
+                                    {/* Totals */}
+                                    <TableRow className="bg-slate-900 border-none hover:bg-slate-900">
+                                        <TableCell colSpan={2} className="py-4 pl-6">
+                                            <div className="flex items-center gap-2">
+                                                <Activity className="h-4 w-4 text-white/40" />
+                                                <span className="text-white text-xs font-bold">Totales</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-10 text-right">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-2">Total Débito</span>
-                                                <span className="text-2xl font-black text-white font-mono tracking-tighter italic">${totalDebit.toLocaleString('es-CO')}</span>
-                                            </div>
+                                        <TableCell className="py-4 text-right">
+                                            <span className="text-sm font-bold text-white font-mono tabular-nums">{fmt(totalDebit)}</span>
                                         </TableCell>
-                                        <TableCell className="py-10 text-right pr-14">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-2">Total Crédito</span>
-                                                <span className="text-2xl font-black text-white font-mono tracking-tighter italic">${totalCredit.toLocaleString('es-CO')}</span>
-                                            </div>
+                                        <TableCell className="py-4 text-right pr-6">
+                                            <span className="text-sm font-bold text-white font-mono tabular-nums">{fmt(totalCredit)}</span>
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>

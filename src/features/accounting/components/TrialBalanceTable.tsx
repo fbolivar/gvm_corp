@@ -2,11 +2,8 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
-import { Scale, CheckCircle2, AlertCircle, FileText, Download, TrendingUp, TrendingDown, Activity, Info } from "lucide-react"
+import { Scale, CheckCircle2, AlertCircle, Activity, FileX2 } from "lucide-react"
 import { Badge } from "@/shared/components/ui/badge"
-import { Button } from "@/shared/components/ui/button"
-import { pdfReportService } from "../services/pdfReportService"
-import { excelReportService } from "../services/excelReportService"
 import { TenantInfo } from "../../settings/services/settingsService"
 import { cn } from "@/shared/lib/utils"
 
@@ -25,74 +22,54 @@ interface Props {
     tenant: TenantInfo | null
 }
 
-export function TrialBalanceTable({ rows, startDate, endDate, tenant }: Props) {
+export function TrialBalanceTable({ rows, startDate, endDate }: Props) {
     const totalDebit = rows.reduce((sum, r) => sum + r.debit, 0);
     const totalCredit = rows.reduce((sum, r) => sum + r.credit, 0);
     const diff = Math.abs(totalDebit - totalCredit);
     const isBalanced = diff < 0.01;
 
-    const formatCurrency = (val: number) => {
-        return val.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
+    const fmt = (val: number) =>
+        val.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    if (rows.length === 0) {
+        return (
+            <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                <CardContent className="py-16 flex flex-col items-center justify-center text-center">
+                    <div className="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 mb-4">
+                        <FileX2 className="h-7 w-7" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-1">Sin movimientos contables</h3>
+                    <p className="text-xs text-slate-400 max-w-sm">
+                        No se encontraron asientos contables entre {startDate} y {endDate}.
+                        Verifica que existan registros en el libro diario para este periodo.
+                    </p>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
-        <Card className="rounded-[3.5rem] border-none bg-white shadow-premium overflow-hidden">
-            <CardHeader className="py-10 px-12 border-b border-slate-50">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                    <div className="flex items-center gap-5">
-                        <div className="h-14 w-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner">
-                            <Scale className="h-7 w-7" />
+        <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+            <CardHeader className="py-5 px-6 border-b border-slate-100 bg-slate-50/30">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <Scale className="h-5 w-5" />
                         </div>
                         <div>
-                            <CardTitle className="text-2xl font-black text-slate-900 tracking-tighter italic uppercase">
+                            <CardTitle className="text-base font-bold text-slate-900">
                                 Balance de Comprobación
                             </CardTitle>
-                            <div className="flex items-center gap-3 mt-1">
-                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">Integridad de Saldos Maestro</p>
-                                <div className="h-1 w-1 rounded-full bg-slate-200" />
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-[10px] text-slate-400">Integridad de saldos maestro</p>
                                 <Badge className={cn(
-                                    "border-none px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-700",
-                                    isBalanced ? "bg-emerald-50 text-emerald-600 shadow-sm" : "bg-rose-50 text-rose-600 animate-pulse shadow-sm"
+                                    "border-none px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider",
+                                    isBalanced ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                                 )}>
-                                    {isBalanced ? "✓ Balanceado" : "⚠ Descuadre Detectado"}
+                                    {isBalanced ? "Balanceado" : "Descuadre"}
                                 </Badge>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <Button
-                            variant="outline"
-                            className="bg-slate-900 border-none hover:bg-slate-800 text-white gap-3 h-14 px-8 rounded-2xl shadow-active transition-all hover:scale-105 active:scale-95 group"
-                            onClick={async () => {
-                                await pdfReportService.generateTrialBalance(rows.map(r => ({
-                                    code: r.code,
-                                    name: r.name,
-                                    initial_balance: 0,
-                                    debits: r.debit,
-                                    credits: r.credit,
-                                    final_balance: r.balance
-                                })), {
-                                    title: 'Balance de Prueba',
-                                    companyName: tenant?.name || 'EMPRESA',
-                                    companyNit: tenant?.nit,
-                                    companyAddress: tenant?.address,
-                                    companyPhone: tenant?.phone,
-                                    period: `${startDate} - ${endDate}`,
-                                    logoUrl: tenant?.logo_url || undefined
-                                });
-                            }}
-                        >
-                            <Download className="h-5 w-5 text-indigo-400 group-hover:animate-bounce" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Generar PDF Premium</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="h-14 w-14 rounded-2xl border-slate-100 bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center shadow-sm"
-                            onClick={() => excelReportService.exportToExcel(rows, 'Balance_Prueba', 'Balance')}
-                        >
-                            <FileText className="h-5 w-5" />
-                        </Button>
                     </div>
                 </div>
             </CardHeader>
@@ -100,93 +77,74 @@ export function TrialBalanceTable({ rows, startDate, endDate, tenant }: Props) {
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="border-slate-50 hover:bg-transparent bg-slate-50/50">
-                                <TableHead className="w-[180px] text-slate-400 font-black uppercase text-[9px] tracking-[0.5em] py-8 pl-14">Cuenta PUC</TableHead>
-                                <TableHead className="text-slate-400 font-black uppercase text-[9px] tracking-[0.5em] py-8">Concepto / Denominación</TableHead>
-                                <TableHead className="text-right text-slate-400 font-black uppercase text-[9px] tracking-[0.5em] py-8">Mov. Débito</TableHead>
-                                <TableHead className="text-right text-slate-400 font-black uppercase text-[9px] tracking-[0.5em] py-8">Mov. Crédito</TableHead>
-                                <TableHead className="text-right text-slate-400 font-black uppercase text-[9px] tracking-[0.5em] py-8 pr-14">Saldo Ejecución</TableHead>
+                            <TableRow className="border-slate-100 hover:bg-transparent bg-slate-50/50">
+                                <TableHead className="w-[140px] text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 pl-6">Cuenta PUC</TableHead>
+                                <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3">Denominación</TableHead>
+                                <TableHead className="text-right text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 w-[160px]">Débito</TableHead>
+                                <TableHead className="text-right text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 w-[160px]">Crédito</TableHead>
+                                <TableHead className="text-right text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 pr-6 w-[160px]">Saldo</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {rows.map((row) => (
-                                <TableRow key={row.code} className="border-slate-50 hover:bg-indigo-50/20 transition-all group">
-                                    <TableCell className="py-8 pl-14">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-mono text-[10px] font-black group-hover:bg-white transition-all group-hover:shadow-sm">
-                                                {row.code[0]}
-                                            </div>
-                                            <span className="font-mono text-[13px] text-slate-900 font-black tracking-widest italic group-hover:text-indigo-600 transition-colors">
-                                                {row.code}
-                                            </span>
-                                        </div>
+                                <TableRow key={row.code} className="border-slate-50 hover:bg-indigo-50/20 transition-colors">
+                                    <TableCell className="py-3.5 pl-6">
+                                        <span className="font-mono text-xs text-slate-900 font-semibold tracking-wide">
+                                            {row.code}
+                                        </span>
                                     </TableCell>
-                                    <TableCell className="py-8">
-                                        <div className="text-sm font-black text-slate-800 uppercase italic tracking-tighter line-clamp-1">{row.name}</div>
-                                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Libro Auxiliar Verificado</div>
+                                    <TableCell className="py-3.5">
+                                        <span className="text-xs font-medium text-slate-600 line-clamp-1">{row.name}</span>
                                     </TableCell>
-                                    <TableCell className="py-8 text-right font-mono text-sm font-bold text-slate-500 italic">
-                                        {row.debit > 0 ? formatCurrency(row.debit) : "—"}
+                                    <TableCell className="py-3.5 text-right font-mono text-sm font-medium text-slate-500">
+                                        {row.debit > 0 ? fmt(row.debit) : "—"}
                                     </TableCell>
-                                    <TableCell className="py-8 text-right font-mono text-sm font-bold text-slate-500 italic">
-                                        {row.credit > 0 ? formatCurrency(row.credit) : "—"}
+                                    <TableCell className="py-3.5 text-right font-mono text-sm font-medium text-slate-500">
+                                        {row.credit > 0 ? fmt(row.credit) : "—"}
                                     </TableCell>
                                     <TableCell className={cn(
-                                        "py-8 text-right pr-14 font-mono text-lg font-black tracking-tighter italic",
-                                        row.balance < 0 ? 'text-rose-600' : 'text-slate-900 group-hover:text-indigo-600 transition-colors'
+                                        "py-3.5 text-right pr-6 font-mono text-sm font-bold",
+                                        row.balance < 0 ? 'text-rose-600' : 'text-slate-900'
                                     )}>
-                                        ${formatCurrency(row.balance)}
+                                        ${fmt(row.balance)}
                                     </TableCell>
                                 </TableRow>
                             ))}
 
-                            {/* 📊 MASTER FOOTER TOTALS */}
-                            <TableRow className="bg-slate-900 border-none hover:bg-slate-950 transition-colors">
-                                <TableCell colSpan={2} className="py-12 pl-14">
-                                    <div className="flex items-center gap-6">
-                                        <div className="h-14 w-14 bg-white/5 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-white/5 border border-white/10 rotate-12 transition-transform group-hover:rotate-0">
-                                            <Activity className="h-8 w-8" />
+                            {/* Totals Footer */}
+                            <TableRow className="bg-slate-900 border-none hover:bg-slate-900">
+                                <TableCell colSpan={2} className="py-5 pl-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-9 w-9 bg-white/10 rounded-xl flex items-center justify-center text-white">
+                                            <Activity className="h-5 w-5" />
                                         </div>
-                                        <div className="space-y-1">
-                                            <h4 className="text-white text-xl font-black italic tracking-tighter uppercase leading-none">Consolidación</h4>
-                                            <p className="text-[10px] text-white/30 font-black uppercase tracking-[0.4em]">Sumas Iguales Verificadas NIIF</p>
-                                        </div>
+                                        <span className="text-white text-sm font-bold">Totales Consolidados</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-right py-12">
-                                    <div className="space-y-2">
-                                        <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em]">Total Débitos</span>
-                                        <div className="text-3xl font-black text-white font-mono tracking-tighter italic">
-                                            {formatCurrency(totalDebit)}
-                                        </div>
-                                    </div>
+                                <TableCell className="text-right py-5">
+                                    <p className="text-[9px] text-white/40 uppercase tracking-wider mb-1">Total Débitos</p>
+                                    <span className="text-lg font-bold text-white font-mono tabular-nums tracking-tight">
+                                        {fmt(totalDebit)}
+                                    </span>
                                 </TableCell>
-                                <TableCell className="text-right py-12">
-                                    <div className="space-y-2">
-                                        <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em]">Total Créditos</span>
-                                        <div className="text-3xl font-black text-white font-mono tracking-tighter italic">
-                                            {formatCurrency(totalCredit)}
-                                        </div>
-                                    </div>
+                                <TableCell className="text-right py-5">
+                                    <p className="text-[9px] text-white/40 uppercase tracking-wider mb-1">Total Créditos</p>
+                                    <span className="text-lg font-bold text-white font-mono tabular-nums tracking-tight">
+                                        {fmt(totalCredit)}
+                                    </span>
                                 </TableCell>
-                                <TableCell className="text-right pr-14 py-12">
-                                    <div className="flex flex-col items-end gap-3">
-                                        {isBalanced ? (
-                                            <>
-                                                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Estado Maestro</span>
-                                                <div className="h-14 px-8 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-400 text-sm font-black italic uppercase shadow-inner">
-                                                    <CheckCircle2 className="h-5 w-5" /> Saldo Cuadrado
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Alerta de Descuadre</span>
-                                                <div className="h-14 px-8 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-400 text-sm font-black italic uppercase shadow-inner animate-pulse">
-                                                    <AlertCircle className="h-5 w-5" /> ${formatCurrency(diff)}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
+                                <TableCell className="text-right pr-6 py-5">
+                                    {isBalanced ? (
+                                        <div className="flex items-center justify-end gap-2 text-emerald-400">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            <span className="text-xs font-bold">Cuadrado</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-end gap-2 text-rose-400">
+                                            <AlertCircle className="h-4 w-4" />
+                                            <span className="text-xs font-bold">${fmt(diff)}</span>
+                                        </div>
+                                    )}
                                 </TableCell>
                             </TableRow>
                         </TableBody>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
+import { Card } from "@/shared/components/ui/card"
 import { Button } from "@/shared/components/ui/button"
 import { Badge } from "@/shared/components/ui/badge"
 import { Checkbox } from "@/shared/components/ui/checkbox"
@@ -12,18 +12,13 @@ import {
     Users,
     Calendar,
     CheckCircle2,
-    AlertCircle,
     FileText,
-    ArrowRight,
     Loader2,
-    Search,
-    Filter,
-    ArrowLeft
+    Banknote,
 } from "lucide-react"
 import { toast } from "sonner"
 import { bankService } from "../services/bankService"
 import { cn } from "@/shared/lib/utils"
-import Link from "next/link"
 
 interface SettlementRecord {
     id: string;
@@ -56,8 +51,8 @@ export function PayrollDispersionHub() {
         async function fetchSettlements() {
             setLoading(true)
             try {
-                // Fetch documents of type PAYROLL joined with party and employee bank data
-                const { data, error } = await supabase
+                // 1. Fetch PAYROLL documents with their party info
+                const { data: docs, error: docsErr } = await supabase
                     .from('documents')
                     .select(`
                         id,
@@ -65,19 +60,56 @@ export function PayrollDispersionHub() {
                         total,
                         status,
                         notes_public,
-                        party:parties(legal_name, doc_type, doc_number),
-                        employee:employees(id, bank_name, bank_account_type, bank_account_number)
+                        party_id,
+                        party:parties(legal_name, doc_type, doc_number)
                     `)
                     .eq('doc_type', 'PAYROLL')
                     .order('issue_date', { ascending: false });
 
-                if (error) throw error;
+                if (docsErr) throw docsErr;
+                if (!docs || docs.length === 0) {
+                    setSettlements([])
+                    return
+                }
 
-                // Map data to ensure it fits our interface (nested table structure from supabase)
-                const formatted = (data || []).map((d: any) => ({
-                    ...d,
-                    employee: Array.isArray(d.employee) ? d.employee[0] : d.employee
-                })) as SettlementRecord[];
+                // 2. Get party_ids to find matching employees (employees have party_id FK)
+                const partyIds = docs.map((d: { party_id?: string }) => d.party_id).filter(Boolean) as string[];
+
+                let employeesByParty: Record<string, { id: string; bank_name: string; bank_account_type: string; bank_account_number: string }> = {};
+
+                if (partyIds.length > 0) {
+                    const { data: emps } = await supabase
+                        .from('employees')
+                        .select('id, party_id, bank_name, bank_account_type, bank_account_number')
+                        .in('party_id', partyIds);
+
+                    for (const emp of (emps || [])) {
+                        const e = emp as { id: string; party_id: string; bank_name: string; bank_account_type: string; bank_account_number: string };
+                        employeesByParty[e.party_id] = {
+                            id: e.id,
+                            bank_name: e.bank_name,
+                            bank_account_type: e.bank_account_type,
+                            bank_account_number: e.bank_account_number,
+                        };
+                    }
+                }
+
+                // 3. Merge documents with employee bank data
+                const formatted: SettlementRecord[] = docs.map((d: Record<string, unknown>) => {
+                    const party = (Array.isArray(d.party) ? d.party[0] : d.party) as SettlementRecord['party'];
+                    const employee = employeesByParty[String(d.party_id ?? '')] ?? {
+                        id: '', bank_name: '', bank_account_type: '', bank_account_number: ''
+                    };
+                    return {
+                        id: d.id,
+                        issue_date: d.issue_date,
+                        total: d.total,
+                        status: d.status,
+                        notes_public: d.notes_public,
+                        party,
+                        employee,
+                    };
+                });
 
                 setSettlements(formatted)
             } catch (err) {
@@ -113,7 +145,7 @@ export function PayrollDispersionHub() {
 
     const handleGenerate = (bank: 'BANCOLOMBIA' | 'DAVIVIENDA' | 'GENERIC') => {
         if (selectedIds.length === 0) {
-            toast.error("Seleccione al menos una liquidación");
+            toast.error("Seleccione al menos una liquidacion");
             return;
         }
 
@@ -128,24 +160,24 @@ export function PayrollDispersionHub() {
                         ...s.employee,
                         party: s.party
                     }
-                } as any));
+                } as unknown));
 
             let content = "";
             let filename = `dispersion_${bank.toLowerCase()}_${new Date().getTime()}`;
 
             if (bank === 'BANCOLOMBIA') {
-                content = bankService.generateBancolombiaPAB(selected, "00012345678"); // Example account
+                content = bankService.generateBancolombiaPAB(selected as Parameters<typeof bankService.generateBancolombiaPAB>[0], "00012345678");
                 filename += ".txt";
             } else if (bank === 'DAVIVIENDA') {
-                content = bankService.generateDaviviendaTXT(selected, "900987654"); // Example NIT
+                content = bankService.generateDaviviendaTXT(selected as Parameters<typeof bankService.generateDaviviendaTXT>[0], "900987654");
                 filename += ".txt";
             } else {
-                content = bankService.generateDispersionFile(selected);
+                content = bankService.generateDispersionFile(selected as Parameters<typeof bankService.generateDispersionFile>[0]);
                 filename += ".csv";
             }
 
             bankService.downloadFile(content, filename);
-            toast.success(`Archivo para ${bank} generado con éxito`);
+            toast.success(`Archivo para ${bank} generado`);
         } catch (err) {
             console.error(err);
             toast.error("Error al generar archivo");
@@ -154,205 +186,161 @@ export function PayrollDispersionHub() {
         }
     }
 
+    const fmt = (n: number) => `$${new Intl.NumberFormat('es-CO').format(n)}`
+
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-40 gap-6">
-                <Loader2 className="h-12 w-12 animate-spin text-indigo-500" />
-                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 italic">Escaneando Registro de Pagos...</p>
+            <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                <p className="text-xs text-slate-400">Cargando liquidaciones...</p>
             </div>
         )
     }
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {/* 🛡️ TOP NAVIGATION */}
-            <div className="flex items-center justify-between">
-                <Button asChild variant="ghost" className="h-12 px-6 rounded-2xl group hover:bg-slate-50 transition-all">
-                    <Link href="/payroll" className="flex items-center gap-3">
-                        <ArrowLeft className="h-5 w-5 text-slate-400 group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Volver a Nómina</span>
-                    </Link>
-                </Button>
-                <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-premium border border-slate-50">
-                    <div className="h-4 w-4 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Radar de Dispersión Activo</span>
-                </div>
-            </div>
-
-            {/* 🏭 INDUSTRIAL HEADER */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active">
-                <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <Landmark className="h-24 w-24 text-white" />
-                </div>
-
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-10">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-2 w-12 bg-indigo-500 rounded-full" />
-                            <span className="text-xs font-black uppercase tracking-[0.5em] text-indigo-500">Dispersión Bancaria Masiva</span>
+        <div className="space-y-6">
+            {/* Summary bar + Bank buttons */}
+            <Card className="rounded-2xl border border-slate-100 shadow-sm p-5">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                    <div className="flex items-center gap-4">
+                        <div className="h-9 w-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                            <Banknote className="h-4 w-4" />
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
-                            Central de <br /><span className="text-slate-500">Pagos Electrónicos</span>
-                        </h1>
-                        <p className="text-white/30 font-black text-[10px] uppercase tracking-[0.4em] italic">Generación de archivos planos multi-banco (PAB/TXT)</p>
-                    </div>
-
-                    <div className="bg-white/5 backdrop-blur-md rounded-[2.5rem] p-10 border border-white/10 flex flex-col gap-6 shadow-active min-w-[320px]">
-                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/40 italic">
-                            <span>Monto Total Seleccionado</span>
-                            <Badge variant="outline" className="border-indigo-500/30 text-indigo-400 bg-indigo-500/5 px-3 py-1 font-black italic">
-                                {stats.count} REGISTROS
-                            </Badge>
-                        </div>
-                        <div className="flex items-baseline gap-3">
-                            <span className="text-2xl font-black text-white tracking-tight">
-                                ${new Intl.NumberFormat('es-CO').format(stats.totalAmount)}
-                            </span>
-                            <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest italic">COP</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 mt-2">
-                            <Button
-                                onClick={() => handleGenerate('BANCOLOMBIA')}
-                                disabled={selectedIds.length === 0 || processing}
-                                className="h-14 bg-indigo-600 hover:bg-white hover:text-indigo-950 text-white font-black text-[10px] uppercase tracking-widest italic flex flex-col items-center justify-center rounded-2xl transition-all shadow-lg active:scale-95 gap-1"
-                            >
-                                <Landmark className="h-4 w-4" />
-                                BANCOLOMBIA
-                            </Button>
-                            <Button
-                                onClick={() => handleGenerate('DAVIVIENDA')}
-                                disabled={selectedIds.length === 0 || processing}
-                                className="h-14 bg-slate-800 hover:bg-white hover:text-slate-950 text-white font-black text-[10px] uppercase tracking-widest italic flex flex-col items-center justify-center rounded-2xl transition-all shadow-lg active:scale-95 gap-1"
-                            >
-                                <CheckCircle2 className="h-4 w-4" />
-                                DAVIVIENDA
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 📋 SETTLEMENT LIST */}
-            <Card className="border-none shadow-premium rounded-[2.5rem] bg-white overflow-hidden group">
-                <CardHeader className="p-10 border-b border-slate-50 bg-slate-50/20">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div className="space-y-1">
-                            <CardTitle className="text-2xl font-black text-slate-900 tracking-tight italic">Liquidaciones Listas para Pago</CardTitle>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic leading-tight">Módulo de extracción de flujo de caja</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="outline"
-                                onClick={toggleSelectAll}
-                                className="h-14 px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:border-indigo-500/30 transition-all border-slate-100 flex items-center gap-3 italic"
-                            >
-                                {selectedIds.length === settlements.length ? 'DESELECCIONAR TODO' : 'SELECCIONAR TODO'}
-                            </Button>
-                            <div className="relative group/search">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/search:text-indigo-500 transition-colors" />
-                                <input
-                                    className="h-14 pl-14 pr-8 bg-slate-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-900 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/10 w-64 italic outline-none transition-all"
-                                    placeholder="FILTRAR..."
-                                />
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Monto Seleccionado</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-lg font-bold text-slate-900 font-mono tabular-nums">{fmt(stats.totalAmount)}</span>
+                                <span className="text-[10px] font-semibold text-indigo-600">{stats.count} registros</span>
                             </div>
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {settlements.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-32 text-center gap-6 opacity-40">
-                            <FileText className="h-16 w-16 text-slate-200" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.5em] italic">No hay registros de nómina disponibles</p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-slate-50">
-                            {settlements.map((s, idx) => (
-                                <div
-                                    key={s.id}
-                                    className={cn(
-                                        "p-8 flex items-center gap-10 hover:bg-slate-50/50 transition-all cursor-pointer group/row relative overflow-hidden",
-                                        selectedIds.includes(s.id) && "bg-indigo-50/30"
-                                    )}
-                                    onClick={() => toggleSelect(s.id)}
-                                >
-                                    {selectedIds.includes(s.id) && (
-                                        <div className="absolute left-0 top-0 h-full w-1.5 bg-indigo-500 shadow-[2px_0_10px_#6366f1]" />
-                                    )}
 
-                                    <div className="flex items-center gap-6">
-                                        <Checkbox
-                                            checked={selectedIds.includes(s.id)}
-                                            onCheckedChange={() => toggleSelect(s.id)}
-                                            className="h-6 w-6 rounded-lg border-2 border-slate-200 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 transition-all"
-                                        />
-                                        <div className="h-14 w-14 rounded-2xl bg-slate-950 flex items-center justify-center text-white scale-90 group-hover/row:scale-100 transition-transform shadow-active">
-                                            <Users className="h-6 w-6 text-indigo-400" />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <h4 className="text-lg font-black text-slate-950 tracking-tighter uppercase italic truncate">{s.party?.legal_name}</h4>
-                                            <Badge variant="outline" className="text-[9px] font-black italic uppercase border-slate-100 tracking-widest">
-                                                {s.party?.doc_type}: {s.party?.doc_number}
-                                            </Badge>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-6">
-                                            <div className="flex items-center gap-2 text-slate-400">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest">REG: {s.issue_date}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-slate-400">
-                                                <Landmark className="h-3.5 w-3.5" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest">{s.employee?.bank_name || 'BANCO NO DEFINIDO'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-slate-400">
-                                                <div className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest">Cuenta: {s.employee?.bank_account_number || '****'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="text-right space-y-2">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic leading-none">Neto a Pagar</p>
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-2xl font-black text-slate-950 italic tracking-tighter">
-                                                ${new Intl.NumberFormat('es-CO').format(s.total)}
-                                            </span>
-                                            <span className="text-[9px] font-black text-indigo-500 uppercase italic">COP</span>
-                                        </div>
-                                        <Badge className={cn(
-                                            "text-[8px] font-black italic uppercase px-3 py-1 rounded-full",
-                                            s.status === 'SENT' ? "bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm" : "bg-slate-50 text-slate-400 border border-slate-100"
-                                        )}>
-                                            {s.status === 'SENT' ? 'TRANSMITIDO' : 'BORRADOR'}
-                                        </Badge>
-                                    </div>
-
-                                    <div className="opacity-0 group-hover/row:opacity-100 transition-opacity pl-10 border-l border-slate-50 ml-10">
-                                        <ArrowRight className="h-8 w-8 text-indigo-500 p-2 bg-indigo-50 rounded-full" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <Button
+                            onClick={() => handleGenerate('BANCOLOMBIA')}
+                            disabled={selectedIds.length === 0 || processing}
+                            size="sm"
+                            className="h-9 px-4 rounded-xl gap-2 bg-indigo-600 hover:bg-indigo-700 text-xs"
+                        >
+                            <Landmark className="h-3.5 w-3.5" />
+                            Bancolombia
+                        </Button>
+                        <Button
+                            onClick={() => handleGenerate('DAVIVIENDA')}
+                            disabled={selectedIds.length === 0 || processing}
+                            size="sm"
+                            variant="outline"
+                            className="h-9 px-4 rounded-xl gap-2 text-xs"
+                        >
+                            <Landmark className="h-3.5 w-3.5" />
+                            Davivienda
+                        </Button>
+                        <Button
+                            onClick={() => handleGenerate('GENERIC')}
+                            disabled={selectedIds.length === 0 || processing}
+                            size="sm"
+                            variant="outline"
+                            className="h-9 px-4 rounded-xl gap-2 text-xs"
+                        >
+                            <Download className="h-3.5 w-3.5" />
+                            CSV Generico
+                        </Button>
+                    </div>
+                </div>
             </Card>
 
-            {/* 🛡️ SECURITY AUDIT */}
-            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-                <div className="h-14 w-14 rounded-[1.5rem] bg-indigo-600 flex items-center justify-center text-white rotate-6 hover:rotate-0 transition-transform shadow-active duration-700">
-                    <CheckCircle2 className="h-10 w-10 shrink-0" />
+            {/* Settlement list */}
+            <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900">Liquidaciones Listas para Pago</h3>
+                        <p className="text-xs text-slate-400">{settlements.length} registros disponibles</p>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={toggleSelectAll}
+                        className="h-9 px-4 rounded-xl text-xs"
+                    >
+                        {selectedIds.length === settlements.length ? 'Deseleccionar Todo' : 'Seleccionar Todo'}
+                    </Button>
                 </div>
-                <div className="space-y-2">
-                    <h5 className="text-xl font-black text-slate-950 tracking-tighter uppercase italic">Protocolo de Integridad Bancaria</h5>
-                    <p className="text-xs text-slate-400 font-bold leading-relaxed max-w-3xl italic">
-                        Los archivos generados utilizan encriptación de estructura estándar para carga masiva en portales empresariales. Una vez descargado, el archivo debe ser cargado directamente en la sucursal virtual de su entidad bancaria para ejecutar la dispersión.
+
+                {settlements.length === 0 ? (
+                    <div className="py-16 text-center">
+                        <FileText className="h-8 w-8 text-slate-200 mx-auto mb-3" />
+                        <p className="text-xs text-slate-400">No hay registros de nomina disponibles</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-50">
+                        {settlements.map((s) => (
+                            <div
+                                key={s.id}
+                                className={cn(
+                                    "px-6 py-4 flex items-center gap-4 hover:bg-slate-50/50 transition-colors cursor-pointer",
+                                    selectedIds.includes(s.id) && "bg-indigo-50/30"
+                                )}
+                                onClick={() => toggleSelect(s.id)}
+                            >
+                                <Checkbox
+                                    checked={selectedIds.includes(s.id)}
+                                    onCheckedChange={() => toggleSelect(s.id)}
+                                    className="h-5 w-5 rounded-lg shrink-0"
+                                />
+
+                                <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                                    <Users className="h-4 w-4" />
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <h4 className="text-xs font-bold text-slate-900 leading-snug truncate">{s.party?.legal_name}</h4>
+                                        <Badge variant="outline" className="text-[10px] font-medium shrink-0">
+                                            {s.party?.doc_type}: {s.party?.doc_number}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-slate-400">
+                                        <span className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3 shrink-0" />
+                                            {s.issue_date}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <Landmark className="h-3 w-3 shrink-0" />
+                                            {s.employee?.bank_name || 'Sin banco'}
+                                        </span>
+                                        <span>Cta: {s.employee?.bank_account_number || '****'}</span>
+                                    </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                    <p className="text-[10px] text-slate-400">Neto</p>
+                                    <p className="text-sm font-bold text-slate-900 font-mono tabular-nums">{fmt(s.total)}</p>
+                                    <Badge className={cn(
+                                        "text-[10px] font-medium mt-1",
+                                        s.status === 'SENT'
+                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                            : "bg-slate-50 text-slate-400 border border-slate-100"
+                                    )}>
+                                        {s.status === 'SENT' ? 'Transmitido' : 'Borrador'}
+                                    </Badge>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Card>
+
+            {/* Info note */}
+            <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-start gap-4">
+                <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center text-indigo-600 shrink-0">
+                    <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-indigo-900">Integridad Bancaria</h3>
+                    <p className="text-xs text-indigo-600/80 leading-relaxed mt-1">
+                        Los archivos generados utilizan el formato estandar para carga masiva en portales empresariales.
+                        Descargue y cargue directamente en la sucursal virtual de su entidad bancaria.
                     </p>
-                </div>
-                <div className="ml-auto flex flex-col items-center md:items-end gap-2">
-                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Motor de Generación</span>
-                    <Badge variant="outline" className="font-black italic text-indigo-500 border-indigo-200 px-4 py-1">V3.5 CORE</Badge>
                 </div>
             </div>
         </div>

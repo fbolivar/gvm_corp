@@ -21,7 +21,6 @@ export default async function VendorsPage({
     const page = Number(params.page) || 1;
     const search = (params.search as string) || '';
 
-    // Forzar rol vendor en esta página
     const { data: parties, count } = await partyService.getParties(supabase, {
         page,
         per_page: 20,
@@ -31,20 +30,19 @@ export default async function VendorsPage({
 
     const tenant = await settingsService.getTenantInfo(supabase);
 
-    // Obtener métricas para los proveedores mostrados
     const partyIds = parties.map(p => p.id).filter(Boolean) as string[];
     const metricsResult = await purchasingService.getVendorMetrics(supabase, partyIds);
 
     const metricsMap = metricsResult.reduce((acc, m) => {
         acc[m.party_id] = m;
         return acc;
-    }, {} as any);
+    }, {} as Record<string, typeof metricsResult[number]>);
 
     return (
-        <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
             <VisualReportHeader
                 title="Directorio de Proveedores"
-                subtitle="Gestión de Alianzas y KPIs de Cumplimiento"
+                subtitle="Gestion de alianzas y KPIs de cumplimiento"
                 tenant={tenant}
             />
 

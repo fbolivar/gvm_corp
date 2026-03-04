@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react';
 import { reviewAbsenceRequest } from '../actions';
 import type { AbsenceRequest } from '../types';
 import { CheckCircle2, XCircle, CalendarDays, Clock } from 'lucide-react';
+import { Button } from '@/shared/components/ui/button';
+import { cn } from '@/shared/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -17,9 +19,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-    PENDING:  'bg-amber-50 text-amber-700 border border-amber-100',
-    APPROVED: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-    REJECTED: 'bg-rose-50 text-rose-700 border border-rose-100',
+    PENDING:  'bg-amber-50 text-amber-700',
+    APPROVED: 'bg-emerald-50 text-emerald-700',
+    REJECTED: 'bg-rose-50 text-rose-700',
 };
 const STATUS_LABEL: Record<string, string> = {
     PENDING: 'Pendiente', APPROVED: 'Aprobada', REJECTED: 'Rechazada',
@@ -52,11 +54,11 @@ function ReviewCard({ req, onDone }: { req: AbsenceRequest; onDone: () => void }
     if (done) return null;
 
     return (
-        <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-sm space-y-5">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="text-sm font-black text-slate-900">{empName}</p>
-                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 leading-snug truncate">{empName}</p>
+                    <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mt-0.5">
                         {TYPE_LABELS[req.absence_type] ?? req.absence_type}
                     </p>
                 </div>
@@ -64,37 +66,38 @@ function ReviewCard({ req, onDone }: { req: AbsenceRequest; onDone: () => void }
                     <p className="text-xs font-bold text-slate-700">
                         {formatDate(req.start_date)} → {formatDate(req.end_date)}
                     </p>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{req.days} días</p>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{req.days} dias</p>
                 </div>
             </div>
 
             {req.reason && (
-                <p className="text-xs text-slate-500 bg-slate-50 rounded-xl px-4 py-2 italic">{req.reason}</p>
+                <p className="text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">{req.reason}</p>
             )}
 
             <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="Notas del revisor (opcional)…"
+                placeholder="Notas del revisor (opcional)..."
                 rows={2}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
 
-            <div className="flex gap-3">
-                <button
+            <div className="grid grid-cols-2 gap-2">
+                <Button
                     onClick={() => handle('APPROVED')}
                     disabled={pending}
-                    className="flex-1 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    className="h-9 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold gap-1.5"
                 >
                     <CheckCircle2 className="h-3.5 w-3.5" /> Aprobar
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={() => handle('REJECTED')}
                     disabled={pending}
-                    className="flex-1 h-10 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    variant="outline"
+                    className="h-9 rounded-xl border-rose-100 text-rose-600 hover:bg-rose-50 text-xs font-semibold gap-1.5"
                 >
                     <XCircle className="h-3.5 w-3.5" /> Rechazar
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -104,25 +107,23 @@ export function AbsenceApprovalPanel({ pendingRequests, allRequests }: Props) {
     const [refreshKey, setRefreshKey] = useState(0);
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-8">
             {/* PENDIENTES */}
-            <section className="space-y-6">
+            <section className="space-y-4">
                 <div className="flex items-center gap-3">
-                    <div className="h-2 w-6 bg-amber-500 rounded-full" />
-                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                        Pendientes de Aprobación
-                    </h2>
+                    <CalendarDays className="h-4 w-4 text-amber-500" />
+                    <h2 className="text-sm font-bold text-slate-900">Pendientes de Aprobacion</h2>
                     {pendingRequests.length > 0 && (
-                        <span className="h-6 w-6 rounded-full bg-amber-500 text-white text-[10px] font-black flex items-center justify-center">
+                        <span className="bg-amber-500 text-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center">
                             {pendingRequests.length}
                         </span>
                     )}
                 </div>
 
                 {pendingRequests.length === 0 ? (
-                    <div className="bg-white rounded-[2rem] border border-dashed border-slate-200 py-14 text-center">
-                        <CalendarDays className="h-8 w-8 text-slate-200 mx-auto mb-3" />
-                        <p className="text-slate-400 font-black text-sm">Sin solicitudes pendientes</p>
+                    <div className="bg-slate-50 rounded-2xl border border-dashed border-slate-200 py-12 text-center flex flex-col items-center justify-center gap-3">
+                        <CalendarDays className="h-8 w-8 text-slate-200" />
+                        <p className="text-xs text-slate-400">Sin solicitudes pendientes</p>
                     </div>
                 ) : (
                     <div className="grid md:grid-cols-2 gap-4" key={refreshKey}>
@@ -134,26 +135,23 @@ export function AbsenceApprovalPanel({ pendingRequests, allRequests }: Props) {
             </section>
 
             {/* HISTORIAL */}
-            <section className="space-y-6">
-                <div className="flex items-center gap-3">
-                    <div className="h-2 w-6 bg-slate-400 rounded-full" />
-                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Historial</h2>
-                </div>
+            <section className="space-y-4">
+                <h2 className="text-sm font-bold text-slate-900">Historial</h2>
 
-                <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                     {allRequests.length === 0 ? (
-                        <div className="py-14 text-center">
+                        <div className="py-12 text-center">
                             <Clock className="h-8 w-8 text-slate-200 mx-auto mb-3" />
-                            <p className="text-slate-400 font-black text-sm">Sin registros</p>
+                            <p className="text-xs text-slate-400">Sin registros</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full" role="table">
+                            <table className="w-full text-xs">
                                 <thead>
-                                    <tr className="border-b border-slate-50 bg-slate-50/50">
-                                        {['Empleado', 'Tipo', 'Período', 'Días', 'Estado'].map(h => (
+                                    <tr className="border-b border-slate-100">
+                                        {['Empleado', 'Tipo', 'Periodo', 'Dias', 'Estado'].map(h => (
                                             <th key={h} scope="col"
-                                                className="px-5 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                                                 {h}
                                             </th>
                                         ))}
@@ -163,17 +161,17 @@ export function AbsenceApprovalPanel({ pendingRequests, allRequests }: Props) {
                                     {allRequests.map(req => {
                                         const empName = (req.employee?.party as { legal_name?: string } | undefined)?.legal_name ?? '—';
                                         return (
-                                            <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
-                                                <td className="px-5 py-4 text-sm font-bold text-slate-900">{empName}</td>
-                                                <td className="px-5 py-4 text-sm text-slate-600">
+                                            <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-5 py-3 font-bold text-slate-800">{empName}</td>
+                                                <td className="px-5 py-3 text-slate-600">
                                                     {TYPE_LABELS[req.absence_type] ?? req.absence_type}
                                                 </td>
-                                                <td className="px-5 py-4 text-xs text-slate-500">
+                                                <td className="px-5 py-3 text-slate-500">
                                                     {formatDate(req.start_date)} → {formatDate(req.end_date)}
                                                 </td>
-                                                <td className="px-5 py-4 text-sm font-black text-slate-700">{req.days}d</td>
-                                                <td className="px-5 py-4">
-                                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${STATUS_STYLE[req.status] ?? ''}`}>
+                                                <td className="px-5 py-3 font-bold text-slate-700 font-mono tabular-nums">{req.days}d</td>
+                                                <td className="px-5 py-3">
+                                                    <span className={cn("text-[10px] font-semibold px-2.5 py-1 rounded-lg", STATUS_STYLE[req.status] ?? '')}>
                                                         {STATUS_LABEL[req.status] ?? req.status}
                                                     </span>
                                                 </td>

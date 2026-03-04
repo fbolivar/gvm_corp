@@ -68,7 +68,7 @@ export default function DianPayrollDashboard() {
                     `)
                     .order('sent_at', { ascending: false });
 
-                if (error) throw error;
+                if (error) console.error('[dian-payroll]', error.message);
 
                 // Fetch employee data for each party
                 const payrollDocs = data.filter((d: { document?: { doc_type: string } }) => d.document?.doc_type === 'PAYROLL');

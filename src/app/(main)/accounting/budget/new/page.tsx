@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBudgetAction } from '@/features/accounting/budgetActions';
 import { Button } from '@/shared/components/ui/button';
-import { ArrowLeft, Loader2, BarChart3 } from 'lucide-react';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import Link from 'next/link';
-
-const INPUT_CLASS = 'w-full h-12 px-4 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all';
-const LABEL_CLASS = 'text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block';
 
 export default function NewBudgetPage() {
     const router = useRouter();
@@ -29,53 +29,89 @@ export default function NewBudgetPage() {
     };
 
     return (
-        <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-1000 max-w-2xl mx-auto">
-            <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                        <BarChart3 className="h-6 w-6" />
-                    </div>
-                    <div>
-                        <h1 className="text-4xl font-black tracking-tighter text-slate-900 italic">Nuevo Presupuesto</h1>
-                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Planificación financiera anual</p>
-                    </div>
-                </div>
-                <Button variant="outline" className="h-12 border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest" asChild>
-                    <Link href="/accounting/budget"><ArrowLeft className="h-4 w-4 mr-2" />Volver</Link>
+        <div className="page-container max-w-2xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild className="h-10 w-10 rounded-xl">
+                    <Link href="/accounting/budget"><ArrowLeft className="h-4 w-4" /></Link>
                 </Button>
+                <div>
+                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Nuevo Presupuesto</h1>
+                    <p className="text-xs text-slate-400">Planificación financiera anual</p>
+                </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] p-10 shadow-premium space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                        <label className={LABEL_CLASS}>Nombre del Presupuesto *</label>
-                        <input className={INPUT_CLASS} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
-                    </div>
-                    <div>
-                        <label className={LABEL_CLASS}>Año Fiscal *</label>
-                        <input type="number" min="2020" max="2035" className={INPUT_CLASS} value={form.year} onChange={e => setForm(p => ({ ...p, year: Number(e.target.value) }))} required />
-                    </div>
-                    <div>
-                        <label className={LABEL_CLASS}>Notas</label>
-                        <input className={INPUT_CLASS} placeholder="Opcional" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
-                    </div>
-                </div>
+            {/* Form */}
+            <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+                <CardHeader className="py-4 px-6 border-b border-slate-100 bg-slate-50/30">
+                    <CardTitle className="text-sm font-bold text-slate-900">Datos del Presupuesto</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2 space-y-1.5">
+                                <Label className="text-xs font-semibold text-slate-600">Nombre del Presupuesto *</Label>
+                                <Input
+                                    value={form.name}
+                                    onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                                    className="h-10 text-sm rounded-xl"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-slate-600">Año Fiscal *</Label>
+                                <Input
+                                    type="number"
+                                    min="2020"
+                                    max="2035"
+                                    value={form.year}
+                                    onChange={e => setForm(p => ({ ...p, year: Number(e.target.value) }))}
+                                    className="h-10 text-sm rounded-xl font-mono"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-slate-600">Notas</Label>
+                                <Input
+                                    placeholder="Opcional"
+                                    value={form.notes}
+                                    onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+                                    className="h-10 text-sm rounded-xl"
+                                />
+                            </div>
+                        </div>
 
-                <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100">
-                    <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">
-                        Se crearán 9 líneas presupuestales predefinidas en 6 categorías. Podrá editar todos los valores mensuales en la siguiente pantalla.
-                    </p>
-                </div>
+                        <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                            <p className="text-xs text-indigo-700">
+                                Se crearán 9 líneas presupuestales predefinidas en 6 categorías. Podrá editar todos los valores mensuales en la siguiente pantalla.
+                            </p>
+                        </div>
 
-                {error && <div className="p-5 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 text-sm font-semibold">{error}</div>}
+                        {error && (
+                            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-xs font-medium">{error}</div>
+                        )}
 
-                <div className="flex gap-4 justify-end">
-                    <Button type="button" variant="outline" onClick={() => router.push('/accounting/budget')} className="h-14 px-10 rounded-2xl border-slate-200 font-black text-[10px] uppercase tracking-widest">Cancelar</Button>
-                    <Button type="submit" disabled={loading} className="h-14 px-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest shadow-active">
-                        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Crear Presupuesto'}
-                    </Button>
-                </div>
-            </form>
+                        <div className="flex justify-end gap-3 pt-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => router.push('/accounting/budget')}
+                                className="h-10 px-6 rounded-xl text-xs"
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={loading}
+                                className="h-10 px-6 rounded-xl gap-2 bg-indigo-600 hover:bg-indigo-700 text-xs"
+                            >
+                                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                Crear Presupuesto
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }

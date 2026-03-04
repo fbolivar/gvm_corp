@@ -26,7 +26,6 @@ import { Badge } from "@/shared/components/ui/badge";
 import { StockOverview } from './StockOverview';
 import { InventoryList } from './InventoryList';
 import { InventoryCharts } from './InventoryCharts';
-import { BarcodeScannerOverlay } from './BarcodeScannerOverlay';
 import { cn } from "@/shared/lib/utils";
 
 interface Props {
@@ -285,7 +284,6 @@ export function InventoryDashboard({
                     <StockOverview stock={filteredStock as any} />
                 </div>
             </div>
-            <BarcodeScannerOverlay />
         </div>
     );
 }

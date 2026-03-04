@@ -86,7 +86,7 @@ export const contractService = {
             .from('contracts')
             .select('*, party:parties(legal_name, nit)')
             .order('created_at', { ascending: false });
-        if (error) throw error;
+        if (error) { console.error('[contracts] getAll:', error.message); return []; }
         return (data ?? []) as Contract[];
     },
 
@@ -96,7 +96,7 @@ export const contractService = {
             .select('*, party:parties(legal_name, nit)')
             .eq('id', id)
             .single();
-        if (error) throw error;
+        if (error) { console.error('[contracts] getById:', error.message); return {} as Contract; }
         return data as Contract;
     },
 
@@ -106,7 +106,7 @@ export const contractService = {
             .select('*')
             .eq('contract_id', contractId)
             .order('amendment_number', { ascending: true });
-        if (error) throw error;
+        if (error) { console.error('[contracts] getAmendments:', error.message); return []; }
         return (data ?? []) as ContractAmendment[];
     },
 

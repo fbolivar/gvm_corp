@@ -1,7 +1,7 @@
-// GVM Corp — Service Worker v1
-// Estrategia: Cache-first para assets estáticos, Network-first para páginas
+// GVM Corp — Service Worker v2
+// Estrategia: Cache-first para assets estáticos (solo producción), Network-first para páginas
 
-const CACHE_NAME = 'gvm-corp-v1';
+const CACHE_NAME = 'gvm-corp-v3';
 const STATIC_ASSETS = [
     '/',
     '/dashboard',
@@ -25,7 +25,7 @@ self.addEventListener('activate', (event) => {
                 keys
                     .filter((key) => key !== CACHE_NAME)
                     .map((key) => caches.delete(key))
-            )
+                )
         )
     );
     self.clients.claim();
@@ -42,7 +42,11 @@ self.addEventListener('fetch', (event) => {
     // API routes: siempre red, nunca cache
     if (url.pathname.startsWith('/api/')) return;
 
-    // Assets estáticos (_next/static): cache-first
+    // Dev chunks (_next/dev): NEVER cache — causes stale module errors
+    if (url.pathname.startsWith('/_next/dev/')) return;
+
+    // Assets estáticos de producción (_next/static): cache-first
+    // Estos tienen hashes en el nombre, asi que son inmutables
     if (url.pathname.startsWith('/_next/static/')) {
         event.respondWith(
             caches.match(request).then((cached) =>

@@ -27,14 +27,23 @@ interface Props {
 
 export function DianConfigForm({ initialConfig }: Props) {
     const [isLoading, setIsLoading] = useState(false)
-    const [config, setConfig] = useState(initialConfig || {
-        software_id: "",
-        pin: "",
-        technical_key: "",
-        certificate_password: "",
-        test_set_id_invoice: "",
-        test_set_id_payroll: "",
-        environment: "TEST"
+    const [config, setConfig] = useState(() => {
+        const defaults = {
+            software_id: "",
+            pin: "",
+            technical_key: "",
+            certificate_password: "",
+            test_set_id_invoice: "",
+            test_set_id_payroll: "",
+            environment: "TEST"
+        }
+        if (!initialConfig) return defaults
+        // Replace null values with empty strings to avoid React warnings
+        const merged: Record<string, unknown> = { ...defaults }
+        for (const key of Object.keys(defaults)) {
+            merged[key] = initialConfig[key] ?? defaults[key as keyof typeof defaults]
+        }
+        return merged
     })
     const [certificateName, setCertificateName] = useState("")
 

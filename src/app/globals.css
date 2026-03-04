@@ -98,6 +98,19 @@
   animation: float 3s ease-in-out infinite;
 }
 
+/* Barcode Scanner scan line animation */
+@keyframes scan {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(96px); opacity: 0; }
+}
+
+/* Custom thin scrollbar for overlays */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
 /* ──── DESIGN SYSTEM: PAGE HERO STANDARDS ──── */
 /* Max title size:   text-4xl md:text-5xl  (NEVER text-7xl/8xl/9xl)   */
 /* Hero padding:     p-10                  (NEVER p-16)                */

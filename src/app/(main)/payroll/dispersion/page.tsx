@@ -1,18 +1,34 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { settingsService } from "@/features/settings/services/settingsService"
+import { VisualReportHeader } from "@/features/accounting/components/VisualReportHeader"
 import { PayrollDispersionHub } from "@/features/payroll/components/PayrollDispersionHub"
+import { Button } from "@/shared/components/ui/button"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 export default async function PayrollDispersionPage() {
     const supabase = await createClient()
-
-    // Auth Check
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-        redirect('/login')
-    }
+    if (!user) redirect('/login')
+
+    const tenant = await settingsService.getTenantInfo(supabase)
 
     return (
-        <div className="container mx-auto py-12 px-4">
+        <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild className="h-10 w-10 rounded-xl">
+                    <Link href="/payroll"><ArrowLeft className="h-4 w-4" /></Link>
+                </Button>
+                <div className="flex-1">
+                    <VisualReportHeader
+                        title="Dispersion de Nomina"
+                        subtitle="Pago masivo Bancolombia / Davivienda"
+                        tenant={tenant}
+                    />
+                </div>
+            </div>
+
             <PayrollDispersionHub />
         </div>
     )

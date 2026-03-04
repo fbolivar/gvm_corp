@@ -12,7 +12,7 @@ export const productionService = {
             `)
             .eq('is_active', true);
 
-        if (error) throw error;
+        if (error) { console.error('[production] getRecipes:', error.message); return []; }
         return data;
     },
 
@@ -105,7 +105,7 @@ export const productionService = {
             `)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('[production] getOrders:', error.message); return []; }
         return data;
     },
 

@@ -15,8 +15,7 @@ import {
     Sparkles,
     Smartphone,
     Database,
-    Mail,
-    Brain
+    Mail
 } from "lucide-react";
 import Link from "next/link";
 
@@ -67,23 +66,12 @@ export default function SettingsPage() {
             ]
         },
         {
-            title: "Inteligencia Artificial",
-            description: "Gestiona agentes autónomos que automatizan procesos de negocio.",
-            icon: Brain,
-            color: "text-indigo-500",
-            bg: "bg-indigo-500/10",
-            links: [
-                { name: "Portfolio IQ Agent", href: "/settings/portfolio-agent" }
-            ]
-        },
-        {
             title: "Integraciones",
             description: "Conecta GVM S.A.S con otras herramientas y servicios externos.",
             icon: Globe,
             color: "text-sky-400",
             bg: "bg-sky-500/10",
             links: [
-                { name: "API & DIAN Config", href: "/settings/integrations" },
                 { name: "Correo Electrónico", href: "/settings/email" }
             ]
         },

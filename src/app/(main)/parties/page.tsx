@@ -2,8 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { partyService } from '@/features/parties/services/partyService';
 import { PartyList } from '@/features/parties/components/PartyList';
 import { PartyFilters } from '@/features/parties/types';
-import { Users, UserPlus, ShieldCheck } from 'lucide-react';
-import { Badge } from "@/shared/components/ui/badge";
+import { UserPlus, ShieldCheck } from 'lucide-react';
 import { Button } from "@/shared/components/ui/button";
 import Link from "next/link";
 import { redirect } from 'next/navigation';
@@ -42,29 +41,26 @@ export default async function PartiesPage({ searchParams }: PageProps) {
     const { data, count } = await partyService.getParties(supabase, filters);
 
     return (
-        <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            {/* 💎 PREMIUM HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="space-y-2">
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900">Centro de Identidades</h1>
-                    <div className="flex items-center gap-4">
-                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Directorio & CRM Inteligente</p>
-                        <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">
+        <div className="space-y-8 pb-16 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-1">
+                <div className="space-y-1.5">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">Clientes & Proveedores</h1>
+                    <div className="flex items-center gap-3">
+                        <p className="text-slate-400 font-semibold text-xs uppercase tracking-wide">Directorio & CRM Inteligente</p>
+                        <div className="flex items-center gap-1.5 bg-indigo-50 px-2.5 py-0.5 rounded-full">
                             <ShieldCheck className="h-3 w-3 text-indigo-600" />
-                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Registro DIAN</span>
+                            <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wide">DIAN</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <Badge variant="outline" className="h-14 px-6 rounded-[1.5rem] border-none bg-white shadow-premium text-slate-400 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-                        <Users className="h-4 w-4 text-indigo-500" />
-                        {count || 0} Registros
-                    </Badge>
-                    <Button asChild className="h-14 px-8 rounded-[1.5rem] bg-slate-900 hover:bg-primary text-white font-black shadow-active transition-all hover:scale-105 active:scale-95 border-none">
-                        <Link href="/parties/new" className="flex items-center gap-3">
-                            <UserPlus className="h-5 w-5" />
-                            <span className="text-xs uppercase tracking-widest">Nuevo Tercero</span>
+                <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{count || 0} registros</span>
+                    <Button asChild size="sm" className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs gap-2">
+                        <Link href="/parties/new">
+                            <UserPlus className="h-3.5 w-3.5" />
+                            Nuevo Tercero
                         </Link>
                     </Button>
                 </div>

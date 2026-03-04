@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { ShoppingBag, Package, PackageX, Layers } from 'lucide-react'
 import { CatalogSearch, type CatalogProduct } from '@/features/catalog/components/CatalogSearch'
 
+export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Catálogo de Productos — GVM Corp' }
 
 export default async function CatalogPage() {
@@ -11,39 +12,34 @@ export default async function CatalogPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    const [productsResult, stockResult] = await Promise.all([
-        supabase
-            .from('products')
-            .select('id, name, sku, description, price, cost, category, unit, min_stock')
-            .order('name')
-            .limit(200),
-        supabase
-            .from('product_stock')
-            .select('product_id, qty'),
-    ])
+    // Use the same RPC as /products (SECURITY DEFINER — avoids RLS issues)
+    const { data: rpcData } = await supabase.rpc('get_products_with_stock', {
+        p_limit: 200,
+        p_offset: 0,
+        p_search: '',
+    })
 
-    const rawProducts = productsResult.data ?? []
-    const stockData = stockResult.data ?? []
-
-    // Aggregate stock quantities per product
-    const stockMap = new Map<string, number>()
-    for (const row of stockData) {
-        const current = stockMap.get(row.product_id) ?? 0
-        stockMap.set(row.product_id, current + Number(row.qty))
+    const CATEGORY_LABELS: Record<string, string> = {
+        'GOOD': 'Bien',
+        'SERVICE': 'Servicio',
     }
 
-    const products: CatalogProduct[] = rawProducts.map((p) => ({
-        id: p.id,
-        name: p.name,
-        sku: p.sku ?? null,
-        description: p.description ?? null,
-        price: p.price ?? null,
-        cost: p.cost ?? null,
-        category: p.category ?? null,
-        unit: p.unit ?? null,
-        min_stock: p.min_stock ?? null,
-        totalQty: stockMap.get(p.id) ?? 0,
-    }))
+    const products: CatalogProduct[] = (rpcData ?? []).map((p: Record<string, unknown>) => {
+        const rawType = (p.type as string) ?? null
+        return {
+            id: p.id as string,
+            name: p.name as string,
+            sku: (p.sku as string) ?? null,
+            description: (p.description as string) ?? null,
+            price: p.selling_price ? Number(p.selling_price) : null,
+            cost: p.cost ? Number(p.cost) : null,
+            category: rawType,
+            categoryLabel: rawType ? (CATEGORY_LABELS[rawType] ?? rawType) : null,
+            unit: (p.uom as string) ?? null,
+            min_stock: p.min_stock ? Number(p.min_stock) : null,
+            totalQty: Number(p.total_qty ?? 0),
+        }
+    })
 
     const totalProducts = products.length
     const withStock = products.filter((p) => p.totalQty > 0).length
@@ -71,50 +67,49 @@ export default async function CatalogPage() {
     ]
 
     return (
-        <div className="page-container space-y-10 pb-24 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <div className="space-y-8 pb-16 animate-in fade-in duration-500 px-4 md:px-0">
 
             {/* ── HERO HEADER ── */}
-            <div className="relative group overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active border border-white/5">
+            <div className="relative group overflow-hidden bg-slate-900 rounded-2xl p-6 md:p-8 text-white shadow-lg">
                 {/* Decorative background icon */}
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-all duration-1000">
-                    <ShoppingBag className="h-24 w-24 text-white" />
+                <div className="absolute top-0 right-0 p-8 opacity-[0.04] pointer-events-none">
+                    <ShoppingBag className="h-20 w-20 text-white" />
                 </div>
 
-                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
+                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                     {/* Title block */}
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         <div className="flex items-center gap-3">
                             <div className="h-1.5 w-8 bg-indigo-400 rounded-full" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400">
-                                Módulo de Inventario Comercial
+                            <span className="text-xs font-semibold uppercase tracking-wide text-indigo-400">
+                                Inventario Comercial
                             </span>
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
-                            Catálogo <br />
-                            <span className="text-slate-500">de Productos</span>
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                            Catálogo <span className="text-slate-400">de Productos</span>
                         </h1>
-                        <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em]">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                             {totalProducts.toLocaleString('es-CO')} productos disponibles
                         </p>
                     </div>
 
                     {/* KPI strip */}
-                    <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+                    <div className="flex flex-wrap gap-3">
                         {kpis.map((kpi) => {
                             const Icon = kpi.icon
                             return (
                                 <div
                                     key={kpi.label}
-                                    className="bg-white rounded-[2.5rem] p-7 shadow-premium flex items-center gap-5 min-w-[160px]"
+                                    className="h-10 px-5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 hover:bg-white/10 transition-colors"
                                 >
-                                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${kpi.accent}`}>
-                                        <Icon className="h-6 w-6" />
+                                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${kpi.accent}`}>
+                                        <Icon className="h-4 w-4" />
                                     </div>
-                                    <div className="space-y-0.5">
-                                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                                    <div>
+                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400 leading-none">
                                             {kpi.label}
                                         </p>
-                                        <p className="text-2xl font-black text-slate-900 tracking-tight leading-tight tabular-nums">
+                                        <p className="text-sm font-bold text-white tracking-tight tabular-nums leading-tight">
                                             {kpi.value}
                                         </p>
                                     </div>

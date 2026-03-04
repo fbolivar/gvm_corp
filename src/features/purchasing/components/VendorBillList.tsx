@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { Document } from "@/features/documents/types"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
-import { format } from "date-fns"
 import { Button } from "@/shared/components/ui/button"
 import {
     FileCheck,
@@ -12,22 +10,15 @@ import {
     Calendar,
     ArrowUpRight,
     Search,
-    ShieldCheck,
     Banknote,
-    Activity,
-    ArrowRight,
     CheckCircle2,
     Clock,
     AlertCircle,
-    Filter,
-    Download,
+    ShieldCheck,
     Loader2
 } from "lucide-react"
 import Link from "next/link"
-import { Badge } from "@/shared/components/ui/badge"
-import { Card, CardContent } from "@/shared/components/ui/card"
 import { cn } from "@/shared/lib/utils"
-import { IndustrialApprovalFlow } from "./IndustrialApprovalFlow"
 import { approveVendorBillAction } from "../actions"
 import { useToast } from "@/shared/hooks/use-toast"
 import { useRouter } from "next/navigation"
@@ -35,6 +26,13 @@ import { useRouter } from "next/navigation"
 interface VendorBillListProps {
     bills: Document[]
 }
+
+const STATUS_CONFIG: Record<string, { label: string; className: string; Icon: React.ComponentType<{ className?: string }> }> = {
+    DRAFT: { label: 'Pendiente', className: 'bg-slate-50 text-slate-500', Icon: Clock },
+    SENT: { label: 'Contabilizada', className: 'bg-blue-50 text-blue-600', Icon: Banknote },
+    ACCEPTED: { label: 'Saldada', className: 'bg-emerald-50 text-emerald-600', Icon: CheckCircle2 },
+    CANCELLED: { label: 'Anulada', className: 'bg-rose-50 text-rose-600', Icon: AlertCircle },
+};
 
 export function VendorBillList({ bills }: VendorBillListProps) {
     const [searchTerm, setSearchTerm] = useState("");
@@ -47,18 +45,10 @@ export function VendorBillList({ bills }: VendorBillListProps) {
         const result = await approveVendorBillAction(id);
 
         if (result.success) {
-            toast({
-                title: "AUDITORÍA EXITOSA",
-                description: "La factura ha sido validada y contabilizada correctamente.",
-                variant: "default",
-            });
+            toast({ title: "Factura validada", description: "La factura ha sido contabilizada correctamente." });
             router.refresh();
         } else {
-            toast({
-                title: "ERROR DE AUDITORÍA",
-                description: result.error || "No se pudo aprobar la factura.",
-                variant: "destructive",
-            });
+            toast({ title: "Error", description: result.error || "No se pudo aprobar la factura.", variant: "destructive" });
         }
         setApprovingIds(prev => {
             const next = new Set(prev);
@@ -72,179 +62,127 @@ export function VendorBillList({ bills }: VendorBillListProps) {
         bill.party?.legal_name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const getStatusBadge = (status: string) => {
-        const styles: Record<string, string> = {
-            'DRAFT': 'border-slate-200 text-slate-500 bg-slate-50',
-            'SENT': 'border-indigo-200 text-indigo-600 bg-indigo-50/50',
-            'ACCEPTED': 'border-emerald-200 text-emerald-600 bg-emerald-50/50',
-            'CANCELLED': 'border-rose-200 text-rose-600 bg-rose-50/50',
-        };
-        const labels: Record<string, string> = {
-            'DRAFT': 'PENDIENTE AUDITORÍA',
-            'SENT': 'CONTABILIZADA / DEUDA',
-            'ACCEPTED': 'PASIVO SALDADO',
-            'CANCELLED': 'ANULADA',
-        };
-
-        const Icon = status === 'DRAFT' ? Clock : status === 'ACCEPTED' ? CheckCircle2 : status === 'SENT' ? Banknote : AlertCircle;
-
-        return (
-            <Badge variant="outline" className={cn("border-[1.5px] px-5 py-2 font-black text-[10px] uppercase tracking-[0.3em] flex items-center gap-3 rounded-full shadow-active italic leading-none whitespace-nowrap", styles[status] || '')}>
-                <div className="h-2 w-2 rounded-full bg-current animate-pulse shadow-[0_0_8px_currentColor]" />
-                <Icon className="h-4 w-4" />
-                {labels[status] || status}
-            </Badge>
-        )
-    };
-
     return (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {/* 🛠️ ENHANCED SEARCH TOOLBAR V3 */}
-            <div className="flex flex-col lg:flex-row gap-8 justify-between items-center bg-white p-10 rounded-[3.5rem] shadow-premium border border-slate-50 relative overflow-hidden group">
-                <div className="absolute right-0 top-0 p-12 opacity-[0.02] pointer-events-none group-hover:scale-125 group-hover:rotate-12 transition-all duration-[2000ms]">
-                    <Search className="h-24 w-24 text-slate-900" />
-                </div>
-
-                <div className="relative w-full lg:w-[600px] z-10 group/input">
-                    <div className="absolute left-8 top-1/2 -translate-y-1/2 h-10 w-10 bg-slate-100 rounded-2xl flex items-center justify-center group-hover/input:bg-emerald-500 group-hover/input:text-white group-hover/input:rotate-12 transition-all duration-500 shadow-inner">
-                        <Search className="h-5 w-5 opacity-40 group-hover/input:opacity-100 transition-opacity" />
-                    </div>
+        <div className="space-y-0">
+            {/* Search bar */}
+            <div className="px-5 py-3 border-b border-slate-100">
+                <div className="relative w-full max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="BUSCAR FACTURA O PROVEEDOR..."
-                        className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] h-20 pl-24 pr-10 text-[11px] font-black uppercase tracking-[0.4em] text-slate-950 focus:ring-4 focus:ring-primary/5 focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300 shadow-inner group-hover/input:border-slate-200"
+                        placeholder="Buscar factura o proveedor..."
+                        className="w-full h-9 rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-
-                <div className="flex flex-wrap items-center gap-6 z-10 w-full lg:w-auto">
-                    <Button variant="outline" className="h-16 flex-1 lg:flex-none px-10 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-[0.4em] hover:bg-slate-950 hover:text-white hover:border-slate-950 transition-all shadow-premium italic group/btn">
-                        <Filter className="h-4 w-4 mr-4 group-hover/btn:rotate-180 transition-transform" /> ESTADO PAGO
-                    </Button>
-                    <Button variant="outline" className="h-16 flex-1 lg:flex-none px-10 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-[0.4em] hover:bg-slate-950 hover:text-white hover:border-slate-950 transition-all shadow-premium italic group/btn">
-                        <Download className="h-4 w-4 mr-4 group-hover/btn:translate-y-1 transition-transform" /> AUDITORÍA
-                    </Button>
-                </div>
             </div>
 
-            {/* 🧾 INDUSTRIAL FINANCIAL TABLE V3 */}
-            <Card className="border-none shadow-premium bg-white rounded-[4rem] overflow-hidden p-3 relative">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.01] pointer-events-none">
-                    <ShieldCheck className="h-64 w-64" />
+            {/* Table */}
+            {filteredBills.length === 0 ? (
+                <div className="py-16 text-center flex flex-col items-center justify-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center">
+                        <FileCheck className="h-6 w-6 text-slate-300" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900">Sin Obligaciones</h3>
+                        <p className="text-xs text-slate-400 mt-1">No hay facturas que coincidan con la busqueda</p>
+                    </div>
                 </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full" role="table">
+                        <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/60">
+                                <th scope="col" className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Proveedor</th>
+                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
+                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Vencimiento</th>
+                                <th scope="col" className="px-4 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total</th>
+                                <th scope="col" className="px-5 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filteredBills.map((bill) => {
+                                const config = STATUS_CONFIG[bill.status] || STATUS_CONFIG.DRAFT;
+                                const { Icon } = config;
 
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="border-slate-50 hover:bg-transparent">
-                                <TableHead className="text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] pl-14 py-12 italic">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_theme(colors.emerald.500)]" />
-                                        PROVEEDOR / ORIGEN
-                                    </div>
-                                </TableHead>
-                                <TableHead className="text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] py-12 italic text-center">FLUJO DE AUDITORÍA</TableHead>
-                                <TableHead className="text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] py-12 text-right italic">OBLIGACIÓN TOTAL</TableHead>
-                                <TableHead className="text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] py-12 text-right pr-14 italic">ACCIONES</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredBills.length === 0 ? (
-                                <TableRow className="hover:bg-transparent">
-                                    <TableCell colSpan={5} className="py-40 text-center">
-                                        <div className="flex flex-col items-center gap-10">
-                                            <div className="h-32 w-32 bg-slate-50 rounded-[3rem] flex items-center justify-center shadow-inner text-slate-200 border border-slate-100 animate-pulse">
-                                                <FileCheck className="h-14 w-14" />
-                                            </div>
-                                            <div className="space-y-4">
-                                                <p className="text-slate-900 font-black text-4xl tracking-tighter italic uppercase leading-none">Cero Obligaciones</p>
-                                                <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.6em] italic">FLUJO FINANCIERO ÍNTEGRO • NO HAY FACTURAS REGISTRADAS</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredBills.map((bill) => (
-                                    <TableRow key={bill.id} className="border-slate-50 hover:bg-slate-50/50 transition-all group/row relative overflow-hidden">
-                                        <TableCell className="py-10 pl-14">
-                                            <div className="flex items-center gap-8">
-                                                <div className="h-16 w-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center text-slate-300 group-hover/row:bg-white group-hover/row:shadow-premium group-hover/row:rotate-6 transition-all duration-500 shadow-inner group-hover/row:text-primary border border-transparent group-hover/row:border-slate-100">
-                                                    <Receipt className="h-8 w-8" />
+                                return (
+                                    <tr key={bill.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                                                    <Receipt className="h-4 w-4" />
                                                 </div>
-                                                <div className="flex flex-col gap-1.5">
-                                                    <span className="text-xl font-black text-slate-950 tracking-tighter uppercase italic leading-none group-hover/row:text-primary transition-colors truncate w-72">{bill.party?.legal_name || 'ORIGEN DESCONOCIDO'}</span>
-                                                    <div className="flex items-center gap-4 mt-1">
-                                                        <Badge variant="outline" className="bg-slate-50 border-none text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full group-hover/row:bg-white group-hover/row:shadow-sm transition-all italic text-slate-400">FOLIO: {bill.number}</Badge>
-                                                        <div className="h-1 w-1 rounded-full bg-slate-300" />
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">REG. FISCAL V3.2</span>
-                                                    </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-bold text-slate-900 leading-snug truncate">
+                                                        {bill.party?.legal_name || 'Proveedor desconocido'}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                                        Folio: {bill.number}
+                                                    </p>
                                                 </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell className="py-10">
-                                            <div className="flex flex-col items-center gap-6">
-                                                <IndustrialApprovalFlow currentStatus={bill.status} className="scale-75 origin-top" />
-                                                <div className="flex items-center gap-2 mt-[-1rem]">
-                                                    <Calendar className="h-3 w-3 text-slate-300" />
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Vence: {bill.due_date || bill.issue_date}</span>
-                                                </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className={cn("inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-semibold", config.className)}>
+                                                <Icon className="h-3 w-3" />
+                                                {config.label}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar className="h-3 w-3 text-slate-300 shrink-0" />
+                                                <span className="text-[10px] text-slate-400">{bill.due_date || bill.issue_date || '—'}</span>
                                             </div>
-                                        </TableCell>
-                                        <TableCell className="py-10 text-right">
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className="text-4xl font-black text-slate-950 font-mono tracking-tighter italic leading-none group-hover/row:scale-110 origin-right transition-transform duration-500 drop-shadow-sm">
-                                                    ${bill.total.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
-                                                </span>
-                                                <div className="flex items-center gap-3 mt-1.5">
-                                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] italic">COP / OBLIGACIÓN FISCAL</span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="py-10 text-right pr-14">
-                                            <div className="flex items-center justify-end gap-5">
+                                        </td>
+                                        <td className="px-4 py-4 text-right">
+                                            <span className="text-sm font-bold text-slate-900 font-mono tabular-nums">
+                                                ${bill.total.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center justify-end gap-2">
                                                 {bill.status === 'DRAFT' && (
                                                     <Button
-                                                        variant="ghost"
+                                                        variant="outline"
                                                         size="sm"
                                                         onClick={() => bill.id && handleApprove(bill.id)}
                                                         disabled={approvingIds.has(bill.id || '')}
-                                                        className="h-12 px-8 rounded-xl bg-orange-50 border border-orange-100 text-orange-600 font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all shadow-sm active:scale-95 group/approve"
+                                                        className="h-8 px-3 rounded-xl text-xs font-semibold border-amber-100 text-amber-700 hover:bg-amber-50 gap-1.5"
                                                     >
                                                         {approvingIds.has(bill.id || '') ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                         ) : (
                                                             <>
-                                                                <ShieldCheck className="h-4 w-4 mr-2 group-hover/approve:rotate-12 transition-transform" />
-                                                                VALIDAR AUDITORÍA
+                                                                <ShieldCheck className="h-3 w-3" />
+                                                                Validar
                                                             </>
                                                         )}
                                                     </Button>
                                                 )}
 
-                                                <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-400 hover:text-primary hover:bg-white hover:shadow-premium transition-all active:scale-90 border border-transparent hover:border-slate-100" asChild title="Ver Detalle">
+                                                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" asChild title="Ver Detalle">
                                                     <Link href={`/documents/${bill.id}`}>
-                                                        <Eye className="h-7 w-7" />
+                                                        <Eye className="h-3.5 w-3.5" />
                                                     </Link>
                                                 </Button>
 
                                                 {bill.status === 'SENT' && (
-                                                    <Button variant="ghost" size="icon" className="h-14 w-14 rounded-[1.2rem] bg-indigo-50/50 text-indigo-400 hover:text-indigo-600 hover:bg-white hover:shadow-premium transition-all active:scale-90 border border-transparent hover:border-indigo-100" asChild title="Programar Pago">
+                                                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-indigo-100 text-indigo-500 hover:bg-indigo-50" asChild title="Programar Pago">
                                                         <Link href={`/treasury/payments/new?billId=${bill.id}`}>
-                                                            <ArrowUpRight className="h-7 w-7" />
+                                                            <ArrowUpRight className="h-3.5 w-3.5" />
                                                         </Link>
                                                     </Button>
                                                 )}
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     )
 }

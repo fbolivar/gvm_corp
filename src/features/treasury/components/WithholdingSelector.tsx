@@ -27,7 +27,9 @@ export function WithholdingSelector({ baseAmount, onChange }: Props) {
     const currentYear = new Date().getFullYear()
 
     useEffect(() => {
-        taxEngine.getConfigurations(supabase, currentYear).then(setAvailable)
+        taxEngine.getConfigurations(supabase, currentYear)
+            .then(setAvailable)
+            .catch(() => setAvailable([]))
     }, [])
 
     const addLine = () => {

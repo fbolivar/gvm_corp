@@ -165,8 +165,8 @@ export const dashboardService = {
             .in('status', ['ACCEPTED', 'SIGNED']);
 
         if (error) {
-            console.error("Supabase Error in getARAgingInvoices:", error);
-            throw error;
+            console.error("[dashboard] getARAgingInvoices:", error.message);
+            return [];
         }
 
         const now = new Date();
@@ -190,7 +190,7 @@ export const dashboardService = {
             .order('created_at', { ascending: false })
             .limit(limit);
 
-        if (error) throw error;
+        if (error) { console.error('[dashboard] getRecentActivity:', error.message); return []; }
         return data;
     },
 

@@ -42,7 +42,7 @@ export default async function SalesReportPage({
         .lte('issue_date', endDate)
         .order('issue_date', { ascending: false });
 
-    if (error) throw error;
+    if (error) console.error('[sales-report]', error.message);
 
     const [tenant] = await Promise.all([settingsService.getTenantInfo(supabase)]);
 

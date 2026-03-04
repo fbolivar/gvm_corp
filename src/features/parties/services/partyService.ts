@@ -29,7 +29,7 @@ export const partyService = {
             .range(from, to)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('[parties] getParties:', error.message); return { data: [] as Party[], count: 0 }; }
         return { data: data as Party[], count };
     },
 

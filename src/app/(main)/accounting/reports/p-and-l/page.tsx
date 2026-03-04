@@ -7,12 +7,10 @@ import { HierarchicalFinancialTable } from '@/features/accounting/components/Hie
 import { ReportingFilters } from '@/features/accounting/components/ReportingFilters';
 import { ReportExportActions } from '@/features/accounting/components/ReportExportActions';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
-import { Card, CardContent } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
-import { TrendingUp, TrendingDown, BarChart3, DollarSign, Percent, Info, Activity, ArrowRight, Scale } from "lucide-react"
+import { TrendingUp, TrendingDown, BarChart3, Percent, Info, Activity, Scale } from "lucide-react"
 import { redirect } from 'next/navigation';
 import { cn } from "@/shared/lib/utils"
-import { Button } from "@/shared/components/ui/button"
 
 export default async function ProfitAndLossPage({
     searchParams
@@ -47,53 +45,51 @@ export default async function ProfitAndLossPage({
     const calcDelta = (current: number, previous: number) =>
         previous === 0 ? (current > 0 ? 100 : 0) : ((current - previous) / previous) * 100;
 
-    // Build chart categories: match income and expense lines by account name
     const incomeMap = new Map(data.income.map((i: { name: string; balance: number }) => [i.name, i.balance]));
     const expenseMap = new Map(data.expenses.map((e: { name: string; balance: number }) => [e.name, e.balance]));
     const allAccounts = new Set([...incomeMap.keys(), ...expenseMap.keys()]);
     const plCategories = Array.from(allAccounts)
         .map(name => ({
-            name: name.length > 18 ? name.slice(0, 18) + '…' : name,
+            name: name.length > 18 ? name.slice(0, 18) + '...' : name,
             income: Number(incomeMap.get(name) || 0),
             expense: Number(expenseMap.get(name) || 0),
         }))
         .filter(c => c.income > 0 || c.expense > 0)
         .slice(0, 8);
 
+    const fmt = (n: number) => n.toLocaleString('es-CO', { minimumFractionDigits: 0 });
+
     return (
-        <div className="page-container space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {/* 💎 PREMIUM HEADER */}
+        <div className="page-container space-y-8 pb-20 animate-in fade-in duration-500">
+
             <VisualReportHeader
                 title="Estado de Resultados"
-                subtitle={`${startDate} » ${endDate}`}
+                subtitle={`${startDate} — ${endDate}`}
                 tenant={tenant}
             />
 
-            {/* 📊 INDUSTRIAL STRIP (Summary Data) */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 px-1">
-                <div className="flex items-center gap-8">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] leading-none mb-3">Resultado Neto del Ejercicio</span>
-                        <div className="flex items-center gap-4">
-                            <h2 className={cn(
-                                "text-3xl font-black tracking-tight leading-none",
-                                isProfit ? 'text-emerald-600' : 'text-rose-600'
-                            )}>
-                                ${data.netProfit.toLocaleString('es-CO')}
-                            </h2>
-                            <Badge className={cn(
-                                "h-8 px-4 rounded-full border-none font-black text-[10px] tracking-widest flex items-center gap-2",
-                                isProfit ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                            )}>
-                                {isProfit ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                                {isProfit ? 'UTILIDAD' : 'PÉRDIDA'}
-                            </Badge>
-                        </div>
+            {/* Resultado Neto + Filtros + Export */}
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Resultado Neto del Ejercicio</p>
+                    <div className="flex items-center gap-3">
+                        <h2 className={cn(
+                            "text-3xl font-bold tracking-tight",
+                            isProfit ? 'text-emerald-600' : 'text-rose-600'
+                        )}>
+                            ${fmt(data.netProfit)}
+                        </h2>
+                        <Badge className={cn(
+                            "h-7 px-3 rounded-full border-none font-semibold text-[10px] tracking-wider flex items-center gap-1.5",
+                            isProfit ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                        )}>
+                            {isProfit ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                            {isProfit ? 'UTILIDAD' : 'PERDIDA'}
+                        </Badge>
                     </div>
                 </div>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-3 flex-wrap">
                     <ReportingFilters />
-                    <div className="h-14 border-l border-slate-100 mx-2 hidden md:block" />
                     <ReportExportActions
                         title="Estado de Resultados"
                         companyName={tenant?.name || 'EMPRESA'}
@@ -111,7 +107,54 @@ export default async function ProfitAndLossPage({
                 </div>
             </div>
 
-            {/* P&L Chart */}
+            {/* KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <BarChart3 className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ingresos</span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-900 tracking-tight">${fmt(data.totalIncome)}</p>
+                    <p className="text-[10px] text-indigo-500 font-medium mt-1">Ventas Netas Consolidadas</p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+                            <Activity className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Egresos y Costos</span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-900 tracking-tight">${fmt(data.totalExpenses)}</p>
+                    <p className="text-[10px] text-rose-500 font-medium mt-1">Costo de Ventas + Gastos Admin</p>
+                </div>
+
+                <div className={cn(
+                    "rounded-2xl p-6 shadow-sm",
+                    isProfit ? "bg-slate-900 text-white" : "bg-rose-900 text-white"
+                )}>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                            <Percent className="h-5 w-5" />
+                        </div>
+                        <span className="text-[10px] font-semibold bg-white/10 px-3 py-1 rounded-full tracking-wider">
+                            {margin}% MARGEN
+                        </span>
+                    </div>
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-1">Utilidad del Periodo</p>
+                    <p className="text-2xl font-bold text-white tracking-tight">${fmt(data.netProfit)}</p>
+                    <div className="flex items-center gap-1.5 mt-2 text-emerald-400">
+                        <TrendingUp className="h-3 w-3" />
+                        <span className="text-[9px] font-medium uppercase tracking-wider">
+                            Rentabilidad {isProfit ? 'Positiva' : 'Negativa'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Grafico P&L */}
             <PLChart
                 categories={plCategories}
                 totalIncome={data.totalIncome}
@@ -119,89 +162,21 @@ export default async function ProfitAndLossPage({
                 netProfit={data.netProfit}
             />
 
-            {/* 🎯 KPI V3 DASHBOARD */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50 group hover:translate-y-[-8px] transition-all relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                        <TrendingUp className="h-32 w-32 text-slate-900" />
-                    </div>
-                    <div className="space-y-6 relative z-10">
-                        <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
-                            <BarChart3 className="h-7 w-7" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Ingresos Operativos</p>
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-                                ${data.totalIncome.toLocaleString('es-CO')}
-                            </h3>
-                            <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest mt-2">Ventas Netas Consolidadas</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50 group hover:translate-y-[-8px] transition-all relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                        <TrendingDown className="h-32 w-32 text-slate-900" />
-                    </div>
-                    <div className="space-y-6 relative z-10">
-                        <div className="h-14 w-14 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-inner">
-                            <Activity className="h-7 w-7" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Egresos & Costos</p>
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-                                ${data.totalExpenses.toLocaleString('es-CO')}
-                            </h3>
-                            <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest mt-2">Costo de Ventas + Gastos Admin</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={cn(
-                    "rounded-[2.5rem] p-10 shadow-active transition-all relative overflow-hidden group hover:translate-y-[-8px]",
-                    isProfit ? "bg-slate-900 text-white" : "bg-rose-900 text-white"
-                )}>
-                    <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform">
-                        <DollarSign className="h-32 w-32 text-white" />
-                    </div>
-                    <div className="space-y-6 relative z-10">
-                        <div className="flex items-center justify-between">
-                            <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center text-white backdrop-blur-md shadow-inner">
-                                <Percent className="h-7 w-7" />
-                            </div>
-                            <div className="bg-white/10 px-4 py-2 rounded-full backdrop-blur-md border border-white/5">
-                                <span className="text-[10px] font-black tracking-widest">{margin}% MARGEN NETO</span>
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Utilidad del Periodo</p>
-                            <h3 className="text-2xl font-black text-white tracking-tight leading-none">
-                                ${data.netProfit.toLocaleString('es-CO')}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-3 text-emerald-400">
-                                <TrendingUp className="h-3 w-3" />
-                                <span className="text-[9px] font-black uppercase tracking-widest">Ratio de Rentabilidad Positivo</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 📊 PERIOD COMPARISON */}
+            {/* Comparativa de Periodos */}
             {compareData && (
-                <div className="bg-white rounded-[2.5rem] p-10 shadow-premium border border-slate-50">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="h-14 w-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
-                            <Scale className="h-7 w-7" />
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <Scale className="h-5 w-5" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-black italic uppercase tracking-tighter text-slate-950">Comparativa de Períodos</h3>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                                {startDate} » {endDate} &nbsp;vs&nbsp; {compareStart} » {compareEnd}
+                            <h3 className="text-sm font-bold text-slate-900">Comparativa de Periodos</h3>
+                            <p className="text-[10px] text-slate-400">
+                                {startDate} — {endDate} vs {compareStart} — {compareEnd}
                             </p>
                         </div>
                     </div>
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y divide-slate-100">
                         {[
                             { label: 'Ingresos Operativos', current: data.totalIncome, previous: compareData.totalIncome, positiveGood: true },
                             { label: 'Gastos y Costos', current: data.totalExpenses, previous: compareData.totalExpenses, positiveGood: false },
@@ -210,21 +185,21 @@ export default async function ProfitAndLossPage({
                             const delta = calcDelta(current, previous);
                             const isImprovement = positiveGood ? delta >= 0 : delta <= 0;
                             return (
-                                <div key={label} className="grid grid-cols-4 items-center gap-6 py-5">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</span>
+                                <div key={label} className="grid grid-cols-4 items-center gap-4 py-4">
+                                    <span className="text-xs font-semibold text-slate-600">{label}</span>
                                     <div>
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Período Actual</p>
-                                        <span className="text-xl font-black italic text-slate-900 tabular-nums">${current.toLocaleString('es-CO')}</span>
+                                        <p className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Actual</p>
+                                        <span className="text-base font-bold text-slate-900 tabular-nums">${fmt(current)}</span>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Período Anterior</p>
-                                        <span className="text-lg font-bold italic text-slate-400 tabular-nums">${previous.toLocaleString('es-CO')}</span>
+                                        <p className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Anterior</p>
+                                        <span className="text-base font-medium text-slate-400 tabular-nums">${fmt(previous)}</span>
                                     </div>
                                     <Badge className={cn(
-                                        "h-8 px-4 rounded-full border-none font-black text-[10px] tracking-widest w-fit",
+                                        "h-7 px-3 rounded-full border-none font-semibold text-[10px] tracking-wider w-fit",
                                         isImprovement ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                                     )}>
-                                        {isImprovement ? <TrendingUp className="h-3 w-3 mr-1.5 inline" /> : <TrendingDown className="h-3 w-3 mr-1.5 inline" />}
+                                        {isImprovement ? <TrendingUp className="h-3 w-3 mr-1 inline" /> : <TrendingDown className="h-3 w-3 mr-1 inline" />}
                                         {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
                                     </Badge>
                                 </div>
@@ -234,39 +209,33 @@ export default async function ProfitAndLossPage({
                 </div>
             )}
 
-            {/* 🏗️ DETAIL ARCHITECTURE */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                <div className="lg:col-span-12 space-y-12">
-                    <HierarchicalFinancialTable
-                        title="Ingresos"
-                        nodes={incomeTree}
-                        totalLabel="Total Ingresos Operativos"
-                        totalValue={data.totalIncome}
-                    />
-
-                    <HierarchicalFinancialTable
-                        title="Gastos / Costos"
-                        nodes={expensesTree}
-                        totalLabel="Total Gastos y Costos"
-                        totalValue={data.totalExpenses}
-                    />
-                </div>
+            {/* Tablas de Detalle */}
+            <div className="space-y-8">
+                <HierarchicalFinancialTable
+                    title="Ingresos"
+                    nodes={incomeTree}
+                    totalLabel="Total Ingresos Operativos"
+                    totalValue={data.totalIncome}
+                />
+                <HierarchicalFinancialTable
+                    title="Gastos / Costos"
+                    nodes={expensesTree}
+                    totalLabel="Total Gastos y Costos"
+                    totalValue={data.totalExpenses}
+                />
             </div>
 
-            {/* 🛡️ FOOTNOTE ADVISORY */}
-            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="flex items-center gap-8">
-                    <div className="h-16 w-16 bg-white rounded-3xl flex items-center justify-center text-slate-300 shadow-premium border border-slate-50">
-                        <Info className="h-8 w-8" />
-                    </div>
-                    <div className="space-y-1">
-                        <h5 className="text-slate-900 font-black text-sm uppercase italic tracking-tight">Certificación de Cumplimiento NIIF</h5>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Ejecutado por <span className="text-indigo-400">{tenant?.name}</span> para Ciclo Fiscal 2026</p>
-                    </div>
+            {/* Footnote NIIF */}
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-4">
+                <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-slate-300 shadow-sm shrink-0">
+                    <Info className="h-5 w-5" />
                 </div>
-                <Button variant="outline" className="h-14 rounded-2xl border-slate-200 text-[10px] font-black uppercase tracking-widest px-8 hover:bg-white hover:shadow-premium transition-all">
-                    Ver Detalle de Auditoría <ArrowRight className="ml-3 h-4 w-4" />
-                </Button>
+                <div>
+                    <p className="text-xs font-semibold text-slate-600">Certificacion NIIF</p>
+                    <p className="text-[10px] text-slate-400">
+                        Ejecutado por <span className="text-indigo-500 font-medium">{tenant?.name}</span> — Ciclo Fiscal {new Date().getFullYear()}
+                    </p>
+                </div>
             </div>
         </div>
     );

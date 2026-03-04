@@ -47,7 +47,7 @@ export default async function EmployerCostPage({
         .select('*, party:parties(legal_name, doc_number)')
         .eq('status', 'ACTIVE')
         .order('created_at');
-    if (error) throw error;
+    if (error) console.error('[employer-cost]', error.message);
 
     const emps = employees ?? [];
     const empIds = emps.map(e => e.id);

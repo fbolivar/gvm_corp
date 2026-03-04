@@ -48,8 +48,6 @@ import {
     Clock,
     Landmark,
     CalendarDays,
-    ShieldCheck as ShieldQC,
-    Wrench,
     GraduationCap,
     Tag,
     FlaskConical,
@@ -166,7 +164,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     title: t.sidebar.support,
                     href: "/support",
                     icon: Headset,
-                    moduleKey: 'crm', // Map to CRM for now
+                    moduleKey: 'support',
                     children: [
                         { title: t.sidebar.tickets, href: "/support/tickets", icon: ClipboardList },
                         { title: t.sidebar.new_ticket, href: "/support/tickets/new", icon: Plus },
@@ -237,7 +235,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     title: 'Tesorería',
                     href: '/treasury',
                     icon: Landmark,
-                    moduleKey: 'accounting',
+                    moduleKey: 'treasury',
                     children: [
                         { title: 'Cuentas & Movimientos', href: '/treasury', icon: Wallet },
                         { title: 'Cartera', href: '/treasury/cartera', icon: DollarSign },
@@ -245,9 +243,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Conciliación', href: '/treasury/reconcile', icon: ArrowLeftRight },
                     ]
                 },
-                { title: 'Calidad QC', href: "/quality", icon: ShieldQC, moduleKey: 'production' },
-                { title: 'Mantenimiento', href: "/maintenance", icon: Wrench, moduleKey: 'production' },
-                { title: 'Contratos', href: "/contracts", icon: FileText, moduleKey: 'documents' },
+                { title: 'Contratos', href: "/contracts", icon: FileText, moduleKey: 'contracts' },
                 { title: 'Portal Proveedores', href: "/vendor-portal", icon: Users, moduleKey: 'purchasing' },
             ]
         },
@@ -255,14 +251,13 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
             group: t.sidebar.tools.toUpperCase(),
             links: [
                 { title: 'Notificaciones', href: "/notifications", icon: Bell }, // siempre visible
-                { title: 'GVM AI', href: "/ai-assistant", icon: Sparkles }, // siempre visible
                 { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare }, // siempre visible
                 { title: 'Importación', href: "/settings/import", icon: Upload }, // siempre visible
                 {
                     title: 'DIAN',
                     href: '/dian',
                     icon: FileDigit,
-                    moduleKey: 'accounting',
+                    moduleKey: 'dian',
                     children: [
                         { title: 'Facturación Electrónica', href: '/dian', icon: FileText },
                         { title: 'Nómina Electrónica', href: '/dian/payroll', icon: Calculator },
@@ -377,7 +372,11 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
     };
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error('[Sidebar] signOut error:', err);
+        }
         window.location.href = "/login";
     };
 
@@ -556,7 +555,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[12px] font-black text-slate-900 leading-none truncate italic group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
-                                            {user.user_metadata?.full_name?.split(' ')[0] || 'Usuario'}
+                                            {user.user_metadata?.full_name || 'Usuario'}
                                         </p>
                                         <div className="flex items-center gap-1.5 mt-1">
                                             <div className="h-1 w-1 bg-indigo-600 rounded-full" />

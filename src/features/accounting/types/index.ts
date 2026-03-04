@@ -5,13 +5,33 @@ export enum AccountNature {
     CREDIT = 'CREDIT'
 }
 
+export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE' | 'COST' | 'ORDER';
+
 export interface Account {
     id: string;
     code: string;
     name: string;
     is_auxiliary: boolean;
     nature: AccountNature;
+    type?: AccountType;
+    level?: number;
+    parent_id?: string | null;
+    is_active?: boolean;
+    balance?: number;
+    created_at?: string;
+    updated_at?: string;
 }
+
+export const accountFormSchema = z.object({
+    code: z.string().min(1, 'El código es obligatorio').max(20, 'Máximo 20 caracteres'),
+    name: z.string().min(1, 'El nombre es obligatorio').max(200, 'Máximo 200 caracteres'),
+    nature: z.enum(['DEBIT', 'CREDIT']),
+    type: z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE', 'COST', 'ORDER']).optional(),
+    is_auxiliary: z.boolean(),
+    parent_id: z.string().uuid().nullable().optional(),
+});
+
+export type AccountFormData = z.infer<typeof accountFormSchema>;
 
 export interface JournalEntry {
     id?: string;

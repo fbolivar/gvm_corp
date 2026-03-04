@@ -38,11 +38,6 @@ export default function manifest(): MetadataRoute.Manifest {
                 url: '/dashboard',
                 description: 'Ver el panel principal',
             },
-            {
-                name: 'GVM AI',
-                url: '/ai-assistant',
-                description: 'Asistente financiero inteligente',
-            },
         ],
     };
 }

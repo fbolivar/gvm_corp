@@ -1,8 +1,9 @@
+import { Suspense } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { NewEmployeeFormWrapper } from "@/features/payroll/components/NewEmployeeFormWrapper"
 import { Button } from "@/shared/components/ui/button"
-import { ChevronLeft, UserPlus, Sparkles } from "lucide-react"
+import { ChevronLeft, UserPlus, Sparkles, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export default async function NewEmployeePage() {
@@ -48,7 +49,9 @@ export default async function NewEmployeePage() {
                 </div>
             </div>
 
-            <NewEmployeeFormWrapper />
+            <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-slate-300" /></div>}>
+                <NewEmployeeFormWrapper />
+            </Suspense>
         </div>
     )
 }

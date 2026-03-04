@@ -46,7 +46,7 @@ export default async function BenefitsProvisionPage({
         .select('*, party:parties(legal_name, doc_number)')
         .eq('status', 'ACTIVE')
         .order('created_at');
-    if (error) throw error;
+    if (error) console.error('[benefits-provision]', error.message);
 
     const emps = employees ?? [];
     const empIds = emps.map(e => e.id);

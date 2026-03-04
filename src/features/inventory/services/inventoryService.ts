@@ -180,7 +180,7 @@ export const inventoryService = {
 
     async getWarehouses(client: SupabaseClient) {
         const { data, error } = await client.from('warehouses').select('*');
-        if (error) throw error;
+        if (error) { console.error('[inventory] getWarehouses:', error.message); return [] as Warehouse[]; }
         return data as Warehouse[];
     },
 
@@ -305,7 +305,7 @@ export const inventoryService = {
             .select('*', { count: 'exact', head: true })
             .gte('occurred_at', `${today}T00:00:00`);
 
-        if (error) throw error;
+        if (error) { console.error('[inventory] getMovementsStats:', error.message); return 0; }
         return count || 0;
     },
 
@@ -319,7 +319,7 @@ export const inventoryService = {
             .gte('occurred_at', startDate.toISOString())
             .order('occurred_at', { ascending: true });
 
-        if (error) throw error;
+        if (error) { console.error('[inventory] getInventoryTrends:', error.message); return []; }
 
         // Group by day and type
         const trends = data.reduce((acc: any, curr: any) => {

@@ -84,7 +84,7 @@ export const fixedAssetService = {
             .from('fixed_assets')
             .select('*')
             .order('acquisition_date', { ascending: false });
-        if (error) throw error;
+        if (error) { console.error('[fixedAsset] getAll:', error.message); return []; }
         return (data ?? []) as FixedAsset[];
     },
 

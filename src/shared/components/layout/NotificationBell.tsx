@@ -35,27 +35,34 @@ export function NotificationBell() {
 
     useEffect(() => {
         const fetchNotifications = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-            const { data: userTenant } = await supabase
-                .from('user_tenants')
-                .select('tenant_id')
-                .eq('user_id', user.id)
-                .maybeSingle();
+                const { data: userTenant } = await supabase
+                    .from('user_tenants')
+                    .select('tenant_id')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
 
-            const { data } = await supabase
-                .from('app_notifications')
-                .select('*')
-                .or(`user_id.eq.${user.id},and(user_id.is.null,tenant_id.eq.${userTenant?.tenant_id})`)
-                .order('created_at', { ascending: false })
-                .limit(10);
+                const tid = userTenant?.tenant_id;
+                if (!tid) return;
 
-            if (data) {
-                setNotifications(data);
-                setHasUnread(data.some((n: { is_read: boolean }) => !n.is_read));
-                setUserId(user.id);
-                setTenantId(userTenant?.tenant_id || null);
+                const { data } = await supabase
+                    .from('app_notifications')
+                    .select('*')
+                    .or(`user_id.eq.${user.id},and(user_id.is.null,tenant_id.eq.${tid})`)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (data) {
+                    setNotifications(data);
+                    setHasUnread(data.some((n: { is_read: boolean }) => !n.is_read));
+                    setUserId(user.id);
+                    setTenantId(tid);
+                }
+            } catch (err) {
+                console.error('[NotificationBell] fetch error:', err);
             }
         };
 
@@ -88,7 +95,9 @@ export function NotificationBell() {
                     return [n, ...prev].slice(0, 10);
                 });
             })
-            .subscribe();
+            .subscribe((status, err) => {
+                if (err) console.error('[NotificationBell] realtime error:', err);
+            });
 
         return () => {
             supabase.removeChannel(channel);
@@ -96,16 +105,20 @@ export function NotificationBell() {
     }, []);
 
     const markAsRead = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
-        await supabase
-            .from('app_notifications')
-            .update({ is_read: true })
-            .eq('user_id', user.id);
+            await supabase
+                .from('app_notifications')
+                .update({ is_read: true })
+                .eq('user_id', user.id);
 
-        setHasUnread(false);
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setHasUnread(false);
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        } catch (err) {
+            console.error('[NotificationBell] markAsRead error:', err);
+        }
     };
 
     return (

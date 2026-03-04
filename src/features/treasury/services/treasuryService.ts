@@ -21,7 +21,7 @@ export const treasuryService = {
             .from('treasury_accounts')
             .select('id,name,type,bank_name,account_number,balance,chart_account_id')
             .order('name');
-        if (error) throw error;
+        if (error) { console.error('[treasury] getAccounts:', error.message); return [] as TreasuryAccount[]; }
         return data as TreasuryAccount[];
     },
 
@@ -42,11 +42,7 @@ export const treasuryService = {
             .select(`
                 *,
                 party:parties(legal_name),
-                account:treasury_accounts(name, type),
-                withholdings:transaction_withholdings(
-                    *,
-                    tax_withholding:tax_withholdings(name)
-                )
+                account:treasury_accounts(name, type)
             `)
             .order('date', { ascending: false });
 
@@ -59,7 +55,7 @@ export const treasuryService = {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) { console.error('[treasury] getTransactions:', error.message); return []; }
         return data;
     },
 

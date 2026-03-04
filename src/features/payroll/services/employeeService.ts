@@ -7,6 +7,7 @@ export const employeeService = {
         const { data, error } = await client
             .from('employees')
             .select('*, party:parties(*)')
+            .eq('status', 'ACTIVE')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -130,7 +131,7 @@ export const employeeService = {
 
             // 2. Create Employee Record
             // Sanitize Employee Data
-            const employeeInsertData = {
+            const employeeInsertData: Record<string, unknown> = {
                 tenant_id: tenantId,
                 party_id: partyId,
                 contract_type: employee.contract_type,
@@ -145,6 +146,11 @@ export const employeeService = {
                 bank_account_number: employee.bank_account_number || null,
                 status: 'ACTIVE'
             };
+
+            // Link to auth user if provided (from Team Settings enrollment)
+            if (employee.user_id) {
+                employeeInsertData.user_id = employee.user_id;
+            }
 
             console.log("Creating employee record (SANITIZED):", JSON.stringify(employeeInsertData, null, 2));
 

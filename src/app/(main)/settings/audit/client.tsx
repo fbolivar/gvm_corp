@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Search,
     Filter,
@@ -232,6 +232,8 @@ function PayloadViewer({ payload }: { payload: unknown }) {
 const PAGE_SIZE = 50;
 
 export default function AuditLogClient({ logs, totalCount, uniqueUsers, mostRecent }: Props) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
     const [search, setSearch] = useState('');
     const [entityFilter, setEntityFilter] = useState('');
     const [actionFilter, setActionFilter] = useState('');
@@ -331,8 +333,8 @@ export default function AuditLogClient({ logs, totalCount, uniqueUsers, mostRece
                 <StatCard
                     icon={Clock}
                     label="Evento Mas Reciente"
-                    value={mostRecent ? formatRelative(mostRecent) : '—'}
-                    sub={mostRecent ? `${formatDate(mostRecent)} ${formatTime(mostRecent)}` : 'Sin datos'}
+                    value={mounted && mostRecent ? formatRelative(mostRecent) : '—'}
+                    sub={mounted && mostRecent ? `${formatDate(mostRecent)} ${formatTime(mostRecent)}` : 'Sin datos'}
                     color="bg-amber-50 text-amber-600"
                 />
             </div>

@@ -18,33 +18,44 @@ export const productService = {
         }
 
         const from = (filters.page - 1) * filters.per_page;
-        // const to = from + filters.per_page - 1; 
 
-        // Use RPC for stock aggregation
-        const { data, error, count } = await client.rpc('get_products_with_stock', {
-            p_limit: filters.per_page,
-            p_offset: from,
-            p_search: filters.search || ''
-        }, { count: 'exact' });
+        // Run RPC + count query in parallel
+        const countQuery = client.from('products').select('id', { count: 'exact', head: true });
+        if (filters.search) {
+            countQuery.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`);
+        }
+        if (filters.type) countQuery.eq('type', filters.type);
+        if (filters.status) countQuery.eq('status', filters.status);
 
-        if (error) {
-            // Fallback: RPC may not be deployed yet — query products directly
-            console.error("get_products_with_stock RPC unavailable:", error.message, "— using direct query fallback");
-            const { data: fallbackData, error: fbErr, count: fbCount } = await query
+        const [rpcResult, countResult] = await Promise.all([
+            client.rpc('get_products_with_stock', {
+                p_limit: filters.per_page,
+                p_offset: from,
+                p_search: filters.search || ''
+            }),
+            countQuery,
+        ]);
+
+        const totalCount = countResult.count || 0;
+
+        if (rpcResult.error) {
+            // Fallback: query products directly
+            console.error("get_products_with_stock RPC error:", rpcResult.error.message);
+            const { data: fallbackData, error: fbErr } = await query
                 .range(from, from + filters.per_page - 1)
                 .order('name');
-            if (fbErr) throw fbErr;
-            const fallbackMapped = (fallbackData as any[]).map(p => ({ ...p, stock_qty: 0, total_qty: 0 }));
-            return { data: fallbackMapped as Product[], count: fbCount || 0 };
+            if (fbErr) { console.error('[products] getProducts fallback:', fbErr.message); return { data: [] as unknown as Product[], count: totalCount }; }
+            const fallbackMapped = (fallbackData ?? []).map((p) => ({ ...p, stock_qty: 0, total_qty: 0 }));
+            return { data: fallbackMapped as unknown as Product[], count: totalCount };
         }
 
         // RPC returns total_qty, map to stock_qty for UI
-        const mappedData = (data as any[]).map(p => ({
+        const mappedData = (rpcResult.data ?? []).map((p: Record<string, unknown>) => ({
             ...p,
             stock_qty: Number(p.total_qty)
         }));
 
-        return { data: mappedData as Product[], count: count || 0 };
+        return { data: mappedData as unknown as Product[], count: totalCount };
     },
 
     async getProductById(client: SupabaseClient, id: string) {

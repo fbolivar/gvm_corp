@@ -1,72 +1,69 @@
 import { createClient } from '@/lib/supabase/server';
 import { employeeService } from '@/features/payroll/services/employeeService';
+import { settingsService } from '@/features/settings/services/settingsService';
 import { EmployeeList } from '@/features/payroll/components/EmployeeList';
+import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { redirect } from 'next/navigation';
-import { Clock, ShieldCheck } from "lucide-react";
+import { Card, CardContent } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function EmployeesPage() {
     const supabase = await createClient();
-
-    // Auth Check
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        redirect('/login');
-    }
+    if (!user) redirect('/login');
 
-    let employees: any[] = [];
+    let employees: Awaited<ReturnType<typeof employeeService.getEmployees>> = [];
     let errorMsg = null;
 
-    try {
-        employees = await employeeService.getEmployees(supabase);
-    } catch (e: any) {
-        console.error("Error fetching employees:", JSON.stringify(e, null, 2));
-
-        if (
-            e?.code === '42P01' ||
-            e?.code === 'PGRST205' ||
-            e?.message?.includes('relation "employees" does not exist') ||
-            e?.message?.includes('Could not find the table')
-        ) {
-            errorMsg = "La tabla 'employees' no existe. Por favor ejecuta el SQL de migración.";
-        } else {
-            errorMsg = `Error cargando empleados: ${e?.message || JSON.stringify(e)}`;
-        }
-    }
+    const [tenant] = await Promise.all([
+        settingsService.getTenantInfo(supabase),
+        employeeService.getEmployees(supabase)
+            .then(r => { employees = r; })
+            .catch((e: unknown) => {
+                const err = e as { code?: string; message?: string };
+                if (
+                    err?.code === '42P01' ||
+                    err?.code === 'PGRST205' ||
+                    err?.message?.includes('relation "employees" does not exist') ||
+                    err?.message?.includes('Could not find the table')
+                ) {
+                    errorMsg = "La tabla 'employees' no existe. Por favor ejecuta el SQL de migracion.";
+                } else {
+                    errorMsg = `Error cargando empleados: ${err?.message || 'Desconocido'}`;
+                }
+            }),
+    ]);
 
     if (errorMsg) {
         return (
-            <div className="container mx-auto py-12 px-4 italic">
-                <div className="bg-rose-50 text-rose-600 p-8 rounded-[2rem] border-none shadow-premium">
-                    <h3 className="text-2xl font-black tracking-tighter mb-2">Error de Sincronización</h3>
-                    <p className="text-sm font-bold uppercase tracking-widest opacity-60">{errorMsg}</p>
-                </div>
+            <div className="page-container py-12">
+                <Card className="rounded-2xl border border-rose-100 bg-rose-50 shadow-sm">
+                    <CardContent className="p-6 flex items-start gap-4">
+                        <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+                        <div>
+                            <h3 className="text-sm font-bold text-rose-700 mb-1">Error de Sincronizacion</h3>
+                            <p className="text-xs text-rose-600">{errorMsg}</p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 container mx-auto py-12 px-4">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="space-y-2">
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900">Colaboradores</h1>
-                    <div className="flex items-center gap-4">
-                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Base de Datos de Capital Humano</p>
-                        <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full">
-                            <ShieldCheck className="h-3 w-3 text-indigo-600" />
-                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Estructura Certificada</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4 bg-white p-2 rounded-[1.5rem] shadow-premium">
-                    <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-                        <Clock className="h-5 w-5" />
-                    </div>
-                    <div className="pr-4">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Corte Actual</p>
-                        <p className="text-sm font-black text-slate-900 italic">Febrero 17, 2026</p>
-                    </div>
+        <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild className="h-10 w-10 rounded-xl">
+                    <Link href="/payroll"><ArrowLeft className="h-4 w-4" /></Link>
+                </Button>
+                <div className="flex-1">
+                    <VisualReportHeader
+                        title="Colaboradores"
+                        subtitle="Base de datos de capital humano"
+                        tenant={tenant}
+                    />
                 </div>
             </div>
 

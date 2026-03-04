@@ -52,20 +52,31 @@ const nextConfig: NextConfig = {
     ]
   },
 
-  // 4. Redirect trailing slashes for consistency
+  // 4. Redirects for legacy/old routes
+  async redirects() {
+    return [
+      {
+        source: '/portfolio/agent',
+        destination: '/settings/portfolio-agent',
+        permanent: true,
+      },
+    ]
+  },
+
+  // 5. Redirect trailing slashes for consistency
   trailingSlash: false,
 
-  // 5. Enable React strict mode for development
+  // 6. Enable React strict mode for development
   reactStrictMode: true,
 
-  // 6. Logging for production debugging
+  // 7. Logging for production debugging
   logging: {
     fetches: {
       fullUrl: true,
     },
   },
 
-  // 7. Experimental: optimize package imports to reduce bundle size
+  // 8. Experimental: optimize package imports to reduce bundle size
   experimental: {
     optimizePackageImports: [
       'lucide-react',

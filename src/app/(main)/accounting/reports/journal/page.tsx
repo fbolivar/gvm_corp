@@ -71,7 +71,7 @@ export default async function JournalBookPage({
         .order('entry_date', { ascending: true })
         .order('created_at', { ascending: true });
 
-    if (error) throw error;
+    if (error) console.error('[journal]', error.message);
 
     const journalEntries = (entries || []) as unknown as JournalEntry[];
 

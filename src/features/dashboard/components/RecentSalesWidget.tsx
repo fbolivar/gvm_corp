@@ -2,11 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
 import { Button } from "@/shared/components/ui/button"
 import Link from "next/link"
-import { ArrowUpRight, History, User, Search } from "lucide-react"
+import { ArrowUpRight, History, Search } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Badge } from "@/shared/components/ui/badge"
 import { cn } from "@/shared/lib/utils"
+
+/** Deterministic number formatter — avoids server/client locale mismatch */
+function fmtNum(n: number): string {
+    const abs = Math.abs(Math.round(n));
+    const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return n < 0 ? `-${formatted}` : formatted;
+}
 
 interface RecentSalesWidgetProps {
     data: any[]
@@ -85,7 +92,7 @@ export function RecentSalesWidget({ data }: RecentSalesWidgetProps) {
                                     <TableCell className="py-4 text-right pr-8">
                                         <div className="flex flex-col items-end gap-1">
                                             <span className="text-lg font-bold text-slate-900 font-mono tracking-tight italic group-hover:scale-105 transition-transform origin-right leading-none">
-                                                ${item.total?.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
+                                                ${fmtNum(item.total ?? 0)}
                                             </span>
                                             <Badge variant="outline" className={cn(
                                                 "text-[7px] font-bold border-none h-4 px-2 rounded tracking-widest leading-none flex items-center gap-1",

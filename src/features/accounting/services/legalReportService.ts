@@ -49,7 +49,7 @@ export const legalReportService = {
             .lte('journal_entries.entry_date', endDate)
             .or('code.ilike.2365%,code.ilike.2367%,code.ilike.2368%', { foreignTable: 'chart_accounts' });
 
-        if (error) throw error;
+        if (error) { console.error('[legalReport] getWithholdingData:', error.message); return []; }
 
         // Agrupar por cuenta para el certificado
         const summaryMap = new Map<string, WithholdingSummary>();
@@ -122,7 +122,7 @@ export const legalReportService = {
             .lte('journal_entries.entry_date', endDate)
             .or('code.ilike.2365%,code.ilike.2367%,code.ilike.2368%', { foreignTable: 'chart_accounts' });
 
-        if (error) throw error;
+        if (error) { console.error('[legalReport] getAnnualWithholdingRegistry:', error.message); return []; }
 
         // Agrupar por tercero
         const registryMap = new Map<string, AnnualWithholdingRegistry>();

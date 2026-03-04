@@ -81,7 +81,7 @@ export const smartAlertService = {
                     title: 'Cartera Crítica Detectada',
                     body: `Existen más de $${overdue90.toLocaleString('es-CO')} COP en cartera vencida de más de 90 días. Se recomienda ejecutar acciones de cobro.`,
                     category: 'BILLING',
-                    link: '/portfolio/agent'
+                    link: '/settings/portfolio-agent'
                 }, 'HIGH');
             }
         } catch (e) {

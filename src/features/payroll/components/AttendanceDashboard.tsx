@@ -85,7 +85,6 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
     const totalDays = daysInMonth(year, month);
     const days = Array.from({ length: totalDays }, (_, i) => i + 1);
 
-    // Index records for O(1) lookup: "employeeId|YYYY-MM-DD" -> record
     const recordIndex = useMemo(() => {
         const map = new Map<string, AttendanceRecord>();
         for (const r of records) {
@@ -94,14 +93,12 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
         return map;
     }, [records]);
 
-    // Stats derived from records for today's date
     const today = new Date().toISOString().split('T')[0];
     const todayRecords = records.filter((r) => r.work_date === today);
     const presentToday = todayRecords.filter((r) => r.status === 'PRESENT' || r.status === 'LATE').length;
     const absentToday = employees.length - presentToday;
     const totalOvertimeMonth = records.reduce((acc, r) => acc + Number(r.overtime_hours ?? 0), 0);
 
-    // Month navigation
     const prevMonth = useCallback(() => {
         setMonth((m) => {
             if (m === 1) { setYear((y) => y - 1); return 12; }
@@ -116,7 +113,6 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
         });
     }, []);
 
-    // Open edit popover
     const openEdit = useCallback((employeeId: string, day: number) => {
         const key = `${employeeId}|${toDateString(year, month, day)}`;
         const existing = recordIndex.get(key);
@@ -129,7 +125,6 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
         });
     }, [year, month, recordIndex]);
 
-    // Save record via server action
     const handleSave = useCallback(() => {
         if (!editCell) return;
         const work_date = toDateString(year, month, editCell.day);
@@ -150,7 +145,6 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                 return;
             }
 
-            // Optimistic update to local state
             setRecords((prev) => {
                 const updated: AttendanceRecord = {
                     id: result.id,
@@ -174,89 +168,79 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
     }, [editCell, year, month]);
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic mb-2">
-                        Talento Humano
-                    </p>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight italic uppercase">
-                        Control de Asistencia
-                    </h1>
-                </div>
-
-                {/* Month Selector */}
-                <div className="flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-slate-100 px-4 py-3">
+        <div className="space-y-6">
+            {/* Month Selector + Stats */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                     <button
                         onClick={prevMonth}
-                        className="h-8 w-8 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-500 hover:text-slate-900"
                         aria-label="Mes anterior"
                     >
-                        <ChevronLeft className="h-4 w-4 text-slate-600" />
+                        <ChevronLeft className="h-4 w-4" />
                     </button>
-                    <span className="text-sm font-black text-slate-900 italic uppercase tracking-widest min-w-[140px] text-center">
+                    <span className="px-3 py-1.5 text-xs font-semibold text-slate-700 capitalize min-w-[120px] text-center">
                         {MONTH_NAMES[month - 1]} {year}
                     </span>
                     <button
                         onClick={nextMonth}
-                        className="h-8 w-8 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-all text-slate-500 hover:text-slate-900"
                         aria-label="Mes siguiente"
                     >
-                        <ChevronRight className="h-4 w-4 text-slate-600" />
+                        <ChevronRight className="h-4 w-4" />
                     </button>
                 </div>
             </div>
 
-            {/* Stats Strip */}
+            {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total empleados', value: employees.length, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                    { label: 'Presentes hoy', value: presentToday, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Ausentes hoy', value: absentToday, icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
-                    { label: 'Horas extra (mes)', value: `${totalOvertimeMonth.toFixed(1)}h`, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    { label: 'Total Empleados', value: String(employees.length), icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                    { label: 'Presentes Hoy', value: String(presentToday), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                    { label: 'Ausentes Hoy', value: String(absentToday), icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+                    { label: 'Horas Extra (Mes)', value: `${totalOvertimeMonth.toFixed(1)}h`, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-5 rounded-xl shadow-sm flex items-center gap-4 border border-slate-50">
-                        <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0', stat.bg, stat.color)}>
-                            <stat.icon className="h-5 w-5" />
+                    <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-3">
+                        <div className={cn('h-9 w-9 rounded-xl flex items-center justify-center shrink-0', stat.bg, stat.color)}>
+                            <stat.icon className="h-4 w-4" />
                         </div>
-                        <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{stat.label}</p>
-                            <p className="text-xl font-black text-slate-900 tracking-tighter italic">{stat.value}</p>
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                            <p className="text-sm font-bold text-slate-900 font-mono tabular-nums">{stat.value}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
                 {(Object.entries(STATUS_LABELS) as [AttendanceStatus, string][]).map(([status, label]) => (
-                    <span key={status} className={cn('text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full', STATUS_STYLES[status].split(' ').slice(0, 2).join(' '))}>
+                    <span key={status} className={cn('text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full', STATUS_STYLES[status].split(' ').slice(0, 2).join(' '))}>
                         {label}
                     </span>
                 ))}
-                <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-slate-50 text-slate-400">
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-50 text-slate-400">
                     Sin registro
                 </span>
             </div>
 
             {/* Attendance Grid */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-auto">
                 <table className="w-full text-xs border-collapse" role="grid" aria-label="Tabla de asistencia mensual">
                     <thead>
                         <tr className="border-b border-slate-100">
-                            <th className="text-left py-3 px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-white z-10 min-w-[200px]">
+                            <th className="text-left py-3 px-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[180px]">
                                 Empleado
                             </th>
                             {days.map((day) => (
                                 <th
                                     key={day}
-                                    className="py-3 px-1 text-[9px] font-black text-slate-400 uppercase text-center min-w-[32px]"
+                                    className="py-3 px-1 text-[10px] font-semibold text-slate-400 text-center min-w-[32px]"
                                 >
                                     {day}
                                 </th>
                             ))}
-                            <th className="py-3 px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right min-w-[80px]">
+                            <th className="py-3 px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider text-right min-w-[70px]">
                                 Resumen
                             </th>
                         </tr>
@@ -268,20 +252,18 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                             const totalOT = empRecords.reduce((acc, r) => acc + Number(r.overtime_hours ?? 0), 0);
 
                             return (
-                                <tr key={emp.id} className="border-b border-slate-50 hover:bg-slate-50/40 transition-colors group">
-                                    {/* Employee name - sticky */}
-                                    <td className="py-2 px-4 sticky left-0 bg-white group-hover:bg-slate-50/40 transition-colors z-10">
-                                        <div>
-                                            <p className="font-black text-slate-900 text-[10px] italic uppercase tracking-tight truncate max-w-[180px]">
+                                <tr key={emp.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                                    <td className="py-2 px-4 sticky left-0 bg-white group-hover:bg-slate-50/50 transition-colors z-10">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold text-slate-900 leading-snug truncate max-w-[170px]">
                                                 {emp.full_name}
                                             </p>
-                                            <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider truncate max-w-[180px]">
+                                            <p className="text-[10px] text-slate-400 truncate max-w-[170px]">
                                                 {emp.department}
                                             </p>
                                         </div>
                                     </td>
 
-                                    {/* Day cells */}
                                     {days.map((day) => {
                                         const dateStr = toDateString(year, month, day);
                                         const record = recordIndex.get(`${emp.id}|${dateStr}`);
@@ -294,11 +276,11 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                                                     className={cn(
                                                         'h-6 w-6 rounded-md mx-auto flex items-center justify-center transition-all',
                                                         record
-                                                            ? cn(STATUS_STYLES[record.status], 'font-black text-[8px]')
+                                                            ? cn(STATUS_STYLES[record.status], 'text-[8px] font-bold')
                                                             : 'bg-slate-50 text-slate-300 hover:bg-slate-100',
                                                         isEditing && 'ring-2 ring-indigo-400 ring-offset-1'
                                                     )}
-                                                    aria-label={`Asistencia de ${emp.full_name} el día ${day}`}
+                                                    aria-label={`Asistencia de ${emp.full_name} el dia ${day}`}
                                                     title={record ? STATUS_LABELS[record.status] : 'Sin registro'}
                                                 >
                                                     {record ? (
@@ -311,11 +293,10 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                                         );
                                     })}
 
-                                    {/* Summary */}
                                     <td className="py-2 px-3 text-right">
-                                        <p className="text-[9px] font-black text-slate-900 italic">{presentDays}d</p>
+                                        <p className="text-[10px] font-bold text-slate-900">{presentDays}d</p>
                                         {totalOT > 0 && (
-                                            <p className="text-[8px] font-bold text-amber-600">{totalOT.toFixed(1)}h OT</p>
+                                            <p className="text-[10px] text-amber-600">{totalOT.toFixed(1)}h OT</p>
                                         )}
                                     </td>
                                 </tr>
@@ -326,10 +307,8 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
 
                 {employees.length === 0 && (
                     <div className="py-16 text-center">
-                        <Users className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                            No hay empleados activos
-                        </p>
+                        <Users className="h-8 w-8 text-slate-200 mx-auto mb-3" />
+                        <p className="text-xs text-slate-400">No hay empleados activos</p>
                     </div>
                 )}
             </div>
@@ -344,21 +323,21 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                     aria-label="Editar asistencia"
                 >
                     <div
-                        className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-5"
+                        className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                                 {MONTH_NAMES[month - 1]} {editCell.day}, {year}
                             </p>
-                            <h3 className="text-base font-black text-slate-900 italic uppercase tracking-tight mt-1">
+                            <h3 className="text-sm font-bold text-slate-900 mt-0.5 leading-snug">
                                 {employees.find((e) => e.id === editCell.employeeId)?.full_name}
                             </h3>
                         </div>
 
                         {/* Status Select */}
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest" htmlFor="att-status">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider" htmlFor="att-status">
                                 Estado
                             </label>
                             <div className="grid grid-cols-2 gap-2">
@@ -367,7 +346,7 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                                         key={s}
                                         onClick={() => setEditCell((prev) => prev ? { ...prev, status: s } : null)}
                                         className={cn(
-                                            'py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border-2',
+                                            'py-2 px-3 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all border-2',
                                             editCell.status === s
                                                 ? cn(STATUS_STYLES[s].split(' ').slice(0, 2).join(' '), 'border-current')
                                                 : 'border-transparent bg-slate-50 text-slate-500 hover:bg-slate-100'
@@ -381,7 +360,7 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
 
                         {/* Overtime hours */}
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest" htmlFor="att-overtime">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider" htmlFor="att-overtime">
                                 Horas extra
                             </label>
                             <input
@@ -392,13 +371,13 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                                 step={0.5}
                                 value={editCell.overtime_hours}
                                 onChange={(e) => setEditCell((prev) => prev ? { ...prev, overtime_hours: parseFloat(e.target.value) || 0 } : null)}
-                                className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                className="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                             />
                         </div>
 
                         {/* Notes */}
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest" htmlFor="att-notes">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider" htmlFor="att-notes">
                                 Notas
                             </label>
                             <textarea
@@ -406,8 +385,8 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                                 rows={2}
                                 value={editCell.notes}
                                 onChange={(e) => setEditCell((prev) => prev ? { ...prev, notes: e.target.value } : null)}
-                                placeholder="Observación opcional..."
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                placeholder="Observacion opcional..."
+                                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"
                             />
                         </div>
 
@@ -415,14 +394,14 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                         <div className="flex gap-3 pt-1">
                             <button
                                 onClick={() => setEditCell(null)}
-                                className="flex-1 h-10 rounded-xl border border-slate-200 text-[9px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-50 transition-colors"
+                                className="flex-1 h-9 rounded-xl border border-slate-200 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition-colors"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={isPending}
-                                className="flex-1 h-10 rounded-xl bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+                                className="flex-1 h-9 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
                             >
                                 {isPending ? 'Guardando...' : 'Guardar'}
                             </button>

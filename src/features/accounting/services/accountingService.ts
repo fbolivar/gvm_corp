@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { JournalEntry, Account } from '../types';
+import { JournalEntry, Account, AccountFormData } from '../types';
 
 export const accountingService = {
 
@@ -9,8 +9,104 @@ export const accountingService = {
             .select('*')
             .order('code', { ascending: true });
 
-        if (error) throw error;
+        if (error) { console.error('[accounting] getAccounts:', error.message); return [] as Account[]; }
         return data as Account[];
+    },
+
+    async getAccountById(client: SupabaseClient, id: string) {
+        const { data, error } = await client
+            .from('chart_accounts')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) { console.error('[accounting] getAccountById:', error.message); return null; }
+        return data as Account;
+    },
+
+    async createAccount(client: SupabaseClient, data: AccountFormData) {
+        const level = computeLevel(data.code);
+        const type = data.type || inferTypeFromCode(data.code);
+
+        const { data: created, error } = await client
+            .from('chart_accounts')
+            .insert({
+                code: data.code.trim(),
+                name: data.name.trim(),
+                nature: data.nature,
+                type,
+                is_auxiliary: data.is_auxiliary,
+                parent_id: data.parent_id || null,
+                level,
+                is_active: true,
+            })
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return created as Account;
+    },
+
+    async updateAccount(client: SupabaseClient, id: string, data: AccountFormData) {
+        const level = computeLevel(data.code);
+        const type = data.type || inferTypeFromCode(data.code);
+
+        const { data: updated, error } = await client
+            .from('chart_accounts')
+            .update({
+                code: data.code.trim(),
+                name: data.name.trim(),
+                nature: data.nature,
+                type,
+                is_auxiliary: data.is_auxiliary,
+                parent_id: data.parent_id || null,
+                level,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return updated as Account;
+    },
+
+    async deleteAccount(client: SupabaseClient, id: string) {
+        // Check if account has journal lines
+        const { count } = await client
+            .from('journal_lines')
+            .select('id', { count: 'exact', head: true })
+            .eq('account_id', id);
+
+        if (count && count > 0) {
+            throw new Error(`No se puede eliminar: esta cuenta tiene ${count} movimientos contables asociados`);
+        }
+
+        // Check if account has children
+        const { count: childCount } = await client
+            .from('chart_accounts')
+            .select('id', { count: 'exact', head: true })
+            .eq('parent_id', id);
+
+        if (childCount && childCount > 0) {
+            throw new Error(`No se puede eliminar: esta cuenta tiene ${childCount} subcuentas asociadas`);
+        }
+
+        const { error } = await client
+            .from('chart_accounts')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw new Error(error.message);
+    },
+
+    async toggleAccountActive(client: SupabaseClient, id: string, isActive: boolean) {
+        const { error } = await client
+            .from('chart_accounts')
+            .update({ is_active: isActive, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) throw new Error(error.message);
     },
 
     async getEntries(client: SupabaseClient, filters?: { limit?: number }) {
@@ -32,7 +128,7 @@ export const accountingService = {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) { console.error('[accounting] getEntries:', error.message); return []; }
         return data;
     },
 
@@ -355,16 +451,23 @@ export const accountingService = {
             .lte('entry_date', endDate);
 
         if (error) {
-            console.error("Trial Balance Query Error:", error.message, error.details);
-            throw error;
+            console.error("[accounting] getTrialBalance error:", error.message);
+            return [];
+        }
+
+        if (!data || data.length === 0) {
+            console.warn(`[accounting] getTrialBalance: no entries found for ${startDate} to ${endDate}`);
+            return [];
         }
 
         // Aggregate by account
-        const aggregation: Record<string, any> = {};
+        const aggregation: Record<string, { code: string; name: string; debit: number; credit: number; balance: number }> = {};
 
-        data?.forEach((entry: any) => {
-            entry.lines?.forEach((line: any) => {
-                const acc = line.account;
+        data.forEach((entry: Record<string, unknown>) => {
+            const lines = entry.lines as Array<Record<string, unknown>> | null;
+            if (!lines) return;
+            lines.forEach((line) => {
+                const acc = line.account as { code: string; name: string } | null;
                 if (!acc) return;
 
                 if (!aggregation[acc.code]) {
@@ -381,8 +484,8 @@ export const accountingService = {
             });
         });
 
-        // Calculate balances based on class
-        Object.values(aggregation).forEach((acc: any) => {
+        // Calculate balances based on PUC class
+        Object.values(aggregation).forEach((acc) => {
             const classCode = acc.code[0];
             if (['1', '5', '6', '7', '8'].includes(classCode)) {
                 acc.balance = acc.debit - acc.credit;
@@ -391,7 +494,9 @@ export const accountingService = {
             }
         });
 
-        return Object.values(aggregation).sort((a: any, b: any) => a.code.localeCompare(b.code));
+        const result = Object.values(aggregation).sort((a, b) => a.code.localeCompare(b.code));
+        console.log(`[accounting] getTrialBalance: ${data.length} entries → ${result.length} accounts for ${startDate} to ${endDate}`);
+        return result;
     },
 
     async getProfitAndLoss(client: SupabaseClient, startDate: string, endDate: string) {
@@ -456,7 +561,34 @@ export const accountingService = {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) { console.error('[accounting] getAuxiliaryLedger:', error.message); return []; }
         return data;
     }
 };
+
+// ── Helpers ────────────────────────────────────────────────
+
+function computeLevel(code: string): number {
+    const stripped = code.replace(/0+$/, '');
+    if (stripped.length <= 1) return 1;
+    if (stripped.length <= 2) return 2;
+    if (stripped.length <= 4) return 3;
+    if (stripped.length <= 6) return 4;
+    return 5;
+}
+
+function inferTypeFromCode(code: string): string {
+    const c = code[0];
+    switch (c) {
+        case '1': return 'ASSET';
+        case '2': return 'LIABILITY';
+        case '3': return 'EQUITY';
+        case '4': return 'REVENUE';
+        case '5': return 'EXPENSE';
+        case '6': return 'COST';
+        case '7': return 'COST';
+        case '8': return 'ORDER';
+        case '9': return 'ORDER';
+        default: return 'ASSET';
+    }
+}

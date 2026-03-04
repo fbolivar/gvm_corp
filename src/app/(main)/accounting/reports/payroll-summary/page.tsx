@@ -49,7 +49,7 @@ export default async function PayrollSummaryPage({
         .select('*, party:parties(legal_name, doc_number, doc_type)')
         .eq('status', 'ACTIVE')
         .order('created_at');
-    if (error) throw error;
+    if (error) console.error('[payroll-summary]', error.message);
 
     const emps = employees ?? [];
 

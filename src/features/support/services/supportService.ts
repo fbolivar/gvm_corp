@@ -12,7 +12,7 @@ export const supportService = {
             `)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('[support] getTickets:', error.message); return []; }
         return data;
     },
 
@@ -30,7 +30,7 @@ export const supportService = {
             .eq('id', id)
             .single();
 
-        if (error) throw error;
+        if (error) { console.error('[support] getTicketById:', error.message); return null; }
         return data;
     },
 

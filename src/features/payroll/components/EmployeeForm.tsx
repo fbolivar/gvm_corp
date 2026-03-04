@@ -23,19 +23,18 @@ import {
     CheckCircle2,
     Building2,
     Sparkles,
-    Smartphone,
     Loader2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
-import { cn } from "@/shared/lib/utils"
 
 interface EmployeeFormProps {
     initialData?: Employee
     onSubmit: (data: Employee) => Promise<void>
     isLoading?: boolean
+    linkedUserEmail?: string
 }
 
-export function EmployeeForm({ initialData, onSubmit, isLoading }: EmployeeFormProps) {
+export function EmployeeForm({ initialData, onSubmit, isLoading, linkedUserEmail }: EmployeeFormProps) {
     const form = useForm<Employee>({
         resolver: zodResolver(employeeSchema) as any,
         defaultValues: initialData || {
@@ -71,6 +70,18 @@ export function EmployeeForm({ initialData, onSubmit, isLoading }: EmployeeFormP
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20 max-w-5xl mx-auto">
+
+            {linkedUserEmail && (
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+                    <div className="h-9 w-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                        <User className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-xs font-bold text-indigo-800">Vinculando cuenta de usuario</p>
+                        <p className="text-[10px] text-indigo-600 truncate">{linkedUserEmail} — Tendra acceso a Mi Nomina al completar el registro</p>
+                    </div>
+                </div>
+            )}
 
             {/* 1. INFORMACIÓN PERSONAL */}
             <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden group">

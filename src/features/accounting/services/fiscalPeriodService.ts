@@ -67,7 +67,7 @@ export const fiscalPeriodService = {
             .from('fiscal_periods')
             .select('*')
             .order('period', { ascending: false });
-        if (error) throw error;
+        if (error) { console.error('[fiscalPeriod] getAll:', error.message); return []; }
         return (data ?? []) as FiscalPeriod[];
     },
 
@@ -79,8 +79,8 @@ export const fiscalPeriodService = {
             client.from('fiscal_periods').select('*').eq('id', periodId).single(),
             client.from('period_close_items').select('*').eq('period_id', periodId),
         ]);
-        if (pe) throw pe;
-        if (ie) throw ie;
+        if (pe) { console.error('[fiscalPeriod] getWithItems period:', pe.message); return { period: {} as FiscalPeriod, items: [] }; }
+        if (ie) { console.error('[fiscalPeriod] getWithItems items:', ie.message); return { period: period as FiscalPeriod, items: [] }; }
         return { period: period as FiscalPeriod, items: (items ?? []) as PeriodCloseItem[] };
     },
 

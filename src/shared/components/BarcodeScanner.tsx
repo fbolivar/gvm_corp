@@ -1,13 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
     Barcode,
-    X,
     Scan,
-    Box,
     Zap,
-    History,
     ArrowUpRight,
     ArrowDownRight,
     Search,
@@ -24,57 +21,55 @@ import {
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Badge } from "@/shared/components/ui/badge"
-import { cn } from "@/shared/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 
-interface Product {
-    id: string;
-    name: string;
-    sku: string;
-    barcode: string;
-    price: number;
-    uom: string;
+interface ScannerProduct {
+    id: string
+    name: string
+    sku: string
+    barcode: string
+    selling_price: number
+    uom: string
 }
 
-export function BarcodeScannerOverlay() {
+export function BarcodeScanner() {
     const [isOpen, setIsOpen] = useState(false)
     const [scannedCode, setScannedCode] = useState("")
-    const [product, setProduct] = useState<Product | null>(null)
+    const [product, setProduct] = useState<ScannerProduct | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [qty, setQty] = useState("1")
 
-    // Linking mode states
     const [isLinking, setIsLinking] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
-    const [searchResults, setSearchResults] = useState<Product[]>([])
+    const [searchResults, setSearchResults] = useState<ScannerProduct[]>([])
     const [isSearching, setIsSearching] = useState(false)
 
     const scanBuffer = useRef("")
     const lastKeyTime = useRef(0)
 
-    // Global listener for HID Scanners
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            const currentTime = Date.now()
-            if (currentTime - lastKeyTime.current > 50) scanBuffer.current = ""
+            if (!e.key) return
+            const now = Date.now()
+            if (now - lastKeyTime.current > 50) scanBuffer.current = ""
 
             if (e.key === "Enter") {
                 if (scanBuffer.current.length > 3) {
-                    processBarcode(scanBuffer.current)
+                    lookupBarcode(scanBuffer.current)
                     scanBuffer.current = ""
                 }
             } else if (e.key.length === 1) {
                 scanBuffer.current += e.key
             }
-            lastKeyTime.current = currentTime
+            lastKeyTime.current = now
         }
 
         window.addEventListener("keydown", handleKeyDown)
         return () => window.removeEventListener("keydown", handleKeyDown)
     }, [])
 
-    const processBarcode = async (code: string) => {
+    const lookupBarcode = async (code: string) => {
         setIsOpen(true)
         setIsLoading(true)
         setScannedCode(code)
@@ -83,9 +78,9 @@ export function BarcodeScannerOverlay() {
         const supabase = createClient()
         try {
             const { data, error } = await supabase
-                .from('products')
-                .select('id, name, sku, barcode, price, uom')
-                .eq('barcode', code)
+                .from("products")
+                .select("id, name, sku, barcode, selling_price, uom")
+                .eq("barcode", code)
                 .maybeSingle()
 
             if (error) throw error
@@ -95,10 +90,9 @@ export function BarcodeScannerOverlay() {
                 toast.success("PRODUCTO IDENTIFICADO")
             } else {
                 setProduct(null)
-                // We leave it here so the user can click "Link Product"
             }
-        } catch (error) {
-            console.error(error)
+        } catch (err) {
+            console.error(err)
             toast.error("Error al buscar producto")
         } finally {
             setIsLoading(false)
@@ -111,15 +105,15 @@ export function BarcodeScannerOverlay() {
         const supabase = createClient()
         try {
             const { data, error } = await supabase
-                .from('products')
-                .select('id, name, sku, barcode, price, uom')
+                .from("products")
+                .select("id, name, sku, barcode, selling_price, uom")
                 .or(`name.ilike.%${query}%,sku.ilike.%${query}%`)
                 .limit(5)
 
             if (error) throw error
             setSearchResults(data || [])
-        } catch (error) {
-            console.error(error)
+        } catch (err) {
+            console.error(err)
         } finally {
             setIsSearching(false)
         }
@@ -130,42 +124,46 @@ export function BarcodeScannerOverlay() {
         const supabase = createClient()
         try {
             const { error } = await supabase
-                .from('products')
+                .from("products")
                 .update({ barcode: scannedCode })
-                .eq('id', productId)
+                .eq("id", productId)
 
             if (error) throw error
 
-            toast.success("VÍNCULO EXITOSO", {
-                description: `El código ${scannedCode} ha sido asociado al producto.`
+            toast.success("VINCULO EXITOSO", {
+                description: `El codigo ${scannedCode} ha sido asociado al producto.`
             })
 
-            // Re-load product
-            processBarcode(scannedCode)
-        } catch (error: any) {
-            toast.error("ERROR AL VINCULAR", { description: error.message })
+            lookupBarcode(scannedCode)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : "Error desconocido"
+            toast.error("ERROR AL VINCULAR", { description: msg })
         } finally {
             setIsLoading(false)
             setIsLinking(false)
         }
     }
 
-    const handleMovement = async (type: 'IN' | 'OUT') => {
+    const handleMovement = async (type: "IN" | "OUT") => {
         if (!product) return
         const supabase = createClient()
         try {
             setIsLoading(true)
-            const { data: warehouse } = await supabase.from('warehouses').select('id').limit(1).single()
+            const { data: warehouse } = await supabase
+                .from("warehouses")
+                .select("id")
+                .limit(1)
+                .single()
             if (!warehouse) throw new Error("No hay bodegas")
 
             const { error } = await supabase
-                .from('inventory_movements')
+                .from("inventory_movements")
                 .insert({
                     product_id: product.id,
                     warehouse_id: warehouse.id,
                     type,
                     qty: Number(qty),
-                    reason: `Escáner: ${type === 'IN' ? 'Entrada' : 'Salida'}`,
+                    reason: `Escaner: ${type === "IN" ? "Entrada" : "Salida"}`,
                     occurred_at: new Date().toISOString()
                 })
 
@@ -175,8 +173,9 @@ export function BarcodeScannerOverlay() {
             setIsOpen(false)
             setProduct(null)
             setScannedCode("")
-        } catch (error: any) {
-            toast.error("ERROR", { description: error.message })
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : "Error desconocido"
+            toast.error("ERROR", { description: msg })
         } finally {
             setIsLoading(false)
         }
@@ -208,7 +207,7 @@ export function BarcodeScannerOverlay() {
                                     Smart <span className="text-primary">Scanner</span>
                                 </DialogTitle>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                                    Gestión Industrial de Inventarios
+                                    Gestion Industrial de Inventarios
                                 </p>
                             </div>
                         </div>
@@ -223,12 +222,12 @@ export function BarcodeScannerOverlay() {
                                 </div>
                                 <div className="space-y-3">
                                     <h3 className="text-xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
-                                        {scannedCode ? 'Código no registrado' : 'Esperando Escaneo...'}
+                                        {scannedCode ? "Codigo no registrado" : "Esperando Escaneo..."}
                                     </h3>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] leading-relaxed">
                                         {scannedCode
-                                            ? `El código ${scannedCode} no existe en la base de datos.`
-                                            : 'Pasa el láser sobre el código o escribe abajo.'}
+                                            ? `El codigo ${scannedCode} no existe en la base de datos.`
+                                            : "Pasa el laser sobre el codigo o escribe abajo."}
                                     </p>
                                 </div>
 
@@ -248,7 +247,7 @@ export function BarcodeScannerOverlay() {
                                         placeholder="Ingreso Manual..."
                                         className="h-12 bg-white border-2 border-slate-100 focus:border-primary rounded-xl font-bold text-center tracking-widest"
                                         onKeyDown={(e) => {
-                                            if (e.key === 'Enter') processBarcode((e.target as HTMLInputElement).value)
+                                            if (e.key === "Enter") lookupBarcode((e.target as HTMLInputElement).value)
                                         }}
                                     />
                                 </div>
@@ -258,7 +257,9 @@ export function BarcodeScannerOverlay() {
                         {isLinking && (
                             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                                 <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vincular Código: <span className="text-primary">{scannedCode}</span></p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                        Vincular Codigo: <span className="text-primary">{scannedCode}</span>
+                                    </p>
                                     <div className="relative">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                         <Input
@@ -276,7 +277,9 @@ export function BarcodeScannerOverlay() {
 
                                 <div className="space-y-2 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar">
                                     {isSearching ? (
-                                        <div className="py-8 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-slate-200" /></div>
+                                        <div className="py-8 flex justify-center">
+                                            <Loader2 className="h-6 w-6 animate-spin text-slate-200" />
+                                        </div>
                                     ) : searchResults.map(p => (
                                         <button
                                             key={p.id}
@@ -300,7 +303,7 @@ export function BarcodeScannerOverlay() {
                                     onClick={() => setIsLinking(false)}
                                     className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest"
                                 >
-                                    Volver al escáner
+                                    Volver al escaner
                                 </Button>
                             </div>
                         )}
@@ -326,12 +329,12 @@ export function BarcodeScannerOverlay() {
                                         </div>
                                         <div className="pt-4 border-t border-white/10 flex items-center justify-between">
                                             <div className="space-y-0.5">
-                                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Código Vínculo</p>
+                                                <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Codigo Vinculo</p>
                                                 <p className="text-xs font-mono font-bold tracking-[0.2em]">{product.barcode || scannedCode}</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Precio</p>
-                                                <p className="text-xl font-black italic tracking-tighter">${product.price?.toLocaleString('es-CO')}</p>
+                                                <p className="text-xl font-black italic tracking-tighter">${product.selling_price?.toLocaleString("es-CO")}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -349,13 +352,13 @@ export function BarcodeScannerOverlay() {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
-                                        <Button onClick={() => handleMovement('IN')} className="h-20 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[1.5rem] shadow-active transition-all group">
+                                        <Button onClick={() => handleMovement("IN")} className="h-20 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[1.5rem] shadow-active transition-all group">
                                             <div className="flex flex-col items-center gap-1">
                                                 <ArrowDownRight className="h-6 w-6 group-hover:translate-y-1 transition-transform" />
                                                 <span className="text-[10px] font-black uppercase tracking-widest">Entrada</span>
                                             </div>
                                         </Button>
-                                        <Button onClick={() => handleMovement('OUT')} className="h-20 bg-rose-600 hover:bg-rose-700 text-white rounded-[1.5rem] shadow-active transition-all group">
+                                        <Button onClick={() => handleMovement("OUT")} className="h-20 bg-rose-600 hover:bg-rose-700 text-white rounded-[1.5rem] shadow-active transition-all group">
                                             <div className="flex flex-col items-center gap-1">
                                                 <ArrowUpRight className="h-6 w-6 group-hover:-translate-y-1 transition-transform" />
                                                 <span className="text-[10px] font-black uppercase tracking-widest">Salida</span>
@@ -364,7 +367,7 @@ export function BarcodeScannerOverlay() {
                                     </div>
                                 </div>
 
-                                <Button variant="ghost" onClick={() => { setProduct(null); setScannedCode(""); }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <Button variant="ghost" onClick={() => { setProduct(null); setScannedCode("") }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                     Limpiar y Escanear otro
                                 </Button>
                             </div>
@@ -372,18 +375,6 @@ export function BarcodeScannerOverlay() {
                     </div>
                 </DialogContent>
             </Dialog>
-
-            <style jsx global>{`
-                @keyframes scan {
-                    0% { transform: translateY(0); opacity: 0; }
-                    10% { opacity: 1; }
-                    90% { opacity: 1; }
-                    100% { transform: translateY(96px); opacity: 0; }
-                }
-                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-            `}</style>
         </>
     )
 }

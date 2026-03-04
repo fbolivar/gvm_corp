@@ -66,7 +66,7 @@ export const recurringInvoiceService = {
             .from('recurring_invoices')
             .select('*, party:parties(legal_name)')
             .order('created_at', { ascending: false });
-        if (error) throw error;
+        if (error) { console.error('[recurring] getAll:', error.message); return []; }
         return (data ?? []) as RecurringInvoice[];
     },
 

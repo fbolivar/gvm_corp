@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { Package, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import Link from 'next/link';
 import NewFixedAssetClient from './client';
 
 export default async function NewFixedAssetPage() {
@@ -11,20 +11,15 @@ export default async function NewFixedAssetPage() {
     if (!user) redirect('/login');
 
     return (
-        <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                        <Package className="h-6 w-6" />
-                    </div>
-                    <div>
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900">Nuevo Activo</h1>
-                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Registro de activo fijo con depreciación automática</p>
-                    </div>
-                </div>
-                <Button variant="outline" className="h-12 border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest" asChild>
-                    <Link href="/accounting/fixed-assets"><ArrowLeft className="h-4 w-4 mr-2" />Volver</Link>
+        <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild className="h-10 w-10 rounded-xl">
+                    <Link href="/accounting/fixed-assets"><ArrowLeft className="h-4 w-4" /></Link>
                 </Button>
+                <div>
+                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Nuevo Activo Fijo</h1>
+                    <p className="text-xs text-slate-400">Registro con depreciación automática línea recta</p>
+                </div>
             </div>
 
             <NewFixedAssetClient />

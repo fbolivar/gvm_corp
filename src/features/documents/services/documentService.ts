@@ -26,7 +26,7 @@ export const documentService = {
             .range(from, to)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('[documents] getDocuments:', error.message); return { data: [] as Document[], count: 0 }; }
         return { data: data as Document[], count };
     },
 

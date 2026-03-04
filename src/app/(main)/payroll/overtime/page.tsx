@@ -3,9 +3,11 @@ import { redirect } from 'next/navigation';
 import { overtimeService } from '@/features/payroll/services/overtimeService';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { OvertimeApprovalPanel } from '@/features/payroll/components/OvertimeApprovalPanel';
+import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { Clock, CheckCircle2, XCircle, HourglassIcon, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/shared/components/ui/button';
+import { cn } from '@/shared/lib/utils';
 
 export const metadata = { title: 'Horas Extra — GVM Corp' };
 
@@ -28,54 +30,42 @@ export default async function OvertimePage() {
         .filter(r => r.status === 'APPROVED')
         .reduce((s, r) => s + Number(r.hours), 0);
 
-    return (
-        <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    const kpis = [
+        { label: 'Pendientes', value: pendingRequests.length, icon: HourglassIcon, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { label: 'Aprobadas', value: approvedCount, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Rechazadas', value: rejectedCount, icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+        { label: 'Horas Aprobadas', value: `${totalHoursApproved}h`, icon: Clock, color: 'text-slate-600', bg: 'bg-slate-50' },
+    ];
 
-            {/* Header */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <Clock className="h-24 w-24 text-white" />
-                </div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-2 w-8 bg-amber-500 rounded-full" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-amber-400">Nómina · RRHH</span>
-                        </div>
-                        <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
-                            Horas<br /><span className="text-slate-500">Extras</span>
-                        </h1>
-                        <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">
-                            Aprobar solicitudes, historial y métricas
-                        </p>
-                    </div>
-                    <Button variant="outline" className="h-12 px-6 rounded-2xl border-white/10 text-slate-300 hover:bg-white/10 font-black text-[10px] uppercase tracking-widest shrink-0" asChild>
-                        <Link href="/payroll"><ArrowLeft className="h-4 w-4 mr-2" />Nómina</Link>
-                    </Button>
+    return (
+        <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild className="h-10 w-10 rounded-xl">
+                    <Link href="/payroll"><ArrowLeft className="h-4 w-4" /></Link>
+                </Button>
+                <div className="flex-1">
+                    <VisualReportHeader
+                        title="Horas Extra"
+                        subtitle="Aprobacion de solicitudes, historial y metricas"
+                        tenant={tenant}
+                    />
                 </div>
             </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[
-                    { label: 'Pendientes',    value: pendingRequests.length, icon: HourglassIcon, color: 'text-amber-600',   bg: 'bg-amber-50' },
-                    { label: 'Aprobadas',     value: approvedCount,          icon: CheckCircle2,  color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Rechazadas',    value: rejectedCount,          icon: XCircle,       color: 'text-rose-600',    bg: 'bg-rose-50' },
-                    { label: 'Horas Aprobadas', value: `${totalHoursApproved}h`, icon: Clock,    color: 'text-slate-600',   bg: 'bg-slate-50' },
-                ].map((kpi, i) => (
-                    <div key={i} className="bg-white rounded-[2.5rem] p-7 shadow-premium flex items-center gap-5">
-                        <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 ${kpi.bg} ${kpi.color}`}>
-                            <kpi.icon className="h-7 w-7" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {kpis.map((kpi, i) => (
+                    <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-3">
+                        <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", kpi.bg, kpi.color)}>
+                            <kpi.icon className="h-4 w-4" />
                         </div>
                         <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                            <p className="text-2xl font-black text-slate-900 tracking-tight">{kpi.value}</p>
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{kpi.label}</p>
+                            <p className="text-sm font-bold text-slate-900 font-mono tabular-nums">{kpi.value}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Approval Panel */}
             <OvertimeApprovalPanel
                 pendingRequests={pendingRequests}
                 allRequests={allRequests}

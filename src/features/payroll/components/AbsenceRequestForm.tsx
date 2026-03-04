@@ -40,7 +40,7 @@ export function AbsenceRequestForm() {
         <form onSubmit={handleSubmit} className="space-y-5">
             {/* Tipo de ausencia */}
             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                     Tipo de Ausencia
                 </label>
                 <select
@@ -58,7 +58,7 @@ export function AbsenceRequestForm() {
             {/* Fechas */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                         Fecha Inicio
                     </label>
                     <input
@@ -70,7 +70,7 @@ export function AbsenceRequestForm() {
                     />
                 </div>
                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                         Fecha Fin
                     </label>
                     <input
@@ -85,7 +85,7 @@ export function AbsenceRequestForm() {
 
             {/* Motivo */}
             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                     Motivo (opcional)
                 </label>
                 <textarea
@@ -108,7 +108,7 @@ export function AbsenceRequestForm() {
             <button
                 type="submit"
                 disabled={pending}
-                className="w-full h-12 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                className="w-full h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs uppercase tracking-wide flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
             >
                 {pending
                     ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando…</>

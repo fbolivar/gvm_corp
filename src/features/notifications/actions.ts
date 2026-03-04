@@ -27,11 +27,12 @@ export async function markAsReadAction(id: string): Promise<ActionResult> {
             return { success: false, error: 'No autenticado' }
         }
 
+        // Notificaciones pueden tener user_id = user.id O user_id IS NULL (tenant-wide)
+        // RLS ya garantiza que solo se ven las propias o las del tenant
         const { error } = await supabase
             .from('app_notifications')
             .update({ is_read: true })
             .eq('id', id)
-            .eq('user_id', user.id)
 
         if (error) {
             return { success: false, error: error.message }

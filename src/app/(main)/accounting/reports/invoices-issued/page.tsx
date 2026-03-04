@@ -70,7 +70,7 @@ export default async function InvoicesIssuedPage({
     }
 
     const { data: documents, error } = await query;
-    if (error) throw error;
+    if (error) console.error('[invoices-issued]', error.message);
 
     const tenant = await settingsService.getTenantInfo(supabase);
 

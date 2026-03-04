@@ -30,6 +30,13 @@ import Link from "next/link";
 import { smartAlertService } from "@/features/notifications/services/smartAlertService";
 import { CriticalAlertsPanel } from '@/features/dashboard/components/CriticalAlertsPanel';
 
+/** Deterministic number formatter — avoids server/client locale mismatch (hydration errors) */
+function fmtNum(n: number): string {
+  const abs = Math.abs(Math.round(n));
+  const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return n < 0 ? `-${formatted}` : formatted;
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -87,7 +94,7 @@ export default async function DashboardPage() {
             <div className="flex flex-wrap gap-4 w-full lg:w-auto">
               <div className="flex flex-col items-end">
                 <span className="text-slate-500 font-bold text-[9px] uppercase tracking-widest mb-1">Ciclo Operativo</span>
-                <span className="text-base font-bold italic tracking-tight uppercase tabular-nums">
+                <span className="text-base font-bold italic tracking-tight uppercase tabular-nums" suppressHydrationWarning>
                   {new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </span>
               </div>
@@ -103,7 +110,7 @@ export default async function DashboardPage() {
           <KPICard
             variant="primary"
             title="Facturación Bruta"
-            value={`$${kpis.totalIncome.toLocaleString('es-CO')}`}
+            value={`$${fmtNum(kpis.totalIncome)}`}
             icon={TrendingUp}
             trend={{ value: Math.abs(trendIncome), label: "vs mes anterior", isPositive: trendIncome >= 0 }}
           />
@@ -115,13 +122,13 @@ export default async function DashboardPage() {
           />
           <KPICard
             title="Activos en Stock"
-            value={`$${kpis.inventoryValue.toLocaleString('es-CO')}`}
+            value={`$${fmtNum(kpis.inventoryValue)}`}
             icon={Package}
             trend={{ value: 0, label: "valoración actual", isPositive: true }}
           />
           <KPICard
             title="Margen Neto"
-            value={`$${kpis.netProfit.toLocaleString('es-CO')}`}
+            value={`$${fmtNum(kpis.netProfit)}`}
             icon={DollarSign}
             trend={{ value: Math.abs(trendNetProfit), label: "vs mes anterior", isPositive: trendNetProfit >= 0 }}
           />
@@ -138,7 +145,7 @@ export default async function DashboardPage() {
                 <div className="space-y-0.5">
                   <h4 className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none italic">Gasto Operativo</h4>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-extrabold text-slate-900 tracking-tight italic tabular-nums">${kpis.totalExpenses.toLocaleString('es-CO')}</span>
+                    <span className="text-xl font-extrabold text-slate-900 tracking-tight italic tabular-nums">${fmtNum(kpis.totalExpenses)}</span>
                     {prevKpis.totalExpenses > 0 && (() => {
                       const t = calcTrend(kpis.totalExpenses, prevKpis.totalExpenses);
                       return <Badge className={`border-none font-bold text-[7px] uppercase px-1 py-0.5 rounded-full ${t <= 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>{t > 0 ? '+' : ''}{t}%</Badge>;

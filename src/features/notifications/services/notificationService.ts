@@ -102,19 +102,18 @@ export const notificationService = {
                 link: `/inventory/products?id=${productId}`
             });
 
-            // 5. Enviar email a los responsables
+            // 5. Enviar email a los responsables (usando profiles, accesible vía PostgREST)
             if (tid) {
                 const { data: managers } = await client
                     .from('user_tenants')
-                    .select('user_accounts(email, raw_user_meta_data)')
+                    .select('user_id, role, profiles(email)')
                     .eq('tenant_id', tid)
-                    .in('role', ['owner', 'admin']);
+                    .in('role', ['owner', 'admin', 'ADMINISTRADOR', 'SUPER ADMINISTRADOR']);
 
                 if (managers) {
                     for (const m of (managers as any[])) {
-                        const email = m.user_accounts?.email;
-                        const settings = m.user_accounts?.raw_user_meta_data?.notifications;
-                        if (email && settings?.email_low_stock !== false) {
+                        const email = m.profiles?.email;
+                        if (email) {
                             await this.sendEmail({
                                 to: email,
                                 subject: title,

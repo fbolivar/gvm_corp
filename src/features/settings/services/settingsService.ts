@@ -114,7 +114,7 @@ export const settingsService = {
         const { data, error } = await supabase
             .from('dian_config')
             .select('*')
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error fetching DIAN config:', error);
@@ -364,6 +364,28 @@ export const settingsService = {
             .getPublicUrl(filePath);
 
         await this.updateTenantInfo(supabase, tenantId, { logo_url: publicUrl });
+        return publicUrl;
+    },
+
+    async uploadAvatar(supabase: SupabaseClient, userId: string, file: File) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `avatar-${userId}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('tenant-assets')
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('tenant-assets')
+            .getPublicUrl(filePath);
+
+        // Actualizar user_metadata + profiles
+        await this.updateUserProfile(supabase, { avatar_url: publicUrl });
+        await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', userId);
+
         return publicUrl;
     },
 

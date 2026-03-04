@@ -36,32 +36,36 @@ export default async function ProductsPage({ searchParams }: PageProps) {
 
     const stats = [
         {
-            label: 'Total Ítems',
+            label: 'Total Items',
             value: count?.toLocaleString() ?? '0',
-            sub: 'En el catálogo',
+            sub: 'En el catalogo',
             icon: Layers,
-            color: 'bg-blue-950/40 text-blue-400 border-blue-800/40',
+            iconBg: 'bg-blue-50',
+            iconColor: 'text-blue-600',
         },
         {
             label: 'Activos',
             value: totalActive.toLocaleString(),
             sub: 'Disponibles para venta',
             icon: TrendingUp,
-            color: 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40',
+            iconBg: 'bg-emerald-50',
+            iconColor: 'text-emerald-600',
         },
         {
-            label: 'Stock Crítico',
+            label: 'Stock Critico',
             value: lowStock.toLocaleString(),
-            sub: 'Bajo nivel mínimo',
+            sub: 'Bajo nivel minimo',
             icon: AlertTriangle,
-            color: lowStock > 0 ? 'bg-rose-950/40 text-rose-400 border-rose-800/40' : 'bg-slate-900/40 text-slate-500 border-slate-800/40',
+            iconBg: lowStock > 0 ? 'bg-rose-50' : 'bg-slate-50',
+            iconColor: lowStock > 0 ? 'text-rose-600' : 'text-slate-400',
         },
         {
-            label: 'Valorización',
+            label: 'Valorizacion',
             value: `$${totalValue.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
             sub: 'Al costo promedio',
             icon: Zap,
-            color: 'bg-amber-950/40 text-amber-400 border-amber-800/40',
+            iconBg: 'bg-amber-50',
+            iconColor: 'text-amber-600',
         },
     ];
 
@@ -78,10 +82,10 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                         </div>
                     </div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight italic uppercase leading-none">
-                        Catálogo <span className="text-primary">Maestro</span>
+                        Catalogo <span className="text-primary">Maestro</span>
                     </h1>
                     <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">
-                        Gestión de bienes, servicios, precios e inventario
+                        Gestion de bienes, servicios, precios e inventario
                     </p>
                 </div>
             </div>
@@ -91,14 +95,14 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                 {stats.map((s) => {
                     const Icon = s.icon;
                     return (
-                        <div key={s.label} className={`rounded-2xl border p-5 flex items-start gap-4 ${s.color}`}>
-                            <div className="h-10 w-10 rounded-xl bg-current/10 flex items-center justify-center shrink-0">
-                                <Icon className="h-5 w-5" />
+                        <div key={s.label} className="rounded-xl border-none bg-white shadow-sm p-5 flex items-start gap-4 relative overflow-hidden group hover:translate-y-[-2px] transition-all duration-300">
+                            <div className={`h-9 w-9 rounded-lg ${s.iconBg} flex items-center justify-center ${s.iconColor} shadow-sm shrink-0`}>
+                                <Icon className="h-4 w-4" />
                             </div>
                             <div>
-                                <p className="text-[8px] font-bold uppercase tracking-widest opacity-70">{s.label}</p>
-                                <p className="text-xl font-black font-mono tracking-tighter leading-none mt-0.5">{s.value}</p>
-                                <p className="text-[8px] font-bold uppercase tracking-widest opacity-50 mt-0.5">{s.sub}</p>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">{s.label}</p>
+                                <p className="text-lg font-extrabold text-slate-900 tracking-tight leading-none italic">{s.value}</p>
+                                <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-1">{s.sub}</p>
                             </div>
                         </div>
                     );

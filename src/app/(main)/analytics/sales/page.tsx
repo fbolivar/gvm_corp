@@ -23,24 +23,7 @@ export interface TopClientRow {
 async function getMonthlySales(): Promise<MonthlySalesRow[]> {
     const supabase = await createClient()
 
-    const { data, error } = await supabase.rpc('execute_sql_internal', {
-        query: `
-            SELECT
-                to_char(date_trunc('month', issue_date), 'YYYY-MM-DD') AS month,
-                SUM(total)::float AS total,
-                COUNT(*)::int AS count,
-                EXTRACT(YEAR FROM issue_date)::int AS year
-            FROM documents
-            WHERE doc_type = 'INVOICE'
-              AND status != 'VOIDED'
-              AND EXTRACT(YEAR FROM issue_date) IN (
-                  EXTRACT(YEAR FROM NOW()),
-                  EXTRACT(YEAR FROM NOW()) - 1
-              )
-            GROUP BY date_trunc('month', issue_date), EXTRACT(YEAR FROM issue_date)
-            ORDER BY date_trunc('month', issue_date)
-        `
-    })
+    const { data, error } = await supabase.rpc('get_monthly_sales')
 
     if (error || !data) {
         console.error('[sales/page] monthlySales error:', error?.message)
@@ -53,21 +36,7 @@ async function getMonthlySales(): Promise<MonthlySalesRow[]> {
 async function getTopClients(): Promise<TopClientRow[]> {
     const supabase = await createClient()
 
-    const { data, error } = await supabase.rpc('execute_sql_internal', {
-        query: `
-            SELECT
-                p.legal_name,
-                SUM(d.total)::float AS total
-            FROM documents d
-            JOIN parties p ON d.party_id = p.id
-            WHERE d.doc_type = 'INVOICE'
-              AND d.status != 'VOIDED'
-              AND EXTRACT(YEAR FROM d.issue_date) = EXTRACT(YEAR FROM NOW())
-            GROUP BY p.legal_name
-            ORDER BY total DESC
-            LIMIT 10
-        `
-    })
+    const { data, error } = await supabase.rpc('get_top_clients', { p_limit: 10 })
 
     if (error || !data) {
         console.error('[sales/page] topClients error:', error?.message)

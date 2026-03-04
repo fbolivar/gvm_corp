@@ -36,72 +36,72 @@ export function ReportingFilters() {
     }
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-end gap-4 bg-slate-900 overflow-hidden border border-slate-700/50 p-4 rounded-lg shadow-xl">
-                <div className="space-y-2">
-                    <Label htmlFor="startDate" className="text-slate-400 text-xs uppercase tracking-wider">Fecha Inicial</Label>
+        <div className="space-y-2">
+            <div className="flex items-end gap-3 bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+                <div className="space-y-1.5">
+                    <Label htmlFor="startDate" className="text-slate-400 text-[10px] uppercase tracking-wider font-medium">Desde</Label>
                     <Input
                         id="startDate"
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-slate-800 border-slate-700 text-white"
+                        className="h-9 bg-slate-50 border-slate-200 text-xs"
                     />
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="endDate" className="text-slate-400 text-xs uppercase tracking-wider">Fecha Final</Label>
+                <div className="space-y-1.5">
+                    <Label htmlFor="endDate" className="text-slate-400 text-[10px] uppercase tracking-wider font-medium">Hasta</Label>
                     <Input
                         id="endDate"
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="bg-slate-800 border-slate-700 text-white"
+                        className="h-9 bg-slate-50 border-slate-200 text-xs"
                     />
                 </div>
-                <Button onClick={handleApply} className="bg-blue-600 hover:bg-blue-700 text-white px-6">
-                    Generar Reporte
+                <Button onClick={handleApply} size="sm" className="h-9 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold">
+                    Generar
                 </Button>
                 <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     onClick={() => setShowCompare(!showCompare)}
                     className={cn(
-                        "h-10 w-10 rounded-lg transition-all",
+                        "h-9 w-9 rounded-lg shrink-0",
                         showCompare
-                            ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                            : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                            ? "bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100"
+                            : "text-slate-400 hover:bg-slate-50"
                     )}
-                    title="Comparar con período anterior"
+                    title="Comparar con periodo anterior"
                 >
                     <Scale className="h-4 w-4" />
                 </Button>
             </div>
 
             {showCompare && (
-                <div className="flex items-end gap-4 bg-slate-800 border border-indigo-500/30 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-indigo-400 text-[9px] font-black uppercase tracking-widest mr-2 whitespace-nowrap self-end mb-2.5">
+                <div className="flex items-end gap-3 bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
+                    <div className="flex items-center gap-1.5 text-indigo-500 text-[9px] font-semibold uppercase tracking-wider mr-1 self-end mb-2">
                         <Scale className="h-3 w-3" />
                         Vs.
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="compareStart" className="text-slate-400 text-xs uppercase tracking-wider">Desde</Label>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="compareStart" className="text-indigo-400 text-[10px] uppercase tracking-wider font-medium">Desde</Label>
                         <Input
                             id="compareStart"
                             type="date"
                             value={compareStart}
                             onChange={(e) => setCompareStart(e.target.value)}
-                            className="bg-slate-700 border-slate-600 text-white"
+                            className="h-9 bg-white border-indigo-200 text-xs"
                         />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="compareEnd" className="text-slate-400 text-xs uppercase tracking-wider">Hasta</Label>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="compareEnd" className="text-indigo-400 text-[10px] uppercase tracking-wider font-medium">Hasta</Label>
                         <Input
                             id="compareEnd"
                             type="date"
                             value={compareEnd}
                             onChange={(e) => setCompareEnd(e.target.value)}
-                            className="bg-slate-700 border-slate-600 text-white"
+                            className="h-9 bg-white border-indigo-200 text-xs"
                         />
                     </div>
                     <Button
@@ -109,7 +109,7 @@ export function ReportingFilters() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setShowCompare(false)}
-                        className="text-slate-400 hover:text-white hover:bg-slate-700 h-10 w-10 rounded-lg self-end"
+                        className="text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 h-9 w-9 rounded-lg self-end"
                     >
                         <X className="h-4 w-4" />
                     </Button>

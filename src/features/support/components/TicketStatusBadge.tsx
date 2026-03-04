@@ -19,13 +19,13 @@ export function TicketStatusBadge({ status, className }: Props) {
     const labels: Record<TicketStatus, string> = {
         'OPEN': 'Abierto',
         'IN_PROGRESS': 'En Proceso',
-        'PENDING_APPROVAL': 'Esperando Aprobación',
+        'PENDING_APPROVAL': 'Esperando Aprobacion',
         'RESOLVED': 'Resuelto',
         'CLOSED': 'Cerrado',
     };
 
     return (
-        <Badge variant="outline" className={cn("px-2 py-0 text-[10px] font-black uppercase tracking-widest", styles[status], className)}>
+        <Badge variant="outline" className={cn("px-2 py-0 text-[10px] font-semibold uppercase tracking-wider", styles[status], className)}>
             {labels[status]}
         </Badge>
     );

@@ -10,7 +10,7 @@ export const crmService = {
         }
 
         const { data, error } = await query;
-        if (error) throw error;
+        if (error) { console.error('[crm] getLeads:', error.message); return [] as Lead[]; }
         return data as Lead[];
     },
 
@@ -48,7 +48,7 @@ export const crmService = {
             `)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) { console.error('[crm] getOpportunities:', error.message); return [] as any[]; }
         return data as any[];
     },
 

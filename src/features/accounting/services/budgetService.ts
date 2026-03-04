@@ -69,7 +69,7 @@ export const budgetService = {
             .from('budgets')
             .select('*')
             .order('year', { ascending: false });
-        if (error) throw error;
+        if (error) { console.error('[budget] getAll:', error.message); return []; }
         return (data ?? []) as Budget[];
     },
 
@@ -78,8 +78,8 @@ export const budgetService = {
             client.from('budgets').select('*').eq('id', id).single(),
             client.from('budget_lines').select('*').eq('budget_id', id).order('sort_order'),
         ]);
-        if (be) throw be;
-        if (le) throw le;
+        if (be) { console.error('[budget] getWithLines:', be.message); return { budget: {} as Budget, lines: [] }; }
+        if (le) { console.error('[budget] getWithLines lines:', le.message); return { budget: budget as Budget, lines: [] }; }
         return { budget: budget as Budget, lines: (lines ?? []) as BudgetLine[] };
     },
 

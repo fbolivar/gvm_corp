@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -41,7 +42,8 @@ import {
     FileText,
     BarChart3,
     Settings as SettingsIcon,
-    ShoppingBag
+    ShoppingBag,
+    Briefcase
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { settingsService, TeamMember, AppRole, AppModule, RolePermission, Zone } from "../services/settingsService";
@@ -70,8 +72,10 @@ const MOD_ICONS: Record<string, any> = {
     payroll: Banknote,
     production: Factory,
     treasury: Wallet,
-    portfolio: History,
+    training: Users,
+    contracts: FileText,
     dian: FileCheck,
+    support: Users,
     documents: FileText,
     analytics: BarChart3,
     settings: SettingsIcon
@@ -89,6 +93,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     const [members, setMembers] = useState<TeamMember[]>(initialMembers);
     const [zones, setZones] = useState<Zone[]>(initialZones);
     const [permissions, setPermissions] = useState<RolePermission[]>(initialPermissions);
+    const [addFullName, setAddFullName] = useState("");
     const [addEmail, setAddEmail] = useState("");
     const [addPassword, setAddPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -103,16 +108,19 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     const [roleFilter, setRoleFilter] = useState("");
 
     const supabase = createClient();
+    const router = useRouter();
 
     const refreshMembers = useCallback(async () => {
-        try {
-            const { data } = await supabase
-                .rpc('get_team_members', { p_tenant_id: tenantId });
-            if (data) setMembers(data);
-        } catch {
-            // Silent fail on refresh
+        const { data, error } = await supabase
+            .rpc('get_team_members', { p_tenant_id: tenantId });
+        if (error) {
+            console.error('[refreshMembers] RPC error:', error.message);
+            // Fallback: full page reload to show updated data
+            router.refresh();
+            return;
         }
-    }, [supabase, tenantId]);
+        setMembers(data || []);
+    }, [supabase, tenantId, router]);
 
     async function handleAddMember() {
         if (!addEmail.trim()) {
@@ -131,6 +139,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                 body: JSON.stringify({
                     email: addEmail.trim(),
                     password: addPassword.trim() || undefined,
+                    fullName: addFullName.trim() || undefined,
                     role: roleName,
                     zoneId: addZone || null,
                 })
@@ -143,11 +152,14 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
             }
 
             toast.success(result.message || `${addEmail} vinculado correctamente`);
+            setAddFullName("");
             setAddEmail("");
             setAddPassword("");
             setAddRole(roles[0]?.id || "");
             setAddZone("");
             await refreshMembers();
+            // Belt-and-suspenders: also refresh server data so a page reload shows updated list
+            router.refresh();
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "Error desconocido";
             toast.error(message);
@@ -337,6 +349,25 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
 
                             <CardContent className="p-8 pt-6">
                                 <div className="space-y-4">
+
+                                    {/* Nombres y Apellidos */}
+                                    <div className="space-y-2">
+                                        <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block">
+                                            Nombres y Apellidos
+                                        </Label>
+                                        <div className="relative">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                            <Input
+                                                id="member-fullname"
+                                                type="text"
+                                                value={addFullName}
+                                                onChange={(e) => setAddFullName(e.target.value)}
+                                                placeholder="Nombre completo del miembro"
+                                                className="h-14 bg-slate-50 border-none rounded-2xl font-medium pl-11 text-sm focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                                onKeyDown={(e) => e.key === "Enter" && handleAddMember()}
+                                            />
+                                        </div>
+                                    </div>
 
                                     {/* Fila 1: Email + Contraseña */}
                                     <div className="grid grid-cols-2 gap-4">
@@ -578,6 +609,14 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                                                 {openMenu === member.id && (
                                                                     <div className="absolute right-0 top-12 z-50 w-64 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                                                         <p className="px-5 py-2 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 mb-2">Acciones de Sistema</p>
+                                                                        <a
+                                                                            href={`/payroll/employees/new?userId=${member.user_id}&name=${encodeURIComponent(member.full_name || '')}&email=${encodeURIComponent(member.email)}`}
+                                                                            className="w-full px-5 py-3 text-left text-[11px] font-black text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                                                                            onClick={() => setOpenMenu(null)}
+                                                                        >
+                                                                            <Briefcase className="h-4 w-4" />
+                                                                            Enrolar como Empleado
+                                                                        </a>
                                                                         <button
                                                                             onClick={() => handleRemoveMember(member.id, member.email)}
                                                                             className="w-full px-5 py-3 text-left text-[11px] font-black text-rose-500 hover:bg-rose-50 flex items-center gap-3 transition-colors uppercase tracking-widest"

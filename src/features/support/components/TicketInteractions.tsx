@@ -40,39 +40,39 @@ export function TicketInteractions({ ticketId, initialInteractions }: Props) {
     };
 
     return (
-        <div className="flex flex-col h-full space-y-8">
+        <div className="flex flex-col h-full space-y-6">
             {/* Timeline */}
-            <div className="flex-1 space-y-8 pr-2 custom-scrollbar">
-                {interactions.map((interaction, idx) => (
+            <div className="flex-1 space-y-5 pr-2">
+                {interactions.map((interaction) => (
                     <div key={interaction.id} className={cn(
-                        "flex gap-4",
+                        "flex gap-3",
                         interaction.is_internal ? "opacity-90" : ""
                     )}>
-                        <Avatar className="h-10 w-10 border-2 border-white shadow-sm shrink-0">
+                        <Avatar className="h-8 w-8 border-2 border-white shadow-sm shrink-0">
                             <AvatarFallback className={cn(
-                                "font-black text-[10px]",
+                                "font-bold text-[10px]",
                                 interaction.is_internal ? "bg-amber-100 text-amber-700" : "bg-indigo-100 text-indigo-700"
                             )}>
-                                {interaction.author?.full_name?.charAt(0) || <User className="h-4 w-4" />}
+                                {interaction.author?.full_name?.charAt(0) || <User className="h-3.5 w-3.5" />}
                             </AvatarFallback>
                         </Avatar>
 
-                        <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="space-y-1 flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <span className="font-black text-xs text-slate-900">{interaction.author?.full_name || "Sistema"}</span>
-                                <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                                <span className="font-bold text-xs text-slate-900">{interaction.author?.full_name || "Sistema"}</span>
+                                <span className="text-[10px] font-medium text-slate-300 uppercase tracking-wider">
                                     {format(new Date(interaction.created_at), 'HH:mm', { locale: es })}
                                 </span>
                                 {interaction.is_internal && (
-                                    <Badge variant="outline" className="bg-amber-50 text-amber-600 border-none px-1.5 py-0 h-4 text-[8px] font-black uppercase tracking-tighter">
+                                    <span className="inline-flex items-center bg-amber-50 text-amber-600 border-none px-1.5 py-0 rounded-full text-[9px] font-semibold uppercase tracking-wider">
                                         <Lock className="h-2 w-2 mr-1" /> Nota Interna
-                                    </Badge>
+                                    </span>
                                 )}
                             </div>
                             <div className={cn(
-                                "p-4 rounded-2xl text-sm leading-relaxed",
+                                "p-3 rounded-xl text-sm leading-relaxed",
                                 interaction.is_internal
-                                    ? "bg-amber-50/50 border border-amber-100 text-amber-900 italic"
+                                    ? "bg-amber-50/50 border border-amber-100 text-amber-900"
                                     : "bg-white border border-slate-100 text-slate-700 shadow-sm"
                             )}>
                                 {formatContent(interaction.content)}
@@ -83,36 +83,35 @@ export function TicketInteractions({ ticketId, initialInteractions }: Props) {
             </div>
 
             {/* Input */}
-            <div className="bg-slate-50 rounded-[2rem] p-4 space-y-3 sticky bottom-0">
+            <div className="bg-slate-50 rounded-xl p-4 space-y-3 sticky bottom-0">
                 <Textarea
-                    placeholder="Escribe un mensaje o mención @..."
+                    placeholder="Escribe un mensaje o mencion @..."
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
                     className="border-none bg-transparent shadow-none focus-visible:ring-0 resize-none min-h-[80px] font-medium text-sm placeholder:text-slate-300"
                 />
                 <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setIsInternal(!isInternal)}
-                            className={cn(
-                                "h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                                isInternal ? "bg-amber-100 text-amber-600" : "text-slate-400 hover:bg-slate-100"
-                            )}
-                        >
-                            <Lock className="h-3.5 w-3.5 mr-1.5" /> Interno
-                        </Button>
-                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsInternal(!isInternal)}
+                        className={cn(
+                            "h-8 px-3 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-all",
+                            isInternal ? "bg-amber-100 text-amber-600" : "text-slate-400 hover:bg-slate-100"
+                        )}
+                    >
+                        <Lock className="h-3 w-3 mr-1.5" /> Interno
+                    </Button>
                     <Button
                         disabled={isSending || !newNote.trim()}
                         onClick={handleSubmit}
-                        className="h-10 px-6 rounded-xl bg-slate-900 hover:bg-primary text-white font-black shadow-active transition-all active:scale-95"
+                        size="sm"
+                        className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs"
                     >
                         {isSending ? (
                             <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
-                            <><Send className="h-4 w-4 mr-2" /> Enviar</>
+                            <><Send className="h-3.5 w-3.5 mr-1.5" /> Enviar</>
                         )}
                     </Button>
                 </div>
@@ -128,19 +127,11 @@ function formatContent(content: string) {
     return parts.map((part, i) => {
         if (part.match(mentionRegex)) {
             return (
-                <span key={i} className="px-1.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-black text-[10px] uppercase tracking-tighter mx-0.5">
+                <span key={i} className="px-1 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold text-[10px] uppercase tracking-wide mx-0.5">
                     {part}
                 </span>
             );
         }
         return part;
     });
-}
-
-function Badge({ children, variant, className }: any) {
-    return (
-        <div className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", className)}>
-            {children}
-        </div>
-    )
 }

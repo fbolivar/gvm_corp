@@ -87,6 +87,7 @@ export const employeeSchema = z.object({
 
     status: z.enum(['ACTIVE', 'INACTIVE', 'TERMINATED']).default('ACTIVE'),
     created_at: z.string().optional(),
+    user_id: z.string().uuid().optional().nullable(),
 
     // Relation with Party
     party: partySchema.optional() // When fetching, we get the full party details
