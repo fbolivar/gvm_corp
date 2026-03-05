@@ -36,8 +36,8 @@ interface InventoryMovementFormProps {
     isLoading?: boolean;
 }
 
-const selectClass = "w-full h-14 bg-white border-none rounded-2xl px-12 text-sm font-bold text-slate-900 appearance-none shadow-inner focus:ring-4 focus:ring-primary/5 outline-none hover:bg-slate-50 transition-all cursor-pointer";
-const labelClass = "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block";
+const selectClass = "w-full h-9 bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-8 text-sm font-medium text-slate-900 appearance-none focus:ring-1 focus:ring-indigo-200 outline-none cursor-pointer";
+const labelClass = "text-[10px] font-semibold text-slate-400 uppercase tracking-wider ml-1 mb-1.5 block";
 
 export function InventoryMovementForm({ products, warehouses, onSubmit, isLoading }: InventoryMovementFormProps) {
     const [currentStock, setCurrentStock] = useState<number | null>(null);
@@ -46,7 +46,7 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
     const supabase = createClient();
 
     const form = useForm<InventoryMovement>({
-        resolver: zodResolver(movementSchema) as any,
+        resolver: zodResolver(movementSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         defaultValues: {
             type: 'IN',
             qty: 1,
@@ -67,7 +67,7 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
             setCurrentStock(null);
             setAvailableLots([]);
         }
-    }, [watchProductId, watchWarehouseId]);
+    }, [watchProductId, watchWarehouseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchStock = async () => {
         setLoadingStock(true);
@@ -99,127 +99,124 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
     const isEntry = watchType === 'IN';
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            {/* Stock Preview Card */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+            {/* Stock Preview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className={cn(
-                    "rounded-[2.5rem] border-none shadow-premium transition-all duration-500 overflow-hidden group",
+                    "rounded-2xl border-none shadow-sm overflow-hidden",
                     isEntry ? "bg-emerald-500" : "bg-rose-500"
                 )}>
-                    <CardContent className="p-8 text-white relative">
-                        <div className="absolute top-0 right-0 p-8 opacity-20 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-                            {isEntry ? <ArrowDownLeft className="h-24 w-24" /> : <ArrowUpRight className="h-24 w-24" />}
+                    <CardContent className="p-5 text-white relative">
+                        <div className="absolute top-3 right-3 opacity-20">
+                            {isEntry ? <ArrowDownLeft className="h-12 w-12" /> : <ArrowUpRight className="h-12 w-12" />}
                         </div>
-                        <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Operación Seleccionada</p>
-                        <h3 className="text-4xl font-black italic tracking-tighter">
+                        <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wider mb-1">Tipo de Operación</p>
+                        <h3 className="text-xl font-bold tracking-tight">
                             {isEntry ? "Entrada" : "Salida"}
                         </h3>
-                        <p className="text-[10px] font-bold text-white/50 mt-4 uppercase tracking-widest">
-                            {isEntry ? "+ Incremento de activos" : "- Disminución de activos"}
+                        <p className="text-[10px] text-white/50 mt-2">
+                            {isEntry ? "+ Incremento de stock" : "- Disminución de stock"}
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden group">
-                    <CardContent className="p-8 relative">
-                        <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <Layers className="h-20 w-20 text-slate-900" />
-                        </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Disponibilidad en Bodega</p>
+                <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                    <CardContent className="p-5 relative">
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Stock Actual en Bodega</p>
                         <div className="flex items-end gap-2">
                             <h3 className={cn(
-                                "text-4xl font-black tracking-tighter italic",
+                                "text-xl font-bold tracking-tight",
                                 loadingStock ? "text-slate-200" : "text-slate-900"
                             )}>
                                 {currentStock !== null ? currentStock.toLocaleString() : '--'}
                             </h3>
-                            <span className="text-slate-300 font-bold mb-1">UND</span>
+                            <span className="text-slate-400 text-xs font-medium mb-0.5">UND</span>
                         </div>
                         {currentStock !== null && currentStock <= 5 && (
-                            <Badge className="mt-4 bg-amber-50 text-amber-600 border-none text-[8px] font-black tracking-widest">
-                                <AlertCircle className="h-3 w-3 mr-1" /> STOCK CRÍTICO
+                            <Badge className="mt-3 bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                <AlertCircle className="h-3 w-3 mr-1" /> Stock Crítico
                             </Badge>
                         )}
-                        {!watchProductId && <p className="text-[10px] text-slate-300 font-bold mt-4 italic uppercase">Seleccione producto y bodega</p>}
+                        {!watchProductId && <p className="text-[10px] text-slate-300 mt-3">Seleccione producto y bodega</p>}
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Main Form Card */}
-            <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
-                <CardHeader className="p-10 pb-4">
-                    <CardTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
-                        <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-active">
-                            <Box className="h-6 w-6" />
+            {/* Form Card */}
+            <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                    <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                            <Box className="h-4 w-4" />
                         </div>
                         Detalles del Movimiento
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-10 pt-6">
-                    <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <Label className={labelClass}>Tipo de Acción</Label>
+                <CardContent className="p-5">
+                    <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-5">{/* eslint-disable-line @typescript-eslint/no-explicit-any */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5">
+                                <Label className={labelClass}>Tipo de Movimiento</Label>
                                 <div className="relative">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 z-10">
-                                        {isEntry ? <ArrowDownLeft className="h-5 w-5 text-emerald-500" /> : <ArrowUpRight className="h-5 w-5 text-rose-500" />}
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+                                        {isEntry ? <ArrowDownLeft className="h-4 w-4 text-emerald-500" /> : <ArrowUpRight className="h-4 w-4 text-rose-500" />}
                                     </div>
                                     <select {...form.register('type')} className={selectClass}>
                                         <option value="IN">Entrada (Compra/Saldo Inicial)</option>
                                         <option value="OUT">Salida (Venta/Baja/Ajuste)</option>
                                     </select>
-                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300 pointer-events-none" />
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className={labelClass}>Fecha de Ejecución</Label>
+                            <div className="space-y-1.5">
+                                <Label className={labelClass}>Fecha</Label>
                                 <div className="relative">
-                                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                     <Input
                                         type="datetime-local"
                                         {...form.register('occurred_at')}
-                                        className="h-14 pl-14 bg-white border-none rounded-2xl font-bold text-slate-900 shadow-inner focus:ring-4 focus:ring-primary/5"
+                                        className="h-9 pl-9 bg-slate-50 border border-slate-200 rounded-lg text-sm focus-visible:ring-1 focus-visible:ring-indigo-200"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <Label className={labelClass}>Origen / Bodega</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5">
+                                <Label className={labelClass}>Bodega</Label>
                                 <div className="relative">
-                                    <WarehouseIcon className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 pointer-events-none z-10" />
+                                    <WarehouseIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none z-10" />
                                     <select {...form.register('warehouse_id')} className={selectClass}>
-                                        <option value="">Seleccionar Almacén</option>
+                                        <option value="">Seleccionar Bodega</option>
                                         {warehouses.map(w => (
-                                            <option key={w.id} value={w.id}>{w.name.toUpperCase()}</option>
+                                            <option key={w.id} value={w.id}>{w.name}</option>
                                         ))}
                                     </select>
-                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300 pointer-events-none" />
                                 </div>
-                                {form.formState.errors.warehouse_id && <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-1 ml-1">{form.formState.errors.warehouse_id.message}</p>}
+                                {form.formState.errors.warehouse_id && <p className="text-rose-500 text-[10px] font-medium mt-1">{form.formState.errors.warehouse_id.message}</p>}
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className={labelClass}>Artículo Logístico</Label>
+                            <div className="space-y-1.5">
+                                <Label className={labelClass}>Producto</Label>
                                 <div className="relative">
-                                    <Tag className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 pointer-events-none z-10" />
+                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none z-10" />
                                     <select {...form.register('product_id')} className={selectClass}>
                                         <option value="">Seleccionar Producto</option>
                                         {products.map(p => (
                                             <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
                                         ))}
                                     </select>
-                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300 pointer-events-none" />
                                 </div>
-                                {form.formState.errors.product_id && <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-1 ml-1">{form.formState.errors.product_id.message}</p>}
+                                {form.formState.errors.product_id && <p className="text-rose-500 text-[10px] font-medium mt-1">{form.formState.errors.product_id.message}</p>}
                             </div>
                         </div>
 
-                        {/* Lot Selector — shows when product+warehouse selected and lots exist */}
+                        {/* Lot Selector */}
                         {availableLots.length > 0 && (
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <Label className={labelClass}>
                                     <span className="flex items-center gap-1.5">
                                         <FlaskConical className="h-3 w-3" />
@@ -227,7 +224,7 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
                                     </span>
                                 </Label>
                                 <div className="relative">
-                                    <FlaskConical className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-indigo-400 pointer-events-none z-10" />
+                                    <FlaskConical className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-400 pointer-events-none z-10" />
                                     <select {...form.register('lot_id')} className={selectClass}>
                                         <option value="">Sin lote específico</option>
                                         {availableLots.map(lot => {
@@ -243,60 +240,60 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
                                             );
                                         })}
                                     </select>
-                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300 pointer-events-none" />
                                 </div>
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <Label className={labelClass}>Cantidad Operativa</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5">
+                                <Label className={labelClass}>Cantidad</Label>
                                 <div className="relative">
-                                    <Layers className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                                    <Layers className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                     <Input
                                         type="number"
                                         step="0.01"
                                         {...form.register('qty', { valueAsNumber: true })}
                                         placeholder="0.00"
-                                        className="h-14 pl-14 bg-white border-none rounded-2xl font-bold text-slate-900 shadow-inner focus:ring-4 focus:ring-primary/5 text-lg tracking-tighter"
+                                        className="h-9 pl-9 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus-visible:ring-1 focus-visible:ring-indigo-200"
                                     />
                                 </div>
-                                {form.formState.errors.qty && <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-1 ml-1">{form.formState.errors.qty.message}</p>}
+                                {form.formState.errors.qty && <p className="text-rose-500 text-[10px] font-medium mt-1">{form.formState.errors.qty.message}</p>}
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className={labelClass}>Valor de Auditoría (P.U.)</Label>
+                            <div className="space-y-1.5">
+                                <Label className={labelClass}>Costo Unitario</Label>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500" />
+                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
                                     <Input
                                         type="number"
                                         step="0.01"
                                         {...form.register('cost', { valueAsNumber: true })}
-                                        placeholder="Costo Unitario"
-                                        className="h-14 pl-14 bg-white border-none rounded-2xl font-bold text-slate-900 shadow-inner focus:ring-4 focus:ring-primary/5 text-lg tracking-tighter"
+                                        placeholder="0.00"
+                                        className="h-9 pl-9 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus-visible:ring-1 focus-visible:ring-indigo-200"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-6">
+                        <div className="pt-2">
                             <Button
                                 type="submit"
                                 disabled={isLoading}
                                 className={cn(
-                                    "w-full h-16 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-active transition-all active:scale-95",
+                                    "w-full h-9 rounded-xl text-xs font-semibold",
                                     isEntry ? "bg-emerald-600 hover:bg-emerald-500" : "bg-rose-600 hover:bg-rose-500"
                                 )}
                             >
                                 {isLoading ? (
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        PROCESANDO KARDEX...
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Procesando...
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-5 w-5" />
-                                        Confirmar Registro Maestro
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Confirmar Movimiento
                                     </div>
                                 )}
                             </Button>

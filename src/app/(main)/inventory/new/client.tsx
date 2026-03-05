@@ -7,6 +7,7 @@ import { Product } from "@/features/products/types";
 import { Warehouse } from "@/features/inventory/types";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface Props {
     products: Product[];
@@ -22,15 +23,15 @@ export default function NewMovementClient({ products, warehouses }: Props) {
         try {
             const result = await createMovementAction(data);
             if (result?.error) {
-                alert(`Error en Kardex: ${result.error}`);
+                toast.error(`Error: ${result.error}`);
             } else {
-                // Éxito, volvemos al inventario
+                toast.success('Movimiento registrado exitosamente');
                 router.push('/inventory');
                 router.refresh();
             }
         } catch (error) {
             console.error("Submission error:", error);
-            alert("Error crítico al registrar movimiento");
+            toast.error("Error al registrar movimiento");
         } finally {
             setIsLoading(false);
         }

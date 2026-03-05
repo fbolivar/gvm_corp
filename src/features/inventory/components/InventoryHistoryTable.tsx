@@ -9,40 +9,27 @@ import {
     TableHeader,
     TableRow
 } from "@/shared/components/ui/table";
-import { Input } from "@/shared/components/ui/input";
 import {
     Search,
-    Filter,
     ArrowDownLeft,
     ArrowUpRight,
     Warehouse as WarehouseIcon,
-    History as HistoryIcon,
-    Tag,
-    Clock,
-    FileText,
-    ChevronRight,
-    Sparkles,
-    Cpu,
-    Target,
-    Zap,
-    Download,
-    ArrowRightLeft
+    Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { inventoryService } from "../services/inventoryService";
 import { createClient } from "@/lib/supabase/client";
 
 interface Props {
-    warehouses: any[];
+    warehouses: Record<string, unknown>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export function InventoryHistoryTable({ warehouses }: Props) {
-    const [movements, setMovements] = useState<any[]>([]);
+    const [movements, setMovements] = useState<Record<string, unknown>[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("all");
@@ -52,7 +39,7 @@ export function InventoryHistoryTable({ warehouses }: Props) {
 
     useEffect(() => {
         fetchMovements();
-    }, [search, typeFilter, warehouseFilter]);
+    }, [search, typeFilter, warehouseFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchMovements = async () => {
         setLoading(true);
@@ -72,105 +59,85 @@ export function InventoryHistoryTable({ warehouses }: Props) {
     };
 
     return (
-        <div className="space-y-10 animate-in fade-in duration-1000 pb-20">
-            {/* 🛠️ PREMIUM INDUSTRIAL FILTER BAR */}
-            <div className="flex flex-col md:flex-row gap-6 justify-between items-center bg-white p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-premium border border-slate-50 relative overflow-hidden group">
-                <div className="absolute right-0 top-0 p-4 opacity-[0.02] pointer-events-none transition-transform group-hover:scale-110">
-                    <HistoryIcon className="h-16 w-16" />
-                </div>
-
-                <div className="relative w-full md:w-[350px] lg:w-[500px] z-10">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+        <div className="space-y-4 pb-16">
+            {/* Filter bar */}
+            <div className="bg-white rounded-xl p-3 border border-slate-100 flex flex-col xl:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="Buscar por artículo o referencia SKU..."
-                        className="w-full bg-slate-50 border-none rounded-2xl h-14 pl-14 pr-6 text-xs font-black uppercase tracking-widest text-slate-900 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-slate-300 shadow-inner"
+                        placeholder="Buscar por producto o SKU..."
+                        className="w-full h-9 bg-slate-50 border-none rounded-lg pl-10 pr-4 text-sm placeholder:text-slate-400 focus:ring-1 focus:ring-indigo-200 outline-none"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
 
-                <div className="flex items-center gap-4 z-10 w-full md:w-auto overflow-x-auto no-scrollbar snap-x">
-                    <div className="flex bg-slate-50 p-1.5 rounded-2xl shadow-inner shrink-0">
+                <div className="flex items-center gap-2 w-full xl:w-auto">
+                    <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-100">
                         {['all', 'IN', 'OUT', 'TRANSFER'].map((t) => (
                             <button
                                 key={t}
                                 onClick={() => setTypeFilter(t)}
                                 className={cn(
-                                    "px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                                    "px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap",
                                     typeFilter === t
                                         ? "bg-white text-slate-900 shadow-sm"
                                         : "text-slate-400 hover:text-slate-600"
                                 )}
                             >
-                                {t === 'all' ? 'Ver Todo' : t === 'IN' ? 'Entradas' : t === 'OUT' ? 'Salidas' : 'Transf.'}
+                                {t === 'all' ? 'Todos' : t === 'IN' ? 'Entradas' : t === 'OUT' ? 'Salidas' : 'Transf.'}
                             </button>
                         ))}
                     </div>
 
-                    <div className="h-8 w-[1px] bg-slate-200 shrink-0" />
-
                     <select
-                        className="h-14 px-6 bg-slate-50 border-none rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 focus:ring-0 cursor-pointer shadow-inner min-w-[200px]"
+                        className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 focus:ring-0 cursor-pointer"
                         value={warehouseFilter}
                         onChange={(e) => setWarehouseFilter(e.target.value)}
                     >
                         <option value="all">Todas las Bodegas</option>
                         {warehouses.map(w => (
-                            <option key={w.id} value={w.id}>{w.name}</option>
+                            <option key={String(w.id)} value={String(w.id)}>{String(w.name)}</option>
                         ))}
                     </select>
-
-                    <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-slate-900 transition-all shrink-0">
-                        <Download className="h-4 w-4 mr-3" /> Reportar
-                    </Button>
                 </div>
             </div>
 
-            {/* Main Table Card */}
-            <Card className="border-none shadow-premium bg-white rounded-[2rem] md:rounded-[3.5rem] overflow-hidden p-2 relative border border-slate-100/50">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-1000">
-                    <Cpu className="h-48 w-48 text-slate-900" />
-                </div>
-
+            {/* Table */}
+            <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl overflow-hidden">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table>
-                            <TableHeader className="bg-slate-50/50 font-black">
-                                <TableRow className="border-slate-50 hover:bg-transparent">
-                                    <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 pl-12 py-10 italic">Trazabilidad Temporal</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic">Componente Logístico</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic text-center">Protocolo Origen</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic text-right">Magnitud Flux</TableHead>
-                                    <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 pr-12 italic">Ref. Protocolaria</TableHead>
+                            <TableHeader>
+                                <TableRow className="border-slate-100 hover:bg-transparent">
+                                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 pl-5 py-3">Fecha</TableHead>
+                                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Producto</TableHead>
+                                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-center">Bodega</TableHead>
+                                    <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right">Cantidad</TableHead>
+                                    <TableHead className="text-right text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 pr-5">Referencia</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="py-60 text-center">
-                                            <div className="flex flex-col items-center gap-8 group">
-                                                <div className="relative">
-                                                    <div className="h-24 w-24 border-[6px] border-slate-100 border-t-primary rounded-[2.5rem] animate-spin shadow-inner" />
-                                                    <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-primary animate-pulse" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <p className="text-slate-900 font-black text-2xl italic uppercase tracking-tighter">Sincronizando Ledger</p>
-                                                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] animate-pulse">Compas de espera activo...</p>
-                                                </div>
+                                        <TableCell colSpan={5} className="py-16 text-center">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="h-8 w-8 border-2 border-slate-200 border-t-indigo-600 rounded-full animate-spin" />
+                                                <p className="text-xs text-slate-400">Cargando movimientos...</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 ) : movements.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="py-60 text-center">
-                                            <div className="flex flex-col items-center gap-8 group">
-                                                <div className="h-24 w-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 border-4 border-white shadow-premium group-hover:rotate-12 transition-transform duration-700">
-                                                    <HistoryIcon className="h-12 w-12" />
+                                        <TableCell colSpan={5} className="py-16 text-center">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="h-12 w-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300">
+                                                    <Sparkles className="h-6 w-6" />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <h3 className="text-slate-900 font-black text-3xl tracking-tighter italic uppercase underline decoration-slate-500/10 underline-offset-8">Logs Inexistentes</h3>
-                                                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em] mt-6">No se detectaron transacciones en el sector de memoria actual.</p>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-900">Sin movimientos</p>
+                                                    <p className="text-xs text-slate-400 mt-1">No se encontraron registros con los filtros aplicados</p>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -179,97 +146,70 @@ export function InventoryHistoryTable({ warehouses }: Props) {
                                     movements.map((mov) => {
                                         const isIn = mov.type === 'IN';
                                         const Icon = isIn ? ArrowDownLeft : ArrowUpRight;
+                                        const products = mov.products as Record<string, unknown> | null;
+                                        const movWarehouses = mov.warehouses as Record<string, unknown> | null;
 
                                         return (
-                                            <TableRow key={mov.id} className="border-slate-50 hover:bg-slate-50/80 transition-all duration-500 group">
-                                                <TableCell className="py-10 pl-12">
-                                                    <div className="flex items-center gap-6">
+                                            <TableRow key={String(mov.id)} className="border-slate-50 hover:bg-slate-50/50">
+                                                <TableCell className="py-3 pl-5">
+                                                    <div className="flex items-center gap-3">
                                                         <div className={cn(
-                                                            "h-16 w-16 rounded-[1.5rem] flex items-center justify-center shadow-premium group-hover:rotate-6 group-hover:scale-110 transition-all duration-700 relative overflow-hidden",
+                                                            "h-8 w-8 rounded-lg flex items-center justify-center",
                                                             isIn ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                                                         )}>
-                                                            <div className="absolute inset-0 opacity-20 bg-grid-slate-200" />
-                                                            <Icon className="h-8 w-8 relative z-10" />
+                                                            <Icon className="h-4 w-4" />
                                                         </div>
-                                                        <div className="flex flex-col gap-1.5">
-                                                            <div className="flex items-center gap-2">
-                                                                <Clock className="h-3.5 w-3.5 text-slate-300" />
-                                                                <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest font-mono">
-                                                                    {mov.occurred_at ? format(new Date(mov.occurred_at), "dd MMM, yyyy • HH:mm", { locale: es }) : '-'}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <Badge variant="outline" className={cn(
-                                                                    "border-none px-3 py-1 font-black text-[8px] uppercase tracking-[0.2em] rounded-full shadow-sm italic",
-                                                                    isIn ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-slate-900">
+                                                                {mov.occurred_at ? format(new Date(String(mov.occurred_at)), "dd MMM yyyy", { locale: es }) : '-'}
+                                                            </p>
+                                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                                <Badge className={cn(
+                                                                    "border-none px-1.5 py-0 text-[9px] font-semibold rounded-full",
+                                                                    isIn ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
                                                                 )}>
-                                                                    {isIn ? 'Activo Entrante' : 'Activo Saliente'}
+                                                                    {isIn ? 'Entrada' : 'Salida'}
                                                                 </Badge>
-                                                                <Sparkles className="h-3 w-3 text-slate-200 group-hover:text-amber-400 transition-colors" />
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </TableCell>
 
-                                                <TableCell className="py-10">
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <span className="text-lg font-black text-slate-900 tracking-tighter italic uppercase group-hover:text-primary transition-colors duration-500 truncate max-w-[280px]">
-                                                            {mov.products?.name}
-                                                        </span>
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className="bg-slate-900 px-2.5 py-0.5 rounded-md shadow-sm">
-                                                                <span className="text-[9px] font-mono font-black text-white hover:text-primary hover:bg-slate-50 transition-colors">
-                                                                    {mov.products?.sku}
-                                                                </span>
-                                                            </div>
-                                                            <div className="h-1 w-1 rounded-full bg-slate-200" />
-                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Inventory Unit</span>
-                                                        </div>
+                                                <TableCell className="py-3">
+                                                    <p className="text-xs font-semibold text-slate-900 truncate max-w-[240px]">
+                                                        {String(products?.name || '')}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                                        {String(products?.sku || '')}
+                                                    </p>
+                                                </TableCell>
+
+                                                <TableCell className="py-3 text-center">
+                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-slate-600">
+                                                        <WarehouseIcon className="h-3 w-3" />
+                                                        <span className="text-[10px] font-semibold">{String(movWarehouses?.name || '')}</span>
                                                     </div>
                                                 </TableCell>
 
-                                                <TableCell className="py-10">
-                                                    <div className="flex justify-center flex-col items-center gap-2">
-                                                        <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm text-slate-600 group-hover:border-primary group-hover:text-primary transition-all duration-500">
-                                                            <WarehouseIcon className="h-4 w-4" />
-                                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] leading-none">{mov.warehouses?.name}</span>
-                                                        </div>
-                                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest italic group-hover:text-slate-400 transition-colors">Centro logístico primario</span>
-                                                    </div>
+                                                <TableCell className="py-3 text-right">
+                                                    <span className={cn(
+                                                        "text-sm font-bold tabular-nums",
+                                                        isIn ? "text-emerald-600" : "text-rose-600"
+                                                    )}>
+                                                        {isIn ? '+' : '-'}{Number(mov.qty).toLocaleString('es-CO')}
+                                                    </span>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                                        ${Number(mov.cost).toLocaleString('es-CO')} c/u
+                                                    </p>
                                                 </TableCell>
 
-                                                <TableCell className="py-10 text-right">
-                                                    <div className="flex flex-col items-end gap-1">
-                                                        <span className={cn(
-                                                            "text-3xl font-black tracking-tighter italic tabular-nums leading-none transition-transform group-hover:scale-110",
-                                                            isIn ? "text-emerald-600" : "text-rose-600"
-                                                        )}>
-                                                            {isIn ? '+' : '-'}{Number(mov.qty).toLocaleString('es-CO')}
-                                                        </span>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Costo Base: </span>
-                                                            <span className="text-[10px] font-mono font-black text-slate-900">${Number(mov.cost).toLocaleString('es-CO')}</span>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-
-                                                <TableCell className="py-10 pr-12 text-right">
-                                                    <div className="flex items-center justify-end gap-4">
-                                                        <div className="flex flex-col items-end gap-1.5">
-                                                            <div className="flex items-center gap-2.5 group/ref">
-                                                                <span className="text-xl font-black text-slate-900 tracking-tighter italic leading-none group-hover/ref:text-primary transition-colors">
-                                                                    #{mov.ref_doc_id?.substring(0, 8) || 'INTERNO'}
-                                                                </span>
-                                                                <ArrowRightLeft className="h-4 w-4 text-slate-200 group-hover/ref:rotate-180 transition-transform duration-700" />
-                                                            </div>
-                                                            <Badge variant="outline" className="bg-slate-50 text-slate-400 border-none text-[8px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-[0.2em] shadow-inner italic">
-                                                                {mov.ref_doc_type || 'Operación Manual'}
-                                                            </Badge>
-                                                        </div>
-                                                        <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-none bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white shadow-sm transition-all duration-500 hover:scale-110 active:scale-90 opacity-0 group-hover:opacity-100">
-                                                            <ChevronRight className="h-6 w-6" />
-                                                        </Button>
-                                                    </div>
+                                                <TableCell className="py-3 pr-5 text-right">
+                                                    <p className="text-xs font-semibold text-slate-900">
+                                                        #{String(mov.ref_doc_id || '').substring(0, 8) || 'INTERNO'}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                                        {String(mov.ref_doc_type || 'Manual')}
+                                                    </p>
                                                 </TableCell>
                                             </TableRow>
                                         );
