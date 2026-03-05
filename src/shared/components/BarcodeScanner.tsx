@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { usePathname } from "next/navigation"
 import {
     Barcode,
     Scan,
@@ -33,7 +34,10 @@ interface ScannerProduct {
     uom: string
 }
 
+const ALLOWED_PATHS = ['/inventory', '/products']
+
 export function BarcodeScanner() {
+    const pathname = usePathname()
     const [isOpen, setIsOpen] = useState(false)
     const [scannedCode, setScannedCode] = useState("")
     const [product, setProduct] = useState<ScannerProduct | null>(null)
@@ -47,6 +51,8 @@ export function BarcodeScanner() {
 
     const scanBuffer = useRef("")
     const lastKeyTime = useRef(0)
+
+    const isVisible = ALLOWED_PATHS.some(p => pathname.startsWith(p))
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -180,6 +186,8 @@ export function BarcodeScanner() {
             setIsLoading(false)
         }
     }
+
+    if (!isVisible) return null
 
     return (
         <>
