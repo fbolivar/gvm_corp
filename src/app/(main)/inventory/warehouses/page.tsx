@@ -5,14 +5,24 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
-import { Plus, Building2, MapPin, Calendar, Hash, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Plus, Building2, ChevronRight } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 import { Badge } from "@/shared/components/ui/badge";
+import { redirect } from 'next/navigation';
+import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { settingsService } from '@/features/settings/services/settingsService';
 
 export default async function WarehousesPage() {
     const supabase = await createClient();
-    const warehouses = await inventoryService.getWarehouses(supabase);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect('/login');
+
+    const [warehouses, tenant] = await Promise.all([
+        inventoryService.getWarehouses(supabase),
+        settingsService.getTenantInfo(supabase)
+    ]);
 
     async function addWarehouse(formData: FormData) {
         'use server';
@@ -25,121 +35,106 @@ export default async function WarehousesPage() {
     }
 
     return (
-        <div className="page-container space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="space-y-2">
-                    <h1 className="page-title text-3xl md:text-4xl">Bodegas</h1>
-                    <div className="flex items-center gap-4">
-                        <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Puntos de Almacenamiento & Logística</p>
-                        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{warehouses.length} Activas</span>
-                        </div>
-                    </div>
-                </div>
+        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
+            <VisualReportHeader
+                title="Bodegas"
+                subtitle="Inventario — Puntos de Almacenamiento"
+                tenant={tenant}
+            />
 
-                <Button variant="outline" asChild className="h-14 px-8 rounded-[1.5rem] border-none bg-white shadow-premium text-slate-500 font-black hover:bg-slate-50 transition-all active:scale-95">
-                    <Link href="/inventory" className="flex items-center gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Regresar
-                    </Link>
-                </Button>
-            </div>
-
-            <div className="grid gap-10 md:grid-cols-12 items-start">
-                <Card className="md:col-span-4 rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden group">
-                    <div className="h-2 bg-slate-900 w-full" />
-                    <CardHeader className="p-8">
-                        <CardTitle className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-900">
-                                <Plus className="h-5 w-5" />
+            <div className="grid gap-6 md:grid-cols-12 items-start">
+                {/* Form */}
+                <Card className="md:col-span-4 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                    <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                        <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600">
+                                <Plus className="h-4 w-4" />
                             </div>
                             Nueva Bodega
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-8 pt-0">
-                        <form action={addWarehouse} className="space-y-6">
-                            <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre Descriptivo</Label>
+                    <CardContent className="p-5">
+                        <form action={addWarehouse} className="space-y-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Nombre</Label>
                                 <Input
                                     name="name"
-                                    placeholder="Ej: Bodega Central de Materia Prima"
+                                    placeholder="Ej: Bodega Central"
                                     required
-                                    className="h-14 px-6 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 placeholder:text-slate-200 focus-visible:ring-4 focus-visible:ring-primary/5 transition-all shadow-inner"
+                                    className="h-9 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder:text-slate-300 focus-visible:ring-1 focus-visible:ring-indigo-200"
                                 />
                             </div>
-                            <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Código Identificador (Único)</Label>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Código</Label>
                                 <Input
                                     name="code"
                                     placeholder="Ej: BP-01"
                                     required
-                                    className="h-14 px-6 bg-slate-50 border-none rounded-2xl font-mono font-bold text-slate-900 placeholder:text-slate-200 focus-visible:ring-4 focus-visible:ring-primary/5 transition-all shadow-inner"
+                                    className="h-9 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono placeholder:text-slate-300 focus-visible:ring-1 focus-visible:ring-indigo-200"
                                 />
                             </div>
-                            <Button type="submit" className="w-full h-14 rounded-2xl bg-slate-900 hover:bg-primary text-white font-black shadow-active transition-all group active:scale-95 border-none">
-                                <Plus className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform" /> Crear Bodega
+                            <Button type="submit" className="w-full h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold">
+                                <Plus className="mr-1.5 h-4 w-4" /> Crear Bodega
                             </Button>
                         </form>
                     </CardContent>
                 </Card>
 
-                <Card className="md:col-span-8 rounded-[2.5rem] border-none bg-white shadow-premium overflow-hidden">
-                    <CardHeader className="p-10 pb-6 flex flex-row items-center justify-between bg-slate-50/50">
-                        <div className="space-y-1">
-                            <CardTitle className="text-2xl font-black text-slate-900 tracking-tight">Red Logística</CardTitle>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Maestro de Bodegas Registradas</p>
+                {/* Table */}
+                <Card className="md:col-span-8 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                    <CardHeader className="p-5 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="text-sm font-bold text-slate-900">Bodegas Registradas</CardTitle>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{warehouses.length} bodegas activas</p>
                         </div>
-                        <Badge variant="outline" className="h-8 rounded-full border-slate-200 text-slate-400 font-bold px-4">
-                            2026 Fleet
-                        </Badge>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="border-slate-100 hover:bg-transparent">
-                                        <TableHead className="py-6 pl-10 text-[10px] font-black uppercase text-slate-400 tracking-widest"><Hash className="inline h-3 w-3 mr-1" /> Código</TableHead>
-                                        <TableHead className="py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest"><MapPin className="inline h-3 w-3 mr-1" /> Nombre</TableHead>
-                                        <TableHead className="py-6 pr-10 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest"><Calendar className="inline h-3 w-3 mr-1" /> Creación</TableHead>
+                                        <TableHead className="py-3 pl-5 text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Código</TableHead>
+                                        <TableHead className="py-3 text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Nombre</TableHead>
+                                        <TableHead className="py-3 pr-5 text-right text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Creación</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {warehouses.map((w) => (
-                                        <TableRow key={w.id} className="border-slate-50 hover:bg-slate-50/80 transition-all group">
-                                            <TableCell className="py-6 pl-10">
-                                                <Badge className="bg-slate-900 text-white border-none rounded-lg px-3 py-1 font-mono text-xs tracking-wider shadow-sm">
+                                        <TableRow key={w.id} className="border-slate-50 hover:bg-slate-50/50 group">
+                                            <TableCell className="py-3 pl-5">
+                                                <Badge className="bg-slate-100 text-slate-700 border-none rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold">
                                                     {w.code}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="py-6">
-                                                <Link href={`/inventory/warehouses/${w.id}`} className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors hover:underline">
+                                            <TableCell className="py-3">
+                                                <Link href={`/inventory/warehouses/${w.id}`} className="text-xs font-semibold text-slate-900 hover:text-indigo-600 transition-colors">
                                                     {w.name}
                                                 </Link>
                                             </TableCell>
-                                            <TableCell className="py-6 pr-10 text-right flex items-center justify-end gap-3">
-                                                <span className="text-xs font-bold text-slate-400">
-                                                    {new Date(w.created_at!).toLocaleDateString('es-CO', {
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric'
-                                                    })}
-                                                </span>
-                                                <Link href={`/inventory/warehouses/${w.id}`} className="h-7 w-7 rounded-full bg-slate-50 hover:bg-indigo-50 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors">
-                                                    <ChevronRight className="h-4 w-4" />
-                                                </Link>
+                                            <TableCell className="py-3 pr-5 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <span className="text-[10px] text-slate-400">
+                                                        {new Date(w.created_at!).toLocaleDateString('es-CO', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric'
+                                                        })}
+                                                    </span>
+                                                    <Link href={`/inventory/warehouses/${w.id}`} className="h-6 w-6 rounded-md bg-slate-50 hover:bg-indigo-50 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors">
+                                                        <ChevronRight className="h-3.5 w-3.5" />
+                                                    </Link>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}
                                     {warehouses.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center py-20">
-                                                <div className="flex flex-col items-center gap-4">
-                                                    <div className="h-16 w-16 rounded-full bg-slate-50 flex items-center justify-center">
-                                                        <Building2 className="h-8 w-8 text-slate-200" />
+                                            <TableCell colSpan={3} className="text-center py-12">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center">
+                                                        <Building2 className="h-6 w-6 text-slate-300" />
                                                     </div>
-                                                    <p className="text-slate-300 font-bold italic">No hay bodegas en el sistema todavía.</p>
+                                                    <p className="text-xs text-slate-400">No hay bodegas registradas</p>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
