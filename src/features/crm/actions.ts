@@ -90,6 +90,20 @@ export async function convertLeadToOpportunityAction(leadId: string, partyData: 
     }
 }
 
+export async function deleteLeadAction(id: string) {
+    const supabase = await createClient();
+
+    try {
+        await crmService.deleteLead(supabase, id);
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : "Error al eliminar" };
+    }
+
+    revalidatePath('/crm/leads');
+    revalidatePath('/crm');
+    return { success: true };
+}
+
 export async function createOpportunityAction(data: any) {
     const supabase = await createClient();
 

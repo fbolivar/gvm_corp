@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { Lead } from "../types"
 import { LeadList } from "./LeadList"
 import { LeadTable } from "./LeadTable"
@@ -8,6 +8,9 @@ import { Button } from "@/shared/components/ui/button"
 import { LayoutGrid, List } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { LeadConversionDialog } from "./LeadConversionDialog"
+import { deleteLeadAction } from "../actions"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface Props {
     leads: Lead[]
@@ -17,10 +20,27 @@ export function LeadViewManager({ leads }: Props) {
     const [view, setView] = useState<'grid' | 'list'>('list');
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
     const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false)
+    const [isPending, startTransition] = useTransition()
+    const router = useRouter()
 
     const handleConvertClick = (lead: Lead) => {
         setSelectedLead(lead)
         setIsConvertDialogOpen(true)
+    }
+
+    const handleDelete = (id: string) => {
+        const lead = leads.find(l => l.id === id)
+        if (!confirm(`¿Eliminar el prospecto "${lead?.name || ''}"? Esta acción no se puede deshacer.`)) return
+
+        startTransition(async () => {
+            const result = await deleteLeadAction(id)
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                toast.success("Prospecto eliminado")
+                router.refresh()
+            }
+        })
     }
 
     return (
@@ -62,13 +82,14 @@ export function LeadViewManager({ leads }: Props) {
                 </span>
             </div>
 
-            <div>
+            <div className={isPending ? "opacity-50 pointer-events-none" : ""}>
                 {view === 'grid' ? (
                     <LeadList leads={leads} />
                 ) : (
                     <LeadTable
                         leads={leads}
                         onConvert={handleConvertClick}
+                        onDelete={handleDelete}
                     />
                 )}
             </div>
@@ -77,7 +98,9 @@ export function LeadViewManager({ leads }: Props) {
                 open={isConvertDialogOpen}
                 onOpenChange={setIsConvertDialogOpen}
                 lead={selectedLead}
-                onSuccess={() => {}}
+                onSuccess={() => {
+                    router.refresh()
+                }}
             />
         </div>
     );

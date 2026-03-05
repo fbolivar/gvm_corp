@@ -142,8 +142,10 @@ export function LeadTable({ leads, onDelete, onConvert }: LeadTableProps) {
                                                             <Edit2 className="mr-2 h-3.5 w-3.5" /> Editar
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="rounded-lg text-xs text-slate-600 cursor-pointer h-8">
-                                                        <Eye className="mr-2 h-3.5 w-3.5" /> Ver historial
+                                                    <DropdownMenuItem asChild className="rounded-lg text-xs text-slate-600 cursor-pointer h-8">
+                                                        <Link href={`/crm/leads/${lead.id}/edit`}>
+                                                            <Eye className="mr-2 h-3.5 w-3.5" /> Ver detalle
+                                                        </Link>
                                                     </DropdownMenuItem>
                                                     <div className="h-px bg-slate-100 my-1" />
                                                     <DropdownMenuItem

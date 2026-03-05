@@ -25,6 +25,26 @@ export const crmService = {
         return data as Lead;
     },
 
+    async getLeadById(client: SupabaseClient, id: string) {
+        const { data, error } = await client
+            .from('leads')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return data as Lead;
+    },
+
+    async deleteLead(client: SupabaseClient, id: string) {
+        const { error } = await client
+            .from('leads')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
     async updateLead(client: SupabaseClient, id: string, lead: Partial<Lead>) {
         const { data, error } = await client
             .from('leads')
