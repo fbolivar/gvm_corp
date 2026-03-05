@@ -24,49 +24,45 @@ export function LeadViewManager({ leads }: Props) {
     }
 
     return (
-        <div className="space-y-12">
-            {/* 🛠️ VISTA CONTROL PANEL INDUSTRIAL V3 */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-8 bg-slate-50/50 p-4 rounded-[2.5rem] border border-slate-100/50">
-                <div className="flex items-center gap-2">
+        <div className="space-y-4">
+            {/* View Toggle */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setView('grid')}
                         className={cn(
-                            "h-14 px-8 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] gap-3 transition-all italic",
+                            "h-8 px-3 rounded-md text-xs font-semibold gap-2 transition-all",
                             view === 'grid'
-                                ? "bg-slate-950 text-white shadow-active scale-105"
-                                : "text-slate-400 hover:text-slate-600 hover:bg-white"
+                                ? "bg-white text-slate-900 shadow-sm"
+                                : "text-slate-400 hover:text-slate-600"
                         )}
                     >
-                        <LayoutGrid className={cn("h-4 w-4", view === 'grid' ? "text-indigo-400" : "")} />
-                        Grilla Táctica
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                        Grilla
                     </Button>
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setView('list')}
                         className={cn(
-                            "h-14 px-8 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] gap-3 transition-all italic",
+                            "h-8 px-3 rounded-md text-xs font-semibold gap-2 transition-all",
                             view === 'list'
-                                ? "bg-slate-950 text-white shadow-active scale-105"
-                                : "text-slate-400 hover:text-slate-600 hover:bg-white"
+                                ? "bg-white text-slate-900 shadow-sm"
+                                : "text-slate-400 hover:text-slate-600"
                         )}
                     >
-                        <List className={cn("h-4 w-4", view === 'list' ? "text-indigo-400" : "")} />
-                        Listado Maestro
+                        <List className="h-3.5 w-3.5" />
+                        Tabla
                     </Button>
                 </div>
-
-                <div className="flex items-center gap-4 px-6 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic">
-                        Visualización Activa: <span className="text-indigo-600 ml-2">{view === 'grid' ? 'Tactical Cards' : 'Master Ledger'}</span>
-                    </span>
-                </div>
+                <span className="text-[10px] text-slate-400 font-medium">
+                    {leads.length} prospectos
+                </span>
             </div>
 
-            <div className="animate-in fade-in zoom-in-95 duration-500">
+            <div>
                 {view === 'grid' ? (
                     <LeadList leads={leads} />
                 ) : (
@@ -81,9 +77,7 @@ export function LeadViewManager({ leads }: Props) {
                 open={isConvertDialogOpen}
                 onOpenChange={setIsConvertDialogOpen}
                 lead={selectedLead}
-                onSuccess={() => {
-                    // Logic for success
-                }}
+                onSuccess={() => {}}
             />
         </div>
     );
