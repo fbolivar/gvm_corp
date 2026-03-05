@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation';
 import { lotService } from '@/features/inventory/services/lotService';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { LotForm } from '@/features/inventory/components/LotForm';
+import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Badge } from '@/shared/components/ui/badge';
 import {
     FlaskConical,
     AlertTriangle,
@@ -10,6 +13,7 @@ import {
     DollarSign,
     Calendar,
     ShieldCheck,
+    Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,37 +36,37 @@ function getDaysUntilExpiry(expirationDate: string): number {
 function ExpiryBadge({ days }: { days: number }) {
     if (days < 0) {
         return (
-            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
                 Vencido
             </span>
         );
     }
     if (days <= 30) {
         return (
-            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
                 {days}d
             </span>
         );
     }
     if (days <= 90) {
         return (
-            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                 {days}d
             </span>
         );
     }
     return (
-        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
             {days}d
         </span>
     );
 }
 
 const STATUS_BADGES: Record<string, string> = {
-    ACTIVE:     'bg-emerald-100 text-emerald-700',
-    QUARANTINE: 'bg-amber-100 text-amber-700',
-    EXPIRED:    'bg-rose-100 text-rose-700',
-    DEPLETED:   'bg-slate-100 text-slate-500',
+    ACTIVE:     'bg-emerald-50 text-emerald-600 border-emerald-100',
+    QUARANTINE: 'bg-amber-50 text-amber-600 border-amber-100',
+    EXPIRED:    'bg-rose-50 text-rose-600 border-rose-100',
+    DEPLETED:   'bg-slate-50 text-slate-400 border-slate-100',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -94,7 +98,6 @@ export default async function LotsPage() {
         lotService.getLots(supabase).catch(() => []),
     ]);
 
-    // Fetch products, warehouses, suppliers for the form
     const [productsResult, warehousesResult, suppliersResult] = await Promise.all([
         supabase
             .from('products')
@@ -125,6 +128,8 @@ export default async function LotsPage() {
             icon: Package,
             color: 'text-indigo-600',
             bg: 'bg-indigo-50',
+            badgeText: 'Activos',
+            badgeClass: 'bg-indigo-50 text-indigo-600 border-indigo-100',
         },
         {
             label: 'Por Vencer (30d)',
@@ -132,6 +137,8 @@ export default async function LotsPage() {
             icon: AlertTriangle,
             color: 'text-rose-600',
             bg: 'bg-rose-50',
+            badgeText: 'Alerta',
+            badgeClass: 'bg-rose-50 text-rose-600 border-rose-100',
         },
         {
             label: 'Por Vencer (90d)',
@@ -139,6 +146,8 @@ export default async function LotsPage() {
             icon: Calendar,
             color: 'text-amber-600',
             bg: 'bg-amber-50',
+            badgeText: 'Aviso',
+            badgeClass: 'bg-amber-50 text-amber-600 border-amber-100',
         },
         {
             label: 'Valor Total',
@@ -146,183 +155,170 @@ export default async function LotsPage() {
             icon: DollarSign,
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
+            badgeText: 'Costo',
+            badgeClass: 'bg-emerald-50 text-emerald-600 border-emerald-100',
         },
     ];
 
     return (
-        <div className="page-container space-y-12 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-            {/* Hero Header */}
-            <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
-                    <FlaskConical className="h-24 w-24 text-white" />
-                </div>
-                <div className="relative z-10 space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="h-2 w-8 bg-indigo-500 rounded-full" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">
-                            Inventario · Trazabilidad
-                        </span>
-                    </div>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase leading-tight">
-                        Lotes y<br /><span className="text-slate-500">Vencimientos</span>
-                    </h1>
-                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.4em]">
-                        Trazabilidad · Vencimientos · Control de Lotes
-                    </p>
-                </div>
-            </div>
+        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
+            <VisualReportHeader
+                title="Lotes y Vencimientos"
+                subtitle="Inventario — Trazabilidad y Control"
+                tenant={tenant}
+            />
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {kpis.map((kpi, i) => (
-                    <div key={i} className="bg-white rounded-[2.5rem] p-7 shadow-premium flex items-center gap-5">
-                        <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 ${kpi.bg} ${kpi.color}`}>
-                            <kpi.icon className="h-7 w-7" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                            <p className="text-xl font-black text-slate-900 tracking-tight leading-tight mt-0.5 break-words">
-                                {kpi.value}
-                            </p>
-                        </div>
-                    </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {kpis.map((kpi) => (
+                    <Card key={kpi.label} className="border border-slate-100 bg-white shadow-sm rounded-2xl">
+                        <CardContent className="p-5 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div className={`h-10 w-10 rounded-xl ${kpi.bg} flex items-center justify-center ${kpi.color}`}>
+                                    <kpi.icon className="h-5 w-5" />
+                                </div>
+                                <Badge className={`${kpi.badgeClass} border text-[10px] font-semibold px-2 py-0.5 rounded-full`}>{kpi.badgeText}</Badge>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{kpi.label}</p>
+                                <h3 className="text-xl font-bold text-slate-900 tracking-tight leading-none truncate">{kpi.value}</h3>
+                            </div>
+                        </CardContent>
+                    </Card>
                 ))}
             </div>
 
             {/* Main Grid */}
-            <div className="grid md:grid-cols-12 gap-10 items-start">
+            <div className="grid md:grid-cols-12 gap-6 items-start">
 
-                {/* Columna izquierda — Formulario */}
-                <div className="md:col-span-4">
-                    <div className="bg-white rounded-[2.5rem] shadow-premium overflow-hidden">
-                        <div className="h-2 bg-indigo-600 w-full" />
-                        <div className="p-8 space-y-6">
-                            <div>
-                                <h2 className="text-lg font-black text-slate-900 tracking-tight">Nuevo Lote</h2>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                                    Registrar lote con trazabilidad
-                                </p>
+                {/* Form */}
+                <Card className="md:col-span-4 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                    <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                        <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                <Plus className="h-4 w-4" />
                             </div>
-                            <LotForm
-                                products={products}
-                                warehouses={warehouses}
-                                suppliers={suppliers}
-                            />
-                        </div>
-                    </div>
-                </div>
+                            Nuevo Lote
+                        </CardTitle>
+                        <p className="text-[10px] text-slate-400 mt-1">Registrar lote con trazabilidad</p>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                        <LotForm
+                            products={products}
+                            warehouses={warehouses}
+                            suppliers={suppliers}
+                        />
+                    </CardContent>
+                </Card>
 
-                {/* Columna derecha — Alertas y tabla */}
-                <div className="md:col-span-8 space-y-10">
+                {/* Alerts + Table */}
+                <div className="md:col-span-8 space-y-6">
 
-                    {/* Alertas de Vencimiento */}
-                    <section className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-2 w-6 bg-rose-500 rounded-full" />
-                            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                                Alertas de Vencimiento
-                            </h2>
-                            {expiringLots.length > 0 && (
-                                <span className="h-6 min-w-6 px-2 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
-                                    {expiringLots.length}
-                                </span>
-                            )}
-                        </div>
-
-                        {expiringLots.length === 0 ? (
-                            <div className="bg-white rounded-[2rem] border border-dashed border-slate-200 py-14 text-center">
-                                <ShieldCheck className="h-8 w-8 text-emerald-300 mx-auto mb-3" />
-                                <p className="text-slate-400 font-black text-sm">Sin vencimientos próximos</p>
-                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">
-                                    Todos los lotes en buen estado
-                                </p>
+                    {/* Expiry Alerts */}
+                    <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl overflow-hidden">
+                        <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4 text-rose-600" />
+                                    Alertas de Vencimiento
+                                </CardTitle>
+                                {expiringLots.length > 0 && (
+                                    <Badge className="bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                        {expiringLots.length}
+                                    </Badge>
+                                )}
                             </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {expiringLots.map(lot => {
-                                    const days = typeof lot.days_until_expiry === 'number'
-                                        ? lot.days_until_expiry
-                                        : getDaysUntilExpiry(lot.expiration_date);
+                        </CardHeader>
+                        <CardContent className="p-5">
+                            {expiringLots.length === 0 ? (
+                                <div className="py-8 text-center">
+                                    <ShieldCheck className="h-8 w-8 text-emerald-300 mx-auto mb-2" />
+                                    <p className="text-xs font-semibold text-slate-900">Sin vencimientos próximos</p>
+                                    <p className="text-[10px] text-slate-400 mt-1">Todos los lotes en buen estado</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {expiringLots.map(lot => {
+                                        const days = typeof lot.days_until_expiry === 'number'
+                                            ? lot.days_until_expiry
+                                            : getDaysUntilExpiry(lot.expiration_date);
 
-                                    const borderColor = days < 0
-                                        ? 'border-rose-200 bg-rose-50/50'
-                                        : days <= 30
-                                            ? 'border-rose-100 bg-rose-50/30'
-                                            : days <= 90
-                                                ? 'border-amber-100 bg-amber-50/30'
-                                                : 'border-slate-100 bg-white';
+                                        const borderColor = days < 0
+                                            ? 'border-rose-200 bg-rose-50/50'
+                                            : days <= 30
+                                                ? 'border-rose-100 bg-rose-50/30'
+                                                : days <= 90
+                                                    ? 'border-amber-100 bg-amber-50/30'
+                                                    : 'border-slate-100 bg-white';
 
-                                    return (
-                                        <div
-                                            key={lot.id}
-                                            className={`rounded-[1.5rem] border p-5 flex items-center justify-between gap-4 ${borderColor}`}
-                                        >
-                                            <div className="min-w-0 space-y-1">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-xs font-black text-slate-900 font-mono">
-                                                        {lot.lot_number}
-                                                    </span>
-                                                    {lot.batch_code && (
-                                                        <span className="text-[10px] text-slate-400 font-mono">
-                                                            / {lot.batch_code}
+                                        return (
+                                            <div
+                                                key={lot.id}
+                                                className={`rounded-xl border p-3 flex items-center justify-between gap-3 ${borderColor}`}
+                                            >
+                                                <div className="min-w-0 space-y-0.5">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xs font-semibold text-slate-900 font-mono">
+                                                            {lot.lot_number}
                                                         </span>
-                                                    )}
+                                                        {lot.batch_code && (
+                                                            <span className="text-[10px] text-slate-400 font-mono">
+                                                                / {lot.batch_code}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-slate-600 truncate">
+                                                        {lot.product_name}
+                                                        {lot.product_sku && (
+                                                            <span className="text-slate-400 ml-1">[{lot.product_sku}]</span>
+                                                        )}
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400">
+                                                        {lot.warehouse_name} · {Number(lot.qty).toLocaleString('es-CO')} uds
+                                                    </p>
                                                 </div>
-                                                <p className="text-xs font-semibold text-slate-700 truncate">
-                                                    {lot.product_name}
-                                                    {lot.product_sku && (
-                                                        <span className="text-slate-400 font-normal ml-1">[{lot.product_sku}]</span>
-                                                    )}
-                                                </p>
-                                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                                    {lot.warehouse_name} · {Number(lot.qty).toLocaleString('es-CO')} uds
-                                                </p>
+                                                <div className="shrink-0 flex flex-col items-end gap-1">
+                                                    <ExpiryBadge days={days} />
+                                                    <p className="text-[10px] text-slate-400">
+                                                        {formatDate(lot.expiration_date)}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="shrink-0 flex flex-col items-end gap-2">
-                                                <ExpiryBadge days={days} />
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                    {formatDate(lot.expiration_date)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* All Lots Table */}
+                    <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl overflow-hidden">
+                        <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <FlaskConical className="h-4 w-4 text-indigo-600" />
+                                    Todos los Lotes
+                                </CardTitle>
+                                <span className="text-[10px] text-slate-400 font-medium">{allLots.length} registros</span>
                             </div>
-                        )}
-                    </section>
-
-                    {/* Tabla de todos los lotes */}
-                    <section className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-2 w-6 bg-indigo-500 rounded-full" />
-                            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                                Todos los Lotes
-                            </h2>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                ({allLots.length})
-                            </span>
-                        </div>
-
-                        <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+                        </CardHeader>
+                        <CardContent className="p-0">
                             {allLots.length === 0 ? (
-                                <div className="py-14 text-center">
-                                    <FlaskConical className="h-8 w-8 text-slate-200 mx-auto mb-3" />
-                                    <p className="text-slate-400 font-black text-sm">Sin lotes registrados</p>
-                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">
-                                        Crea el primer lote con el formulario
-                                    </p>
+                                <div className="py-12 text-center">
+                                    <FlaskConical className="h-8 w-8 text-slate-200 mx-auto mb-2" />
+                                    <p className="text-xs font-semibold text-slate-900">Sin lotes registrados</p>
+                                    <p className="text-[10px] text-slate-400 mt-1">Crea el primer lote con el formulario</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full" role="table">
                                         <thead>
-                                            <tr className="border-b border-slate-50 bg-slate-50/50">
+                                            <tr className="border-b border-slate-100 bg-slate-50/50">
                                                 {['Lote', 'Producto', 'Bodega', 'Cant', 'Costo', 'Vence', 'Estado'].map(h => (
                                                     <th
                                                         key={h}
                                                         scope="col"
-                                                        className="px-4 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest"
+                                                        className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
                                                     >
                                                         {h}
                                                     </th>
@@ -334,9 +330,9 @@ export default async function LotsPage() {
                                                 const days = getDaysUntilExpiry(lot.expiration_date);
                                                 const statusKey = lot.status as string;
                                                 return (
-                                                    <tr key={lot.id} className="hover:bg-slate-50/60 transition-colors">
-                                                        <td className="px-4 py-4">
-                                                            <p className="text-xs font-black font-mono text-slate-800">
+                                                    <tr key={lot.id} className="hover:bg-slate-50/50">
+                                                        <td className="px-4 py-3">
+                                                            <p className="text-xs font-semibold font-mono text-slate-800">
                                                                 {lot.lot_number}
                                                             </p>
                                                             {lot.batch_code && (
@@ -345,7 +341,7 @@ export default async function LotsPage() {
                                                                 </p>
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-4">
+                                                        <td className="px-4 py-3">
                                                             <p className="text-xs font-semibold text-slate-800 max-w-[140px] truncate">
                                                                 {lot.product?.name ?? '—'}
                                                             </p>
@@ -355,26 +351,26 @@ export default async function LotsPage() {
                                                                 </p>
                                                             )}
                                                         </td>
-                                                        <td className="px-4 py-4 text-xs text-slate-600">
+                                                        <td className="px-4 py-3 text-xs text-slate-600">
                                                             {lot.warehouse?.name ?? '—'}
                                                         </td>
-                                                        <td className="px-4 py-4 text-xs font-bold text-slate-700 text-right">
+                                                        <td className="px-4 py-3 text-xs font-bold text-slate-700 text-right tabular-nums">
                                                             {Number(lot.qty).toLocaleString('es-CO')}
                                                         </td>
-                                                        <td className="px-4 py-4 text-xs font-bold text-slate-700 text-right">
+                                                        <td className="px-4 py-3 text-xs text-slate-600 text-right tabular-nums">
                                                             ${Number(lot.cost).toLocaleString('es-CO')}
                                                         </td>
-                                                        <td className="px-4 py-4">
+                                                        <td className="px-4 py-3">
                                                             <p className="text-xs text-slate-600">
                                                                 {formatDate(lot.expiration_date)}
                                                             </p>
-                                                            <div className="mt-1">
+                                                            <div className="mt-0.5">
                                                                 <ExpiryBadge days={days} />
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4">
+                                                        <td className="px-4 py-3">
                                                             <span
-                                                                className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${STATUS_BADGES[statusKey] ?? 'bg-slate-100 text-slate-500'}`}
+                                                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_BADGES[statusKey] ?? 'bg-slate-50 text-slate-400 border-slate-100'}`}
                                                             >
                                                                 {STATUS_LABELS[statusKey] ?? statusKey}
                                                             </span>
@@ -386,8 +382,8 @@ export default async function LotsPage() {
                                     </table>
                                 </div>
                             )}
-                        </div>
-                    </section>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>
