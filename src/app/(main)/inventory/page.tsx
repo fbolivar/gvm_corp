@@ -1,27 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
-import { InventoryList } from '@/features/inventory/components/InventoryList';
-import { StockOverview } from '@/features/inventory/components/StockOverview';
-import { InventoryCharts } from '@/features/inventory/components/InventoryCharts';
 import { InventoryDashboard } from '@/features/inventory/components/InventoryDashboard';
 import { inventoryService } from '@/features/inventory/services/inventoryService';
-import { Button } from '@/shared/components/ui/button';
-import {
-    Plus,
-    Building2,
-    History,
-    RotateCcw,
-    TrendingUp,
-    PackageSearch,
-    AlertCircle,
-    ShoppingCart,
-    ArrowRightLeft,
-    Table as TableIcon,
-    ChevronRight,
-    Box
-} from 'lucide-react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Badge } from "@/shared/components/ui/badge";
+import { redirect } from 'next/navigation';
+import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { settingsService } from '@/features/settings/services/settingsService';
 
 interface PageProps {
     searchParams: Promise<{ filter?: string }>
@@ -32,8 +14,10 @@ export default async function InventoryPage({ searchParams }: PageProps) {
     const { filter } = await searchParams;
     const isLowStockFilter = filter === 'low_stock';
 
-    // Fetch data in parallel
-    const [movementsData, stockData, warehousesData, movementsCount, trends, lowStockRpcData] = await Promise.all([
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect('/login');
+
+    const [movementsData, stockData, warehousesData, movementsCount, trends, lowStockRpcData, tenant] = await Promise.all([
         supabase
             .from('inventory_movements')
             .select('*, products(name, sku), warehouses(name)')
@@ -50,7 +34,8 @@ export default async function InventoryPage({ searchParams }: PageProps) {
         inventoryService.getInventoryTrends(supabase),
         isLowStockFilter
             ? supabase.rpc('get_products_with_stock', { p_limit: 1000, p_offset: 0, p_search: '' })
-            : Promise.resolve({ data: null })
+            : Promise.resolve({ data: null }),
+        settingsService.getTenantInfo(supabase)
     ]);
 
     const initialMovements = movementsData.data || [];
@@ -60,9 +45,9 @@ export default async function InventoryPage({ searchParams }: PageProps) {
     // Build set of low stock product IDs when filter is active
     const lowStockProductIds = new Set<string>();
     if (isLowStockFilter && lowStockRpcData.data) {
-        (lowStockRpcData.data as any[]).forEach(p => {
+        (lowStockRpcData.data as Record<string, unknown>[]).forEach(p => {
             if (Number(p.total_qty) <= Number(p.min_stock || 5)) {
-                lowStockProductIds.add(p.id);
+                lowStockProductIds.add(String(p.id));
             }
         });
     }
@@ -73,7 +58,13 @@ export default async function InventoryPage({ searchParams }: PageProps) {
         : stock || [];
 
     return (
-        <div className="page-container">
+        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
+            <VisualReportHeader
+                title="Inventario"
+                subtitle="Kardex — Movimientos y Stock"
+                tenant={tenant}
+            />
+
             <InventoryDashboard
                 initialMovements={initialMovements}
                 initialStock={displayStock}
