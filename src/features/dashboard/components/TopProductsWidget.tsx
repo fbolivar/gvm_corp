@@ -1,57 +1,56 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
-import { Badge } from "@/shared/components/ui/badge"
-import { Package, TrendingUp, Zap } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Badge } from '@/shared/components/ui/badge';
+import { Package, TrendingUp, Zap } from 'lucide-react';
 
 interface Props {
-    products: Array<{ name: string; sku: string; qty: number; total: number }>
+    products: Array<{ name: string; sku: string; qty: number; total: number }>;
 }
 
 export function TopProductsWidget({ products }: Props) {
     const maxTotal = Math.max(...products.map(p => p.total), 1);
 
     return (
-        <Card className="bg-white border-none rounded-[2.5rem] p-8 shadow-premium relative overflow-hidden group">
-            <CardHeader className="p-0 mb-8 flex flex-row items-center justify-between pointer-events-none">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                        <div className="h-1.5 w-6 bg-slate-900 rounded-full" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Eficiencia Comercial</span>
+        <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+            <CardHeader className="p-5 pb-0 flex flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-900">
+                        <Package className="h-5 w-5" />
                     </div>
-                    <CardTitle className="text-3xl font-black italic uppercase tracking-tighter italic text-slate-900">Productos Top</CardTitle>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-900 shadow-inner group-hover:rotate-6 transition-transform">
-                    <Package className="h-6 w-6" />
+                    <div>
+                        <CardTitle className="text-sm font-bold text-slate-900">Productos Top</CardTitle>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Eficiencia Comercial</p>
+                    </div>
                 </div>
             </CardHeader>
 
-            <CardContent className="p-0 space-y-6">
+            <CardContent className="p-5 space-y-4">
                 {products.length === 0 ? (
-                    <div className="py-12 text-center space-y-3">
-                        <Zap className="h-12 w-12 text-slate-100 mx-auto" />
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">Sin datos de ventas este mes</p>
+                    <div className="py-10 text-center space-y-2">
+                        <Zap className="h-8 w-8 text-slate-200 mx-auto" />
+                        <p className="text-[10px] font-semibold text-slate-400">Sin datos de ventas este mes</p>
                     </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {products.map((p, idx) => (
-                            <div key={idx} className="space-y-3 group/item">
+                            <div key={idx} className="space-y-2">
                                 <div className="flex items-start justify-between">
                                     <div className="space-y-0.5">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black text-slate-300 italic tabular-nums">0{idx + 1}</span>
-                                            <p className="text-sm font-black italic uppercase tracking-tight text-slate-800 group-hover/item:text-primary transition-colors">{p.name}</p>
+                                            <span className="text-[10px] font-semibold text-slate-300 tabular-nums">0{idx + 1}</span>
+                                            <p className="text-sm font-bold text-slate-900">{p.name}</p>
                                         </div>
-                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-6">{p.sku}</p>
+                                        <p className="text-[10px] text-slate-400 ml-6">{p.sku}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-black italic tracking-tighter text-slate-900 tabular-nums">${p.total.toLocaleString('es-CO')}</p>
-                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{p.qty} Unidades</p>
+                                        <p className="text-sm font-bold text-slate-900 tabular-nums">${p.total.toLocaleString('es-CO')}</p>
+                                        <p className="text-[10px] text-slate-400">{p.qty} Unidades</p>
                                     </div>
                                 </div>
                                 <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-slate-900 group-hover/item:bg-primary transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(15,23,42,0.1)]"
+                                        className="h-full bg-slate-900 transition-all duration-1000 ease-out rounded-full"
                                         style={{ width: `${(p.total / maxTotal) * 100}%` }}
                                     />
                                 </div>
@@ -60,16 +59,16 @@ export function TopProductsWidget({ products }: Props) {
                     </div>
                 )}
 
-                <div className="pt-6 border-t border-slate-50">
-                    <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl">
-                        <div className="flex items-center gap-3">
-                            <TrendingUp className="h-4 w-4 text-emerald-500" />
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none">Crecimiento Demanda</span>
+                <div className="pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div className="flex items-center gap-2">
+                            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                            <span className="text-[10px] font-semibold text-slate-400">Crecimiento Demanda</span>
                         </div>
-                        <Badge className="bg-emerald-100 text-emerald-600 border-none font-bold text-[8px] uppercase px-2">+12.5%</Badge>
+                        <Badge className="bg-emerald-100 text-emerald-600 border-none font-semibold text-[9px] px-2">+12.5%</Badge>
                     </div>
                 </div>
             </CardContent>
         </Card>
-    )
+    );
 }

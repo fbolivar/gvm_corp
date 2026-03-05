@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
-import { Progress } from "@/shared/components/ui/progress"
-import { Badge } from "@/shared/components/ui/badge"
-import { Briefcase, ChevronRight, TrendingUp } from "lucide-react"
-import { ARDetailDialog } from "./ARDetailDialog"
-import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Badge } from '@/shared/components/ui/badge';
+import { Briefcase, ChevronRight, TrendingUp } from 'lucide-react';
+import { ARDetailDialog } from './ARDetailDialog';
+import { useState } from 'react';
+import { cn } from '@/shared/lib/utils';
 
 interface Props {
     aging: {
@@ -13,7 +13,7 @@ interface Props {
         overdue30: number;
         overdue60: number;
         overdue90: number;
-    }
+    };
 }
 
 export function ARAgingWidget({ aging }: Props) {
@@ -29,70 +29,70 @@ export function ARAgingWidget({ aging }: Props) {
 
     return (
         <>
-            <Card className="bg-slate-900 border-none rounded-[2.5rem] p-8 text-white shadow-active relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                    <Briefcase className="h-48 w-48 text-white" />
-                </div>
-
-                <CardHeader className="p-0 mb-8 flex flex-row items-center justify-between pointer-events-none">
+            <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                <CardHeader className="p-5 pb-0 flex flex-row items-center justify-between">
                     <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                            <div className="h-1.5 w-6 bg-primary rounded-full" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Análisis de Cartera</span>
+                        <div className="flex items-center gap-2">
+                            <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shrink-0">
+                                <Briefcase className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-sm font-bold text-slate-900">Aging de Recaudo</CardTitle>
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Análisis de Cartera</p>
+                            </div>
                         </div>
-                        <CardTitle className="text-3xl font-black italic uppercase tracking-tighter italic">Aging de Recaudo</CardTitle>
                     </div>
                     <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Total por Cobrar</p>
-                        <p className="text-2xl font-black italic tracking-tighter text-white tabular-nums">${total.toLocaleString('es-CO')}</p>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total por Cobrar</p>
+                        <p className="text-lg font-bold text-slate-900 tabular-nums">${total.toLocaleString('es-CO')}</p>
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-0 space-y-8 relative z-10">
-                    <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden flex cursor-pointer">
+                <CardContent className="p-5 space-y-4">
+                    <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex cursor-pointer">
                         {segments.map((s, idx) => (
                             <div
                                 key={idx}
                                 style={{ width: total > 0 ? `${(s.value / total) * 100}%` : '0%' }}
-                                className={`${s.color} h-full transition-all duration-1000 hover:opacity-100 hover:scale-y-125 opacity-80`}
+                                className={cn(s.color, 'h-full transition-all duration-700 hover:opacity-90')}
                                 onClick={() => setSelectedBucket(s)}
                                 title={`${s.label}: $${s.value.toLocaleString('es-CO')}`}
                             />
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         {segments.map((s, idx) => (
                             <div
                                 key={idx}
                                 onClick={() => setSelectedBucket(s)}
-                                className="space-y-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.07] transition-all cursor-pointer group/bucket"
+                                className="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors cursor-pointer"
                             >
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{s.label}</span>
-                                    <Badge className={`${s.color} text-white border-none text-[8px] font-black`}>
+                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{s.label}</span>
+                                    <Badge className={cn(s.color, 'text-white border-none text-[9px] font-semibold')}>
                                         {total > 0 ? Math.round((s.value / total) * 100) : 0}%
                                     </Badge>
                                 </div>
                                 <div className="flex items-end justify-between">
-                                    <p className="text-lg font-black italic tracking-tighter tabular-nums">${s.value.toLocaleString('es-CO')}</p>
-                                    <ChevronRight className="h-3 w-3 text-white/20 group-hover/bucket:text-white transition-colors" />
+                                    <p className="text-sm font-bold text-slate-900 tabular-nums">${s.value.toLocaleString('es-CO')}</p>
+                                    <ChevronRight className="h-3 w-3 text-slate-300" />
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
-                                <TrendingUp className="h-4 w-4" />
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
+                                <TrendingUp className="h-3.5 w-3.5" />
                             </div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest max-w-[200px] leading-tight text-left">
-                                El <span className="text-emerald-400">{(total > 0 ? (aging.current / total) * 100 : 0).toFixed(1)}%</span> de la cartera está al día.
+                            <p className="text-[10px] font-semibold text-slate-400 max-w-[200px] leading-tight">
+                                El <span className="text-emerald-500 font-bold">{(total > 0 ? (aging.current / total) * 100 : 0).toFixed(1)}%</span> de la cartera está al día.
                             </p>
                         </div>
-                        <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:gap-3 transition-all">
-                            Detalle Completo <ChevronRight className="h-3.5 w-3.5" />
+                        <button className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
+                            Detalle <ChevronRight className="h-3 w-3" />
                         </button>
                     </div>
                 </CardContent>
@@ -104,5 +104,5 @@ export function ARAgingWidget({ aging }: Props) {
                 bucket={selectedBucket}
             />
         </>
-    )
+    );
 }
