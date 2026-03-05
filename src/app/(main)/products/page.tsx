@@ -3,6 +3,11 @@ import { productService } from '@/features/products/services/productService';
 import { ProductList } from '@/features/products/components/ProductList';
 import { ProductFilters, ProductTypeEnum, ProductStatusEnum } from '@/features/products/types';
 import { TrendingUp, AlertTriangle, Layers, Zap } from 'lucide-react';
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import { redirect } from 'next/navigation';
+import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { settingsService } from '@/features/settings/services/settingsService';
 
 interface PageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -11,6 +16,9 @@ interface PageProps {
 export default async function ProductsPage({ searchParams }: PageProps) {
     const supabase = await createClient();
     const params = await searchParams;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect('/login');
 
     const page = Number(params?.page) || 1;
     const per_page = Number(params?.per_page) || 20;
@@ -27,9 +35,11 @@ export default async function ProductsPage({ searchParams }: PageProps) {
         per_page
     };
 
-    const { data, count } = await productService.getProducts(supabase, filters);
+    const [{ data, count }, tenant] = await Promise.all([
+        productService.getProducts(supabase, filters),
+        settingsService.getTenantInfo(supabase)
+    ]);
 
-    // Stats
     const totalActive = data.filter(p => p.status === 'ACTIVE').length;
     const lowStock = data.filter(p => (p.stock_qty ?? 0) <= (p.min_stock ?? 0) && p.type === 'GOOD').length;
     const totalValue = data.reduce((acc, p) => acc + ((p.stock_qty ?? 0) * (p.cost ?? 0)), 0);
@@ -42,6 +52,8 @@ export default async function ProductsPage({ searchParams }: PageProps) {
             icon: Layers,
             iconBg: 'bg-blue-50',
             iconColor: 'text-blue-600',
+            badgeText: 'SKUs',
+            badgeClass: 'bg-blue-50 text-blue-600 border-blue-100',
         },
         {
             label: 'Activos',
@@ -50,6 +62,8 @@ export default async function ProductsPage({ searchParams }: PageProps) {
             icon: TrendingUp,
             iconBg: 'bg-emerald-50',
             iconColor: 'text-emerald-600',
+            badgeText: 'Venta',
+            badgeClass: 'bg-emerald-50 text-emerald-600 border-emerald-100',
         },
         {
             label: 'Stock Critico',
@@ -58,6 +72,8 @@ export default async function ProductsPage({ searchParams }: PageProps) {
             icon: AlertTriangle,
             iconBg: lowStock > 0 ? 'bg-rose-50' : 'bg-slate-50',
             iconColor: lowStock > 0 ? 'text-rose-600' : 'text-slate-400',
+            badgeText: 'Alerta',
+            badgeClass: lowStock > 0 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-50 text-slate-400 border-slate-100',
         },
         {
             label: 'Valorizacion',
@@ -66,58 +82,50 @@ export default async function ProductsPage({ searchParams }: PageProps) {
             icon: Zap,
             iconBg: 'bg-amber-50',
             iconColor: 'text-amber-600',
+            badgeText: 'CPP',
+            badgeClass: 'bg-amber-50 text-amber-600 border-amber-100',
         },
     ];
 
     return (
-        <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
+            <VisualReportHeader
+                title="Productos"
+                subtitle="Inventario — Catalogo Maestro"
+                tenant={tenant}
+            />
 
-            {/* Header */}
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4 px-1">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <div className="px-2.5 py-1 bg-slate-900 rounded-full flex items-center gap-2 shadow-active">
-                            <Zap className="h-2 w-2 text-blue-400 fill-blue-400" />
-                            <span className="text-[8px] font-bold text-white uppercase tracking-widest">Maestro de Productos</span>
-                        </div>
-                    </div>
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight italic uppercase leading-none">
-                        Catalogo <span className="text-primary">Maestro</span>
-                    </h1>
-                    <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest">
-                        Gestion de bienes, servicios, precios e inventario
-                    </p>
-                </div>
-            </div>
-
-            {/* Stats Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-1">
+            {/* KPIs */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((s) => {
                     const Icon = s.icon;
                     return (
-                        <div key={s.label} className="rounded-xl border-none bg-white shadow-sm p-5 flex items-start gap-4 relative overflow-hidden group hover:translate-y-[-2px] transition-all duration-300">
-                            <div className={`h-9 w-9 rounded-lg ${s.iconBg} flex items-center justify-center ${s.iconColor} shadow-sm shrink-0`}>
-                                <Icon className="h-4 w-4" />
-                            </div>
-                            <div>
-                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 italic">{s.label}</p>
-                                <p className="text-lg font-extrabold text-slate-900 tracking-tight leading-none italic">{s.value}</p>
-                                <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-1">{s.sub}</p>
-                            </div>
-                        </div>
+                        <Card key={s.label} className="border border-slate-100 bg-white shadow-sm rounded-2xl">
+                            <CardContent className="p-5 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div className={`h-10 w-10 rounded-xl ${s.iconBg} flex items-center justify-center ${s.iconColor}`}>
+                                        <Icon className="h-5 w-5" />
+                                    </div>
+                                    <Badge className={`${s.badgeClass} border text-[10px] font-semibold px-2 py-0.5 rounded-full`}>{s.badgeText}</Badge>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{s.label}</p>
+                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight leading-none truncate">{s.value}</h3>
+                                    <p className="text-[10px] text-slate-400 mt-1">{s.sub}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
                     );
                 })}
             </div>
 
             {/* Product List */}
-            <div className="px-1">
-                <ProductList
-                    initialData={data}
-                    totalCount={count || 0}
-                    currentPage={page}
-                    perPage={per_page}
-                />
-            </div>
+            <ProductList
+                initialData={data}
+                totalCount={count || 0}
+                currentPage={page}
+                perPage={per_page}
+            />
         </div>
     );
 }
