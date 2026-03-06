@@ -1,76 +1,166 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import {
     Database, Download, Clock, ShieldCheck,
     FileJson, HardDrive, RefreshCw,
-    CalendarDays, Server
+    Server, Trash2, AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 
 interface BackupRecord {
     id: string;
-    date: string;
-    size: string;
+    created_at: string;
+    file_size_bytes: number;
     type: 'manual' | 'auto';
-    status: 'completed' | 'failed';
-    author?: string;
+    status: 'pending' | 'completed' | 'failed';
+    created_by_email?: string;
+    record_count: number;
+    tables_included: string[];
+    file_path: string | null;
 }
 
-const MOCK_HISTORY: BackupRecord[] = [
-    { id: 'bk-001', date: '2025-05-15T02:00:00', size: '45.2 MB', type: 'auto', status: 'completed' },
-    { id: 'bk-002', date: '2025-05-14T15:30:00', size: '45.1 MB', type: 'manual', status: 'completed', author: 'Admin' },
-    { id: 'bk-003', date: '2025-05-14T02:00:00', size: '44.8 MB', type: 'auto', status: 'completed' },
-];
+function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Ahora mismo';
+    if (mins < 60) return `Hace ${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `Hace ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `Hace ${days}d`;
+}
 
 export function BackupManager({ tenantId }: { tenantId: string }) {
     const [loading, setLoading] = useState(false);
-    const [history, setHistory] = useState<BackupRecord[]>(MOCK_HISTORY);
+    const [history, setHistory] = useState<BackupRecord[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(true);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const fetchHistory = useCallback(async () => {
+        try {
+            const res = await fetch('/api/backup');
+            if (res.ok) {
+                const data = await res.json();
+                setHistory(data.backups || []);
+            }
+        } catch {
+            console.error('Error fetching backup history');
+        } finally {
+            setLoadingHistory(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchHistory();
+    }, [fetchHistory]);
 
     const handleGenerateBackup = async () => {
         setLoading(true);
 
-        // Simulación de proceso de backup
         try {
-            toast.info("Iniciando generación de snapshot...", {
-                description: "Recopilando datos de todas las tablas del tenant."
+            toast.info("Generando backup real...", {
+                description: "Exportando todas las tablas del tenant. Esto puede tomar unos segundos."
             });
 
-            await new Promise(resolve => setTimeout(resolve, 3000)); // Fake lag
+            const res = await fetch('/api/backup', { method: 'POST' });
 
-            const newBackup: BackupRecord = {
-                id: `bk-${Date.now()}`,
-                date: new Date().toISOString(),
-                size: '45.3 MB',
-                type: 'manual',
-                status: 'completed',
-                author: 'Tú'
-            };
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Error generando backup');
+            }
 
-            setHistory([newBackup, ...history]);
+            // Get metadata from headers
+            const recordCount = res.headers.get('X-Record-Count') || '0';
+            const tablesCount = res.headers.get('X-Tables-Count') || '0';
 
-            toast.success("Snapshot generado exitosamente", {
-                description: "El archivo se ha descargado a tu equipo."
+            // Download the file
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            a.download = `backup-gvm-${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            toast.success("Backup generado exitosamente", {
+                description: `${recordCount} registros de ${tablesCount} tablas exportados.`
             });
 
-            // Trigger fake download
-            const element = document.createElement("a");
-            const file = new Blob([JSON.stringify({ tenantId, timestamp: new Date(), data: "encrypted_mock_data" }, null, 2)], { type: 'application/json' });
-            element.href = URL.createObjectURL(file);
-            element.download = `backup-${tenantId}-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(element);
-            element.click();
+            // Refresh history
+            await fetchHistory();
 
         } catch (error) {
-            toast.error("Error al generar backup");
+            const msg = error instanceof Error ? error.message : 'Error al generar backup';
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
     };
+
+    const handleDownload = async (backup: BackupRecord) => {
+        try {
+            const res = await fetch(`/api/backup/${backup.id}`);
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Error descargando');
+            }
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date(backup.created_at).toISOString().slice(0, 10);
+            a.download = `backup-gvm-${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            toast.success("Backup descargado");
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Error descargando';
+            toast.error(msg);
+        }
+    };
+
+    const handleDelete = async (backupId: string) => {
+        if (!confirm('¿Eliminar esta copia de seguridad? Esta acción no se puede deshacer.')) return;
+        setDeletingId(backupId);
+        try {
+            const res = await fetch(`/api/backup/${backupId}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Error eliminando');
+            }
+            toast.success("Backup eliminado");
+            await fetchHistory();
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Error eliminando';
+            toast.error(msg);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const lastBackup = history.length > 0 ? history[0] : null;
+    const totalSize = history.reduce((sum, b) => sum + (b.file_size_bytes || 0), 0);
+    void tenantId;
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -78,11 +168,11 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
                     <h2 className="text-3xl font-black tracking-tighter text-slate-900 italic">Centro de Contingencia</h2>
-                    <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Gestión de Copias de Seguridad y Recuperación</p>
+                    <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Copias de Seguridad Reales — Exporta y Restaura tus Datos</p>
                 </div>
                 <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Sistema Seguro & Encriptado</span>
+                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Datos Reales del Tenant</span>
                 </div>
             </div>
 
@@ -96,14 +186,25 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                     <CardContent className="p-10 space-y-8 relative z-10">
                         <div className="flex items-start justify-between">
                             <div>
-                                <Badge className="bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border-none mb-4">ESTADO OPERATIVO</Badge>
-                                <h3 className="text-4xl font-black italic tracking-wide">Todo en orden.</h3>
+                                <Badge className={cn(
+                                    "border-none mb-4",
+                                    lastBackup
+                                        ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                                        : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                                )}>
+                                    {lastBackup ? 'BACKUP DISPONIBLE' : 'SIN BACKUPS'}
+                                </Badge>
+                                <h3 className="text-4xl font-black italic tracking-wide">
+                                    {lastBackup ? 'Datos protegidos.' : 'Sin copias aún.'}
+                                </h3>
                                 <p className="text-slate-400 mt-2 font-medium max-w-md">
-                                    La última copia de seguridad automática se realizó exitosamente hoy a las 02:00 AM.
+                                    {lastBackup
+                                        ? `Última copia: ${new Date(lastBackup.created_at).toLocaleString()} — ${lastBackup.record_count} registros de ${lastBackup.tables_included.length} tablas.`
+                                        : 'Genera tu primera copia de seguridad para proteger los datos de tu empresa.'}
                                 </p>
                             </div>
                             <div className="h-20 w-20 rounded-2xl bg-white/5 backdrop-blur-sm flex items-center justify-center border border-white/10">
-                                <Database className="h-10 w-10 text-emerald-400" />
+                                <Database className={cn("h-10 w-10", lastBackup ? "text-emerald-400" : "text-amber-400")} />
                             </div>
                         </div>
 
@@ -112,21 +213,25 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                                 <p className="text-xs font-bold text-slate-400 uppercase">Último Backup</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     <Clock className="h-4 w-4 text-emerald-400" />
-                                    <span className="font-mono text-lg font-bold">Hace 2h</span>
+                                    <span className="font-mono text-lg font-bold">
+                                        {lastBackup ? timeAgo(lastBackup.created_at) : '—'}
+                                    </span>
                                 </div>
                             </div>
                             <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm">
                                 <p className="text-xs font-bold text-slate-400 uppercase">Tamaño Total</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     <HardDrive className="h-4 w-4 text-blue-400" />
-                                    <span className="font-mono text-lg font-bold">45.2 MB</span>
+                                    <span className="font-mono text-lg font-bold">
+                                        {totalSize > 0 ? formatBytes(totalSize) : '—'}
+                                    </span>
                                 </div>
                             </div>
                             <div className="p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm">
-                                <p className="text-xs font-bold text-slate-400 uppercase">Retención</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase">Copias Guardadas</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <CalendarDays className="h-4 w-4 text-purple-400" />
-                                    <span className="font-mono text-lg font-bold">30 Días</span>
+                                    <FileJson className="h-4 w-4 text-purple-400" />
+                                    <span className="font-mono text-lg font-bold">{history.length}</span>
                                 </div>
                             </div>
                         </div>
@@ -137,9 +242,9 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                 <Card className="border-none shadow-premium rounded-[2.5rem] bg-indigo-600 text-white relative overflow-hidden flex flex-col justify-center">
                     <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-indigo-900/50 to-transparent"></div>
                     <CardHeader className="p-8 pb-4 relative z-10">
-                        <CardTitle className="text-2xl font-black italic">Snapshot Manual</CardTitle>
+                        <CardTitle className="text-2xl font-black italic">Generar Backup</CardTitle>
                         <CardDescription className="text-indigo-200">
-                            Genera una copia instantánea de todos tus datos actuales para descarga local.
+                            Exporta TODOS los datos reales de tu tenant: usuarios, terceros, documentos, inventario, nómina, contabilidad y más.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-8 pt-0 relative z-10">
@@ -153,10 +258,10 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                             ) : (
                                 <Download className="h-6 w-6" />
                             )}
-                            {loading ? "Generando..." : "Generar Copia Ahora"}
+                            {loading ? "Exportando datos..." : "Generar Copia Ahora"}
                         </Button>
                         <p className="text-xs text-indigo-300 text-center mt-4">
-                            Incluye base de datos y logs. No incluye archivos adjuntos (imágenes).
+                            Incluye base de datos completa. Se guarda en servidor y se descarga.
                         </p>
                     </CardContent>
                 </Card>
@@ -167,57 +272,106 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                 <CardHeader className="p-8 pb-4 border-b border-slate-100">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-black text-slate-900 italic">Historial de Copias</CardTitle>
-                        <Button variant="ghost" size="sm" className="text-slate-400 font-bold text-xs uppercase hover:bg-slate-50 rounded-lg">
-                            Ver Logs Completos
-                        </Button>
+                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none">
+                            {history.length} copias
+                        </Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="divide-y divide-slate-100">
-                        {history.map((record) => (
-                            <div key={record.id} className="flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group">
-                                <div className="flex items-center gap-4">
-                                    <div className={cn(
-                                        "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
-                                        record.type === 'auto' ? "bg-slate-100 text-slate-500" : "bg-indigo-50 text-indigo-600"
-                                    )}>
-                                        {record.type === 'auto' ? <Clock className="h-5 w-5" /> : <FileJson className="h-5 w-5" />}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-slate-900 text-sm">
-                                                {record.type === 'auto' ? 'Copia de Seguridad Automática' : 'Snapshot Manual de Datos'}
-                                            </h4>
-                                            {record.type === 'manual' && (
-                                                <Badge variant="secondary" className="text-[10px] bg-indigo-100 text-indigo-700 border-none px-2 h-5">MANUAL</Badge>
-                                            )}
+                    {loadingHistory ? (
+                        <div className="p-12 text-center">
+                            <RefreshCw className="h-8 w-8 animate-spin text-slate-300 mx-auto mb-3" />
+                            <p className="text-sm text-slate-400 font-medium">Cargando historial...</p>
+                        </div>
+                    ) : history.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <AlertCircle className="h-10 w-10 text-slate-200 mx-auto mb-3" />
+                            <p className="text-sm text-slate-400 font-bold">No hay copias de seguridad</p>
+                            <p className="text-xs text-slate-300 mt-1">Genera tu primera copia con el botón de arriba.</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-100">
+                            {history.map((record) => (
+                                <div key={record.id} className="flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group">
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn(
+                                            "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
+                                            record.status === 'completed'
+                                                ? "bg-emerald-50 text-emerald-600"
+                                                : "bg-rose-50 text-rose-600"
+                                        )}>
+                                            {record.status === 'completed' ? <FileJson className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
                                         </div>
-                                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 font-medium font-mono">
-                                            <span>{new Date(record.date).toLocaleDateString()} {new Date(record.date).toLocaleTimeString()}</span>
-                                            <span>•</span>
-                                            <span>{record.size}</span>
-                                            {record.author && (
-                                                <>
-                                                    <span>•</span>
-                                                    <span className="text-slate-500">Por: {record.author}</span>
-                                                </>
-                                            )}
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-slate-900 text-sm">
+                                                    Copia de Seguridad
+                                                </h4>
+                                                <Badge variant="secondary" className="text-[10px] bg-indigo-100 text-indigo-700 border-none px-2 h-5">
+                                                    {record.type === 'manual' ? 'MANUAL' : 'AUTO'}
+                                                </Badge>
+                                            </div>
+                                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 font-medium font-mono">
+                                                <span>{new Date(record.created_at).toLocaleDateString()} {new Date(record.created_at).toLocaleTimeString()}</span>
+                                                <span>·</span>
+                                                <span>{formatBytes(record.file_size_bytes)}</span>
+                                                <span>·</span>
+                                                <span>{record.record_count} registros</span>
+                                                <span>·</span>
+                                                <span>{record.tables_included.length} tablas</span>
+                                                {record.created_by_email && (
+                                                    <>
+                                                        <span>·</span>
+                                                        <span className="text-slate-500">Por: {record.created_by_email}</span>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                                        <span className="text-xs font-bold text-emerald-600 uppercase hidden md:inline-block">Completado</span>
+                                        <div className="flex items-center gap-2 mr-4">
+                                            <div className={cn(
+                                                "h-2 w-2 rounded-full",
+                                                record.status === 'completed' ? "bg-emerald-500" : "bg-rose-500"
+                                            )} />
+                                            <span className={cn(
+                                                "text-xs font-bold uppercase hidden md:inline-block",
+                                                record.status === 'completed' ? "text-emerald-600" : "text-rose-600"
+                                            )}>
+                                                {record.status === 'completed' ? 'Completado' : 'Fallido'}
+                                            </span>
+                                        </div>
+                                        {record.file_path && (
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => handleDownload(record)}
+                                                className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all opacity-0 group-hover:opacity-100"
+                                                title="Descargar"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => handleDelete(record.id)}
+                                            disabled={deletingId === record.id}
+                                            className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                                            title="Eliminar"
+                                        >
+                                            {deletingId === record.id ? (
+                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-4 w-4" />
+                                            )}
+                                        </Button>
                                     </div>
-                                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all opacity-0 group-hover:opacity-100">
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
