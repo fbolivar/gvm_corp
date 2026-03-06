@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next'
 
+const isProd = process.env.NODE_ENV === 'production'
+
 const nextConfig: NextConfig = {
   // =============================================
   // 🏎️ SAAS FACTORY V3 - PRODUCTION PERFORMANCE
@@ -51,8 +53,8 @@ const nextConfig: NextConfig = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           // Control referrer information leakage
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          // HSTS — force HTTPS for 1 year + subdomains
-          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+          // HSTS — force HTTPS for 1 year + subdomains (production only)
+          ...(isProd ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' }] : []),
           // CSP — restrict resource origins
           {
             key: 'Content-Security-Policy',
@@ -67,7 +69,8 @@ const nextConfig: NextConfig = {
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
-              "upgrade-insecure-requests",
+              // upgrade-insecure-requests only in production (breaks localhost HTTP)
+              ...(isProd ? ["upgrade-insecure-requests"] : []),
             ].join('; '),
           },
           // Restrict browser features
@@ -115,7 +118,7 @@ const nextConfig: NextConfig = {
   // 8. Experimental: optimize package imports to reduce bundle size
   experimental: {
     optimizePackageImports: [
-      'lucide-react',
+      // lucide-react removed — Turbopack handles tree-shaking natively
       'recharts',
       'date-fns',
       '@radix-ui/react-dialog',
