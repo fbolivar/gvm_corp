@@ -40,13 +40,49 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Security headers for all routes
+        // Security headers for all routes — hardened config
         source: '/:path*',
         headers: [
+          // Prevent MIME-type sniffing
           { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Prevent clickjacking — deny all framing
           { key: 'X-Frame-Options', value: 'DENY' },
+          // Legacy XSS protection (modern browsers use CSP instead)
           { key: 'X-XSS-Protection', value: '1; mode=block' },
+          // Control referrer information leakage
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // HSTS — force HTTPS for 1 year + subdomains
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+          // CSP — restrict resource origins
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.app",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://*.supabase.co https://vercel.live",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://*.vercel.app",
+              "frame-src 'self' https://vercel.live",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "upgrade-insecure-requests",
+            ].join('; '),
+          },
+          // Restrict browser features
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=()',
+          },
+          // Prevent cross-origin window access
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          // Restrict cross-origin resource loading
+          { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+          // Block Adobe Flash/PDF cross-domain policies
+          { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
+          // Prevent DNS prefetch info leakage
+          { key: 'X-DNS-Prefetch-Control', value: 'off' },
         ],
       },
     ]
