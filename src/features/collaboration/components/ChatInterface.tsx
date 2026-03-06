@@ -9,7 +9,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { chatService } from "../services/chatService";
-import { ChatChannel, ChatMessage } from "../types";
+import { ChatChannel, ChatMessage, ChatMember, OnlineUser } from "../types";
 import {
     Send,
     Hash,
@@ -26,6 +26,8 @@ import {
     X,
     CheckCheck,
     ShieldCheck,
+    Users,
+    ChevronRight,
 } from "lucide-react";
 import {
     Popover,
@@ -51,6 +53,7 @@ import { es } from "date-fns/locale";
 interface Props {
     userId: string;
     userFullName: string;
+    tenantId: string;
 }
 
 interface SenderCache {
@@ -79,7 +82,7 @@ const QUICK_REACTIONS = ["👍", "❤️", "🔥", "😂", "😮", "🚀"];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ChatInterface({ userId, userFullName }: Props) {
+export function ChatInterface({ userId, userFullName, tenantId }: Props) {
     const supabase = createClient();
 
     // State
@@ -100,6 +103,11 @@ export function ChatInterface({ userId, userFullName }: Props) {
     const [creatingChannel, setCreatingChannel] = useState(false);
     // Mobile: show sidebar (true) or messages (false)
     const [showSidebar, setShowSidebar] = useState(true);
+    // Online presence
+    const [onlineUsers, setOnlineUsers] = useState<Map<string, OnlineUser>>(new Map());
+    // Channel members
+    const [channelMembers, setChannelMembers] = useState<ChatMember[]>([]);
+    const [showMembers, setShowMembers] = useState(false);
 
     // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -107,6 +115,8 @@ export function ChatInterface({ userId, userFullName }: Props) {
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
     const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+    const globalPresenceRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+    const lastOptimisticIdRef = useRef<string | null>(null);
 
     // ── Load sender name (with local cache) ──────────────────────────────────
 
@@ -134,40 +144,10 @@ export function ChatInterface({ userId, userFullName }: Props) {
         setLoadingChannels(true);
         try {
             const data = await chatService.getChannels(supabase);
+            setChannels(data);
 
-            // Fallback: getChannels filters by channel.type === 'public' which may
-            // not match the actual 'is_private' column. Re-query directly for safety.
-            const { data: rawChannels, error } = await supabase
-                .from("chat_channels")
-                .select("*")
-                .order("created_at", { ascending: true });
-
-            if (error) {
-                // Table may not exist yet — use service result (which returns [])
-                setChannels(data);
-                return;
-            }
-
-            // Show channels the user is a member of OR any public channel
-            const { data: memberRows } = await supabase
-                .from("chat_channel_members")
-                .select("channel_id")
-                .eq("user_id", userId);
-
-            const memberChannelIds = new Set(
-                (memberRows ?? []).map((r: { channel_id: string }) => r.channel_id)
-            );
-
-            const visible = (rawChannels as ChatChannel[]).filter(
-                (ch) =>
-                    memberChannelIds.has(ch.id) ||
-                    !(ch as unknown as { is_private: boolean }).is_private
-            );
-
-            setChannels(visible);
-
-            if (visible.length > 0 && !activeChannel) {
-                setActiveChannel(visible[0]);
+            if (data.length > 0 && !activeChannel) {
+                setActiveChannel(data[0]);
                 setShowSidebar(false);
             }
         } catch (err) {
@@ -175,7 +155,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
         } finally {
             setLoadingChannels(false);
         }
-    }, [supabase, userId, activeChannel]);
+    }, [supabase, activeChannel]);
 
     // ── Load messages for a channel ───────────────────────────────────────────
 
@@ -185,7 +165,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
             try {
                 const data = await chatService.getMessages(supabase, channelId);
 
-                // Pre-warm sender cache for messages that lack embedded sender data
+                // Pre-warm sender cache
                 const unknownIds = data
                     .filter((m) => m.sender_id !== userId && !m.sender?.full_name)
                     .map((m) => m.sender_id)
@@ -216,6 +196,16 @@ export function ChatInterface({ userId, userFullName }: Props) {
         [supabase, userId]
     );
 
+    // ── Load channel members ──────────────────────────────────────────────────
+
+    const loadChannelMembers = useCallback(
+        async (channelId: string) => {
+            const members = await chatService.getChannelMembers(supabase, channelId);
+            setChannelMembers(members);
+        },
+        [supabase]
+    );
+
     // ── Ensure user is a member of a channel ─────────────────────────────────
 
     const ensureMember = useCallback(
@@ -236,12 +226,49 @@ export function ChatInterface({ userId, userFullName }: Props) {
         [supabase, userId]
     );
 
+    // ── Global online presence ────────────────────────────────────────────────
+
+    useEffect(() => {
+        const presenceKey = `online:${tenantId}`;
+        const channel = supabase.channel(presenceKey);
+
+        channel
+            .on("presence", { event: "sync" }, () => {
+                const state = channel.presenceState();
+                const online = new Map<string, OnlineUser>();
+                Object.values(state).forEach((presences) => {
+                    const p = (presences as Array<{ id: string; name: string; avatar_url?: string }>)[0];
+                    if (p) {
+                        online.set(p.id, { id: p.id, name: p.name, avatar_url: p.avatar_url });
+                    }
+                });
+                setOnlineUsers(online);
+            })
+            .subscribe(async (status: string) => {
+                if (status === "SUBSCRIBED") {
+                    await channel.track({
+                        id: userId,
+                        name: userFullName,
+                    });
+                }
+            });
+
+        globalPresenceRef.current = channel;
+
+        return () => {
+            supabase.removeChannel(channel);
+            globalPresenceRef.current = null;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tenantId]);
+
     // ── Realtime subscription ─────────────────────────────────────────────────
 
     useEffect(() => {
         if (!activeChannel) return;
 
         loadMessages(activeChannel.id);
+        loadChannelMembers(activeChannel.id);
 
         // Messages channel
         const msgChannel = supabase
@@ -266,7 +293,13 @@ export function ChatInterface({ userId, userFullName }: Props) {
                     }
 
                     setMessages((prev) => {
-                        // Deduplicate in case optimistic update already added it
+                        // If we have an optimistic message from this sender, replace it
+                        const optId = lastOptimisticIdRef.current;
+                        if (optId && incoming.sender_id === userId) {
+                            lastOptimisticIdRef.current = null;
+                            return prev.map((m) => (m.id === optId ? incoming : m));
+                        }
+                        // Deduplicate
                         if (prev.some((m) => m.id === incoming.id)) return prev;
                         return [...prev, incoming];
                     });
@@ -371,6 +404,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
 
         // Optimistic update
         const optimisticId = `opt-${Date.now()}`;
+        lastOptimisticIdRef.current = optimisticId;
         const optimistic: ChatMessage = {
             id: optimisticId,
             channel_id: activeChannel.id,
@@ -385,11 +419,10 @@ export function ChatInterface({ userId, userFullName }: Props) {
 
         try {
             await chatService.sendMessage(supabase, activeChannel.id, text);
-            // Remove optimistic once real message arrives via realtime
-            // (dedup logic in subscriber handles this)
         } catch (err) {
             console.error("sendMessage:", err);
             // Revert optimistic on error
+            lastOptimisticIdRef.current = null;
             setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
             setNewMessage(text);
         } finally {
@@ -416,7 +449,6 @@ export function ChatInterface({ userId, userFullName }: Props) {
         async (messageId: string, emoji: string) => {
             try {
                 await chatService.toggleReaction(supabase, messageId, emoji);
-                // Reload messages to reflect reaction change
                 if (activeChannel) loadMessages(activeChannel.id);
             } catch (err) {
                 console.error("toggleReaction:", err);
@@ -439,7 +471,8 @@ export function ChatInterface({ userId, userFullName }: Props) {
                     .insert({
                         name,
                         description: newChannelDesc.trim() || null,
-                        is_private: newChannelPrivate,
+                        type: newChannelPrivate ? "private" : "public",
+                        tenant_id: tenantId,
                         created_by: userId,
                     })
                     .select()
@@ -465,7 +498,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
                 setCreatingChannel(false);
             }
         },
-        [newChannelName, newChannelDesc, newChannelPrivate, userId, supabase, creatingChannel]
+        [newChannelName, newChannelDesc, newChannelPrivate, userId, tenantId, supabase, creatingChannel]
     );
 
     // ── Select channel (mobile-aware) ─────────────────────────────────────────
@@ -473,6 +506,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
     const selectChannel = useCallback((ch: ChatChannel) => {
         setActiveChannel(ch);
         setShowSidebar(false);
+        setShowMembers(false);
     }, []);
 
     // ── Filtered channels ─────────────────────────────────────────────────────
@@ -490,6 +524,8 @@ export function ChatInterface({ userId, userFullName }: Props) {
             : typingNames.length > 1
             ? `${typingNames.join(", ")} están escribiendo...`
             : "";
+
+    const onlineCount = onlineUsers.size;
 
     // ─── Loading screen ───────────────────────────────────────────────────────
 
@@ -518,7 +554,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
                             Nuevo Canal
                         </DialogTitle>
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">
-                            Crea un nodo de comunicación
+                            Crea un nodo de comunicacion
                         </p>
                     </DialogHeader>
 
@@ -544,7 +580,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
                             <Input
                                 value={newChannelDesc}
                                 onChange={(e) => setNewChannelDesc(e.target.value)}
-                                placeholder="Para qué se usa este canal..."
+                                placeholder="Para que se usa este canal..."
                                 className="bg-white/5 border-white/10 text-white rounded-2xl h-12 font-bold placeholder:text-slate-600 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/30"
                                 maxLength={120}
                             />
@@ -608,8 +644,6 @@ export function ChatInterface({ userId, userFullName }: Props) {
                 {/* ══ SIDEBAR ════════════════════════════════════════════════ */}
                 <div
                     className={cn(
-                        // Desktop: always visible as fixed-width panel
-                        // Mobile: full-width overlay toggled by showSidebar
                         "flex flex-col bg-slate-950 transition-all duration-300",
                         "md:w-80 md:border-r md:border-white/5 md:relative md:flex",
                         showSidebar
@@ -638,6 +672,35 @@ export function ChatInterface({ userId, userFullName }: Props) {
                         </Button>
                     </div>
 
+                    {/* Online users indicator */}
+                    <div className="px-5 py-3 border-b border-white/5">
+                        <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
+                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-400">
+                                {onlineCount} en linea
+                            </span>
+                        </div>
+                        {onlineCount > 0 && (
+                            <div className="flex -space-x-2 mt-2">
+                                {Array.from(onlineUsers.values()).slice(0, 8).map((user) => (
+                                    <div key={user.id} className="relative" title={user.name}>
+                                        <Avatar className="h-7 w-7 rounded-lg border-2 border-slate-950">
+                                            <AvatarFallback className="bg-indigo-500/20 text-indigo-300 text-[8px] font-black rounded-lg">
+                                                {getInitials(user.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-950" />
+                                    </div>
+                                ))}
+                                {onlineCount > 8 && (
+                                    <div className="h-7 w-7 rounded-lg bg-white/10 border-2 border-slate-950 flex items-center justify-center">
+                                        <span className="text-[8px] font-black text-slate-400">+{onlineCount - 8}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Channel list */}
                     <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
                         <p className="px-4 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 mb-3 italic">
@@ -650,7 +713,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
                                     <MessageSquare className="h-8 w-8 text-slate-700" />
                                 </div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 text-center">
-                                    {searchQuery ? "Sin resultados" : "Sin canales aún"}
+                                    {searchQuery ? "Sin resultados" : "Sin canales aun"}
                                 </p>
                                 {!searchQuery && (
                                     <button
@@ -665,7 +728,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
                             <div className="space-y-1">
                                 {filteredChannels.map((channel) => {
                                     const isActive = activeChannel?.id === channel.id;
-                                    const isPrivate = (channel as unknown as { is_private: boolean }).is_private;
+                                    const isPrivate = channel.type === "private";
                                     return (
                                         <button
                                             key={channel.id}
@@ -721,12 +784,13 @@ export function ChatInterface({ userId, userFullName }: Props) {
                     {/* Sidebar footer */}
                     <div className="p-4 border-t border-white/5">
                         <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-2xl">
-                            <div className="h-8 w-8 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                            <div className="relative shrink-0">
                                 <Avatar className="h-8 w-8 rounded-xl">
                                     <AvatarFallback className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black rounded-xl">
                                         {getInitials(userFullName)}
                                     </AvatarFallback>
                                 </Avatar>
+                                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-950" />
                             </div>
                             <div className="flex-1 overflow-hidden">
                                 <p className="text-xs font-black text-slate-300 truncate italic">
@@ -764,7 +828,7 @@ export function ChatInterface({ userId, userFullName }: Props) {
                                     </button>
 
                                     <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shrink-0">
-                                        {(activeChannel as unknown as { is_private: boolean }).is_private ? (
+                                        {activeChannel.type === "private" ? (
                                             <Lock className="h-5 w-5" />
                                         ) : (
                                             <Hash className="h-6 w-6" />
@@ -774,217 +838,322 @@ export function ChatInterface({ userId, userFullName }: Props) {
                                         <h3 className="font-black text-white italic tracking-tight text-base md:text-lg leading-none truncate">
                                             {activeChannel.name}
                                         </h3>
-                                        <p className="text-[9px] font-black text-emerald-400 flex items-center gap-1.5 mt-1 uppercase tracking-[0.3em]">
-                                            <Circle className="h-1.5 w-1.5 fill-current animate-pulse" />
-                                            Transmision Activa
+                                        <p className="text-[9px] font-black text-slate-500 flex items-center gap-1.5 mt-1 uppercase tracking-[0.3em]">
+                                            {channelMembers.length} miembros
+                                            <span className="text-emerald-400 flex items-center gap-1">
+                                                <Circle className="h-1.5 w-1.5 fill-current" />
+                                                {channelMembers.filter((m) => onlineUsers.has(m.user_id)).length} en linea
+                                            </span>
                                         </p>
                                     </div>
                                 </div>
 
-                                <Badge className="bg-white/5 border border-white/10 text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] px-3 md:px-4 py-2 rounded-full shrink-0">
-                                    <Zap className="h-3 w-3 mr-2 text-indigo-400" />
-                                    Realtime
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setShowMembers((v) => !v)}
+                                        className={cn(
+                                            "h-10 rounded-xl border transition-all duration-300 px-3 gap-2",
+                                            showMembers
+                                                ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+                                                : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white"
+                                        )}
+                                        aria-label="Ver miembros"
+                                    >
+                                        <Users className="h-4 w-4" />
+                                        <span className="text-[9px] font-black uppercase tracking-widest hidden md:inline">
+                                            Miembros
+                                        </span>
+                                    </Button>
+                                    <Badge className="bg-white/5 border border-white/10 text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] px-3 md:px-4 py-2 rounded-full shrink-0">
+                                        <Zap className="h-3 w-3 mr-2 text-indigo-400" />
+                                        Realtime
+                                    </Badge>
+                                </div>
                             </div>
 
-                            {/* Messages list */}
-                            <div
-                                className="flex-1 overflow-y-auto p-5 md:p-8 space-y-1"
-                                aria-label="Mensajes del canal"
-                                aria-live="polite"
-                            >
-                                {loadingMessages ? (
-                                    <div className="flex items-center justify-center py-20">
-                                        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
-                                    </div>
-                                ) : messages.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-20 gap-5">
-                                        <div className="h-20 w-20 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center">
-                                            <MessageSquare className="h-10 w-10 text-slate-700" />
+                            {/* Content area: Messages + Members panel */}
+                            <div className="flex-1 flex overflow-hidden">
+                                {/* Messages list */}
+                                <div
+                                    className="flex-1 overflow-y-auto p-5 md:p-8 space-y-1"
+                                    aria-label="Mensajes del canal"
+                                    aria-live="polite"
+                                >
+                                    {loadingMessages ? (
+                                        <div className="flex items-center justify-center py-20">
+                                            <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
                                         </div>
-                                        <div className="text-center">
-                                            <p className="font-black italic text-base text-white/20 uppercase tracking-tight">
-                                                Canal vacio
-                                            </p>
-                                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] mt-1">
-                                                Sé el primero en enviar un mensaje
-                                            </p>
+                                    ) : messages.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-20 gap-5">
+                                            <div className="h-20 w-20 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center">
+                                                <MessageSquare className="h-10 w-10 text-slate-700" />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="font-black italic text-base text-white/20 uppercase tracking-tight">
+                                                    Canal vacio
+                                                </p>
+                                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] mt-1">
+                                                    Se el primero en enviar un mensaje
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <>
-                                        {messages.map((message, idx) => {
-                                            const isMe = message.sender_id === userId;
-                                            const prevMsg = messages[idx - 1];
-                                            const isSameAuthor =
-                                                prevMsg?.sender_id === message.sender_id;
-                                            const showAvatar = !isSameAuthor || idx === 0;
+                                    ) : (
+                                        <>
+                                            {messages.map((message, idx) => {
+                                                const isMe = message.sender_id === userId;
+                                                const prevMsg = messages[idx - 1];
+                                                const isSameAuthor =
+                                                    prevMsg?.sender_id === message.sender_id;
+                                                const showAvatar = !isSameAuthor || idx === 0;
 
-                                            const senderName = isMe
-                                                ? "Tú"
-                                                : message.sender?.full_name ||
-                                                  senderCache[message.sender_id] ||
-                                                  "Usuario";
+                                                const senderName = isMe
+                                                    ? "Tú"
+                                                    : message.sender?.full_name ||
+                                                      senderCache[message.sender_id] ||
+                                                      "Usuario";
 
-                                            const isOptimistic = message.id.startsWith("opt-");
+                                                const isOptimistic = message.id.startsWith("opt-");
+                                                const senderOnline = onlineUsers.has(message.sender_id);
 
-                                            return (
-                                                <div
-                                                    key={message.id}
-                                                    className={cn(
-                                                        "flex gap-3 group",
-                                                        isMe ? "flex-row-reverse" : "flex-row",
-                                                        !showAvatar ? "mt-0.5" : "mt-4"
-                                                    )}
-                                                >
-                                                    {/* Avatar */}
-                                                    <div className="shrink-0 w-10">
-                                                        {showAvatar && (
-                                                            <Avatar className="h-10 w-10 rounded-xl border border-white/10 shadow-sm">
-                                                                <AvatarFallback
-                                                                    className={cn(
-                                                                        "text-[10px] font-black rounded-xl",
-                                                                        isMe
-                                                                            ? "bg-indigo-500/30 text-indigo-200"
-                                                                            : "bg-white/10 text-slate-400"
-                                                                    )}
-                                                                >
-                                                                    {getInitials(senderName)}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Bubble */}
+                                                return (
                                                     <div
+                                                        key={message.id}
                                                         className={cn(
-                                                            "flex flex-col gap-1 max-w-[70%]",
-                                                            isMe ? "items-end" : "items-start"
+                                                            "flex gap-3 group",
+                                                            isMe ? "flex-row-reverse" : "flex-row",
+                                                            !showAvatar ? "mt-0.5" : "mt-4"
                                                         )}
                                                     >
-                                                        {showAvatar && (
-                                                            <div
-                                                                className={cn(
-                                                                    "flex items-center gap-2",
-                                                                    isMe && "flex-row-reverse"
-                                                                )}
-                                                            >
-                                                                <span className="font-black text-white/70 text-xs italic">
-                                                                    {senderName}
-                                                                </span>
-                                                                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">
-                                                                    {formatMessageTime(message.created_at)}
-                                                                </span>
-                                                            </div>
-                                                        )}
-
-                                                        <div className="relative group/msg">
-                                                            <div
-                                                                className={cn(
-                                                                    "px-4 py-3 rounded-2xl text-sm font-medium leading-relaxed transition-all duration-300",
-                                                                    isMe
-                                                                        ? "bg-indigo-500 text-white rounded-tr-sm shadow-[0_4px_20px_rgba(99,102,241,0.2)]"
-                                                                        : "bg-white/5 text-slate-300 rounded-tl-sm border border-white/5 hover:bg-white/[0.08]",
-                                                                    isOptimistic && "opacity-60"
-                                                                )}
-                                                            >
-                                                                {message.content}
-
-                                                                {/* Delivered indicator */}
-                                                                {isMe && !isOptimistic && (
-                                                                    <CheckCheck className="inline-block h-3 w-3 ml-2 text-indigo-200 opacity-70" />
-                                                                )}
-                                                            </div>
-
-                                                            {/* Reaction button (hover) */}
-                                                            <div
-                                                                className={cn(
-                                                                    "absolute top-1 opacity-0 group-hover/msg:opacity-100 transition-all duration-200",
-                                                                    isMe ? "-left-11" : "-right-11"
-                                                                )}
-                                                            >
-                                                                <Popover>
-                                                                    <PopoverTrigger asChild>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8 rounded-xl bg-slate-950 border border-white/10 shadow-lg hover:bg-white/10 text-slate-500 hover:text-white"
-                                                                            aria-label="Agregar reaccion"
-                                                                        >
-                                                                            <Smile className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent
-                                                                        side={isMe ? "left" : "right"}
-                                                                        className="w-auto p-1.5 rounded-2xl bg-slate-950 border border-white/10 shadow-2xl"
-                                                                    >
-                                                                        <div className="flex gap-0.5">
-                                                                            {QUICK_REACTIONS.map((emoji) => (
-                                                                                <button
-                                                                                    key={emoji}
-                                                                                    onClick={() =>
-                                                                                        handleReaction(message.id, emoji)
-                                                                                    }
-                                                                                    className="p-2 hover:bg-white/10 rounded-xl transition-all text-lg hover:scale-125 active:scale-90"
-                                                                                    aria-label={`Reaccionar con ${emoji}`}
-                                                                                >
-                                                                                    {emoji}
-                                                                                </button>
-                                                                            ))}
-                                                                        </div>
-                                                                    </PopoverContent>
-                                                                </Popover>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Reactions display */}
-                                                        {message.reactions && message.reactions.length > 0 && (
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {Object.entries(
-                                                                    message.reactions.reduce(
-                                                                        (
-                                                                            acc: Record<string, number>,
-                                                                            curr
-                                                                        ) => {
-                                                                            acc[curr.emoji] =
-                                                                                (acc[curr.emoji] || 0) + 1;
-                                                                            return acc;
-                                                                        },
-                                                                        {}
-                                                                    )
-                                                                ).map(([emoji, count]) => {
-                                                                    const reacted =
-                                                                        message.reactions?.some(
-                                                                            (r) =>
-                                                                                r.user_id === userId &&
-                                                                                r.emoji === emoji
-                                                                        ) ?? false;
-                                                                    return (
-                                                                        <button
-                                                                            key={emoji}
-                                                                            onClick={() =>
-                                                                                handleReaction(message.id, emoji)
-                                                                            }
+                                                        {/* Avatar */}
+                                                        <div className="shrink-0 w-10">
+                                                            {showAvatar && (
+                                                                <div className="relative">
+                                                                    <Avatar className="h-10 w-10 rounded-xl border border-white/10 shadow-sm">
+                                                                        <AvatarFallback
                                                                             className={cn(
-                                                                                "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-bold transition-all hover:scale-110 active:scale-90",
-                                                                                reacted
-                                                                                    ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300"
-                                                                                    : "bg-white/5 border-white/10 text-slate-500 hover:border-white/20"
+                                                                                "text-[10px] font-black rounded-xl",
+                                                                                isMe
+                                                                                    ? "bg-indigo-500/30 text-indigo-200"
+                                                                                    : "bg-white/10 text-slate-400"
                                                                             )}
                                                                         >
-                                                                            <span>{emoji}</span>
-                                                                            <span>{count}</span>
-                                                                        </button>
-                                                                    );
-                                                                })}
+                                                                            {getInitials(senderName)}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    {/* Online dot */}
+                                                                    {senderOnline && (
+                                                                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Bubble */}
+                                                        <div
+                                                            className={cn(
+                                                                "flex flex-col gap-1 max-w-[70%]",
+                                                                isMe ? "items-end" : "items-start"
+                                                            )}
+                                                        >
+                                                            {showAvatar && (
+                                                                <div
+                                                                    className={cn(
+                                                                        "flex items-center gap-2",
+                                                                        isMe && "flex-row-reverse"
+                                                                    )}
+                                                                >
+                                                                    <span className="font-black text-white/70 text-xs italic">
+                                                                        {senderName}
+                                                                    </span>
+                                                                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">
+                                                                        {formatMessageTime(message.created_at)}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="relative group/msg">
+                                                                <div
+                                                                    className={cn(
+                                                                        "px-4 py-3 rounded-2xl text-sm font-medium leading-relaxed transition-all duration-300",
+                                                                        isMe
+                                                                            ? "bg-indigo-500 text-white rounded-tr-sm shadow-[0_4px_20px_rgba(99,102,241,0.2)]"
+                                                                            : "bg-white/5 text-slate-300 rounded-tl-sm border border-white/5 hover:bg-white/[0.08]",
+                                                                        isOptimistic && "opacity-60"
+                                                                    )}
+                                                                >
+                                                                    {message.content}
+
+                                                                    {/* Delivered indicator */}
+                                                                    {isMe && !isOptimistic && (
+                                                                        <CheckCheck className="inline-block h-3 w-3 ml-2 text-indigo-200 opacity-70" />
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Reaction button (hover) */}
+                                                                <div
+                                                                    className={cn(
+                                                                        "absolute top-1 opacity-0 group-hover/msg:opacity-100 transition-all duration-200",
+                                                                        isMe ? "-left-11" : "-right-11"
+                                                                    )}
+                                                                >
+                                                                    <Popover>
+                                                                        <PopoverTrigger asChild>
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-8 w-8 rounded-xl bg-slate-950 border border-white/10 shadow-lg hover:bg-white/10 text-slate-500 hover:text-white"
+                                                                                aria-label="Agregar reaccion"
+                                                                            >
+                                                                                <Smile className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent
+                                                                            side={isMe ? "left" : "right"}
+                                                                            className="w-auto p-1.5 rounded-2xl bg-slate-950 border border-white/10 shadow-2xl"
+                                                                        >
+                                                                            <div className="flex gap-0.5">
+                                                                                {QUICK_REACTIONS.map((emoji) => (
+                                                                                    <button
+                                                                                        key={emoji}
+                                                                                        onClick={() =>
+                                                                                            handleReaction(message.id, emoji)
+                                                                                        }
+                                                                                        className="p-2 hover:bg-white/10 rounded-xl transition-all text-lg hover:scale-125 active:scale-90"
+                                                                                        aria-label={`Reaccionar con ${emoji}`}
+                                                                                    >
+                                                                                        {emoji}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                </div>
                                                             </div>
-                                                        )}
+
+                                                            {/* Reactions display */}
+                                                            {message.reactions && message.reactions.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {Object.entries(
+                                                                        message.reactions.reduce(
+                                                                            (
+                                                                                acc: Record<string, number>,
+                                                                                curr
+                                                                            ) => {
+                                                                                acc[curr.emoji] =
+                                                                                    (acc[curr.emoji] || 0) + 1;
+                                                                                return acc;
+                                                                            },
+                                                                            {}
+                                                                        )
+                                                                    ).map(([emoji, count]) => {
+                                                                        const reacted =
+                                                                            message.reactions?.some(
+                                                                                (r) =>
+                                                                                    r.user_id === userId &&
+                                                                                    r.emoji === emoji
+                                                                            ) ?? false;
+                                                                        return (
+                                                                            <button
+                                                                                key={emoji}
+                                                                                onClick={() =>
+                                                                                    handleReaction(message.id, emoji)
+                                                                                }
+                                                                                className={cn(
+                                                                                    "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-bold transition-all hover:scale-110 active:scale-90",
+                                                                                    reacted
+                                                                                        ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300"
+                                                                                        : "bg-white/5 border-white/10 text-slate-500 hover:border-white/20"
+                                                                                )}
+                                                                            >
+                                                                                <span>{emoji}</span>
+                                                                                <span>{count}</span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                        <div ref={messagesEndRef} />
-                                    </>
+                                                );
+                                            })}
+                                            <div ref={messagesEndRef} />
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* ══ MEMBERS PANEL ═════════════════════════════════ */}
+                                {showMembers && (
+                                    <div className="w-64 border-l border-white/5 bg-slate-950/80 flex flex-col shrink-0 hidden md:flex">
+                                        <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                                            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">
+                                                Miembros — {channelMembers.length}
+                                            </p>
+                                            <button
+                                                onClick={() => setShowMembers(false)}
+                                                className="h-6 w-6 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-400 hover:bg-white/5 transition-all"
+                                            >
+                                                <ChevronRight className="h-4 w-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                                            {/* Online members first */}
+                                            {channelMembers
+                                                .sort((a, b) => {
+                                                    const aOnline = onlineUsers.has(a.user_id) ? 0 : 1;
+                                                    const bOnline = onlineUsers.has(b.user_id) ? 0 : 1;
+                                                    return aOnline - bOnline;
+                                                })
+                                                .map((member) => {
+                                                    const isOnline = onlineUsers.has(member.user_id);
+                                                    const memberName =
+                                                        member.user_id === userId
+                                                            ? `${userFullName} (Tú)`
+                                                            : member.profile?.full_name || "Usuario";
+                                                    return (
+                                                        <div
+                                                            key={member.user_id}
+                                                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all"
+                                                        >
+                                                            <div className="relative shrink-0">
+                                                                <Avatar className="h-8 w-8 rounded-lg">
+                                                                    <AvatarFallback
+                                                                        className={cn(
+                                                                            "text-[9px] font-black rounded-lg",
+                                                                            isOnline
+                                                                                ? "bg-emerald-500/20 text-emerald-300"
+                                                                                : "bg-white/5 text-slate-600"
+                                                                        )}
+                                                                    >
+                                                                        {getInitials(memberName)}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div
+                                                                    className={cn(
+                                                                        "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-950",
+                                                                        isOnline ? "bg-emerald-400" : "bg-slate-600"
+                                                                    )}
+                                                                />
+                                                            </div>
+                                                            <div className="flex-1 overflow-hidden">
+                                                                <p className="text-xs font-bold text-slate-300 truncate">
+                                                                    {memberName}
+                                                                </p>
+                                                                <p
+                                                                    className={cn(
+                                                                        "text-[8px] font-black uppercase tracking-widest",
+                                                                        isOnline ? "text-emerald-400" : "text-slate-600"
+                                                                    )}
+                                                                >
+                                                                    {isOnline ? "En linea" : "Desconectado"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 

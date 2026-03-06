@@ -139,5 +139,25 @@ export const chatService = {
                 }
             )
             .subscribe();
+    },
+
+    async getChannelMembers(supabase: SupabaseClient, channelId: string): Promise<ChatMember[]> {
+        const { data, error } = await supabase
+            .from('chat_channel_members')
+            .select('*, profile:profiles!user_id(full_name, avatar_url, email)')
+            .eq('channel_id', channelId);
+
+        if (error) {
+            console.warn('chatService.getChannelMembers:', error.message);
+            return [];
+        }
+
+        return (data ?? []).map((m: Record<string, unknown>) => ({
+            channel_id: m.channel_id as string,
+            user_id: m.user_id as string,
+            role: m.role as string,
+            last_read_at: m.last_read_at as string,
+            profile: m.profile as ChatMember['profile'],
+        }));
     }
 };

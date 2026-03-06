@@ -50,3 +50,9 @@ export interface ChatMember {
         email?: string;
     };
 }
+
+export interface OnlineUser {
+    id: string;
+    name: string;
+    avatar_url?: string;
+}

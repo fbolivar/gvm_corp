@@ -12,11 +12,21 @@ export default async function CollaborationPage() {
         redirect("/login");
     }
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle();
+    const [{ data: profile }, { data: userTenant }] = await Promise.all([
+        supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .maybeSingle(),
+        supabase
+            .from("user_tenants")
+            .select("tenant_id")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+    ]);
+
+    const tenantId = userTenant?.tenant_id;
+    if (!tenantId) redirect("/login");
 
     const userFullName =
         profile?.full_name ||
@@ -61,7 +71,7 @@ export default async function CollaborationPage() {
             </div>
 
             {/* Chat Interface */}
-            <ChatInterface userId={user.id} userFullName={userFullName} />
+            <ChatInterface userId={user.id} userFullName={userFullName} tenantId={tenantId} />
         </div>
     );
 }
