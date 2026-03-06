@@ -34,6 +34,9 @@ export default async function TechnologyPage() {
                     maintenanceSchedules={allMaintenanceSchedules}
                     companyName={tenant?.name || 'Empresa'}
                     companyNit={tenant?.nit || undefined}
+                    companyAddress={tenant?.address || undefined}
+                    companyPhone={tenant?.phone || undefined}
+                    logoUrl={tenant?.logo_url || undefined}
                 />
             </div>
 

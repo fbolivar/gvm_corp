@@ -20,13 +20,19 @@ interface Props {
     maintenanceSchedules: ITMaintenanceSchedule[];
     companyName: string;
     companyNit?: string;
+    companyAddress?: string;
+    companyPhone?: string;
+    logoUrl?: string;
 }
 
-export function AssetExportActions({ assets, kpis, maintenanceSchedules, companyName, companyNit }: Props) {
+export function AssetExportActions({ assets, kpis, maintenanceSchedules, companyName, companyNit, companyAddress, companyPhone, logoUrl }: Props) {
     const reportOptions = {
         title: 'Inventario Activos IT',
         companyName,
         companyNit,
+        companyAddress,
+        companyPhone,
+        logoUrl,
         period: new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }),
     };
 
