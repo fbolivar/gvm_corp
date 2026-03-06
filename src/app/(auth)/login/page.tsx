@@ -1,5 +1,5 @@
 import { LoginForm } from "@/features/auth/components/LoginForm";
-import { ShieldCheck, Fingerprint, Cpu, Radio } from "lucide-react";
+import { Fingerprint, Cpu, Radio } from "lucide-react";
 import Image from "next/image";
 
 export default function LoginPage() {
@@ -35,23 +35,6 @@ export default function LoginPage() {
               Acceso Seguro
             </span>
           </h1>
-          <p className="text-slate-500 font-bold text-sm leading-relaxed max-w-md">
-            Plataforma empresarial integral con módulos de contabilidad, inventarios, nómina, facturación electrónica y gestión comercial — todo en un solo ecosistema blindado.
-          </p>
-
-          {/* Feature Chips */}
-          <div className="flex flex-wrap gap-3">
-            {[
-              { icon: ShieldCheck, label: "Auth E2E" },
-              { icon: Fingerprint, label: "Supabase RLS" },
-              { icon: Cpu, label: "Edge Runtime" },
-            ].map((chip) => (
-              <div key={chip.label} className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-slate-100 shadow-sm">
-                <chip.icon className="h-3.5 w-3.5 text-indigo-600" />
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">{chip.label}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Bottom Security Badge */}
