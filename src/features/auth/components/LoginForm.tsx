@@ -10,7 +10,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, Loader2, ArrowRight, Zap, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, Loader2, ArrowRight, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
 import { SliderCaptcha } from "./SliderCaptcha";
@@ -151,11 +151,6 @@ export function LoginForm() {
                 </Button>
             </form>
 
-            {/* Security info */}
-            <div className="mt-6 flex items-center justify-center gap-2">
-                <Zap className="h-3 w-3 text-slate-300" />
-                <span className="text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">Protegido con Supabase Auth + JWT</span>
-            </div>
         </div>
     );
 }
