@@ -37,6 +37,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/shared/lib/utils"
 import Link from "next/link"
 import { documentPdfService } from '../services/documentPdfService'
+import type { TenantPdfInfo, DianResolutionPdfInfo } from '../services/documentPdfService'
 
 interface DocumentDetailProps {
     document: Document;
@@ -44,9 +45,11 @@ interface DocumentDetailProps {
         parent: { id: string; number: string; doc_type: string } | null;
         children: { id: string; number: string; doc_type: string }[];
     };
+    tenantInfo?: TenantPdfInfo | null;
+    dianResolution?: DianResolutionPdfInfo | null;
 }
 
-export function DocumentDetail({ document, relatedDocuments }: DocumentDetailProps) {
+export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianResolution }: DocumentDetailProps) {
     const router = useRouter();
     const [processing, setProcessing] = useState(false);
     const [creatingLink, setCreatingLink] = useState(false);
@@ -193,7 +196,7 @@ export function DocumentDetail({ document, relatedDocuments }: DocumentDetailPro
                 <div className="flex items-center gap-3">
                     <Button
                         variant="outline"
-                        onClick={() => documentPdfService.generatePdf(document)}
+                        onClick={() => documentPdfService.generatePdf(document, tenantInfo, dianResolution)}
                         className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
                     >
                         <Printer className="mr-3 h-4 w-4" /> Descargar PDF
