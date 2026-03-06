@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
@@ -19,7 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 type SourceSystem = 'world_office' | 'dolibarr' | 'gvm_backup';
 type EntityType = 'customers' | 'products' | 'invoices' | 'accounting';
 
-export function RestoreManager({ tenantId }: { tenantId: string }) {
+export function RestoreManager({ tenantId: _tenantId }: { tenantId: string }) {
+    const router = useRouter();
     const [step, setStep] = useState(1);
     const [source, setSource] = useState<SourceSystem | null>(null);
     const [entity, setEntity] = useState<EntityType>('customers');
@@ -261,7 +263,7 @@ export function RestoreManager({ tenantId }: { tenantId: string }) {
                             <Button onClick={resetProcess} variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-bold bg-transparent h-12 px-6 rounded-xl">
                                 Importar Otro Archivo
                             </Button>
-                            <Button className="bg-emerald-600 text-white hover:bg-emerald-700 font-bold h-12 px-6 rounded-xl shadow-lg shadow-emerald-200">
+                            <Button onClick={() => router.push('/dashboard')} className="bg-emerald-600 text-white hover:bg-emerald-700 font-bold h-12 px-6 rounded-xl shadow-lg shadow-emerald-200">
                                 Ir al Dashboard
                             </Button>
                         </div>
