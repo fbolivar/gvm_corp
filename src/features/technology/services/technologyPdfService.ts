@@ -117,6 +117,7 @@ export const technologyPdfService = {
         kpis: AssetReportKPIs,
         maintenanceSchedules: ITMaintenanceSchedule[],
         options: ReportHeaderOptions,
+        assignmentMap: Record<string, string> = {},
     ) {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
@@ -171,13 +172,13 @@ export const technologyPdfService = {
         // ── Assets Table ──
         autoTable(doc, {
             startY: currentY,
-            head: [['CODIGO', 'NOMBRE', 'CATEGORIA', 'MARCA / MODELO', 'SERIAL', 'ESTADO', 'CONDICION', 'COSTO']],
+            head: [['CODIGO', 'NOMBRE', 'CATEGORIA', 'MARCA / MODELO', 'ASIGNADO A', 'ESTADO', 'CONDICION', 'COSTO']],
             body: assets.map(a => [
                 { content: a.asset_code, styles: { fontStyle: 'bold' as const, textColor: COLORS.accent } },
                 a.name.toUpperCase(),
                 CATEGORY_LABELS[a.category] || a.category,
                 [a.brand, a.model].filter(Boolean).join(' / ') || '\u2014',
-                a.serial_number || '\u2014',
+                assignmentMap[a.id] || '\u2014',
                 { content: STATUS_LABELS[a.status] || a.status, styles: { textColor: STATUS_CELL_COLORS[a.status] || COLORS.primary } },
                 CONDITION_LABELS[a.condition] || a.condition,
                 { content: `$${Math.round(a.purchase_cost).toLocaleString('es-CO')}`, styles: { halign: 'right' as const } },

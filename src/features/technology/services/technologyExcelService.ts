@@ -46,7 +46,7 @@ async function fetchLogoAsBase64(url: string): Promise<string | null> {
 }
 
 export const technologyExcelService = {
-    async exportFormattedExcel(assets: ITAsset[], company: CompanyInfo) {
+    async exportFormattedExcel(assets: ITAsset[], company: CompanyInfo, assignmentMap: Record<string, string> = {}) {
         const wb = new ExcelJS.Workbook();
         wb.creator = 'GVM ERP V3';
         wb.created = new Date();
@@ -63,6 +63,7 @@ export const technologyExcelService = {
             { key: 'brand', width: 16 },
             { key: 'model', width: 16 },
             { key: 'serial', width: 20 },
+            { key: 'assigned_to', width: 22 },
             { key: 'status', width: 14 },
             { key: 'condition', width: 12 },
             { key: 'cost', width: 16 },
@@ -71,7 +72,7 @@ export const technologyExcelService = {
             { key: 'notes', width: 24 },
         ];
 
-        const totalCols = 12; // A through L
+        const totalCols = 13; // A through M
         let row = 1;
 
         // ── Logo ──
@@ -121,14 +122,14 @@ export const technologyExcelService = {
         row++;
 
         // ── Row 3: Report title + date ──
-        ws.mergeCells(row, 1, row, 8);
+        ws.mergeCells(row, 1, row, 9);
         const titleCell = ws.getCell(row, 1);
         titleCell.value = 'INVENTARIO DE ACTIVOS IT';
         titleCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: WHITE } };
         titleCell.alignment = { vertical: 'middle' };
 
-        ws.mergeCells(row, 9, row, totalCols);
-        const dateCell = ws.getCell(row, 9);
+        ws.mergeCells(row, 10, row, totalCols);
+        const dateCell = ws.getCell(row, 10);
         dateCell.value = `Generado: ${format(new Date(), 'PPpp', { locale: es })}`;
         dateCell.font = { name: 'Calibri', size: 8, color: { argb: SLATE_400 } };
         dateCell.alignment = { vertical: 'middle', horizontal: 'right' };
@@ -186,14 +187,14 @@ export const technologyExcelService = {
         row++;
 
         // ── Data header row ──
-        const headers = ['CODIGO', 'NOMBRE', 'CATEGORIA', 'MARCA', 'MODELO', 'SERIAL', 'ESTADO', 'CONDICION', 'COSTO', 'F. COMPRA', 'GARANTIA', 'NOTAS'];
+        const headers = ['CODIGO', 'NOMBRE', 'CATEGORIA', 'MARCA', 'MODELO', 'SERIAL', 'ASIGNADO A', 'ESTADO', 'CONDICION', 'COSTO', 'F. COMPRA', 'GARANTIA', 'NOTAS'];
         const headerRow = ws.getRow(row);
         headers.forEach((h, i) => {
             const cell = headerRow.getCell(i + 1);
             cell.value = h;
             cell.font = { name: 'Calibri', size: 9, bold: true, color: { argb: WHITE } };
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SLATE_900 } };
-            cell.alignment = { horizontal: i === 8 ? 'right' : 'left', vertical: 'middle' };
+            cell.alignment = { horizontal: i === 9 ? 'right' : 'left', vertical: 'middle' };
             cell.border = {
                 bottom: { style: 'thin', color: { argb: INDIGO_600 } },
             };
@@ -214,6 +215,7 @@ export const technologyExcelService = {
                 a.brand || '',
                 a.model || '',
                 a.serial_number || '',
+                assignmentMap[a.id] || '',
                 STATUS_LABELS[a.status] || a.status,
                 CONDITION_LABELS[a.condition] || a.condition,
                 a.purchase_cost || 0,
@@ -236,13 +238,19 @@ export const technologyExcelService = {
             // Code column bold + indigo
             dataRow.getCell(1).font = { name: 'Calibri', size: 9, bold: true, color: { argb: INDIGO_600 } };
 
+            // Assigned-to column in blue
+            const assignedCell = dataRow.getCell(7);
+            if (assignmentMap[a.id]) {
+                assignedCell.font = { name: 'Calibri', size: 9, bold: true, color: { argb: INDIGO_600 } };
+            }
+
             // Cost right-aligned with number format
-            const costCell = dataRow.getCell(9);
+            const costCell = dataRow.getCell(10);
             costCell.numFmt = '$#,##0';
             costCell.alignment = { horizontal: 'right', vertical: 'middle' };
 
             // Status with color
-            const statusCell = dataRow.getCell(7);
+            const statusCell = dataRow.getCell(8);
             statusCell.font = { name: 'Calibri', size: 9, bold: true, color: { argb: STATUS_COLORS[a.status] || SLATE_900 } };
 
             dataRow.height = 18;
@@ -251,7 +259,7 @@ export const technologyExcelService = {
 
         // ── Totals row ──
         const totalRow = ws.getRow(row);
-        ws.mergeCells(row, 1, row, 8);
+        ws.mergeCells(row, 1, row, 9);
         const totalLabel = totalRow.getCell(1);
         totalLabel.value = `TOTAL ACTIVOS: ${assets.length}`;
         totalLabel.font = { name: 'Calibri', size: 10, bold: true, color: { argb: WHITE } };
@@ -259,14 +267,14 @@ export const technologyExcelService = {
         totalLabel.alignment = { vertical: 'middle' };
 
         const totalCost = assets.reduce((s, a) => s + (a.purchase_cost || 0), 0);
-        const totalCostCell = totalRow.getCell(9);
+        const totalCostCell = totalRow.getCell(10);
         totalCostCell.value = totalCost;
         totalCostCell.numFmt = '$#,##0';
         totalCostCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: WHITE } };
         totalCostCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INDIGO_600 } };
         totalCostCell.alignment = { horizontal: 'right', vertical: 'middle' };
 
-        for (let c = 10; c <= totalCols; c++) {
+        for (let c = 11; c <= totalCols; c++) {
             totalRow.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INDIGO_600 } };
         }
         totalRow.height = 24;

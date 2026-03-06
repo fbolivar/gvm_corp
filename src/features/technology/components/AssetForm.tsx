@@ -8,12 +8,21 @@ import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Badge } from '@/shared/components/ui/badge';
-import { Monitor, Save, Loader2 } from 'lucide-react';
+import { Monitor, Save, Loader2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createAssetAction } from '../actions/technologyActions';
 import { IT_ASSET_CATEGORIES, IT_ASSET_CONDITIONS, CATEGORY_LABELS, CONDITION_LABELS } from '../types';
 
-export function AssetForm() {
+interface Employee {
+    id: string;
+    party: { legal_name: string } | null;
+}
+
+interface AssetFormProps {
+    employees?: Employee[];
+}
+
+export function AssetForm({ employees = [] }: AssetFormProps) {
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
     const [loading, setLoading] = useState(false);
@@ -93,6 +102,29 @@ export function AssetForm() {
                             </Select>
                         </div>
                     </div>
+
+                    {/* Asignar a empleado */}
+                    {employees.length > 0 && (
+                        <div className="pt-4 border-t border-slate-50">
+                            <div className="flex items-center gap-2 mb-3">
+                                <UserPlus className="h-4 w-4 text-indigo-500" />
+                                <Label className="text-xs font-semibold text-slate-700">Asignar a Empleado</Label>
+                                <Badge variant="secondary" className="text-[9px] font-semibold">Opcional</Badge>
+                            </div>
+                            <Select name="employee_id">
+                                <SelectTrigger className="h-9 rounded-xl">
+                                    <SelectValue placeholder="Sin asignar — Disponible" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {employees.map(emp => (
+                                        <SelectItem key={emp.id} value={emp.id}>
+                                            {emp.party?.legal_name || 'Sin nombre'}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

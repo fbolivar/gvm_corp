@@ -45,7 +45,7 @@ export async function createAssetAction(formData: FormData) {
         throw new Error(parsed.error.issues[0].message);
     }
 
-    await technologyService.createAsset(supabase, {
+    const asset = await technologyService.createAsset(supabase, {
         tenant_id: tenant.id,
         name: parsed.data.name,
         category: parsed.data.category,
@@ -59,6 +59,17 @@ export async function createAssetAction(formData: FormData) {
         specs: parsed.data.specs as Record<string, string>,
         notes: parsed.data.notes,
     });
+
+    // If employee_id provided, assign asset immediately
+    const employeeId = formData.get('employee_id') as string;
+    if (employeeId) {
+        await technologyService.assignAsset(supabase, {
+            tenant_id: tenant.id,
+            asset_id: asset.id,
+            employee_id: employeeId,
+            assigned_by: user.id,
+        });
+    }
 
     revalidatePath('/technology');
 }

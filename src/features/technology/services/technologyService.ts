@@ -19,6 +19,22 @@ export const technologyService = {
         return data || [];
     },
 
+    async getActiveAssignments(supabase: SupabaseClient): Promise<Record<string, string>> {
+        const { data } = await supabase
+            .from('it_asset_assignments')
+            .select('asset_id, employee:employees(id, party:parties(legal_name))')
+            .is('returned_at', null);
+        const map: Record<string, string> = {};
+        for (const row of data || []) {
+            const emp = row.employee as unknown as Record<string, unknown> | null;
+            if (!emp) continue;
+            const party = Array.isArray(emp.party) ? emp.party[0] : emp.party;
+            const name = (party as { legal_name?: string } | null)?.legal_name || 'Empleado';
+            map[row.asset_id] = name;
+        }
+        return map;
+    },
+
     async getAssetById(supabase: SupabaseClient, id: string): Promise<ITAsset | null> {
         const { data, error } = await supabase
             .from('it_assets')

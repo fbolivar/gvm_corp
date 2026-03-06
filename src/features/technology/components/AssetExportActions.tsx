@@ -17,6 +17,7 @@ interface Props {
     assets: ITAsset[];
     kpis: KPIs;
     maintenanceSchedules: ITMaintenanceSchedule[];
+    assignmentMap?: Record<string, string>;
     companyName: string;
     companyNit?: string;
     companyAddress?: string;
@@ -24,7 +25,7 @@ interface Props {
     logoUrl?: string;
 }
 
-export function AssetExportActions({ assets, kpis, maintenanceSchedules, companyName, companyNit, companyAddress, companyPhone, logoUrl }: Props) {
+export function AssetExportActions({ assets, kpis, maintenanceSchedules, assignmentMap = {}, companyName, companyNit, companyAddress, companyPhone, logoUrl }: Props) {
     const reportOptions = {
         title: 'Inventario Activos IT',
         companyName,
@@ -36,7 +37,7 @@ export function AssetExportActions({ assets, kpis, maintenanceSchedules, company
     };
 
     const handlePdf = async () => {
-        await technologyPdfService.generateAssetReport(assets, kpis, maintenanceSchedules, reportOptions);
+        await technologyPdfService.generateAssetReport(assets, kpis, maintenanceSchedules, reportOptions, assignmentMap);
     };
 
     const handleExcel = async () => {
@@ -46,7 +47,7 @@ export function AssetExportActions({ assets, kpis, maintenanceSchedules, company
             address: companyAddress,
             phone: companyPhone,
             logoUrl,
-        });
+        }, assignmentMap);
     };
 
     return (

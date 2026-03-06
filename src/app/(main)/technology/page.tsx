@@ -13,11 +13,12 @@ export default async function TechnologyPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [tenant, assets, kpis, allMaintenanceSchedules] = await Promise.all([
+    const [tenant, assets, kpis, allMaintenanceSchedules, assignmentMap] = await Promise.all([
         settingsService.getTenantInfo(supabase),
         technologyService.getAssets(supabase),
         technologyService.getKPIs(supabase),
         technologyService.getAllMaintenanceSchedules(supabase),
+        technologyService.getActiveAssignments(supabase),
     ]);
 
     return (
@@ -32,6 +33,7 @@ export default async function TechnologyPage() {
                     assets={assets}
                     kpis={{ total: kpis.total, available: kpis.available, assigned: kpis.assigned, inMaintenance: kpis.inMaintenance }}
                     maintenanceSchedules={allMaintenanceSchedules}
+                    assignmentMap={assignmentMap}
                     companyName={tenant?.name || 'Empresa'}
                     companyNit={tenant?.nit || undefined}
                     companyAddress={tenant?.address || undefined}
@@ -80,7 +82,7 @@ export default async function TechnologyPage() {
             )}
 
             {/* Asset List */}
-            <AssetList assets={assets} />
+            <AssetList assets={assets} assignmentMap={assignmentMap} />
         </div>
     );
 }

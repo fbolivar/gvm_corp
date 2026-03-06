@@ -33,9 +33,10 @@ const CATEGORY_ICONS: Record<ITAssetCategory, string> = {
 
 interface AssetListProps {
     assets: ITAsset[];
+    assignmentMap?: Record<string, string>;
 }
 
-export function AssetList({ assets }: AssetListProps) {
+export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
@@ -115,6 +116,7 @@ export function AssetList({ assets }: AssetListProps) {
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 pl-5 py-3">Activo</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Categoría</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Serial</TableHead>
+                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Asignado a</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Condición</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right pr-5">Estado</TableHead>
                         </TableRow>
@@ -122,7 +124,7 @@ export function AssetList({ assets }: AssetListProps) {
                     <TableBody>
                         {filtered.length === 0 ? (
                             <TableRow className="hover:bg-transparent">
-                                <TableCell colSpan={5} className="py-12 text-center">
+                                <TableCell colSpan={6} className="py-12 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <Monitor className="h-8 w-8 text-slate-200" />
                                         <span className="text-[10px] font-semibold text-slate-400">Sin activos registrados</span>
@@ -151,6 +153,13 @@ export function AssetList({ assets }: AssetListProps) {
                                     </TableCell>
                                     <TableCell className="py-3">
                                         <span className="text-xs text-slate-600 font-mono">{asset.serial_number || '—'}</span>
+                                    </TableCell>
+                                    <TableCell className="py-3">
+                                        {assignmentMap[asset.id] ? (
+                                            <span className="text-xs font-semibold text-blue-600">{assignmentMap[asset.id]}</span>
+                                        ) : (
+                                            <span className="text-xs text-slate-400">—</span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="py-3">
                                         <span className="text-xs text-slate-600">{CONDITION_LABELS[asset.condition]}</span>
