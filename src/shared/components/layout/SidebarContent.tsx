@@ -62,6 +62,7 @@ import {
     PiggyBank,
     CalendarCheck,
     ArrowLeftRight,
+    Monitor,
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -253,6 +254,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: 'Notificaciones', href: "/notifications", icon: Bell }, // siempre visible
                 { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare }, // siempre visible
                 { title: 'Importación', href: "/settings/import", icon: Upload }, // siempre visible
+                { title: 'Tecnología', href: "/technology", icon: Monitor, moduleKey: 'technology' },
                 {
                     title: 'DIAN',
                     href: '/dian',
