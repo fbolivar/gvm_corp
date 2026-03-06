@@ -78,7 +78,7 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                     <TableHeader>
                         <TableRow className="hover:bg-transparent border-slate-100">
                             <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Producto</TableHead>
-                            <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Tipo</TableHead>
+                            <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Tipo</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Precio</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-center">Stock</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-right">Estado</TableHead>
@@ -108,7 +108,7 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="hidden md:table-cell">
                                         <div className="space-y-1">
                                             <Badge variant="outline" className="border-slate-200 text-slate-500 text-[10px] font-semibold rounded-full px-2 py-0.5">
                                                 {prod.type === 'GOOD' ? 'Bien' : 'Servicio'}

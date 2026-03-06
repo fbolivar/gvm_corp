@@ -114,10 +114,10 @@ export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
                     <TableHeader>
                         <TableRow className="border-slate-50 hover:bg-transparent">
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 pl-5 py-3">Activo</TableHead>
-                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Categoría</TableHead>
-                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Serial</TableHead>
-                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Asignado a</TableHead>
-                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Condición</TableHead>
+                            <TableHead className="hidden sm:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Categoría</TableHead>
+                            <TableHead className="hidden lg:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Serial</TableHead>
+                            <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Asignado a</TableHead>
+                            <TableHead className="hidden lg:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Condición</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right pr-5">Estado</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -148,20 +148,20 @@ export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
                                             </div>
                                         </Link>
                                     </TableCell>
-                                    <TableCell className="py-3">
+                                    <TableCell className="hidden sm:table-cell py-3">
                                         <Badge variant="secondary" className="text-[9px] font-semibold">{CATEGORY_LABELS[asset.category]}</Badge>
                                     </TableCell>
-                                    <TableCell className="py-3">
+                                    <TableCell className="hidden lg:table-cell py-3">
                                         <span className="text-xs text-slate-600 font-mono">{asset.serial_number || '—'}</span>
                                     </TableCell>
-                                    <TableCell className="py-3">
+                                    <TableCell className="hidden md:table-cell py-3">
                                         {assignmentMap[asset.id] ? (
                                             <span className="text-xs font-semibold text-blue-600">{assignmentMap[asset.id]}</span>
                                         ) : (
                                             <span className="text-xs text-slate-400">—</span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="py-3">
+                                    <TableCell className="hidden lg:table-cell py-3">
                                         <span className="text-xs text-slate-600">{CONDITION_LABELS[asset.condition]}</span>
                                     </TableCell>
                                     <TableCell className="py-3 text-right pr-5">

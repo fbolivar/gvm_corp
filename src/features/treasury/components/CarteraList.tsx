@@ -173,8 +173,8 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
                         <TableRow className="border-slate-50 hover:bg-transparent">
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 pl-14 py-10 italic">Secuencia / Protocolo</TableHead>
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic">Tercero Asociado</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic text-center">Vencimiento Fiscal</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic text-center">Estado Crítico</TableHead>
+                            <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic text-center">Vencimiento Fiscal</TableHead>
+                            <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic text-center">Estado Crítico</TableHead>
                             <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic text-right">Saldo en Mora</TableHead>
                             <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 pr-14 italic">Gestión</TableHead>
                         </TableRow>
@@ -211,7 +211,7 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
                                     <TableCell className="py-10">
                                         <span className="text-base font-black text-slate-700 tracking-tight leading-none group-hover:text-slate-900 transition-colors uppercase italic">{item.party_name}</span>
                                     </TableCell>
-                                    <TableCell className="py-10">
+                                    <TableCell className="hidden md:table-cell py-10">
                                         <div className="flex flex-col items-center gap-1.5">
                                             <span className="text-xs font-black text-slate-900 font-mono tracking-tighter uppercase whitespace-nowrap">
                                                 {item.due_date ? format(new Date(item.due_date), 'dd MMM yyyy', { locale: es }).toUpperCase() : '-'}
@@ -219,7 +219,7 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
                                             <span className="text-[8px] text-slate-300 font-black uppercase tracking-widest italic truncate">Emitido: {format(new Date(item.issue_date), 'dd/MM/yyyy')}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="py-10 text-center">
+                                    <TableCell className="hidden md:table-cell py-10 text-center">
                                         <div className="flex justify-center">
                                             {getStatusBadge(item)}
                                         </div>

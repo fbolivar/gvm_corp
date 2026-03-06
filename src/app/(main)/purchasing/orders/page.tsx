@@ -150,7 +150,7 @@ export default async function PurchaseOrdersPage() {
                                     <tr className="border-b border-slate-100 bg-slate-50/60">
                                         <th scope="col" className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">OC #</th>
                                         <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Proveedor</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
+                                        <th scope="col" className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
                                         <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                                         <th scope="col" className="px-4 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total</th>
                                         <th scope="col" className="px-5 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
@@ -166,7 +166,7 @@ export default async function PurchaseOrdersPage() {
                                                         {order.po_number ?? '—'}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-4 max-w-[220px]">
+                                                <td className="px-4 py-4 max-w-[160px] md:max-w-[220px]">
                                                     <p className="text-xs font-bold text-slate-900 truncate leading-snug">
                                                         {supplier?.legal_name ?? 'Sin proveedor'}
                                                     </p>
@@ -174,7 +174,7 @@ export default async function PurchaseOrdersPage() {
                                                         <p className="text-[10px] text-slate-400 mt-0.5">NIT {supplier.doc_number}</p>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-4">
+                                                <td className="hidden md:table-cell px-4 py-4">
                                                     <div className="flex items-center gap-1.5 text-slate-500">
                                                         <Calendar className="h-3 w-3 text-slate-300 shrink-0" />
                                                         <span className="text-[10px] text-slate-400">{formatDate(order.order_date)}</span>

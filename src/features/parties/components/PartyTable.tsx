@@ -65,17 +65,17 @@ export function PartyTable({ data }: PartyTableProps) {
             <Table>
                 <TableHeader className="bg-slate-50/50">
                     <TableRow className="border-slate-50 hover:bg-transparent">
-                        <TableHead className="w-[100px] pl-12 py-10"></TableHead>
+                        <TableHead className="hidden md:table-cell w-[100px] pl-12 py-10"></TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic">Identidad Corporativa</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic">Nivel de Alianza</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic">Punto de Contacto</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic">Nivel de Alianza</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 italic">Punto de Contacto</TableHead>
                         <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 py-10 pr-12 italic">Operaciones</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {data.map((party) => (
                         <TableRow key={party.id} className="border-slate-50 hover:bg-slate-50/80 transition-all duration-500 group">
-                            <TableCell className="pl-12 py-8">
+                            <TableCell className="hidden md:table-cell pl-12 py-8">
                                 <div className={cn(
                                     "h-16 w-16 rounded-[1.5rem] flex items-center justify-center shadow-premium group-hover:rotate-6 group-hover:scale-110 transition-all duration-700 relative overflow-hidden",
                                     party.party_type === 'PERSON'
@@ -104,7 +104,7 @@ export function PartyTable({ data }: PartyTableProps) {
                                     </div>
                                 </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden md:table-cell">
                                 <div className="flex gap-2.5 flex-wrap">
                                     {party.is_customer && (
                                         <Badge className="bg-indigo-500/10 text-indigo-600 border-none text-[9px] font-black tracking-widest px-4 py-1.5 rounded-full shadow-sm uppercase italic">
@@ -118,7 +118,7 @@ export function PartyTable({ data }: PartyTableProps) {
                                     )}
                                 </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="hidden md:table-cell">
                                 <div className="flex flex-col gap-1.5">
                                     <div className="flex items-center gap-2">
                                         <Mail className="h-3.5 w-3.5 text-slate-300" />

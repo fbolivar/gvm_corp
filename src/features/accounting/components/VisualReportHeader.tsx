@@ -13,20 +13,20 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
     if (!tenant) return null;
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 px-6 py-5">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 px-4 md:px-6 py-4 md:py-5">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-5">
                 {/* Company info */}
-                <div className="space-y-2.5 min-w-0 flex-1">
+                <div className="space-y-2 md:space-y-2.5 min-w-0 flex-1">
                     <div className="flex items-center gap-3">
                         {tenant.logo_url ? (
-                            <img src={tenant.logo_url} alt={tenant.name} className="h-10 w-auto object-contain shrink-0" />
+                            <img src={tenant.logo_url} alt={tenant.name} className="h-8 md:h-10 w-auto object-contain shrink-0" />
                         ) : (
-                            <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center text-white shrink-0">
-                                <Building2 className="h-5 w-5" />
+                            <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-slate-900 flex items-center justify-center text-white shrink-0">
+                                <Building2 className="h-4 w-4 md:h-5 md:w-5" />
                             </div>
                         )}
                         <div className="min-w-0">
-                            <h2 className="text-sm font-bold text-slate-900 leading-snug">
+                            <h2 className="text-xs md:text-sm font-bold text-slate-900 leading-snug truncate">
                                 {tenant.name}
                             </h2>
                             <p className="text-[10px] text-slate-400">
@@ -35,7 +35,7 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[10px] text-slate-400">
+                    <div className="hidden md:flex flex-wrap items-center gap-x-5 gap-y-1 text-[10px] text-slate-400">
                         {tenant.address && (
                             <span className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3 text-slate-300 shrink-0" />
@@ -65,11 +65,11 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
 
                 {/* Report title */}
                 <div className="shrink-0 border-l-2 border-indigo-500 pl-4 text-left md:text-right">
-                    <h1 className="text-base font-bold text-slate-900">
+                    <h1 className="text-sm md:text-base font-bold text-slate-900">
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="text-[10px] text-slate-400 mt-0.5">
+                        <p className="text-[10px] text-slate-400 mt-0.5 hidden sm:block">
                             {subtitle}
                         </p>
                     )}

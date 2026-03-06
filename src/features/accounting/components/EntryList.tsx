@@ -75,7 +75,7 @@ export function EntryList({ entries }: EntryListProps) {
                                 <TableHeader>
                                     <TableRow className="border-slate-100 hover:bg-transparent bg-slate-50/50">
                                         <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 pl-6">Cuenta (PUC)</TableHead>
-                                        <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3">Descripción / Tercero</TableHead>
+                                        <TableHead className="hidden md:table-cell text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3">Descripción / Tercero</TableHead>
                                         <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 text-right w-[130px]">Débito</TableHead>
                                         <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 text-right pr-6 w-[130px]">Crédito</TableHead>
                                     </TableRow>
@@ -90,7 +90,7 @@ export function EntryList({ entries }: EntryListProps) {
                                                     <span className="font-mono text-xs font-semibold text-slate-900">{account?.code}</span>
                                                     <p className="text-[10px] text-slate-400 line-clamp-1">{account?.name}</p>
                                                 </TableCell>
-                                                <TableCell className="py-3">
+                                                <TableCell className="hidden md:table-cell py-3">
                                                     <p className="text-xs text-slate-600 line-clamp-1">{(line.description as string) || (entry.description as string)}</p>
                                                     {party?.legal_name && (
                                                         <p className="text-[10px] text-slate-400 mt-0.5">{party.legal_name}</p>
@@ -114,7 +114,13 @@ export function EntryList({ entries }: EntryListProps) {
 
                                     {/* Totals */}
                                     <TableRow className="bg-slate-900 border-none hover:bg-slate-900">
-                                        <TableCell colSpan={2} className="py-4 pl-6">
+                                        <TableCell className="py-4 pl-6 md:hidden">
+                                            <div className="flex items-center gap-2">
+                                                <Activity className="h-4 w-4 text-white/40" />
+                                                <span className="text-white text-xs font-bold">Totales</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell colSpan={2} className="hidden md:table-cell py-4 pl-6">
                                             <div className="flex items-center gap-2">
                                                 <Activity className="h-4 w-4 text-white/40" />
                                                 <span className="text-white text-xs font-bold">Totales</span>

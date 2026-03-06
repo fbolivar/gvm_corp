@@ -128,8 +128,8 @@ export default async function CreditNotesPage() {
                                     <tr className="border-b border-slate-100">
                                         <th className="text-left pl-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Número</th>
                                         <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cliente</th>
-                                        <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ref. Factura</th>
-                                        <th className="text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
+                                        <th className="hidden md:table-cell text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Ref. Factura</th>
+                                        <th className="hidden md:table-cell text-left px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
                                         <th className="text-right px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total</th>
                                         <th className="text-center px-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                                         <th className="text-center pr-4 py-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Acción</th>
@@ -152,7 +152,7 @@ export default async function CreditNotesPage() {
                                                 <td className="px-4 py-3">
                                                     <span className="text-sm text-slate-700">{note.party?.legal_name ?? '—'}</span>
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="hidden md:table-cell px-4 py-3">
                                                     {parentNumber ? (
                                                         <Link
                                                             href={`/documents/${note.parent_id}`}
@@ -165,7 +165,7 @@ export default async function CreditNotesPage() {
                                                         <span className="text-xs text-slate-400">—</span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="hidden md:table-cell px-4 py-3">
                                                     <span className="text-xs text-slate-600">
                                                         {note.issue_date ? new Date(note.issue_date).toLocaleDateString('es-CO') : '—'}
                                                     </span>

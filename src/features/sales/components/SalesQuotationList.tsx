@@ -89,7 +89,7 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
                             <TableRow className="hover:bg-transparent border-b border-slate-100">
                                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 pl-4">Cliente</TableHead>
                                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-center">Estado</TableHead>
-                                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-center">Vencimiento</TableHead>
+                                <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-center">Vencimiento</TableHead>
                                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right">Total</TableHead>
                                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right pr-4">Acciones</TableHead>
                             </TableRow>
@@ -118,7 +118,7 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
                                             {STATUS_LABELS[quote.status] || quote.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="py-3 text-center">
+                                    <TableCell className="hidden md:table-cell py-3 text-center">
                                         <span className="text-xs text-slate-600 font-medium">
                                             {quote.due_date || '30 días'}
                                         </span>

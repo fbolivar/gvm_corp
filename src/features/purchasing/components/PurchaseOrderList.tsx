@@ -138,7 +138,7 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
                                         PROVEEDOR / ORIGEN
                                     </div>
                                 </TableHead>
-                                <TableHead className="text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] py-12 italic text-center">FLUJO OPERATIVO</TableHead>
+                                <TableHead className="hidden md:table-cell text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] py-12 italic text-center">FLUJO OPERATIVO</TableHead>
                                 <TableHead className="text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] py-12 text-right italic">MONTO TOTAL</TableHead>
                                 <TableHead className="text-slate-400 font-black uppercase text-[10px] tracking-[0.4em] py-12 text-right pr-14 italic">ACCIONES</TableHead>
                             </TableRow>
@@ -176,7 +176,7 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-10">
+                                        <TableCell className="hidden md:table-cell py-10">
                                             <div className="flex flex-col items-center gap-6">
                                                 <IndustrialApprovalFlow currentStatus={order.status} className="scale-75 origin-top" />
                                                 <div className="flex items-center gap-2 mt-[-1rem]">

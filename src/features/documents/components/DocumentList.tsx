@@ -63,10 +63,10 @@ export function DocumentList({ documents }: DocumentListProps) {
                     <TableHeader>
                         <TableRow className="border-slate-50 hover:bg-transparent">
                             <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] pl-8 py-5">Número</TableHead>
-                            <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5">Tipo</TableHead>
+                            <TableHead className="hidden md:table-cell text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5">Tipo</TableHead>
                             <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5">Socio Comercial</TableHead>
-                            <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5">Fecha</TableHead>
-                            <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5">Estado</TableHead>
+                            <TableHead className="hidden md:table-cell text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5">Fecha</TableHead>
+                            <TableHead className="hidden md:table-cell text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5">Estado</TableHead>
                             <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5 text-right">Monto Total</TableHead>
                             <TableHead className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.15em] py-5 text-right pr-8">Acciones</TableHead>
                         </TableRow>
@@ -84,7 +84,7 @@ export function DocumentList({ documents }: DocumentListProps) {
                                     <TableCell className="py-5 pl-8">
                                         <span className="text-sm font-black text-slate-900 tracking-tight">{doc.number || 'Draft'}</span>
                                     </TableCell>
-                                    <TableCell className="py-5">{getTypeBadge(doc.doc_type)}</TableCell>
+                                    <TableCell className="hidden md:table-cell py-5">{getTypeBadge(doc.doc_type)}</TableCell>
                                     <TableCell className="py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:shadow-sm transition-all">
@@ -93,10 +93,10 @@ export function DocumentList({ documents }: DocumentListProps) {
                                             <span className="text-xs font-semibold text-slate-700">{doc.party?.legal_name || 'Consumidor Final'}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="py-5 text-xs font-medium text-slate-500">
+                                    <TableCell className="hidden md:table-cell py-5 text-xs font-medium text-slate-500">
                                         {doc.issue_date ? format(new Date(doc.issue_date), 'MMM dd, yyyy') : '-'}
                                     </TableCell>
-                                    <TableCell className="py-5">
+                                    <TableCell className="hidden md:table-cell py-5">
                                         <Badge variant="outline" className={cn(
                                             "border-none px-3 font-bold text-[10px] uppercase",
                                             doc.status === 'DRAFT' ? 'bg-slate-100 text-slate-500' :

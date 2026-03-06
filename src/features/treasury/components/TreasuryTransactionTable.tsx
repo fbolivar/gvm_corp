@@ -88,8 +88,8 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
                     <TableRow className="hover:bg-transparent border-slate-50 h-16">
                         <TableHead className="pl-8 text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Fecha / Ref</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Tercero / Concepto</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Nodo Financiero</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Retenciones</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Nodo Financiero</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Retenciones</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic text-right">Valor Neto</TableHead>
                         <TableHead className="pr-8 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Control</TableHead>
                     </TableRow>
@@ -146,7 +146,7 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
                                     </TableCell>
 
                                     {/* Source Account */}
-                                    <TableCell>
+                                    <TableCell className="hidden md:table-cell">
                                         <div className="flex items-center gap-3 bg-white border border-slate-100 px-4 py-2 rounded-2xl shadow-sm w-fit group-hover:border-indigo-100 transition-all">
                                             {tx.account?.type === 'BANK' ? <Landmark className="h-4 w-4 text-indigo-400" /> : <Wallet className="h-4 w-4 text-emerald-400" />}
                                             <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest italic">{tx.account?.name}</span>
@@ -154,7 +154,7 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
                                     </TableCell>
 
                                     {/* Withholdings Integration */}
-                                    <TableCell>
+                                    <TableCell className="hidden md:table-cell">
                                         {totalWithholding > 0 ? (
                                             <TooltipProvider>
                                                 <Tooltip>

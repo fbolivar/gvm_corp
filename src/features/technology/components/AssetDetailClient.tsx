@@ -200,7 +200,7 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
                             <TableRow className="border-slate-50 hover:bg-transparent">
                                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 pl-5 py-3">Empleado</TableHead>
                                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Entrega</TableHead>
-                                <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Devolución</TableHead>
+                                <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Devolución</TableHead>
                                 <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right pr-5">Estado</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -226,7 +226,7 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
                                             <span className="text-xs text-slate-600">{new Date(a.assigned_at).toLocaleDateString('es-CO')}</span>
                                             {a.delivery_notes && <p className="text-[10px] text-slate-400 mt-0.5">{a.delivery_notes}</p>}
                                         </TableCell>
-                                        <TableCell className="py-3">
+                                        <TableCell className="hidden md:table-cell py-3">
                                             {a.returned_at ? (
                                                 <div>
                                                     <span className="text-xs text-slate-600">{new Date(a.returned_at).toLocaleDateString('es-CO')}</span>

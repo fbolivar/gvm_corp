@@ -196,12 +196,12 @@ export default async function PayrollSummaryPage({
                         <thead>
                             <tr className="bg-slate-50/50 border-b border-slate-100">
                                 <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Empleado</th>
-                                <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contrato</th>
-                                <th className="px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Salario Base</th>
+                                <th className="hidden lg:table-cell px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contrato</th>
+                                <th className="hidden lg:table-cell px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Salario Base</th>
                                 <th className="px-6 py-3 text-right text-[10px] font-semibold text-emerald-500 uppercase tracking-wider">Devengado</th>
-                                <th className="px-6 py-3 text-right text-[10px] font-semibold text-rose-400 uppercase tracking-wider">Deducciones</th>
+                                <th className="hidden md:table-cell px-6 py-3 text-right text-[10px] font-semibold text-rose-400 uppercase tracking-wider">Deducciones</th>
                                 <th className="px-6 py-3 text-right text-[10px] font-semibold text-blue-500 uppercase tracking-wider">Neto</th>
-                                <th className="px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Costo Empresa</th>
+                                <th className="hidden md:table-cell px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Costo Empresa</th>
                                 <th className="px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Costo Total</th>
                             </tr>
                         </thead>
@@ -212,22 +212,22 @@ export default async function PayrollSummaryPage({
                                         <p className="text-xs font-bold text-slate-900">{party?.legal_name ?? 'Sin nombre'}</p>
                                         <p className="text-[10px] text-slate-400">{party?.doc_number ?? '—'}</p>
                                     </td>
-                                    <td className="px-6 py-3">
+                                    <td className="hidden lg:table-cell px-6 py-3">
                                         <span className="text-[10px] font-semibold text-indigo-600">{CONTRACT_LABEL[emp.contract_type] ?? emp.contract_type}</span>
                                     </td>
-                                    <td className="px-6 py-3 text-right">
+                                    <td className="hidden lg:table-cell px-6 py-3 text-right">
                                         <span className="text-xs text-slate-500 tabular-nums font-mono">{fmt(settlement.salary_base)}</span>
                                     </td>
                                     <td className="px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-emerald-600 tabular-nums font-mono">{fmt(settlement.total_earnings)}</span>
                                     </td>
-                                    <td className="px-6 py-3 text-right">
+                                    <td className="hidden md:table-cell px-6 py-3 text-right">
                                         <span className="text-xs text-rose-500 tabular-nums font-mono">-{fmt(settlement.total_deductions)}</span>
                                     </td>
                                     <td className="px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-blue-600 tabular-nums font-mono">{fmt(settlement.net_pay)}</span>
                                     </td>
-                                    <td className="px-6 py-3 text-right">
+                                    <td className="hidden md:table-cell px-6 py-3 text-right">
                                         <span className="text-xs text-amber-600 tabular-nums font-mono">{fmt(companyCost)}</span>
                                     </td>
                                     <td className="px-6 py-3 text-right">
@@ -249,19 +249,20 @@ export default async function PayrollSummaryPage({
                         {rows.length > 0 && (
                             <tfoot>
                                 <tr className="bg-slate-50 border-t border-slate-200">
-                                    <td className="px-6 py-3" colSpan={3}>
+                                    <td className="px-6 py-3">
                                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Totales del Periodo</span>
                                     </td>
+                                    <td className="hidden lg:table-cell px-6 py-3" colSpan={2} />
                                     <td className="px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-emerald-600 tabular-nums font-mono">{fmt(totalEarnings)}</span>
                                     </td>
-                                    <td className="px-6 py-3 text-right">
+                                    <td className="hidden md:table-cell px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-rose-500 tabular-nums font-mono">-{fmt(totalDeductions)}</span>
                                     </td>
                                     <td className="px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-blue-600 tabular-nums font-mono">{fmt(totalNetPay)}</span>
                                     </td>
-                                    <td className="px-6 py-3 text-right">
+                                    <td className="hidden md:table-cell px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-amber-600 tabular-nums font-mono">{fmt(totalCostEmp)}</span>
                                     </td>
                                     <td className="px-6 py-3 text-right">

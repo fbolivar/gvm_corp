@@ -243,8 +243,8 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                             <TableHeader>
                                 <TableRow className="border-slate-100 hover:bg-transparent">
                                     <TableHead className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-3 px-6">Colaborador</TableHead>
-                                    <TableHead className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-3">Contrato</TableHead>
-                                    <TableHead className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-3">Salario Base</TableHead>
+                                    <TableHead className="hidden md:table-cell text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-3">Contrato</TableHead>
+                                    <TableHead className="hidden md:table-cell text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-3">Salario Base</TableHead>
                                     <TableHead className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-3">Estado</TableHead>
                                     <TableHead className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider py-3 text-right pr-6">Acciones</TableHead>
                                 </TableRow>
@@ -270,10 +270,10 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                                                     </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="hidden md:table-cell">
                                                 <span className="text-xs text-slate-600">{emp.contract_type}</span>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="hidden md:table-cell">
                                                 <span className="text-xs font-bold text-slate-900 font-mono tabular-nums">
                                                     ${emp.salary.toLocaleString('es-CO')}
                                                 </span>

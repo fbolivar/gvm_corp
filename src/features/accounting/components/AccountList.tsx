@@ -111,8 +111,8 @@ export function AccountList({ accounts }: AccountListProps) {
                         <TableRow className="border-slate-100 hover:bg-transparent bg-slate-50/50">
                             <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 pl-6 w-[120px]">Código</TableHead>
                             <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3">Nombre de la Cuenta</TableHead>
-                            <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 w-[100px]">Naturaleza</TableHead>
-                            <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 w-[80px]">Tipo</TableHead>
+                            <TableHead className="hidden md:table-cell text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 w-[100px]">Naturaleza</TableHead>
+                            <TableHead className="hidden md:table-cell text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 w-[80px]">Tipo</TableHead>
                             <TableHead className="text-slate-400 font-semibold uppercase text-[10px] tracking-wider py-3 text-right pr-6 w-[60px]">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -155,7 +155,7 @@ export function AccountList({ accounts }: AccountListProps) {
                                             {account.name}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="py-3">
+                                    <TableCell className="hidden md:table-cell py-3">
                                         <Badge
                                             variant="outline"
                                             className={cn(
@@ -168,7 +168,7 @@ export function AccountList({ accounts }: AccountListProps) {
                                             {account.nature === 'DEBIT' ? 'Débito' : 'Crédito'}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="py-3">
+                                    <TableCell className="hidden md:table-cell py-3">
                                         <span className={cn(
                                             "text-[10px] font-semibold uppercase tracking-wider",
                                             account.is_auxiliary ? "text-amber-600" : "text-slate-400"

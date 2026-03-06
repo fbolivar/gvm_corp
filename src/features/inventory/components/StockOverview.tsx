@@ -17,9 +17,9 @@ export function StockOverview({ stock }: StockOverviewProps) {
                 <TableHeader>
                     <TableRow className="hover:bg-transparent border-slate-100">
                         <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Producto</TableHead>
-                        <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Bodega</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Bodega</TableHead>
                         <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-center">Cantidad</TableHead>
-                        <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-right">Costo Unitario</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-right">Costo Unitario</TableHead>
                         <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-right">Valor Total</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -47,7 +47,7 @@ export function StockOverview({ stock }: StockOverviewProps) {
                                         </div>
                                     </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden md:table-cell">
                                     <div className="flex items-center gap-2">
                                         <Warehouse className="h-3.5 w-3.5 text-slate-400" />
                                         <span className="text-xs text-slate-600">{s.warehouses?.name}</span>
@@ -68,7 +68,7 @@ export function StockOverview({ stock }: StockOverviewProps) {
                                         )}
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="hidden md:table-cell text-right">
                                     <span className="text-sm text-slate-500 tabular-nums">
                                         ${Number(s.avg_cost).toLocaleString('es-CO')}
                                     </span>

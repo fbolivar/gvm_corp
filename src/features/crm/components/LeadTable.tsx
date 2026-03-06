@@ -47,9 +47,9 @@ export function LeadTable({ leads, onDelete, onConvert }: LeadTableProps) {
                     <TableRow className="hover:bg-transparent border-slate-100">
                         <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Prospecto</TableHead>
                         <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Estado</TableHead>
-                        <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Contacto</TableHead>
-                        <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Empresa</TableHead>
-                        <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Origen</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Contacto</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Empresa</TableHead>
+                        <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Origen</TableHead>
                         <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -87,7 +87,7 @@ export function LeadTable({ leads, onDelete, onConvert }: LeadTableProps) {
                                         </Badge>
                                     </TableCell>
 
-                                    <TableCell>
+                                    <TableCell className="hidden md:table-cell">
                                         <div className="space-y-0.5">
                                             {lead.email && (
                                                 <div className="flex items-center gap-1.5 text-slate-500">
@@ -104,14 +104,14 @@ export function LeadTable({ leads, onDelete, onConvert }: LeadTableProps) {
                                         </div>
                                     </TableCell>
 
-                                    <TableCell>
+                                    <TableCell className="hidden md:table-cell">
                                         <div className="flex items-center gap-1.5 text-slate-500">
                                             <Building2 className="h-3.5 w-3.5 shrink-0" />
                                             <span className="text-[11px] font-medium truncate max-w-[140px]">{lead.company_name || 'Particular'}</span>
                                         </div>
                                     </TableCell>
 
-                                    <TableCell>
+                                    <TableCell className="hidden md:table-cell">
                                         <Badge className="bg-slate-100 text-slate-600 border-none px-2 py-0.5 font-medium text-[10px] tracking-wider rounded-md">
                                             {lead.source || 'Directo'}
                                         </Badge>

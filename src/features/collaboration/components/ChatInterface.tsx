@@ -603,7 +603,7 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
             </Dialog>
 
             {/* ═══ MAIN CHAT LAYOUT ═══════════════════════════════════════════ */}
-            <div className="flex h-[calc(100vh-14rem)] rounded-[3.5rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-slate-800 bg-slate-950">
+            <div className="flex h-[60vh] md:h-[calc(100vh-14rem)] rounded-2xl md:rounded-[3.5rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-slate-800 bg-slate-950">
 
                 {/* ══ SIDEBAR ════════════════════════════════════════════════ */}
                 <div

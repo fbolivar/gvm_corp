@@ -44,7 +44,7 @@ export function RecentSalesWidget({ data }: RecentSalesWidgetProps) {
                     <TableHeader>
                         <TableRow className="border-slate-50 hover:bg-transparent">
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 pl-5 py-3">Referencia</TableHead>
-                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Contraparte</TableHead>
+                            <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Contraparte</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right pr-5">Importe</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -74,7 +74,7 @@ export function RecentSalesWidget({ data }: RecentSalesWidgetProps) {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="py-3">
+                                    <TableCell className="hidden md:table-cell py-3">
                                         <span className="text-sm text-slate-700">{item.party?.legal_name || 'CONSUMIDOR FINAL'}</span>
                                     </TableCell>
                                     <TableCell className="py-3 text-right pr-5">
