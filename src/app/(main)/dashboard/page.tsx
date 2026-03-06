@@ -27,6 +27,7 @@ import { cn } from '@/shared/lib/utils';
 
 import { smartAlertService } from '@/features/notifications/services/smartAlertService';
 import { CriticalAlertsPanel } from '@/features/dashboard/components/CriticalAlertsPanel';
+import { ActiveUsersWidget } from '@/features/dashboard/components/ActiveUsersWidget';
 
 /** Deterministic number formatter — avoids server/client locale mismatch (hydration errors) */
 function fmtNum(n: number): string {
@@ -44,13 +45,18 @@ export default async function DashboardPage() {
     try {
         smartAlertService.evaluateAndTriggerAlerts(supabase).catch(console.error);
 
-        const [kpis, recentActivity, tenant, prevKpis, monthCount] = await Promise.all([
+        const [kpis, recentActivity, tenant, prevKpis, monthCount, { data: profile }, { data: userTenant }] = await Promise.all([
             dashboardService.getKPIs(supabase),
             dashboardService.getRecentActivity(supabase),
             settingsService.getTenantInfo(supabase),
             dashboardService.getPreviousMonthKPIs(supabase),
             dashboardService.getMonthInvoiceCount(supabase),
+            supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+            supabase.from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle(),
         ]);
+
+        const tenantId = userTenant?.tenant_id;
+        const userFullName = profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario';
 
         const calcTrend = (current: number, previous: number): number => {
             if (previous === 0) return current > 0 ? 100 : 0;
@@ -193,6 +199,13 @@ export default async function DashboardPage() {
 
                     <div className="lg:col-span-4 space-y-4">
                         <ActionGrid />
+                        {tenantId && (
+                            <ActiveUsersWidget
+                                tenantId={tenantId}
+                                userId={user.id}
+                                userFullName={userFullName}
+                            />
+                        )}
                     </div>
                 </div>
 

@@ -9,7 +9,8 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { chatService } from "../services/chatService";
-import { ChatChannel, ChatMessage, ChatMember, OnlineUser } from "../types";
+import { ChatChannel, ChatMessage, ChatMember } from "../types";
+import { useOnlinePresence } from "../hooks/useOnlinePresence";
 import {
     Send,
     Hash,
@@ -103,8 +104,8 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
     const [creatingChannel, setCreatingChannel] = useState(false);
     // Mobile: show sidebar (true) or messages (false)
     const [showSidebar, setShowSidebar] = useState(true);
-    // Online presence
-    const [onlineUsers, setOnlineUsers] = useState<Map<string, OnlineUser>>(new Map());
+    // Online presence (shared hook)
+    const onlineUsers = useOnlinePresence(tenantId, userId, userFullName);
     // Channel members
     const [channelMembers, setChannelMembers] = useState<ChatMember[]>([]);
     const [showMembers, setShowMembers] = useState(false);
@@ -115,7 +116,6 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
     const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-    const globalPresenceRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
     const lastOptimisticIdRef = useRef<string | null>(null);
 
     // ── Load sender name (with local cache) ──────────────────────────────────
@@ -225,42 +225,6 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
         },
         [supabase, userId]
     );
-
-    // ── Global online presence ────────────────────────────────────────────────
-
-    useEffect(() => {
-        const presenceKey = `online:${tenantId}`;
-        const channel = supabase.channel(presenceKey);
-
-        channel
-            .on("presence", { event: "sync" }, () => {
-                const state = channel.presenceState();
-                const online = new Map<string, OnlineUser>();
-                Object.values(state).forEach((presences) => {
-                    const p = (presences as Array<{ id: string; name: string; avatar_url?: string }>)[0];
-                    if (p) {
-                        online.set(p.id, { id: p.id, name: p.name, avatar_url: p.avatar_url });
-                    }
-                });
-                setOnlineUsers(online);
-            })
-            .subscribe(async (status: string) => {
-                if (status === "SUBSCRIBED") {
-                    await channel.track({
-                        id: userId,
-                        name: userFullName,
-                    });
-                }
-            });
-
-        globalPresenceRef.current = channel;
-
-        return () => {
-            supabase.removeChannel(channel);
-            globalPresenceRef.current = null;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tenantId]);
 
     // ── Realtime subscription ─────────────────────────────────────────────────
 
