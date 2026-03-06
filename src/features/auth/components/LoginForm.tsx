@@ -151,16 +151,6 @@ export function LoginForm() {
                 </Button>
             </form>
 
-            {/* Divider */}
-            <div className="mt-10 pt-8 border-t border-slate-100 text-center">
-                <p className="text-xs font-bold text-slate-400">
-                    ¿No tienes credenciales?{" "}
-                    <Link href="/signup" className="text-slate-900 font-black italic hover:text-indigo-600 transition-colors">
-                        Solicitar Acceso
-                    </Link>
-                </p>
-            </div>
-
             {/* Security info */}
             <div className="mt-6 flex items-center justify-center gap-2">
                 <Zap className="h-3 w-3 text-slate-300" />
