@@ -15,7 +15,8 @@ import {
     Settings,
     MessageSquare,
     Headphones,
-    Zap
+    Zap,
+    Monitor
 } from "lucide-react";
 
 export const sectionsEs = [
@@ -583,6 +584,44 @@ export const sectionsEs = [
                 "Usa los canales de proyecto para mantener toda la información en un solo lugar",
                 "Los chats vinculados a documentos guardan el contexto histórico de quién tomó qué decisión",
                 "Puedes ver quién está conectado mediante el indicador de presencia (punto verde)"
+            ]
+        }
+    },
+    {
+        id: "technology",
+        title: "Tecnología — Gestión de Activos IT",
+        icon: Monitor,
+        color: "text-cyan-600",
+        bg: "bg-cyan-50",
+        content: {
+            description: "El módulo de Tecnología permite gestionar el inventario de activos tecnológicos de la empresa siguiendo las mejores prácticas ITIL v4. Registra equipos de cómputo, portátiles, celulares e impresoras, controla las asignaciones a empleados y programa mantenimientos preventivos y correctivos.",
+            features: [
+                "CMDB (Base de Datos de Configuración) — Inventario completo de activos IT con código auto-generado",
+                "Categorización — Escritorio, Portátil, Celular, Tablet, Impresora, Red, Otros",
+                "Trazabilidad de Asignaciones — Registro de quién recibió qué equipo, cuándo y en qué condición",
+                "Devolución Controlada — Al devolver un equipo se registra la condición y observaciones",
+                "Mantenimiento Preventivo — Programa mantenimientos periódicos con frecuencia configurable",
+                "Mantenimiento Correctivo — Registra reparaciones con notas y responsable",
+                "KPIs en Tiempo Real — Total de activos, disponibles, asignados y mantenimientos próximos",
+                "Alertas de Garantía — Notificación de equipos con garantía próxima a vencer",
+                "Especificaciones Técnicas — Almacena procesador, RAM, almacenamiento y más en cada activo"
+            ],
+            workflow: [
+                { step: 1, title: "Registrar Activo", description: "Ve a Tecnología > Nuevo Activo. Completa nombre, categoría, marca, modelo, serial y especificaciones técnicas." },
+                { step: 2, title: "Asignar a Empleado", description: "Desde el detalle del activo, haz clic en 'Asignar'. Selecciona el empleado y agrega notas de entrega (accesorios incluidos, estado)." },
+                { step: 3, title: "Programar Mantenimiento", description: "En el panel de Mantenimiento del activo, crea un programa preventivo con frecuencia en días (ej: cada 180 días)." },
+                { step: 4, title: "Devolver Equipo", description: "Cuando el empleado devuelve el equipo, haz clic en 'Devolver'. Registra la condición de devolución y observaciones." },
+                { step: 5, title: "Completar Mantenimiento", description: "Al realizar el mantenimiento, marca como completado. El sistema calcula automáticamente la próxima fecha." }
+            ],
+            subsections: [
+                { title: "Dashboard Tecnología", path: "/technology", description: "Panel de control con KPIs y lista de activos" },
+                { title: "Nuevo Activo", path: "/technology/new", description: "Formulario de registro de equipo tecnológico" }
+            ],
+            tips: [
+                "Registra SIEMPRE el número de serie del equipo para facilitar rastreo y garantías",
+                "Programa mantenimientos preventivos cada 6 meses (180 días) como mínimo para portátiles",
+                "Al devolver un equipo, verifica accesorios (cargador, mouse, maletín) y anótalos en las notas",
+                "Usa las especificaciones técnicas para planificar renovación tecnológica por obsolescencia"
             ]
         }
     },

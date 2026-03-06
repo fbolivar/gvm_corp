@@ -15,7 +15,8 @@ import {
     Settings,
     MessageSquare,
     Headphones,
-    Zap
+    Zap,
+    Monitor
 } from "lucide-react";
 
 export const sectionsEn = [
@@ -583,6 +584,44 @@ export const sectionsEn = [
                 "Use project channels to keep all information in one place",
                 "Chats linked to documents save the historical context of who made which decision",
                 "You can see who is online through the presence indicator (green dot)"
+            ]
+        }
+    },
+    {
+        id: "technology",
+        title: "Technology — IT Asset Management",
+        icon: Monitor,
+        color: "text-cyan-600",
+        bg: "bg-cyan-50",
+        content: {
+            description: "The Technology module allows you to manage your company's IT asset inventory following ITIL v4 best practices. Register computers, laptops, phones, and printers, control employee assignments, and schedule preventive and corrective maintenance.",
+            features: [
+                "CMDB (Configuration Management Database) — Complete IT asset inventory with auto-generated codes",
+                "Categorization — Desktop, Laptop, Mobile, Tablet, Printer, Network, Other",
+                "Assignment Traceability — Record of who received which equipment, when and in what condition",
+                "Controlled Returns — When returning equipment, condition and observations are recorded",
+                "Preventive Maintenance — Schedule periodic maintenance with configurable frequency",
+                "Corrective Maintenance — Record repairs with notes and responsible person",
+                "Real-Time KPIs — Total assets, available, assigned, and upcoming maintenance",
+                "Warranty Alerts — Notification of equipment with expiring warranty",
+                "Technical Specifications — Store processor, RAM, storage and more for each asset"
+            ],
+            workflow: [
+                { step: 1, title: "Register Asset", description: "Go to Technology > New Asset. Complete name, category, brand, model, serial number, and technical specs." },
+                { step: 2, title: "Assign to Employee", description: "From the asset detail, click 'Assign'. Select the employee and add delivery notes (included accessories, condition)." },
+                { step: 3, title: "Schedule Maintenance", description: "In the asset's Maintenance panel, create a preventive schedule with frequency in days (e.g., every 180 days)." },
+                { step: 4, title: "Return Equipment", description: "When the employee returns the equipment, click 'Return'. Record the return condition and observations." },
+                { step: 5, title: "Complete Maintenance", description: "When maintenance is performed, mark as completed. The system automatically calculates the next due date." }
+            ],
+            subsections: [
+                { title: "Technology Dashboard", path: "/technology", description: "Control panel with KPIs and asset list" },
+                { title: "New Asset", path: "/technology/new", description: "Technology equipment registration form" }
+            ],
+            tips: [
+                "ALWAYS record the equipment serial number to facilitate tracking and warranty claims",
+                "Schedule preventive maintenance at least every 6 months (180 days) for laptops",
+                "When returning equipment, verify accessories (charger, mouse, bag) and note them in the return notes",
+                "Use technical specifications to plan technology renewal due to obsolescence"
             ]
         }
     },
