@@ -3,9 +3,8 @@
 import { Button } from '@/shared/components/ui/button';
 import { Download, FileText } from 'lucide-react';
 import { technologyPdfService } from '../services/technologyPdfService';
-import { excelReportService } from '@/features/accounting/services/excelReportService';
+import { technologyExcelService } from '../services/technologyExcelService';
 import type { ITAsset, ITMaintenanceSchedule } from '../types';
-import { STATUS_LABELS, CATEGORY_LABELS, CONDITION_LABELS } from '../types';
 
 interface KPIs {
     total: number;
@@ -40,25 +39,14 @@ export function AssetExportActions({ assets, kpis, maintenanceSchedules, company
         await technologyPdfService.generateAssetReport(assets, kpis, maintenanceSchedules, reportOptions);
     };
 
-    const handleExcel = () => {
-        excelReportService.exportToExcel(
-            assets.map(a => ({
-                'Código': a.asset_code,
-                'Nombre': a.name,
-                'Categoría': CATEGORY_LABELS[a.category] || a.category,
-                'Marca': a.brand || '',
-                'Modelo': a.model || '',
-                'Serial': a.serial_number || '',
-                'Estado': STATUS_LABELS[a.status] || a.status,
-                'Condición': CONDITION_LABELS[a.condition] || a.condition,
-                'Costo': a.purchase_cost || 0,
-                'Fecha Compra': a.purchase_date || '',
-                'Garantía': a.warranty_expiry || '',
-                'Notas': a.notes || '',
-            })),
-            'Inventario_Activos_IT',
-            'Activos IT',
-        );
+    const handleExcel = async () => {
+        await technologyExcelService.exportFormattedExcel(assets, {
+            name: companyName,
+            nit: companyNit,
+            address: companyAddress,
+            phone: companyPhone,
+            logoUrl,
+        });
     };
 
     return (
