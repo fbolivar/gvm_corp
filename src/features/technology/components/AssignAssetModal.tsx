@@ -11,8 +11,7 @@ import { assignAssetAction } from '../actions/technologyActions';
 
 interface Employee {
     id: string;
-    first_name: string;
-    last_name: string;
+    party: { legal_name: string } | null;
 }
 
 interface AssignAssetModalProps {
@@ -65,7 +64,7 @@ export function AssignAssetModal({ open, onOpenChange, assetId, employees, onSuc
                             <SelectContent>
                                 {employees.map(emp => (
                                     <SelectItem key={emp.id} value={emp.id}>
-                                        {emp.first_name} {emp.last_name}
+                                        {emp.party?.legal_name || 'Sin nombre'}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

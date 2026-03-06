@@ -27,8 +27,7 @@ const STATUS_COLORS: Record<ITAssetStatus, string> = {
 
 interface Employee {
     id: string;
-    first_name: string;
-    last_name: string;
+    party: { legal_name: string } | null;
 }
 
 interface AssetDetailClientProps {
@@ -160,9 +159,7 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
                                 <div>
                                     <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">Asignado a</p>
                                     <p className="text-sm font-bold text-blue-900">
-                                        {currentAssignment.employee
-                                            ? `${currentAssignment.employee.first_name} ${currentAssignment.employee.last_name}`
-                                            : 'Empleado'}
+                                        {currentAssignment.employee?.party?.legal_name || 'Empleado'}
                                     </p>
                                     <p className="text-[10px] text-blue-600 mt-0.5">
                                         Desde {new Date(currentAssignment.assigned_at).toLocaleDateString('es-CO')}
@@ -222,7 +219,7 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
                                     <TableRow key={a.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
                                         <TableCell className="py-3 pl-5">
                                             <span className="text-sm font-semibold text-slate-700">
-                                                {a.employee ? `${a.employee.first_name} ${a.employee.last_name}` : '—'}
+                                                {a.employee?.party?.legal_name || '—'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="py-3">

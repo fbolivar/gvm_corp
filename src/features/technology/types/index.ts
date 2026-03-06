@@ -49,7 +49,7 @@ export interface ITAssetAssignment {
     return_notes: string | null;
     created_at: string;
     // joined
-    employee?: { id: string; first_name: string; last_name: string };
+    employee?: { id: string; party: { legal_name: string } | null } | null;
     assigned_by_profile?: { full_name: string } | null;
 }
 

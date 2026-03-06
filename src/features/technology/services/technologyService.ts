@@ -78,7 +78,7 @@ export const technologyService = {
     async getAssignments(supabase: SupabaseClient, assetId: string): Promise<ITAssetAssignment[]> {
         const { data, error } = await supabase
             .from('it_asset_assignments')
-            .select('*, employee:employees(id, first_name, last_name), assigned_by_profile:profiles!it_asset_assignments_assigned_by_fkey(full_name)')
+            .select('*, employee:employees(id, party:parties(legal_name)), assigned_by_profile:profiles!it_asset_assignments_assigned_by_fkey(full_name)')
             .eq('asset_id', assetId)
             .order('assigned_at', { ascending: false });
         if (error) throw error;
@@ -88,7 +88,7 @@ export const technologyService = {
     async getCurrentAssignment(supabase: SupabaseClient, assetId: string): Promise<ITAssetAssignment | null> {
         const { data, error } = await supabase
             .from('it_asset_assignments')
-            .select('*, employee:employees(id, first_name, last_name)')
+            .select('*, employee:employees(id, party:parties(legal_name))')
             .eq('asset_id', assetId)
             .is('returned_at', null)
             .single();

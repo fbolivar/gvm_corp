@@ -29,11 +29,16 @@ export default async function AssetDetailPage({ params }: PageProps) {
     ]);
 
     // Get employees for assignment modal
-    const { data: employees } = await supabase
+    const { data: rawEmployees } = await supabase
         .from('employees')
-        .select('id, first_name, last_name')
+        .select('id, party:parties(legal_name)')
         .eq('status', 'ACTIVE')
-        .order('first_name');
+        .order('created_at');
+
+    const employees = (rawEmployees || []).map((e: Record<string, unknown>) => ({
+        id: e.id as string,
+        party: Array.isArray(e.party) ? (e.party[0] as { legal_name: string } | null) : (e.party as { legal_name: string } | null),
+    }));
 
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">
@@ -46,7 +51,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
                 asset={asset}
                 assignments={assignments}
                 maintenanceSchedules={maintenanceSchedules}
-                employees={employees || []}
+                employees={employees}
                 currentAssignment={currentAssignment}
             />
         </div>
