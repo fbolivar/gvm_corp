@@ -160,6 +160,15 @@ export const technologyService = {
 
     // ── Maintenance ──
 
+    async getAllMaintenanceSchedules(supabase: SupabaseClient): Promise<ITMaintenanceSchedule[]> {
+        const { data, error } = await supabase
+            .from('it_maintenance_schedules')
+            .select('*')
+            .order('next_due_at', { ascending: true });
+        if (error) throw error;
+        return data || [];
+    },
+
     async getMaintenanceSchedules(supabase: SupabaseClient, assetId: string): Promise<ITMaintenanceSchedule[]> {
         const { data, error } = await supabase
             .from('it_maintenance_schedules')

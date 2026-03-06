@@ -4,6 +4,7 @@ import { settingsService } from '@/features/settings/services/settingsService';
 import { technologyService } from '@/features/technology/services/technologyService';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { AssetList } from '@/features/technology/components/AssetList';
+import { AssetExportActions } from '@/features/technology/components/AssetExportActions';
 import { KPICard } from '@/features/dashboard/components/KPICard';
 import { Monitor, CheckCircle2, UserCheck, Wrench, ShieldAlert, AlertTriangle } from 'lucide-react';
 
@@ -12,19 +13,29 @@ export default async function TechnologyPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [tenant, assets, kpis] = await Promise.all([
+    const [tenant, assets, kpis, allMaintenanceSchedules] = await Promise.all([
         settingsService.getTenantInfo(supabase),
         technologyService.getAssets(supabase),
         technologyService.getKPIs(supabase),
+        technologyService.getAllMaintenanceSchedules(supabase),
     ]);
 
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">
-            <VisualReportHeader
-                title="Tecnología"
-                subtitle="Gestión de Activos IT — ITIL v4"
-                tenant={tenant}
-            />
+            <div className="flex items-center justify-between">
+                <VisualReportHeader
+                    title="Tecnología"
+                    subtitle="Gestión de Activos IT — ITIL v4"
+                    tenant={tenant}
+                />
+                <AssetExportActions
+                    assets={assets}
+                    kpis={{ total: kpis.total, available: kpis.available, assigned: kpis.assigned, inMaintenance: kpis.inMaintenance }}
+                    maintenanceSchedules={allMaintenanceSchedules}
+                    companyName={tenant?.name || 'Empresa'}
+                    companyNit={tenant?.nit || undefined}
+                />
+            </div>
 
             {/* KPIs */}
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
