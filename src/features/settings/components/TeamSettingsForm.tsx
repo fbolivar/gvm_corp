@@ -20,6 +20,7 @@ import {
     MoreVertical,
     Mail,
     Trash2,
+    KeyRound,
     Crown,
     User,
     Table,
@@ -106,6 +107,10 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     const [addZone, setAddZone] = useState("");
     const [moduleFilter, setModuleFilter] = useState("");
     const [roleFilter, setRoleFilter] = useState("");
+    const [passwordModal, setPasswordModal] = useState<{ userId: string; email: string } | null>(null);
+    const [newPassword, setNewPassword] = useState("");
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [passwordLoading, setPasswordLoading] = useState(false);
 
     const supabase = createClient();
     const router = useRouter();
@@ -207,6 +212,32 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
             toast.error("Error al remover: " + message);
         } finally {
             setActionLoading(null);
+        }
+    }
+
+    async function handleChangePassword() {
+        if (!passwordModal || newPassword.length < 6) {
+            toast.error("La contraseña debe tener al menos 6 caracteres");
+            return;
+        }
+        setPasswordLoading(true);
+        try {
+            const res = await fetch('/api/team/members', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: passwordModal.userId, newPassword }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error desconocido');
+            toast.success(`Contraseña de ${passwordModal.email} actualizada`);
+            setPasswordModal(null);
+            setNewPassword("");
+            setShowNewPassword(false);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Error desconocido";
+            toast.error("Error: " + message);
+        } finally {
+            setPasswordLoading(false);
         }
     }
 
@@ -618,6 +649,16 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                                                             Enrolar como Empleado
                                                                         </a>
                                                                         <button
+                                                                            onClick={() => {
+                                                                                setPasswordModal({ userId: member.user_id, email: member.email });
+                                                                                setOpenMenu(null);
+                                                                            }}
+                                                                            className="w-full px-5 py-3 text-left text-[11px] font-black text-amber-600 hover:bg-amber-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                                                                        >
+                                                                            <KeyRound className="h-4 w-4" />
+                                                                            Cambiar Contraseña
+                                                                        </button>
+                                                                        <button
                                                                             onClick={() => handleRemoveMember(member.id, member.email)}
                                                                             className="w-full px-5 py-3 text-left text-[11px] font-black text-rose-500 hover:bg-rose-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
                                                                         >
@@ -921,6 +962,66 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                     </div>
                 </TabsContent>
             </Tabs>
+
+            {/* Modal: Cambiar Contraseña */}
+            {passwordModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md mx-4 animate-in slide-in-from-bottom-4 duration-300">
+                        <div className="p-8 space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                                    <KeyRound className="h-6 w-6 text-amber-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Cambiar Contraseña</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{passwordModal.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">Nueva Contraseña</Label>
+                                <div className="relative">
+                                    <Input
+                                        type={showNewPassword ? "text" : "password"}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="Mínimo 6 caracteres"
+                                        className="h-12 pr-12 rounded-xl bg-slate-50 border-slate-100 font-bold"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600"
+                                    >
+                                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
+                                {newPassword.length > 0 && newPassword.length < 6 && (
+                                    <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Mínimo 6 caracteres</p>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 h-12 rounded-xl font-black text-xs uppercase tracking-widest"
+                                    onClick={() => { setPasswordModal(null); setNewPassword(""); setShowNewPassword(false); }}
+                                    disabled={passwordLoading}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="flex-1 h-12 rounded-xl font-black text-xs uppercase tracking-widest bg-amber-600 hover:bg-amber-700 text-white"
+                                    onClick={handleChangePassword}
+                                    disabled={passwordLoading || newPassword.length < 6}
+                                >
+                                    {passwordLoading ? "Actualizando..." : "Guardar"}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

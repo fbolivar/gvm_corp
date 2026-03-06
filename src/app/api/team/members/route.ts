@@ -200,3 +200,75 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }
+
+export async function PATCH(request: NextRequest) {
+    try {
+        // 1. Auth check
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+        }
+
+        // 2. Admin check
+        const { data: userTenant } = await supabase
+            .from('user_tenants')
+            .select('role, tenant_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        const adminRoles = ['ADMINISTRADOR', 'SUPER ADMINISTRADOR', 'admin', 'owner'];
+        if (!userTenant || !adminRoles.includes(userTenant.role)) {
+            return NextResponse.json({ error: 'Sin permisos de administrador' }, { status: 403 });
+        }
+
+        // 3. Parse body
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Body JSON inválido' }, { status: 400 });
+        }
+
+        const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
+        const newPassword = typeof body.newPassword === 'string' ? body.newPassword.trim() : '';
+
+        if (!userId) {
+            return NextResponse.json({ error: 'userId es requerido' }, { status: 400 });
+        }
+        if (newPassword.length < 6) {
+            return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
+        }
+
+        // 4. Verify user belongs to same tenant
+        const { data: targetMember } = await supabase
+            .from('user_tenants')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('tenant_id', userTenant.tenant_id)
+            .maybeSingle();
+
+        if (!targetMember) {
+            return NextResponse.json({ error: 'Usuario no pertenece a este equipo' }, { status: 404 });
+        }
+
+        // 5. Update password via admin client
+        const adminClient = createAdminClient();
+        const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
+            password: newPassword,
+        });
+
+        if (updateError) {
+            console.error('[API /team/members PATCH] updateUser error:', updateError.message);
+            return NextResponse.json({ error: `Error actualizando contraseña: ${updateError.message}` }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true, message: 'Contraseña actualizada exitosamente' });
+
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        console.error('[API /team/members PATCH] UNHANDLED:', message);
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
+}
