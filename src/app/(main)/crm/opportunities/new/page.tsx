@@ -15,12 +15,13 @@ export default async function NewOpportunityPage() {
         partyService.getParties(supabase, { role: 'all', page: 1, per_page: 100 })
     ]);
 
-    const handleCreate = async (data: any) => {
+    const handleCreate = async (data: Record<string, unknown>) => {
         "use server"
         const result = await createOpportunityAction(data);
-        if (!result.error) {
-            redirect('/crm/pipeline');
+        if (result.error) {
+            throw new Error(result.error);
         }
+        redirect('/crm/pipeline');
     };
 
     return (
