@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Building2, Calendar } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/shared/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface Props {
     opportunity: Record<string, unknown>
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function OpportunityCard({ opportunity, onMove }: Props) {
+    const router = useRouter();
     const probability = Number(opportunity.probability) || 0;
     const probabilityColor =
         probability >= 80 ? "text-emerald-600 bg-emerald-50 border-emerald-100" :
@@ -35,7 +37,10 @@ export function OpportunityCard({ opportunity, onMove }: Props) {
     const leads = opportunity.leads as Record<string, unknown> | null;
 
     return (
-        <Card className="bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden rounded-xl">
+        <Card
+            className="bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden rounded-xl"
+            onClick={() => router.push(`/crm/opportunities/${opportunity.id}`)}
+        >
             <div className={cn("absolute top-0 left-0 w-1 h-full rounded-full", stageIndicator)} />
 
             <CardContent className="p-3 pl-4 space-y-2">

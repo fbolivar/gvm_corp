@@ -6,6 +6,9 @@ import { OpportunityTable } from "./OpportunityTable"
 import { Button } from "@/shared/components/ui/button"
 import { LayoutGrid, List } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
+import { deleteOpportunityAction } from "../actions"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface Props {
     opportunities: Record<string, unknown>[]
@@ -13,6 +16,18 @@ interface Props {
 
 export function PipelineViewManager({ opportunities }: Props) {
     const [view, setView] = useState<'kanban' | 'list'>('kanban');
+    const router = useRouter();
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("¿Eliminar esta oportunidad? Esta acción no se puede deshacer.")) return;
+        const result = await deleteOpportunityAction(id);
+        if (result.error) {
+            toast.error(result.error);
+        } else {
+            toast.success("Oportunidad eliminada");
+            router.refresh();
+        }
+    };
 
     return (
         <div className="space-y-4">
@@ -56,7 +71,7 @@ export function PipelineViewManager({ opportunities }: Props) {
                 {view === 'kanban' ? (
                     <OpportunityKanban initialOpportunities={opportunities} />
                 ) : (
-                    <OpportunityTable opportunities={opportunities} />
+                    <OpportunityTable opportunities={opportunities} onDelete={handleDelete} />
                 )}
             </div>
         </div>
