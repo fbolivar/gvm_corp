@@ -32,6 +32,7 @@ interface Props {
 
 export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [] }: Props) {
     const [isLoading, setIsLoading] = useState(false)
+    const [statusMsg, setStatusMsg] = useState<string | null>(null)
 
     const form = useForm<OpportunityFormValues>({
         resolver: zodResolver(opportunitySchema),
@@ -48,6 +49,7 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
 
     const handleSubmit = async (values: OpportunityFormValues) => {
         setIsLoading(true)
+        setStatusMsg("Guardando oportunidad...")
         try {
             const payload = {
                 ...values,
@@ -57,10 +59,13 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
                 notes: values.notes || null,
             }
             await onSubmit(payload)
+            setStatusMsg("Oportunidad creada - redirigiendo...")
             toast.success("Oportunidad creada exitosamente")
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : ""
+            // redirect() in Next.js throws NEXT_REDIRECT — let it propagate
             if (msg.includes("NEXT_REDIRECT") || msg.includes("redirect")) throw err
+            setStatusMsg("Error: " + (msg || "Error al guardar"))
             toast.error(msg || "Error al guardar la oportunidad")
         } finally {
             setIsLoading(false)
@@ -69,10 +74,12 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
 
     const handleInvalid = (errors: FieldErrors<OpportunityFormValues>) => {
         const messages: string[] = []
-        if (errors.name) messages.push("Nombre de oportunidad requerido")
+        if (errors.name) messages.push("Nombre requerido (min. 3 caracteres)")
         if (errors.value) messages.push("Valor debe ser positivo")
         if (errors.probability) messages.push("Probabilidad invalida")
-        toast.error(messages.join(". ") || "Revisa los campos del formulario")
+        const msg = messages.join(". ") || "Revisa los campos del formulario"
+        setStatusMsg("Corrige: " + msg)
+        toast.error(msg)
     }
 
     return (
@@ -222,8 +229,17 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
                     </div>
                 )}
 
-                {/* SUBMIT BUTTON — always visible */}
-                <div className="sticky bottom-4 z-20">
+                {/* STATUS + SUBMIT BUTTON — always visible */}
+                <div className="sticky bottom-4 z-20 space-y-2">
+                    {statusMsg && (
+                        <div className={`text-center text-xs font-semibold px-4 py-2 rounded-lg ${
+                            statusMsg.startsWith("Error") || statusMsg.startsWith("Corrige")
+                                ? "bg-rose-50 text-rose-600 border border-rose-200"
+                                : "bg-indigo-50 text-indigo-600 border border-indigo-200"
+                        }`}>
+                            {statusMsg}
+                        </div>
+                    )}
                     <Button
                         type="submit"
                         disabled={isLoading}

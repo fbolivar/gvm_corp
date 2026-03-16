@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Toaster } from 'sonner'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -48,7 +49,10 @@ export default function RootLayout({
 }) {
     return (
         <html lang="es">
-            <body>{children}</body>
+            <body>
+                {children}
+                <Toaster richColors position="top-center" closeButton />
+            </body>
         </html>
     )
 }
