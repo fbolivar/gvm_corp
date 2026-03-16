@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm, FieldErrors } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -23,14 +24,21 @@ const opportunitySchema = z.object({
 
 type OpportunityFormValues = z.infer<typeof opportunitySchema>
 
+interface ActionResult {
+    success?: boolean
+    opportunityId?: string
+    error?: string
+}
+
 interface Props {
-    onSubmit: (data: OpportunityFormValues) => Promise<void>
+    onSubmit: (data: Record<string, unknown>) => Promise<ActionResult>
     initialData?: Partial<OpportunityFormValues>
     leads?: Array<Record<string, unknown>>
     parties?: Array<Record<string, unknown>>
 }
 
 export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [] }: Props) {
+    const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [statusMsg, setStatusMsg] = useState<string | null>(null)
 
@@ -58,15 +66,22 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
                 expected_close_date: values.expected_close_date || null,
                 notes: values.notes || null,
             }
-            await onSubmit(payload)
+            const result = await onSubmit(payload)
+
+            if (result.error) {
+                setStatusMsg("Error: " + result.error)
+                toast.error(result.error)
+                setIsLoading(false)
+                return
+            }
+
             setStatusMsg("Oportunidad creada - redirigiendo...")
             toast.success("Oportunidad creada exitosamente")
+            router.push('/crm/pipeline')
         } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : ""
-            // redirect() in Next.js throws NEXT_REDIRECT — let it propagate
-            if (msg.includes("NEXT_REDIRECT") || msg.includes("redirect")) throw err
-            setStatusMsg("Error: " + (msg || "Error al guardar"))
-            toast.error(msg || "Error al guardar la oportunidad")
+            const msg = err instanceof Error ? err.message : "Error al guardar"
+            setStatusMsg("Error: " + msg)
+            toast.error(msg)
         } finally {
             setIsLoading(false)
         }

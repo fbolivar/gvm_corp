@@ -4,7 +4,6 @@ import { crmService } from "@/features/crm/services/crmService"
 import { partyService } from "@/features/parties/services/partyService"
 import { OpportunityForm } from "@/features/crm/components/OpportunityForm"
 import { createOpportunityAction } from "@/features/crm/actions"
-import { redirect } from "next/navigation"
 import { Target, Sparkles, Activity } from "lucide-react"
 
 export default async function NewOpportunityPage() {
@@ -14,15 +13,6 @@ export default async function NewOpportunityPage() {
         crmService.getLeads(supabase),
         partyService.getParties(supabase, { role: 'all', page: 1, per_page: 100 })
     ]);
-
-    const handleCreate = async (data: Record<string, unknown>) => {
-        "use server"
-        const result = await createOpportunityAction(data);
-        if (result.error) {
-            throw new Error(result.error);
-        }
-        redirect('/crm/pipeline');
-    };
 
     return (
         <div className="space-y-16 pb-32 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -57,7 +47,7 @@ export default async function NewOpportunityPage() {
 
             <div className="px-6">
                 <OpportunityForm
-                    onSubmit={handleCreate}
+                    onSubmit={createOpportunityAction}
                     leads={leads}
                     parties={parties.data || []}
                 />

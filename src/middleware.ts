@@ -46,8 +46,12 @@ export async function middleware(request: NextRequest) {
         && !request.nextUrl.pathname.startsWith('/portal')
         && !request.nextUrl.pathname.startsWith('/api')
         && !request.nextUrl.pathname.startsWith('/_next')
+        && !request.nextUrl.pathname.startsWith('/pay/')
+        && !request.nextUrl.pathname.startsWith('/offline')
         && request.nextUrl.pathname !== '/favicon.ico'
         && request.nextUrl.pathname !== '/logo-gvm.png'
+        && request.nextUrl.pathname !== '/manifest.webmanifest'
+        && request.nextUrl.pathname !== '/sw.js'
 
     if (!user && isProtectedRoute) {
         const url = request.nextUrl.clone()
@@ -74,6 +78,6 @@ export const config = {
          * - favicon.ico
          * - public folder files
          */
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest)$).*)',
     ],
 }
