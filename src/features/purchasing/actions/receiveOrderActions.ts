@@ -113,11 +113,46 @@ export async function receiveOrderAction(
             }
         }
 
+        // 6b. Create fixed assets for products marked as fixed asset
+        for (const line of activeLines) {
+            try {
+                // Check if product is marked as fixed asset
+                const { data: product } = await supabase
+                    .from('products')
+                    .select('id, name, sku, is_fixed_asset, asset_category')
+                    .eq('id', line.product_id)
+                    .single()
+
+                if (product?.is_fixed_asset && product.asset_category) {
+                    const { fixedAssetService, DEFAULT_USEFUL_LIFE } = await import('@/features/accounting/services/fixedAssetService')
+
+                    await fixedAssetService.create(supabase, {
+                        name: product.name,
+                        code: product.sku || `AF-${Date.now()}`,
+                        category: product.asset_category as Parameters<typeof fixedAssetService.create>[1]['category'],
+                        acquisition_date: new Date().toISOString().split('T')[0],
+                        acquisition_cost: line.unit_cost * line.qty_received,
+                        salvage_value: 0,
+                        useful_life_years: DEFAULT_USEFUL_LIFE[product.asset_category as keyof typeof DEFAULT_USEFUL_LIFE] ?? 5,
+                        status: 'ACTIVE',
+                        location: null,
+                        serial_number: null,
+                        notes: `Auto-creado desde OC ${po.po_number || orderId}`,
+                        chart_account_id: null,
+                    })
+                }
+            } catch (assetErr: unknown) {
+                console.error(`[receiveOrderAction] Fixed asset creation failed for product ${line.product_id}:`, assetErr)
+                // Non-blocking: don't fail the reception if asset creation fails
+            }
+        }
+
         // 7. Revalidate paths
         revalidatePath('/purchasing/orders')
         revalidatePath(`/purchasing/orders/${orderId}`)
         revalidatePath('/inventory')
         revalidatePath('/inventory/movements')
+        revalidatePath('/accounting/fixed-assets')
 
         // 8. Return result — partial success if some movements failed
         if (movementErrors.length > 0) {

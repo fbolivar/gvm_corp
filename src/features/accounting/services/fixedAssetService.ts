@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { accountingService } from './accountingService';
 
 export type AssetCategory = 'LAND' | 'BUILDING' | 'VEHICLE' | 'EQUIPMENT' | 'FURNITURE' | 'COMPUTER' | 'OTHER';
 export type AssetStatus   = 'ACTIVE' | 'DISPOSED' | 'FULLY_DEPRECIATED';
@@ -40,6 +41,16 @@ export const DEFAULT_USEFUL_LIFE: Record<AssetCategory, number> = {
     FURNITURE: 10,
     COMPUTER:  3,
     OTHER:     5,
+};
+
+/** PUC account codes for automatic depreciation journal entries */
+const DEPRECIATION_ACCOUNTS: Record<Exclude<AssetCategory, 'LAND'>, { expense: string; credit: string }> = {
+    BUILDING:  { expense: '516010', credit: '159210' },
+    VEHICLE:   { expense: '516025', credit: '159225' },
+    EQUIPMENT: { expense: '516030', credit: '159230' },
+    FURNITURE: { expense: '516035', credit: '159235' },
+    COMPUTER:  { expense: '516045', credit: '159245' },
+    OTHER:     { expense: '516095', credit: '159295' },
 };
 
 const CATEGORY_COLORS: Record<AssetCategory, string> = {
@@ -126,6 +137,34 @@ export const fixedAssetService = {
             .update({ accumulated_depreciation: newAccumulated, status: newStatus })
             .eq('id', assetId);
         if (updErr) throw updErr;
+
+        // Create automatic journal entry for the depreciation amount
+        if (added > 0 && asset.category !== 'LAND') {
+            const accounts = DEPRECIATION_ACCOUNTS[asset.category as Exclude<AssetCategory, 'LAND'>];
+            if (accounts) {
+                const [expenseAccount, creditAccount] = await Promise.all([
+                    accountingService.getAccountByCode(client, accounts.expense),
+                    accountingService.getAccountByCode(client, accounts.credit),
+                ]);
+
+                if (expenseAccount && creditAccount) {
+                    await accountingService.createEntry(client, {
+                        entry_date: new Date().toISOString().split('T')[0],
+                        description: `Depreciación ${months} mes(es) - ${asset.name} (${asset.code})`,
+                        lines: [
+                            { account_id: expenseAccount.id, debit: added, credit: 0 },
+                            { account_id: creditAccount.id, debit: 0, credit: added },
+                        ],
+                    });
+                } else {
+                    console.warn(
+                        `[fixedAsset] Asiento de depreciación omitido para activo "${asset.name}": ` +
+                        `cuenta ${accounts.expense} ${expenseAccount ? 'OK' : 'NO ENCONTRADA'}, ` +
+                        `cuenta ${accounts.credit} ${creditAccount ? 'OK' : 'NO ENCONTRADA'}.`
+                    );
+                }
+            }
+        }
 
         return { newAccumulated };
     },

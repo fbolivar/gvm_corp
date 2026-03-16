@@ -138,6 +138,58 @@ export const dianService = {
             });
             qrcode = `NumNC=${doc.number}&FecNC=${doc.issue_date}&ValNC=${doc.total}&Cude=${cufe}`;
 
+        } else if (doc.doc_type === 'DEBIT_NOTE') {
+            // DEBIT NOTE (CUDE)
+            const { generateDebitNoteXml } = await import('../utils/debitNoteXmlGenerator');
+            const { calculateCufe } = await import('../utils/cufeCalculator');
+
+            // 4. Fetch Parent Document (Original Invoice)
+            let parentDoc = null;
+            if (doc.parent_id) {
+                const { data: pDoc } = await client
+                    .from('documents')
+                    .select('number, issue_date, id')
+                    .eq('id', doc.parent_id)
+                    .single();
+
+                if (pDoc) {
+                    const { data: elec } = await client
+                        .from('electronic_documents')
+                        .select('cufe')
+                        .eq('document_id', pDoc.id)
+                        .single();
+                    parentDoc = { ...pDoc, cufe: elec?.cufe || 'placeholder-cufe' };
+                }
+            }
+
+            cufe = calculateCufe(
+                doc.number,
+                format(new Date(doc.issue_date), 'yyyy-MM-dd'),
+                format(new Date(), 'HH:mm:ss-05:00'),
+                doc.subtotal.toFixed(2),
+                "01", doc.taxes.toFixed(2),
+                "04", "0.00",
+                "03", "0.00",
+                doc.total.toFixed(2),
+                provider.nit.replace(/\./g, ''),
+                doc.party?.doc_number || "222222222222",
+                technicalKey,
+                "2"
+            );
+
+            qrcode = `NumND=${doc.number}&FecND=${doc.issue_date}&ValND=${doc.total}&Cude=${cufe}`;
+            xmlContent = generateDebitNoteXml({
+                document: doc,
+                cufe,
+                originalInvoiceNumber: parentDoc?.number || 'INVOICE-NOT-FOUND',
+                originalInvoiceCufe: parentDoc?.cufe || 'CUFE-NOT-FOUND',
+                originalInvoiceDate: parentDoc?.issue_date || doc.issue_date,
+                softwareId,
+                pin,
+                qrcode,
+                provider
+            });
+
         } else if (doc.doc_type === 'DOC_SUPPORT') {
             // SUPPORT DOCUMENT (CUDS)
             const { generateSupportDocXml } = await import('../utils/supportDocXmlGenerator');

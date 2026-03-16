@@ -35,12 +35,15 @@ interface Props {
     initialData?: Partial<OpportunityFormValues>
     leads?: Array<Record<string, unknown>>
     parties?: Array<Record<string, unknown>>
+    redirectTo?: string
+    submitLabel?: string
 }
 
-export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [] }: Props) {
+export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [], redirectTo = '/crm/pipeline', submitLabel }: Props) {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [statusMsg, setStatusMsg] = useState<string | null>(null)
+    const isEdit = !!initialData?.name
 
     const form = useForm<OpportunityFormValues>({
         resolver: zodResolver(opportunitySchema),
@@ -75,9 +78,9 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
                 return
             }
 
-            setStatusMsg("Oportunidad creada - redirigiendo...")
-            toast.success("Oportunidad creada exitosamente")
-            router.push('/crm/pipeline')
+            setStatusMsg(isEdit ? "Oportunidad actualizada" : "Oportunidad creada - redirigiendo...")
+            toast.success(isEdit ? "Oportunidad actualizada exitosamente" : "Oportunidad creada exitosamente")
+            router.push(redirectTo)
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Error al guardar"
             setStatusMsg("Error: " + msg)
@@ -262,7 +265,7 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
                     >
                         <div className="flex items-center justify-center gap-2">
                             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
-                            {isLoading ? "GUARDANDO..." : "GUARDAR OPORTUNIDAD"}
+                            {isLoading ? "GUARDANDO..." : (submitLabel || (isEdit ? "ACTUALIZAR OPORTUNIDAD" : "GUARDAR OPORTUNIDAD"))}
                         </div>
                     </Button>
                 </div>

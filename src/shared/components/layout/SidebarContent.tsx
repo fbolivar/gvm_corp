@@ -63,6 +63,12 @@ import {
     CalendarCheck,
     ArrowLeftRight,
     Monitor,
+    RotateCcw,
+    Hash,
+    Coins,
+    Layers,
+    Key,
+    FileOutput,
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -150,6 +156,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.sidebar.valuation, href: "/accounting/reports/inventory-valuation", icon: Package2 },
                         { title: t.sidebar.lots, href: "/inventory/lots", icon: FlaskConical },
                         { title: 'Análisis ABC', href: "/inventory/analysis", icon: BarChart3 },
+                        { title: 'Seriales', href: "/inventory/serials", icon: Hash },
                     ]
                 },
                 {
@@ -190,6 +197,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.sidebar.purchase_orders, href: "/purchasing/orders", icon: ClipboardList },
                         { title: t.sidebar.bills, href: "/purchasing/bills", icon: Receipt },
+                        { title: 'Devoluciones', href: "/purchasing/returns", icon: RotateCcw },
                         { title: 'Proveedores', href: "/purchasing/vendors", icon: Building2 },
                     ]
                 },
@@ -243,6 +251,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Cuentas & Movimientos', href: '/treasury', icon: Wallet },
                         { title: 'Cartera', href: '/treasury/cartera', icon: DollarSign },
                         { title: 'Flujo de Caja', href: '/treasury/cash-flow', icon: TrendingUp },
+                        { title: 'Pagos Proveedores', href: '/treasury/vendor-payments', icon: FileOutput },
                         { title: 'Conciliación', href: '/treasury/reconcile', icon: ArrowLeftRight },
                     ]
                 },
@@ -269,6 +278,10 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 },
                 { title: t.sidebar.settings, href: "/settings", icon: Settings, moduleKey: 'settings' },
                 { title: 'Auditoría', href: "/settings/audit", icon: ShieldAudit, moduleKey: 'settings' },
+                { title: 'Dimensiones', href: "/settings/dimensions", icon: Layers, moduleKey: 'settings' },
+                { title: 'Monedas', href: "/settings/currencies", icon: Coins, moduleKey: 'settings' },
+                { title: 'Listas de Precios', href: "/settings/pricing", icon: Tag, moduleKey: 'settings' },
+                { title: 'API Keys', href: "/settings/api-keys", icon: Key, moduleKey: 'settings' },
                 { title: t.sidebar.help, href: "/help", icon: HelpCircle }, // siempre visible
             ]
         }

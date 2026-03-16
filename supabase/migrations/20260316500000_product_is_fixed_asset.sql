@@ -1,0 +1,2 @@
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_fixed_asset BOOLEAN DEFAULT false;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS asset_category TEXT;

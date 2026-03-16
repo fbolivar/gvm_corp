@@ -10,7 +10,7 @@ import { Textarea } from "@/shared/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import {
     Package, Tag, DollarSign, Scale, Info, Save,
-    AlertTriangle, FileText, Percent, Boxes
+    AlertTriangle, FileText, Percent, Boxes, PiggyBank
 } from "lucide-react"
 
 interface ProductFormProps {
@@ -33,10 +33,13 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
             cost: 0,
             tax_category: 'IVA_19',
             min_stock: 0,
+            is_fixed_asset: false,
+            asset_category: null,
         }
     })
 
     const errors = form.formState.errors
+    const watchIsFixedAsset = form.watch('is_fixed_asset')
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6"> {/* eslint-disable-line @typescript-eslint/no-explicit-any */}
@@ -201,6 +204,47 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
                                 />
                                 <p className="text-[10px] text-slate-400">Alerta cuando el stock baje de este valor</p>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Fixed Asset Configuration */}
+                    <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl overflow-hidden">
+                        <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                <PiggyBank className="h-4 w-4 text-violet-600" />
+                                Activo Fijo
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-5 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="checkbox"
+                                    id="is_fixed_asset"
+                                    {...form.register('is_fixed_asset')}
+                                    className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                                />
+                                <Label htmlFor="is_fixed_asset" className="text-xs font-medium text-slate-700 cursor-pointer">
+                                    Este producto es un activo fijo
+                                </Label>
+                            </div>
+                            {watchIsFixedAsset && (
+                                <div className="space-y-1.5">
+                                    <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Categoria de Activo</Label>
+                                    <select
+                                        {...form.register('asset_category')}
+                                        className="w-full h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 outline-none text-sm"
+                                    >
+                                        <option value="">Seleccionar...</option>
+                                        <option value="LAND">Terreno</option>
+                                        <option value="BUILDING">Edificio</option>
+                                        <option value="VEHICLE">Vehiculo</option>
+                                        <option value="EQUIPMENT">Maquinaria / Equipo</option>
+                                        <option value="FURNITURE">Muebles y Enseres</option>
+                                        <option value="COMPUTER">Equipos de Computo</option>
+                                        <option value="OTHER">Otros</option>
+                                    </select>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
