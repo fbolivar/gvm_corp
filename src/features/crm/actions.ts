@@ -104,15 +104,32 @@ export async function deleteLeadAction(id: string) {
     return { success: true };
 }
 
-export async function createOpportunityAction(data: any) {
+export async function createOpportunityAction(data: Record<string, unknown>) {
     const supabase = await createClient();
 
+    // Inject tenant_id and assigned_to from the authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+
+    const { data: tenantRow } = await supabase.rpc('get_my_tenant_id');
+    if (!tenantRow) return { error: "No se encontró el tenant" };
+
+    const payload = {
+        ...data,
+        tenant_id: tenantRow as string,
+        assigned_to: (data.assigned_to as string) || user.id,
+        stage: (data.stage as string) || 'PROSPECTING',
+    };
+
     try {
-        const opportunity = await crmService.createOpportunity(supabase, data);
+        const opportunity = await crmService.createOpportunity(supabase, payload as Parameters<typeof crmService.createOpportunity>[1]);
         revalidatePath('/crm/pipeline');
         revalidatePath('/crm');
+        revalidatePath('/crm/forecast');
         return { success: true, opportunityId: opportunity.id };
-    } catch (error: any) {
-        return { error: error.message };
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : "Error al crear oportunidad";
+        console.error('[crm] createOpportunityAction:', msg);
+        return { error: msg };
     }
 }
