@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import {
     Barcode,
@@ -11,7 +11,9 @@ import {
     Search,
     Loader2,
     Link as LinkIcon,
-    CheckCircle2
+    CheckCircle2,
+    Camera,
+    CameraOff
 } from "lucide-react"
 import {
     Dialog,
@@ -49,11 +51,18 @@ export function BarcodeScanner() {
     const [searchResults, setSearchResults] = useState<ScannerProduct[]>([])
     const [isSearching, setIsSearching] = useState(false)
 
+    // Camera state
+    const [isCameraActive, setIsCameraActive] = useState(false)
+    const [cameraError, setCameraError] = useState<string | null>(null)
+    const html5QrCodeRef = useRef<unknown>(null)
+    const scannerContainerRef = useRef<HTMLDivElement>(null)
+
     const scanBuffer = useRef("")
     const lastKeyTime = useRef(0)
 
     const isVisible = ALLOWED_PATHS.some(p => pathname.startsWith(p))
 
+    // HID scanner keyboard listener
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!e.key) return
@@ -74,6 +83,86 @@ export function BarcodeScanner() {
         window.addEventListener("keydown", handleKeyDown)
         return () => window.removeEventListener("keydown", handleKeyDown)
     }, [])
+
+    const stopCamera = useCallback(async () => {
+        try {
+            const scanner = html5QrCodeRef.current as { isScanning?: boolean; stop: () => Promise<void>; clear: () => void } | null
+            if (scanner && scanner.isScanning) {
+                await scanner.stop()
+                scanner.clear()
+            }
+        } catch {
+            // Ignore cleanup errors
+        }
+        html5QrCodeRef.current = null
+        setIsCameraActive(false)
+        setCameraError(null)
+    }, [])
+
+    // Stop camera when dialog closes
+    useEffect(() => {
+        if (!isOpen) {
+            stopCamera()
+        }
+    }, [isOpen, stopCamera])
+
+    const startCamera = async () => {
+        setCameraError(null)
+
+        try {
+            const { Html5Qrcode } = await import("html5-qrcode")
+
+            // Stop any existing scanner
+            await stopCamera()
+
+            // Small delay for DOM to render
+            await new Promise(r => setTimeout(r, 100))
+
+            const containerId = "barcode-camera-reader"
+            const container = document.getElementById(containerId)
+            if (!container) {
+                setCameraError("No se encontro el contenedor de camara")
+                return
+            }
+
+            const scanner = new Html5Qrcode(containerId)
+            html5QrCodeRef.current = scanner
+
+            await scanner.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 150 },
+                    aspectRatio: 1.0,
+                    disableFlip: false,
+                },
+                (decodedText: string) => {
+                    // Barcode detected
+                    toast.success("CODIGO DETECTADO", {
+                        description: decodedText,
+                    })
+                    stopCamera()
+                    lookupBarcode(decodedText)
+                },
+                () => {
+                    // Scan frame — no match, ignore
+                }
+            )
+
+            setIsCameraActive(true)
+        } catch (err: unknown) {
+            console.error("Camera error:", err)
+            const msg = err instanceof Error ? err.message : String(err)
+            if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
+                setCameraError("Permiso de camara denegado. Permite el acceso en la configuracion del navegador.")
+            } else if (msg.includes("NotFoundError") || msg.includes("no camera")) {
+                setCameraError("No se encontro ninguna camara en este dispositivo.")
+            } else {
+                setCameraError(`Error al iniciar camara: ${msg}`)
+            }
+            setIsCameraActive(false)
+        }
+    }
 
     const lookupBarcode = async (code: string) => {
         setIsOpen(true)
@@ -203,7 +292,10 @@ export function BarcodeScanner() {
                 </Button>
             </div>
 
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <Dialog open={isOpen} onOpenChange={(open) => {
+                if (!open) stopCamera()
+                setIsOpen(open)
+            }}>
                 <DialogContent className="max-w-md bg-white p-0 overflow-hidden border-none shadow-premium rounded-3xl">
                     <DialogHeader className="p-8 pb-4 bg-slate-50 border-b border-slate-100">
                         <div className="flex items-center justify-between">
@@ -223,42 +315,81 @@ export function BarcodeScanner() {
 
                     <div className="p-8 space-y-8">
                         {!product && !isLoading && !isLinking && (
-                            <div className="space-y-6 py-8 text-center flex flex-col items-center">
-                                <div className="h-24 w-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border-4 border-white shadow-premium relative overflow-hidden">
-                                    <div className="absolute inset-x-0 top-0 h-0.5 bg-primary animate-[scan_2s_infinite]" />
-                                    <Scan className="h-10 w-10 text-slate-200" />
-                                </div>
-                                <div className="space-y-3">
-                                    <h3 className="text-xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
-                                        {scannedCode ? "Codigo no registrado" : "Esperando Escaneo..."}
-                                    </h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] leading-relaxed">
-                                        {scannedCode
-                                            ? `El codigo ${scannedCode} no existe en la base de datos.`
-                                            : "Pasa el laser sobre el codigo o escribe abajo."}
-                                    </p>
-                                </div>
+                            <div className="space-y-6 text-center flex flex-col items-center">
+                                {/* Camera scanner area */}
+                                {isCameraActive ? (
+                                    <div className="w-full space-y-3">
+                                        <div
+                                            ref={scannerContainerRef}
+                                            id="barcode-camera-reader"
+                                            className="w-full rounded-2xl overflow-hidden bg-black"
+                                        />
+                                        <Button
+                                            onClick={stopCamera}
+                                            variant="outline"
+                                            className="w-full h-10 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 font-black uppercase text-[10px] tracking-widest"
+                                        >
+                                            <CameraOff className="h-4 w-4 mr-2" />
+                                            Detener Camara
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="h-24 w-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center border-4 border-white shadow-premium relative overflow-hidden">
+                                            <div className="absolute inset-x-0 top-0 h-0.5 bg-primary animate-[scan_2s_infinite]" />
+                                            <Scan className="h-10 w-10 text-slate-200" />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <h3 className="text-xl font-black italic tracking-tighter uppercase text-slate-900 leading-none">
+                                                {scannedCode ? "Codigo no registrado" : "Esperando Escaneo..."}
+                                            </h3>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] leading-relaxed">
+                                                {scannedCode
+                                                    ? `El codigo ${scannedCode} no existe en la base de datos.`
+                                                    : "Pasa el laser, usa la camara o escribe abajo."}
+                                            </p>
+                                        </div>
 
-                                {scannedCode && (
-                                    <Button
-                                        onClick={() => setIsLinking(true)}
-                                        className="w-full h-12 bg-white border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-active transition-all"
-                                    >
-                                        <LinkIcon className="h-4 w-4 mr-2" />
-                                        Vincular a un Producto
-                                    </Button>
+                                        {/* Camera button */}
+                                        <Button
+                                            onClick={startCamera}
+                                            className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-active transition-all"
+                                        >
+                                            <Camera className="h-4 w-4 mr-2" />
+                                            Escanear con Camara
+                                        </Button>
+
+                                        {cameraError && (
+                                            <div className="w-full p-3 bg-rose-50 rounded-xl border border-rose-100">
+                                                <p className="text-[10px] font-bold text-rose-600">{cameraError}</p>
+                                            </div>
+                                        )}
+
+                                        {scannedCode && (
+                                            <Button
+                                                onClick={() => setIsLinking(true)}
+                                                className="w-full h-12 bg-white border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-active transition-all"
+                                            >
+                                                <LinkIcon className="h-4 w-4 mr-2" />
+                                                Vincular a un Producto
+                                            </Button>
+                                        )}
+                                    </>
                                 )}
 
-                                <div className="w-full relative px-4">
-                                    <Input
-                                        autoFocus
-                                        placeholder="Ingreso Manual..."
-                                        className="h-12 bg-white border-2 border-slate-100 focus:border-primary rounded-xl font-bold text-center tracking-widest"
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") lookupBarcode((e.target as HTMLInputElement).value)
-                                        }}
-                                    />
-                                </div>
+                                {/* Manual input — always visible */}
+                                {!isCameraActive && (
+                                    <div className="w-full relative px-4">
+                                        <Input
+                                            autoFocus
+                                            placeholder="Ingreso Manual..."
+                                            className="h-12 bg-white border-2 border-slate-100 focus:border-primary rounded-xl font-bold text-center tracking-widest"
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") lookupBarcode((e.target as HTMLInputElement).value)
+                                            }}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
 
