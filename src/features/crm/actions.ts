@@ -115,7 +115,13 @@ export async function createOpportunityAction(data: Record<string, unknown>) {
     if (!tenantRow) return { error: "No se encontró el tenant" };
 
     const payload = {
-        ...data,
+        name: data.name,
+        value: data.value,
+        probability: data.probability,
+        expected_close_date: data.expected_close_date || null,
+        lead_id: data.lead_id || null,
+        party_id: data.party_id || null,
+        description: (data.notes as string) || (data.description as string) || null,
         tenant_id: tenantRow as string,
         assigned_to: (data.assigned_to as string) || user.id,
         stage: (data.stage as string) || 'PROSPECTING',
@@ -128,8 +134,12 @@ export async function createOpportunityAction(data: Record<string, unknown>) {
         revalidatePath('/crm/forecast');
         return { success: true, opportunityId: opportunity.id };
     } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : "Error al crear oportunidad";
-        console.error('[crm] createOpportunityAction:', msg);
+        // PostgrestError has .message but is NOT instanceof Error
+        const err = error as Record<string, unknown>;
+        const msg = (typeof err?.message === 'string' ? err.message : null)
+            ?? (error instanceof Error ? error.message : null)
+            ?? JSON.stringify(error);
+        console.error('[crm] createOpportunityAction:', msg, error);
         return { error: msg };
     }
 }
