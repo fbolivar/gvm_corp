@@ -32,6 +32,9 @@ export const productSchema = z.object({
     tax_category: TaxCategoryEnum.default('IVA_19'),
     min_stock: z.number().min(0).default(0),
 
+    barcode: z.string().optional().nullable(),
+    track_serials: z.boolean().default(false),
+
     is_fixed_asset: z.boolean().default(false),
     asset_category: z.enum(['LAND', 'BUILDING', 'VEHICLE', 'EQUIPMENT', 'FURNITURE', 'COMPUTER', 'OTHER']).optional().nullable(),
 

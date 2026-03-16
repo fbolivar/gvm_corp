@@ -7,7 +7,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Button } from "@/shared/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
 import { useDebounce } from "@/shared/hooks/useDebounce"
-import { Plus, Search, Package, Edit3, Sparkles } from "lucide-react"
+import { Plus, Search, Package, Edit3, Sparkles, ScanBarcode } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/shared/components/ui/badge"
 
@@ -78,6 +78,7 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                     <TableHeader>
                         <TableRow className="hover:bg-transparent border-slate-100">
                             <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Producto</TableHead>
+                            <TableHead className="hidden lg:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Barcode</TableHead>
                             <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Tipo</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Precio</TableHead>
                             <TableHead className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider text-center">Stock</TableHead>
@@ -87,7 +88,7 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                     <TableBody>
                         {initialData.length === 0 ? (
                             <TableRow className="hover:bg-transparent">
-                                <TableCell colSpan={5} className="py-12 text-center">
+                                <TableCell colSpan={6} className="py-12 text-center">
                                     <div className="flex flex-col items-center gap-3 opacity-30">
                                         <Sparkles className="h-8 w-8 text-slate-300" />
                                         <p className="text-xs text-slate-400">Sin resultados</p>
@@ -107,6 +108,16 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
                                                 <span className="text-[10px] text-slate-400 font-mono">{prod.sku || 'N/A'}</span>
                                             </div>
                                         </div>
+                                    </TableCell>
+                                    <TableCell className="hidden lg:table-cell">
+                                        {prod.barcode ? (
+                                            <div className="flex items-center gap-1.5">
+                                                <ScanBarcode className="h-3.5 w-3.5 text-slate-400" />
+                                                <span className="text-[11px] font-mono text-slate-600">{prod.barcode}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-[10px] text-slate-300">—</span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">
                                         <div className="space-y-1">

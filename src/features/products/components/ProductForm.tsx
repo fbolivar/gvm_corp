@@ -10,7 +10,7 @@ import { Textarea } from "@/shared/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import {
     Package, Tag, DollarSign, Scale, Info, Save,
-    AlertTriangle, FileText, Percent, Boxes, PiggyBank
+    AlertTriangle, FileText, Percent, Boxes, PiggyBank, ScanBarcode
 } from "lucide-react"
 
 interface ProductFormProps {
@@ -27,6 +27,7 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
             status: 'ACTIVE',
             sku: '',
             name: '',
+            barcode: '',
             description: '',
             uom: 'UND',
             selling_price: 0,
@@ -79,6 +80,21 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
                                 </div>
                                 {errors.name && <p className="text-rose-500 text-[10px]">{errors.name.message}</p>}
                             </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <ScanBarcode className="h-3 w-3" /> Codigo de Barras
+                            </Label>
+                            <div className="relative">
+                                <ScanBarcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input
+                                    {...form.register('barcode')}
+                                    className="pl-10 h-9 bg-slate-50 border-slate-200 font-mono text-sm"
+                                    placeholder="Escanea o escribe el codigo de barras"
+                                />
+                            </div>
+                            <p className="text-[10px] text-slate-400">EAN-13, Code 128, UPC-A u otro formato</p>
                         </div>
 
                         <div className="space-y-1.5">
