@@ -62,9 +62,14 @@ export function AICopilot() {
     [pathname]
   )
 
+  const [error, setError] = useState<string | null>(null)
+
   const { messages, sendMessage, status, setMessages } = useChat({
     id: "ai-gvm",
     transport,
+    onError: (err) => {
+      setError(err.message || "Error al conectar con AI GVM. Intenta de nuevo.")
+    },
   })
 
   const isLoading = status === "streaming" || status === "submitted"
@@ -80,6 +85,7 @@ export function AICopilot() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!inputValue.trim() || isLoading) return
+    setError(null)
     sendMessage({ text: inputValue.trim() })
     setInputValue("")
   }
@@ -153,7 +159,7 @@ export function AICopilot() {
                 <PigIcon className="h-14 w-14 mx-auto mb-3 opacity-30" />
                 <p className="text-xs font-bold text-slate-400">Soy AI GVM, en que puedo ayudarte?</p>
                 <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                  {['Analizar ventas', 'Revisar inventario', 'Sugerir mejoras'].map((q) => (
+                  {['Como crear factura?', 'Que es una nota credito?', 'Ayuda con nomina'].map((q) => (
                     <button
                       key={q}
                       onClick={() => handleSuggestion(q)}
@@ -211,6 +217,13 @@ export function AICopilot() {
 
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Error */}
+          {error && (
+            <div className="px-3 py-2 bg-red-50 border-t border-red-100 shrink-0">
+              <p className="text-[10px] text-red-600">{error}</p>
+            </div>
+          )}
 
           {/* Input */}
           <form
