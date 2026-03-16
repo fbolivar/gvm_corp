@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import { SonnerToaster } from '@/shared/components/SonnerToaster'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -49,10 +48,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="es">
-            <body>
-                {children}
-                <SonnerToaster />
-            </body>
+            <body>{children}</body>
         </html>
     )
 }

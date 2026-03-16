@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import { Toaster } from "sonner"
 import { PWARegister } from "@/shared/components/PWARegister"
 
 // Dynamic imports to prevent hydration errors from client-only states (Supabase, Zustand)
@@ -38,6 +39,9 @@ export default function MainLayout({
 
       {/* PWA Service Worker Registration */}
       <PWARegister />
+
+      {/* Toast notifications */}
+      <Toaster richColors position="top-center" closeButton />
     </div>
   )
 }
