@@ -53,7 +53,8 @@ export interface JournalLine {
     description?: string;
     base_amount?: number;
     tax_rate?: number;
-
+    dimension1_id?: string | null;
+    dimension2_id?: string | null;
 
     // Relations
     account?: Account;
@@ -67,8 +68,9 @@ export const journalLineSchema = z.object({
     credit: z.number().min(0),
     description: z.string().optional(),
     base_amount: z.number().optional().default(0),
-    tax_rate: z.number().optional().default(0)
-
+    tax_rate: z.number().optional().default(0),
+    dimension1_id: z.string().uuid().optional().nullable(),
+    dimension2_id: z.string().uuid().optional().nullable(),
 });
 
 export const journalEntrySchema = z.object({

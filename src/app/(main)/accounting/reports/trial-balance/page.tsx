@@ -1,17 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { accountingService } from '@/features/accounting/services/accountingService';
+import { dimensionService } from '@/features/accounting/services/dimensionService';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { TrialBalanceTable } from '@/features/accounting/components/TrialBalanceTable';
 import { ReportingFilters } from '@/features/accounting/components/ReportingFilters';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { TrialBalanceExportActions } from '@/features/accounting/components/TrialBalanceExportActions';
-import { ShieldCheck, Info } from 'lucide-react';
+import { ShieldCheck, Info, Layers } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 export default async function TrialBalancePage({
     searchParams
 }: {
-    searchParams: Promise<{ startDate?: string, endDate?: string }>
+    searchParams: Promise<{ startDate?: string; endDate?: string; dimension?: string }>
 }) {
     const supabase = await createClient();
     const params = await searchParams;
@@ -21,15 +22,29 @@ export default async function TrialBalancePage({
 
     const startDate = params.startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     const endDate = params.endDate || new Date().toISOString().split('T')[0];
+    const dimensionValueId = params.dimension || undefined;
 
-    const [data, tenant] = await Promise.all([
-        accountingService.getTrialBalance(supabase, startDate, endDate),
-        settingsService.getTenantInfo(supabase)
+    const [data, tenant, dimensions] = await Promise.all([
+        accountingService.getTrialBalance(supabase, startDate, endDate, dimensionValueId),
+        settingsService.getTenantInfo(supabase),
+        dimensionService.getDimensionOptions(supabase),
     ]);
 
     const totalDebit = data.reduce((s, r) => s + (r.debit || 0), 0);
     const totalCredit = data.reduce((s, r) => s + (r.credit || 0), 0);
     const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+
+    // Resolve the selected dimension value label for display
+    let activeDimensionLabel: string | null = null;
+    if (dimensionValueId) {
+        for (const { dimension, values } of dimensions) {
+            const found = values.find(v => v.id === dimensionValueId);
+            if (found) {
+                activeDimensionLabel = `${dimension.name} / ${found.name}`;
+                break;
+            }
+        }
+    }
 
     const exportData = data.map(r => ({
         code: r.code,
@@ -67,9 +82,17 @@ export default async function TrialBalancePage({
                             {isBalanced ? 'PARTIDA DOBLE OK' : 'DESCUADRE DETECTADO'}
                         </span>
                     </div>
+                    {activeDimensionLabel && (
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl border bg-violet-50 border-violet-100">
+                            <Layers className="h-4 w-4 text-violet-500" />
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600">
+                                {activeDimensionLabel}
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
-                    <ReportingFilters />
+                    <ReportingFilters dimensions={dimensions} />
                     <TrialBalanceExportActions
                         data={exportData}
                         options={{
@@ -99,6 +122,9 @@ export default async function TrialBalancePage({
                     <p className="text-xs font-semibold text-slate-600">Integridad de Saldos Contables</p>
                     <p className="text-[10px] text-slate-400">
                         Consolidación de saldos acumulados para <span className="text-indigo-500 font-medium">{tenant?.name}</span> — Ciclo Fiscal {new Date().getFullYear()}
+                        {activeDimensionLabel && (
+                            <> — filtrado por dimensión <span className="text-violet-500 font-medium">{activeDimensionLabel}</span></>
+                        )}
                     </p>
                 </div>
             </div>

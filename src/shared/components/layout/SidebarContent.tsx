@@ -249,6 +249,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     moduleKey: 'treasury',
                     children: [
                         { title: 'Cuentas & Movimientos', href: '/treasury', icon: Wallet },
+                        { title: 'Cajas Menores', href: '/treasury/petty-cash', icon: PiggyBank },
                         { title: 'Cartera', href: '/treasury/cartera', icon: DollarSign },
                         { title: 'Flujo de Caja', href: '/treasury/cash-flow', icon: TrendingUp },
                         { title: 'Pagos Proveedores', href: '/treasury/vendor-payments', icon: FileOutput },

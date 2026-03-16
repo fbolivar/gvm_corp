@@ -434,55 +434,86 @@ export const accountingService = {
         });
     },
 
-    async getTrialBalance(client: SupabaseClient, startDate: string, endDate: string) {
-        const { data, error } = await client
-            .from('journal_entries')
-            .select(`
-                id,
-                entry_date,
-                lines:journal_lines(
+    async getTrialBalance(client: SupabaseClient, startDate: string, endDate: string, dimensionValueId?: string) {
+        type TrialBalanceRow = { code: string; name: string; debit: number; credit: number; balance: number };
+        const aggregation: Record<string, TrialBalanceRow> = {};
+
+        if (dimensionValueId) {
+            // Query journal_lines directly so we can filter by dimension columns
+            const { data, error } = await client
+                .from('journal_lines')
+                .select(`
                     account_id,
                     debit,
                     credit,
-                    account:chart_accounts(code, name)
-                )
-            `)
-            .gte('entry_date', startDate)
-            .lte('entry_date', endDate);
+                    account:chart_accounts(code, name),
+                    entry:journal_entries!inner(entry_date)
+                `)
+                .gte('journal_entries.entry_date', startDate)
+                .lte('journal_entries.entry_date', endDate)
+                .or(`dimension1_id.eq.${dimensionValueId},dimension2_id.eq.${dimensionValueId}`);
 
-        if (error) {
-            console.error("[accounting] getTrialBalance error:", error.message);
-            return [];
-        }
+            if (error) {
+                console.error("[accounting] getTrialBalance (dimension) error:", error.message);
+                return [];
+            }
 
-        if (!data || data.length === 0) {
-            console.warn(`[accounting] getTrialBalance: no entries found for ${startDate} to ${endDate}`);
-            return [];
-        }
+            if (!data || data.length === 0) {
+                console.warn(`[accounting] getTrialBalance: no lines found for dimension ${dimensionValueId} in ${startDate} to ${endDate}`);
+                return [];
+            }
 
-        // Aggregate by account
-        const aggregation: Record<string, { code: string; name: string; debit: number; credit: number; balance: number }> = {};
-
-        data.forEach((entry: Record<string, unknown>) => {
-            const lines = entry.lines as Array<Record<string, unknown>> | null;
-            if (!lines) return;
-            lines.forEach((line) => {
+            (data as Array<Record<string, unknown>>).forEach((line) => {
                 const acc = line.account as { code: string; name: string } | null;
                 if (!acc) return;
 
                 if (!aggregation[acc.code]) {
-                    aggregation[acc.code] = {
-                        code: acc.code,
-                        name: acc.name,
-                        debit: 0,
-                        credit: 0,
-                        balance: 0
-                    };
+                    aggregation[acc.code] = { code: acc.code, name: acc.name, debit: 0, credit: 0, balance: 0 };
                 }
                 aggregation[acc.code].debit += Number(line.debit) || 0;
                 aggregation[acc.code].credit += Number(line.credit) || 0;
             });
-        });
+        } else {
+            const { data, error } = await client
+                .from('journal_entries')
+                .select(`
+                    id,
+                    entry_date,
+                    lines:journal_lines(
+                        account_id,
+                        debit,
+                        credit,
+                        account:chart_accounts(code, name)
+                    )
+                `)
+                .gte('entry_date', startDate)
+                .lte('entry_date', endDate);
+
+            if (error) {
+                console.error("[accounting] getTrialBalance error:", error.message);
+                return [];
+            }
+
+            if (!data || data.length === 0) {
+                console.warn(`[accounting] getTrialBalance: no entries found for ${startDate} to ${endDate}`);
+                return [];
+            }
+
+            data.forEach((entry: Record<string, unknown>) => {
+                const lines = entry.lines as Array<Record<string, unknown>> | null;
+                if (!lines) return;
+                lines.forEach((line) => {
+                    const acc = line.account as { code: string; name: string } | null;
+                    if (!acc) return;
+
+                    if (!aggregation[acc.code]) {
+                        aggregation[acc.code] = { code: acc.code, name: acc.name, debit: 0, credit: 0, balance: 0 };
+                    }
+                    aggregation[acc.code].debit += Number(line.debit) || 0;
+                    aggregation[acc.code].credit += Number(line.credit) || 0;
+                });
+            });
+        }
 
         // Calculate balances based on PUC class
         Object.values(aggregation).forEach((acc) => {
@@ -495,12 +526,12 @@ export const accountingService = {
         });
 
         const result = Object.values(aggregation).sort((a, b) => a.code.localeCompare(b.code));
-        console.log(`[accounting] getTrialBalance: ${data.length} entries → ${result.length} accounts for ${startDate} to ${endDate}`);
+        console.log(`[accounting] getTrialBalance: ${result.length} accounts for ${startDate} to ${endDate}${dimensionValueId ? ` [dim: ${dimensionValueId}]` : ''}`);
         return result;
     },
 
-    async getProfitAndLoss(client: SupabaseClient, startDate: string, endDate: string) {
-        const trialBalance = await this.getTrialBalance(client, startDate, endDate);
+    async getProfitAndLoss(client: SupabaseClient, startDate: string, endDate: string, dimensionValueId?: string) {
+        const trialBalance = await this.getTrialBalance(client, startDate, endDate, dimensionValueId);
 
         const income = trialBalance.filter(acc => acc.code.startsWith('4'));
         const expenses = trialBalance.filter(acc =>
@@ -519,9 +550,9 @@ export const accountingService = {
         };
     },
 
-    async getBalanceSheet(client: SupabaseClient, startDate: string, endDate: string) {
-        const trialBalance = await this.getTrialBalance(client, startDate, endDate);
-        const pnl = await this.getProfitAndLoss(client, startDate, endDate);
+    async getBalanceSheet(client: SupabaseClient, startDate: string, endDate: string, dimensionValueId?: string) {
+        const trialBalance = await this.getTrialBalance(client, startDate, endDate, dimensionValueId);
+        const pnl = await this.getProfitAndLoss(client, startDate, endDate, dimensionValueId);
 
         const assets = trialBalance.filter(acc => acc.code.startsWith('1'));
         const liabilities = trialBalance.filter(acc => acc.code.startsWith('2'));

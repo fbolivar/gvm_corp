@@ -5,15 +5,26 @@ import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
-import { Scale, X } from "lucide-react"
+import { Scale, X, Layers } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
+import type { Dimension, DimensionValue } from "@/features/accounting/services/dimensionService"
 
-export function ReportingFilters() {
+export interface DimensionOption {
+    dimension: Dimension;
+    values: DimensionValue[];
+}
+
+interface ReportingFiltersProps {
+    dimensions?: DimensionOption[];
+}
+
+export function ReportingFilters({ dimensions }: ReportingFiltersProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
     const [startDate, setStartDate] = useState(searchParams.get('startDate') || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
     const [endDate, setEndDate] = useState(searchParams.get('endDate') || new Date().toISOString().split('T')[0])
+    const [dimensionValueId, setDimensionValueId] = useState(searchParams.get('dimension') || '')
 
     const [showCompare, setShowCompare] = useState(!!(searchParams.get('compareStart') || searchParams.get('compareEnd')))
     const prevMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0]
@@ -21,10 +32,19 @@ export function ReportingFilters() {
     const [compareStart, setCompareStart] = useState(searchParams.get('compareStart') || prevMonthStart)
     const [compareEnd, setCompareEnd] = useState(searchParams.get('compareEnd') || prevMonthEnd)
 
+    const hasDimensions = dimensions && dimensions.length > 0
+
     const handleApply = () => {
         const params = new URLSearchParams(searchParams.toString())
         params.set('startDate', startDate)
         params.set('endDate', endDate)
+
+        if (dimensionValueId) {
+            params.set('dimension', dimensionValueId)
+        } else {
+            params.delete('dimension')
+        }
+
         if (showCompare) {
             params.set('compareStart', compareStart)
             params.set('compareEnd', compareEnd)
@@ -37,7 +57,7 @@ export function ReportingFilters() {
 
     return (
         <div className="space-y-2">
-            <div className="flex items-end gap-3 bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+            <div className="flex items-end gap-3 bg-white border border-slate-200 p-3 rounded-xl shadow-sm flex-wrap">
                 <div className="space-y-1.5">
                     <Label htmlFor="startDate" className="text-slate-400 text-[10px] uppercase tracking-wider font-medium">Desde</Label>
                     <Input
@@ -58,6 +78,33 @@ export function ReportingFilters() {
                         className="h-9 bg-slate-50 border-slate-200 text-xs"
                     />
                 </div>
+
+                {hasDimensions && (
+                    <div className="space-y-1.5">
+                        <Label htmlFor="dimension" className="text-slate-400 text-[10px] uppercase tracking-wider font-medium flex items-center gap-1">
+                            <Layers className="h-3 w-3" />
+                            Dimensión
+                        </Label>
+                        <select
+                            id="dimension"
+                            value={dimensionValueId}
+                            onChange={(e) => setDimensionValueId(e.target.value)}
+                            className="h-9 bg-slate-50 border border-slate-200 rounded-md text-xs px-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        >
+                            <option value="">Todas las dimensiones</option>
+                            {dimensions.map(({ dimension, values }) => (
+                                <optgroup key={dimension.id} label={`${dimension.code} — ${dimension.name}`}>
+                                    {values.map((v) => (
+                                        <option key={v.id} value={v.id}>
+                                            {v.code} — {v.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 <Button onClick={handleApply} size="sm" className="h-9 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold">
                     Generar
                 </Button>

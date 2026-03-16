@@ -31,12 +31,18 @@ import { cn } from "@/shared/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/shared/hooks/use-toast"
 
+interface DimensionOption {
+    dimension: { id: string; code: string; name: string }
+    values: { id: string; code: string; name: string }[]
+}
+
 interface JournalEntryFormProps {
     accounts: any[]
     parties: any[]
+    dimensions?: DimensionOption[]
 }
 
-export function JournalEntryForm({ accounts, parties }: JournalEntryFormProps) {
+export function JournalEntryForm({ accounts, parties, dimensions = [] }: JournalEntryFormProps) {
     const router = useRouter()
     const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -47,8 +53,8 @@ export function JournalEntryForm({ accounts, parties }: JournalEntryFormProps) {
             entry_date: new Date().toISOString().split('T')[0],
             description: "",
             lines: [
-                { account_id: "", party_id: null, debit: 0, credit: 0, description: "" },
-                { account_id: "", party_id: null, debit: 0, credit: 0, description: "" }
+                { account_id: "", party_id: null, debit: 0, credit: 0, description: "", dimension1_id: null, dimension2_id: null },
+                { account_id: "", party_id: null, debit: 0, credit: 0, description: "", dimension1_id: null, dimension2_id: null }
             ]
         }
     })
@@ -206,7 +212,7 @@ export function JournalEntryForm({ accounts, parties }: JournalEntryFormProps) {
                         </div>
                         <Button
                             type="button"
-                            onClick={() => append({ account_id: "", party_id: null, debit: 0, credit: 0, description: "" })}
+                            onClick={() => append({ account_id: "", party_id: null, debit: 0, credit: 0, description: "", dimension1_id: null, dimension2_id: null })}
                             variant="outline"
                             className="h-12 rounded-2xl border-indigo-100 text-indigo-600 font-black text-[10px] tracking-widest uppercase hover:bg-indigo-50"
                         >
@@ -219,6 +225,11 @@ export function JournalEntryForm({ accounts, parties }: JournalEntryFormProps) {
                                 <TableRow className="border-slate-50">
                                     <TableHead className="py-6 pl-10 text-[9px] font-black text-slate-400 uppercase tracking-widest">Cuenta P.U.C</TableHead>
                                     <TableHead className="py-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Tercero / Referencia</TableHead>
+                                    {dimensions.slice(0, 2).map((dim) => (
+                                        <TableHead key={dim.dimension.id} className="py-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                            {dim.dimension.name}
+                                        </TableHead>
+                                    ))}
                                     <TableHead className="py-6 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Débito</TableHead>
                                     <TableHead className="py-6 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Crédito</TableHead>
                                     <TableHead className="py-6 pr-10"></TableHead>
@@ -262,6 +273,38 @@ export function JournalEntryForm({ accounts, parties }: JournalEntryFormProps) {
                                                 />
                                             </div>
                                         </TableCell>
+                                        {dimensions.length > 0 && (
+                                            <TableCell className="py-6">
+                                                <div className="relative">
+                                                    <select
+                                                        {...form.register(`lines.${index}.dimension1_id`)}
+                                                        className="w-full h-12 bg-white rounded-xl border border-slate-100 px-4 text-[10px] font-bold appearance-none outline-none"
+                                                    >
+                                                        <option value="">— Sin valor —</option>
+                                                        {dimensions[0].values.map(v => (
+                                                            <option key={v.id} value={v.id}>{v.code} - {v.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                                                </div>
+                                            </TableCell>
+                                        )}
+                                        {dimensions.length > 1 && (
+                                            <TableCell className="py-6">
+                                                <div className="relative">
+                                                    <select
+                                                        {...form.register(`lines.${index}.dimension2_id`)}
+                                                        className="w-full h-12 bg-white rounded-xl border border-slate-100 px-4 text-[10px] font-bold appearance-none outline-none"
+                                                    >
+                                                        <option value="">— Sin valor —</option>
+                                                        {dimensions[1].values.map(v => (
+                                                            <option key={v.id} value={v.id}>{v.code} - {v.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                                                </div>
+                                            </TableCell>
+                                        )}
                                         <TableCell className="py-6">
                                             <Input
                                                 type="number"
