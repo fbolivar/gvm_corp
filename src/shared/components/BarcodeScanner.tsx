@@ -53,9 +53,9 @@ export function BarcodeScanner() {
 
     // Camera state
     const [isCameraActive, setIsCameraActive] = useState(false)
+    const [cameraStartRequested, setCameraStartRequested] = useState(false)
     const [cameraError, setCameraError] = useState<string | null>(null)
     const html5QrCodeRef = useRef<unknown>(null)
-    const scannerContainerRef = useRef<HTMLDivElement>(null)
 
     const scanBuffer = useRef("")
     const lastKeyTime = useRef(0)
@@ -106,63 +106,71 @@ export function BarcodeScanner() {
         }
     }, [isOpen, stopCamera])
 
-    const startCamera = async () => {
+    const startCamera = () => {
         setCameraError(null)
-
-        try {
-            const { Html5Qrcode } = await import("html5-qrcode")
-
-            // Stop any existing scanner
-            await stopCamera()
-
-            // Small delay for DOM to render
-            await new Promise(r => setTimeout(r, 100))
-
-            const containerId = "barcode-camera-reader"
-            const container = document.getElementById(containerId)
-            if (!container) {
-                setCameraError("No se encontro el contenedor de camara")
-                return
-            }
-
-            const scanner = new Html5Qrcode(containerId)
-            html5QrCodeRef.current = scanner
-
-            await scanner.start(
-                { facingMode: "environment" },
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 150 },
-                    aspectRatio: 1.0,
-                    disableFlip: false,
-                },
-                (decodedText: string) => {
-                    // Barcode detected
-                    toast.success("CODIGO DETECTADO", {
-                        description: decodedText,
-                    })
-                    stopCamera()
-                    lookupBarcode(decodedText)
-                },
-                () => {
-                    // Scan frame — no match, ignore
-                }
-            )
-
-            setIsCameraActive(true)
-        } catch (err: unknown) {
-            console.error("Camera error:", err)
-            const msg = err instanceof Error ? err.message : String(err)
-            if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
-                setCameraError("Permiso de camara denegado. Permite el acceso en la configuracion del navegador.")
-            } else if (msg.includes("NotFoundError") || msg.includes("no camera")) {
-                setCameraError("No se encontro ninguna camara en este dispositivo.")
-            } else {
-                setCameraError(`Error al iniciar camara: ${msg}`)
-            }
-            setIsCameraActive(false)
-        }
+        setIsCameraActive(true)
+        setCameraStartRequested(true)
     }
+
+    // Actually initialize the scanner once the container is rendered
+    useEffect(() => {
+        if (!cameraStartRequested) return
+        setCameraStartRequested(false)
+
+        const initScanner = async () => {
+            try {
+                const { Html5Qrcode } = await import("html5-qrcode")
+
+                // Wait for DOM to render the container
+                await new Promise(r => setTimeout(r, 200))
+
+                const containerId = "barcode-camera-reader"
+                const container = document.getElementById(containerId)
+                if (!container) {
+                    setCameraError("No se encontro el contenedor de camara. Intenta de nuevo.")
+                    setIsCameraActive(false)
+                    return
+                }
+
+                const scanner = new Html5Qrcode(containerId)
+                html5QrCodeRef.current = scanner
+
+                await scanner.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 150 },
+                        aspectRatio: 1.0,
+                        disableFlip: false,
+                    },
+                    (decodedText: string) => {
+                        toast.success("CODIGO DETECTADO", {
+                            description: decodedText,
+                        })
+                        stopCamera()
+                        lookupBarcode(decodedText)
+                    },
+                    () => {
+                        // Scan frame — no match, ignore
+                    }
+                )
+            } catch (err: unknown) {
+                console.error("Camera error:", err)
+                const msg = err instanceof Error ? err.message : String(err)
+                if (msg.includes("NotAllowedError") || msg.includes("Permission")) {
+                    setCameraError("Permiso de camara denegado. Permite el acceso en la configuracion del navegador.")
+                } else if (msg.includes("NotFoundError") || msg.includes("no camera")) {
+                    setCameraError("No se encontro ninguna camara en este dispositivo.")
+                } else {
+                    setCameraError(`Error al iniciar camara: ${msg}`)
+                }
+                setIsCameraActive(false)
+            }
+        }
+
+        initScanner()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cameraStartRequested])
 
     const lookupBarcode = async (code: string) => {
         setIsOpen(true)
@@ -320,7 +328,6 @@ export function BarcodeScanner() {
                                 {isCameraActive ? (
                                     <div className="w-full space-y-3">
                                         <div
-                                            ref={scannerContainerRef}
                                             id="barcode-camera-reader"
                                             className="w-full rounded-2xl overflow-hidden bg-black"
                                         />
