@@ -4,6 +4,7 @@ import { useState } from "react"
 import { OpportunityStage } from "../types"
 import { OpportunityCard } from "./OpportunityCard"
 import { updateOpportunityStageAction } from "../actions"
+import { crmService } from "../services/crmService"
 import { toast } from "sonner"
 import { cn } from "@/shared/lib/utils"
 import { Badge } from "@/shared/components/ui/badge"
@@ -63,9 +64,11 @@ export function OpportunityKanban({ initialOpportunities }: Props) {
         if (newIndex < 0 || newIndex >= STAGES.length) return;
 
         const newStage = STAGES[newIndex];
+        const newProbability = crmService.getStageProbability(newStage);
 
+        // Optimistic update — stage + probability
         setOpportunities(prev => prev.map(o =>
-            o.id === id ? { ...o, stage: newStage } : o
+            o.id === id ? { ...o, stage: newStage, probability: newProbability } : o
         ));
 
         const result = await updateOpportunityStageAction(id as string, newStage);
@@ -73,10 +76,10 @@ export function OpportunityKanban({ initialOpportunities }: Props) {
         if (result?.error) {
             toast.error("Error al mover la oportunidad");
             setOpportunities(prev => prev.map(o =>
-                o.id === id ? { ...o, stage: opportunity.stage } : o
+                o.id === id ? { ...o, stage: opportunity.stage, probability: opportunity.probability } : o
             ));
         } else {
-            toast.success(`Movida a ${STAGE_LABELS[newStage]}`);
+            toast.success(`Movida a ${STAGE_LABELS[newStage]} (${newProbability}%)`);
         }
     };
 

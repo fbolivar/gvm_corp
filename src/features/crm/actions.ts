@@ -48,11 +48,36 @@ export async function updateOpportunityStageAction(id: string, stage: string) {
     const supabase = await createClient();
 
     try {
-        await crmService.updateStage(supabase, id, stage as any);
+        const result = await crmService.updateStage(supabase, id, stage as any);
         revalidatePath('/crm/pipeline');
+        revalidatePath('/crm/forecast');
+        revalidatePath(`/crm/opportunities/${id}`);
+        return { success: true, probability: result.probability };
+    } catch (error: unknown) {
+        const err = error as Record<string, unknown>;
+        const msg = (typeof err?.message === 'string' ? err.message : null)
+            ?? (error instanceof Error ? error.message : null)
+            ?? 'Error al cambiar etapa';
+        return { error: msg };
+    }
+}
+
+export async function addActivityAction(opportunityId: string, data: { type: string; title: string; description?: string }) {
+    const supabase = await createClient();
+
+    try {
+        await crmService.addActivity(supabase, {
+            opportunity_id: opportunityId,
+            ...data,
+        });
+        revalidatePath(`/crm/opportunities/${opportunityId}`);
         return { success: true };
-    } catch (error: any) {
-        return { error: error.message };
+    } catch (error: unknown) {
+        const err = error as Record<string, unknown>;
+        const msg = (typeof err?.message === 'string' ? err.message : null)
+            ?? (error instanceof Error ? error.message : null)
+            ?? 'Error al registrar actividad';
+        return { error: msg };
     }
 }
 
@@ -102,6 +127,70 @@ export async function deleteLeadAction(id: string) {
     revalidatePath('/crm/leads');
     revalidatePath('/crm');
     return { success: true };
+}
+
+export async function updateOpportunityAction(id: string, data: Record<string, unknown>) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+
+    const payload: Record<string, unknown> = {
+        name: data.name,
+        value: data.value,
+        probability: data.probability,
+        expected_close_date: data.expected_close_date || null,
+        lead_id: data.lead_id || null,
+        party_id: data.party_id || null,
+        description: (data.notes as string) || (data.description as string) || null,
+        stage: data.stage || undefined,
+    };
+
+    // Remove undefined keys
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+
+    try {
+        const opportunity = await crmService.updateOpportunity(supabase, id, payload as Parameters<typeof crmService.updateOpportunity>[2]);
+        revalidatePath('/crm/pipeline');
+        revalidatePath('/crm');
+        revalidatePath('/crm/forecast');
+        return { success: true, opportunityId: opportunity.id };
+    } catch (error: unknown) {
+        const err = error as Record<string, unknown>;
+        const msg = (typeof err?.message === 'string' ? err.message : null)
+            ?? (error instanceof Error ? error.message : null)
+            ?? JSON.stringify(error);
+        console.error('[crm] updateOpportunityAction:', msg, error);
+        return { error: msg };
+    }
+}
+
+export async function deleteOpportunityAction(id: string) {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+
+    try {
+        const { error } = await supabase
+            .from('crm_opportunities')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        revalidatePath('/crm/pipeline');
+        revalidatePath('/crm');
+        revalidatePath('/crm/forecast');
+        return { success: true };
+    } catch (error: unknown) {
+        const err = error as Record<string, unknown>;
+        const msg = (typeof err?.message === 'string' ? err.message : null)
+            ?? (error instanceof Error ? error.message : null)
+            ?? JSON.stringify(error);
+        console.error('[crm] deleteOpportunityAction:', msg, error);
+        return { error: msg };
+    }
 }
 
 export async function createOpportunityAction(data: Record<string, unknown>) {

@@ -1,13 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { crmService } from '@/features/crm/services/crmService';
 import { OpportunityStageButtons } from '@/features/crm/components/OpportunityStageButtons';
+import { OpportunityActivityTimeline } from '@/features/crm/components/OpportunityActivityTimeline';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {
     Target, Building2, Calendar, DollarSign, Percent,
-    ArrowLeft, Users, Mail, Phone, CheckCircle2, Clock
+    ArrowLeft, Users, Mail, Phone, CheckCircle2, Clock, Activity
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
@@ -35,6 +36,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
     } catch {
         notFound();
     }
+
+    const activities = await crmService.getActivities(supabase, id);
 
     const meta = STAGE_META[opp.stage] || STAGE_META.PROSPECTING;
     const currentIdx = LINEAR_STAGES.indexOf(opp.stage);
@@ -266,6 +269,19 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                     </div>
                 </div>
                 <OpportunityStageButtons opportunityId={opp.id} currentStage={opp.stage} />
+            </div>
+
+            {/* ACTIVITY TIMELINE */}
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-premium border border-slate-50 space-y-6">
+                <div className="flex items-center gap-3">
+                    <div className="h-1 w-5 bg-indigo-500 rounded-full" />
+                    <Activity className="h-5 w-5 text-indigo-500" />
+                    <h3 className="text-sm font-black italic uppercase tracking-tight text-slate-900">Historial de Actividades</h3>
+                </div>
+                <OpportunityActivityTimeline
+                    opportunityId={opp.id}
+                    activities={activities as any}
+                />
             </div>
         </div>
     );

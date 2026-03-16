@@ -110,16 +110,96 @@ export const crmService = {
         return data as any;
     },
 
+    // Default probability by stage — auto-adjusts on stage transition
+    getStageProbability(stage: OpportunityStage): number {
+        const map: Record<OpportunityStage, number> = {
+            PROSPECTING: 10,
+            QUALIFICATION: 25,
+            PROPOSAL: 50,
+            NEGOTIATION: 75,
+            CLOSED_WON: 100,
+            CLOSED_LOST: 0,
+        };
+        return map[stage] ?? 10;
+    },
+
     async updateStage(client: SupabaseClient, id: string, stage: OpportunityStage) {
+        // Get current state before update
+        const { data: current } = await client
+            .from('crm_opportunities')
+            .select('stage, probability, tenant_id')
+            .eq('id', id)
+            .single();
+
+        const newProbability = this.getStageProbability(stage);
+
         const { data, error } = await client
             .from('crm_opportunities')
-            .update({ stage, updated_at: new Date().toISOString() })
+            .update({
+                stage,
+                probability: newProbability,
+                updated_at: new Date().toISOString(),
+            })
             .eq('id', id)
             .select()
             .single();
 
         if (error) throw error;
+
+        // Log stage change activity
+        if (current) {
+            const { data: { user } } = await client.auth.getUser();
+            await client.from('crm_opportunity_activities').insert({
+                tenant_id: current.tenant_id,
+                opportunity_id: id,
+                user_id: user?.id ?? null,
+                type: 'STAGE_CHANGE',
+                title: `Etapa cambiada a ${stage}`,
+                old_stage: current.stage,
+                new_stage: stage,
+                old_probability: current.probability,
+                new_probability: newProbability,
+            });
+        }
+
         return data as Opportunity;
+    },
+
+    async getActivities(client: SupabaseClient, opportunityId: string) {
+        const { data, error } = await client
+            .from('crm_opportunity_activities')
+            .select('*, profiles:user_id (full_name, email)')
+            .eq('opportunity_id', opportunityId)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) { console.error('[crm] getActivities:', error.message); return []; }
+        return data as Array<Record<string, unknown>>;
+    },
+
+    async addActivity(client: SupabaseClient, activity: {
+        opportunity_id: string;
+        type: string;
+        title: string;
+        description?: string;
+    }) {
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) throw new Error('No autenticado');
+
+        const { data: tenantId } = await client.rpc('get_my_tenant_id');
+
+        const { data, error } = await client
+            .from('crm_opportunity_activities')
+            .insert({
+                ...activity,
+                tenant_id: tenantId,
+                user_id: user.id,
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
     },
 
     async getForecastByMonth(client: SupabaseClient, months = 6) {
