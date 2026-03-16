@@ -1,17 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { employeeService } from '@/features/payroll/services/employeeService';
 import { payrollService } from '@/features/payroll/services/payrollService';
+import { attendanceService } from '@/features/payroll/services/attendanceService';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { TableExportClient } from '@/features/accounting/components/TableExportClient';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
     Users, TrendingUp, Building2,
     ChevronLeft, ChevronRight, ArrowLeft,
-    Banknote,
+    Banknote, Timer,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { PayrollLoan, PayrollBenefit } from '@/features/payroll/types';
@@ -77,17 +79,34 @@ export default async function PayrollSummaryPage({
     allLoans.forEach(l => { (loansByEmp[l.employee_id] ??= []).push(l); });
     allBenefits.forEach(b => { (benefitsByEmp[b.employee_id] ??= []).push(b); });
 
+    // Auto-fetch attendance summaries for the period
+    const attendanceSummaries = await Promise.all(
+        activeEmployees.map(async emp => {
+            try {
+                const summary = await attendanceService.getPeriodSummary(supabase, emp.id!, periodStart, periodEnd);
+                return { empId: emp.id!, summary };
+            } catch {
+                return { empId: emp.id!, summary: { overtime: 0, night: 0, sunday: 0, daysPresent: 0, totalWorkedHours: 0 } };
+            }
+        })
+    );
+    const attendanceByEmp: Record<string, { overtime: number; night: number; sunday: number; daysPresent: number; totalWorkedHours: number }> = {};
+    attendanceSummaries.forEach(a => { attendanceByEmp[a.empId] = a.summary; });
+
     const rows = activeEmployees.map(emp => {
+        const attSummary = attendanceByEmp[emp.id!];
+        const hasAttendance = attSummary && (attSummary.overtime > 0 || attSummary.night > 0 || attSummary.sunday > 0);
         const settlement = payrollService.calculateSettlement(
             emp, 30,
             loansByEmp[emp.id!] ?? [],
             benefitsByEmp[emp.id!] ?? [],
+            hasAttendance ? attSummary : undefined,
         );
         const party = emp.party as { legal_name?: string; doc_number?: string } | undefined;
         const companyCost = (settlement.social_security?.employer.total ?? 0)
             + (settlement.social_security?.parafiscales.total ?? 0)
             + (settlement.provisions?.total ?? 0);
-        return { emp, settlement, party, companyCost };
+        return { emp, settlement, party, companyCost, attSummary, hasAttendance };
     });
 
     const totalEarnings = rows.reduce((s, r) => s + r.settlement.total_earnings, 0);
@@ -104,6 +123,10 @@ export default async function PayrollSummaryPage({
         'Doc. Identidad': r.party?.doc_number ?? '',
         'Contrato': CONTRACT_LABEL[r.emp.contract_type] ?? r.emp.contract_type,
         'Salario Base': r.settlement.salary_base,
+        'Horas Trabajadas': r.attSummary?.totalWorkedHours ?? 0,
+        'Horas Extra': r.attSummary?.overtime ?? 0,
+        'Horas Nocturnas': r.attSummary?.night ?? 0,
+        'Horas Dominicales': r.attSummary?.sunday ?? 0,
         'Devengado': r.settlement.total_earnings,
         'Deducciones': r.settlement.total_deductions,
         'Neto a Pagar': r.settlement.net_pay,
@@ -198,6 +221,7 @@ export default async function PayrollSummaryPage({
                                 <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Empleado</th>
                                 <th className="hidden lg:table-cell px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contrato</th>
                                 <th className="hidden lg:table-cell px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Salario Base</th>
+                                <th className="hidden lg:table-cell px-6 py-3 text-right text-[10px] font-semibold text-violet-500 uppercase tracking-wider">Horas / HE</th>
                                 <th className="px-6 py-3 text-right text-[10px] font-semibold text-emerald-500 uppercase tracking-wider">Devengado</th>
                                 <th className="hidden md:table-cell px-6 py-3 text-right text-[10px] font-semibold text-rose-400 uppercase tracking-wider">Deducciones</th>
                                 <th className="px-6 py-3 text-right text-[10px] font-semibold text-blue-500 uppercase tracking-wider">Neto</th>
@@ -206,7 +230,7 @@ export default async function PayrollSummaryPage({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {rows.map(({ emp, settlement, party, companyCost }) => (
+                            {rows.map(({ emp, settlement, party, companyCost, attSummary, hasAttendance }) => (
                                 <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
                                     <td className="px-6 py-3">
                                         <p className="text-xs font-bold text-slate-900">{party?.legal_name ?? 'Sin nombre'}</p>
@@ -217,6 +241,18 @@ export default async function PayrollSummaryPage({
                                     </td>
                                     <td className="hidden lg:table-cell px-6 py-3 text-right">
                                         <span className="text-xs text-slate-500 tabular-nums font-mono">{fmt(settlement.salary_base)}</span>
+                                    </td>
+                                    <td className="hidden lg:table-cell px-6 py-3 text-right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <span className="text-xs text-slate-500 tabular-nums font-mono">
+                                                {attSummary?.totalWorkedHours ? `${attSummary.totalWorkedHours.toFixed(0)}h` : '—'}
+                                            </span>
+                                            {hasAttendance && (
+                                                <Badge className="text-[8px] font-bold bg-violet-50 text-violet-600 border-violet-200 px-1 py-0">
+                                                    {attSummary!.overtime.toFixed(1)} HE
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-emerald-600 tabular-nums font-mono">{fmt(settlement.total_earnings)}</span>
@@ -238,7 +274,7 @@ export default async function PayrollSummaryPage({
 
                             {rows.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                    <td colSpan={9} className="px-6 py-16 text-center">
                                         <Users className="h-8 w-8 text-slate-200 mx-auto mb-3" />
                                         <p className="text-xs text-slate-400">No hay empleados activos</p>
                                     </td>
@@ -252,7 +288,7 @@ export default async function PayrollSummaryPage({
                                     <td className="px-6 py-3">
                                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Totales del Periodo</span>
                                     </td>
-                                    <td className="hidden lg:table-cell px-6 py-3" colSpan={2} />
+                                    <td className="hidden lg:table-cell px-6 py-3" colSpan={3} />
                                     <td className="px-6 py-3 text-right">
                                         <span className="text-xs font-bold text-emerald-600 tabular-nums font-mono">{fmt(totalEarnings)}</span>
                                     </td>

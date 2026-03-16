@@ -29,6 +29,7 @@ export const smartAlertService = {
             this.checkFixedAssetsNeverDepreciatedAlert(client),
             this.checkContractsExpiringAlert(client),
             this.checkExpiringLotsAlert(client),
+            this.checkAbsenceAlert(client),
         ]);
     },
 
@@ -394,6 +395,67 @@ export const smartAlertService = {
             }, priority);
         } catch (e) {
             console.error('[smartAlerts] expiring_lots:', e);
+        }
+    },
+
+    // ─── Employee Absence Alert ───────────────────────────────────────────────
+
+    async checkAbsenceAlert(client: SupabaseClient) {
+        try {
+            // Only check after 10:00 AM local time
+            const now = new Date();
+            if (now.getHours() < 10) return;
+
+            const today = now.toISOString().split('T')[0];
+
+            // Get all active employees
+            const { data: employees } = await client
+                .from('employees')
+                .select('id, party:parties(legal_name)')
+                .eq('status', 'ACTIVE');
+
+            if (!employees || employees.length === 0) return;
+
+            // Get today's attendance records
+            const { data: attendance } = await client
+                .from('payroll_attendance')
+                .select('employee_id')
+                .eq('work_date', today);
+
+            const checkedInIds = new Set(attendance?.map(a => a.employee_id) || []);
+
+            // Get approved absences for today
+            const { data: absences } = await client
+                .from('absence_requests')
+                .select('employee_id')
+                .eq('status', 'APPROVED')
+                .lte('start_date', today)
+                .gte('end_date', today);
+
+            const absentApprovedIds = new Set(absences?.map(a => a.employee_id) || []);
+
+            // Employees without check-in and without approved absence
+            const missing = employees.filter(emp =>
+                !checkedInIds.has(emp.id) && !absentApprovedIds.has(emp.id)
+            );
+
+            if (missing.length === 0) return;
+
+            const count = missing.length;
+            const sample = missing.slice(0, 3).map(e => {
+                const party = e.party as unknown as { legal_name: string } | { legal_name: string }[] | null;
+                return Array.isArray(party) ? party[0]?.legal_name : party?.legal_name || 'N/A';
+            }).join(', ');
+            const suffix = count > 3 ? ` y ${count - 3} mas` : '';
+
+            await this.triggerAlert(client, {
+                title: `${count} Empleado${count > 1 ? 's' : ''} sin Marcar Entrada`,
+                body: `Los siguientes empleados no han registrado entrada hoy: ${sample}${suffix}. Verifica su situacion.`,
+                category: 'OPERATIONS',
+                link: '/payroll/attendance'
+            }, 'HIGH');
+        } catch (e) {
+            console.error('[smartAlerts] absence:', e);
         }
     },
 

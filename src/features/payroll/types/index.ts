@@ -178,3 +178,44 @@ export interface PayrollSettlement {
     social_security?: SocialSecuritySummary;
     provisions?: ProvisionsSummary;
 }
+
+// ─── WORK SCHEDULES ──────────────────────────────────────────────────────────
+export interface WorkSchedule {
+    id: string;
+    tenant_id: string;
+    name: string;
+    start_time: string;  // HH:MM
+    end_time: string;    // HH:MM
+    break_minutes: number;
+    grace_minutes: number;
+    is_night_shift: boolean;
+    is_default: boolean;
+    created_at?: string;
+}
+
+// ─── ATTENDANCE GEO ZONES ────────────────────────────────────────────────────
+export interface AttendanceGeoZone {
+    id: string;
+    tenant_id: string;
+    name: string;
+    lat: number;
+    lng: number;
+    radius_meters: number;
+    is_active: boolean;
+    created_at?: string;
+}
+
+// ─── PUNCTUALITY REPORT ──────────────────────────────────────────────────────
+export interface PunctualityRecord {
+    employee_id: string;
+    name: string;
+    position?: string;
+    totalDays: number;
+    presentDays: number;
+    lateDays: number;
+    absentDays: number;
+    punctualityRate: number;
+    avgLateMinutes: number;
+    totalOvertimeHours: number;
+    totalWorkedHours: number;
+}

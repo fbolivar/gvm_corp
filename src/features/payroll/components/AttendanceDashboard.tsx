@@ -154,6 +154,8 @@ export function AttendanceDashboard({ employees, records: initialRecords, year: 
                     overtime_hours: editCell.overtime_hours,
                     night_hours: 0,
                     sunday_hours: 0,
+                    total_worked_hours: 0,
+                    late_minutes: 0,
                     notes: editCell.notes || undefined,
                 };
                 const filtered = prev.filter(
