@@ -99,6 +99,11 @@ export default function NewTransferClient({ warehouses, products }: Props) {
             toast.error("Por favor complete todos los campos requeridos");
             return;
         }
+        const vals = form.getValues();
+        if (vals.from_warehouse_id === vals.to_warehouse_id) {
+            toast.error("La bodega destino debe ser diferente a la bodega origen");
+            return;
+        }
         setLoadingDraft(true);
         try {
             const data = form.getValues();
@@ -118,6 +123,11 @@ export default function NewTransferClient({ warehouses, products }: Props) {
         const valid = await form.trigger();
         if (!valid) {
             toast.error("Por favor complete todos los campos requeridos");
+            return;
+        }
+        const vals = form.getValues();
+        if (vals.from_warehouse_id === vals.to_warehouse_id) {
+            toast.error("La bodega destino debe ser diferente a la bodega origen");
             return;
         }
         setLoadingSend(true);
