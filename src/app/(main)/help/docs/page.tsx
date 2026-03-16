@@ -33,7 +33,7 @@ import { helpService } from "@/features/help/services/helpService";
 import { useI18n } from "@/shared/stores/useLanguageStore";
 import { toast } from "sonner";
 
-const ACADEMY_URL = "https://academy.gvmsas.com";
+const ACADEMY_URL = "/academy";
 const CONSULTANCY_URL = "https://calendly.com/gvmsas";
 
 export default function DocsPage() {
@@ -49,7 +49,7 @@ export default function DocsPage() {
     };
 
     const handleAcademyClick = () => {
-        window.open(ACADEMY_URL, "_blank");
+        window.location.href = ACADEMY_URL;
     };
 
     const handleConsultancyClick = () => {

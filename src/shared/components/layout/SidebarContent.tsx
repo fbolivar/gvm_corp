@@ -283,7 +283,16 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: 'Monedas', href: "/settings/currencies", icon: Coins, moduleKey: 'settings' },
                 { title: 'Listas de Precios', href: "/settings/pricing", icon: Tag, moduleKey: 'settings' },
                 { title: 'API Keys', href: "/settings/api-keys", icon: Key, moduleKey: 'settings' },
-                { title: t.sidebar.help, href: "/help", icon: HelpCircle }, // siempre visible
+                {
+                    title: t.sidebar.help,
+                    href: '/help',
+                    icon: HelpCircle,
+                    children: [
+                        { title: 'Manual', href: '/help/docs', icon: BookOpen },
+                        { title: 'Academia', href: '/academy', icon: GraduationCap },
+                        { title: 'Soporte', href: '/support', icon: Headset },
+                    ]
+                },
             ]
         }
     ];
