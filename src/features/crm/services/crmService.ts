@@ -122,6 +122,68 @@ export const crmService = {
         return data as Opportunity;
     },
 
+    async getForecastByMonth(client: SupabaseClient, months = 6) {
+        const { data, error } = await client.rpc('get_forecast_by_month', { p_months: months });
+        if (error) { console.error('[crm] getForecastByMonth:', error.message); return []; }
+        return (data ?? []) as Array<{
+            month: string;
+            opp_count: number;
+            nominal: number;
+            weighted: number;
+            commit_val: number;
+            best_case: number;
+            pipeline_val: number;
+        }>;
+    },
+
+    async getForecastByAssignee(client: SupabaseClient) {
+        const { data, error } = await client.rpc('get_forecast_by_assignee');
+        if (error) { console.error('[crm] getForecastByAssignee:', error.message); return []; }
+        return (data ?? []) as Array<{
+            user_id: string | null;
+            full_name: string;
+            opp_count: number;
+            nominal: number;
+            weighted: number;
+            commit_val: number;
+            best_case: number;
+            pipeline_val: number;
+        }>;
+    },
+
+    async getUpcomingCloses(client: SupabaseClient, limit = 10) {
+        const { data, error } = await client
+            .from('crm_opportunities')
+            .select(`
+                id, name, value, probability, stage, expected_close_date,
+                parties (legal_name)
+            `)
+            .not('stage', 'in', '("CLOSED_WON","CLOSED_LOST")')
+            .not('expected_close_date', 'is', null)
+            .gte('expected_close_date', new Date().toISOString().split('T')[0])
+            .order('expected_close_date', { ascending: true })
+            .limit(limit);
+
+        if (error) { console.error('[crm] getUpcomingCloses:', error.message); return []; }
+        // Supabase returns party as object (single FK) — normalize
+        return ((data ?? []) as unknown[]).map((row: unknown) => {
+            const r = row as Record<string, unknown>;
+            const parties = r.parties;
+            return {
+                ...r,
+                parties: Array.isArray(parties) ? (parties[0] as { legal_name: string } | undefined) ?? null : parties as { legal_name: string } | null,
+            };
+        }) as Array<{
+            id: string;
+            name: string;
+            value: number;
+            probability: number;
+            stage: string;
+            expected_close_date: string;
+            parties: { legal_name: string } | null;
+        }>;
+    },
+
     async getDashboardStats(client: SupabaseClient) {
         const [leads, opportunities] = await Promise.all([
             this.getLeads(client),

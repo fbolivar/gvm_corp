@@ -160,6 +160,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.sidebar.leads, href: "/crm/leads", icon: UserPlus },
                         { title: t.sidebar.pipeline, href: "/crm/pipeline", icon: Target },
+                        { title: 'Forecast', href: "/crm/forecast", icon: TrendingUp },
                     ]
                 },
                 {
