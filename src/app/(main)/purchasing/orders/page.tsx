@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { purchaseOrderService } from '@/features/purchasing/services/purchaseOrderService';
 import { POActionButtons } from '@/features/purchasing/components/POActionButtons';
-import { PurchaseOrderWithDetails, POStatus } from '@/features/purchasing/types';
+import { PurchaseOrderWithDetails, POStatus, POCurrency, formatPOCurrency } from '@/features/purchasing/types';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import {
@@ -26,12 +26,8 @@ import { VisualReportHeader } from '@/features/accounting/components/VisualRepor
 
 export const metadata = { title: 'Ordenes de Compra — GVM Corp' };
 
-function formatCOP(amount: number) {
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        maximumFractionDigits: 0,
-    }).format(amount);
+function formatMoney(amount: number, currency: POCurrency = 'COP') {
+    return formatPOCurrency(amount, currency);
 }
 
 function formatDate(dateStr: string | null | undefined) {
@@ -85,7 +81,7 @@ export default async function PurchaseOrdersPage() {
         { label: 'Total Ordenes', value: stats.total, icon: ClipboardList, color: 'text-slate-600', bg: 'bg-slate-100' },
         { label: 'Pend. Aprobacion', value: stats.pendingApproval, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
         { label: 'En Transito', value: stats.inTransit, icon: Truck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-        { label: 'Total Comprometido', value: formatCOP(stats.totalCommitted), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Total Comprometido', value: formatMoney(stats.totalCommitted), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ];
 
     return (
@@ -184,9 +180,14 @@ export default async function PurchaseOrdersPage() {
                                                     <StatusBadge status={order.status} />
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
-                                                    <span className="text-sm font-bold text-slate-900 font-mono tabular-nums">
-                                                        {formatCOP(Number(order.total) || 0)}
-                                                    </span>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-sm font-bold text-slate-900 font-mono tabular-nums">
+                                                            {formatMoney(Number(order.total) || 0, (order.currency as POCurrency) || 'COP')}
+                                                        </span>
+                                                        {order.currency === 'USD' && (
+                                                            <span className="text-[9px] font-bold text-blue-500 mt-0.5">USD</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     <POActionButtons orderId={order.id!} status={order.status} />

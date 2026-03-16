@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { purchaseOrderService } from '@/features/purchasing/services/purchaseOrderService';
 import { POActionButtons } from '@/features/purchasing/components/POActionButtons';
-import { POStatus } from '@/features/purchasing/types';
+import { POStatus, POCurrency, formatPOCurrency } from '@/features/purchasing/types';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
     ArrowLeft,
+    Banknote,
     Building2,
     Warehouse,
     Calendar,
@@ -30,12 +31,8 @@ export const metadata: Metadata = { title: 'Detalle Orden de Compra — GVM Corp
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCOP(amount: number): string {
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        maximumFractionDigits: 0,
-    }).format(amount);
+function formatCurrency(amount: number, currency: POCurrency = 'COP'): string {
+    return formatPOCurrency(amount, currency);
 }
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -378,6 +375,7 @@ export default async function PurchaseOrderDetailPage({
     const approverEmail =
         (po.approved_by_user as { email?: string } | undefined)?.email;
 
+    const currency = (po.currency as POCurrency) || 'COP';
     const subtotal = Number(po.subtotal) || 0;
     const taxTotal = Number(po.tax_total) || 0;
     const total = Number(po.total) || 0;
@@ -468,6 +466,12 @@ export default async function PurchaseOrderDetailPage({
                                     accentText={cfg.accentText}
                                 />
                             )}
+                            <InfoPill
+                                icon={Banknote}
+                                label="Moneda"
+                                value={currency === 'USD' ? 'Dólares (USD)' : 'Pesos (COP)'}
+                                accentText={cfg.accentText}
+                            />
                         </div>
                     </div>
 
@@ -575,9 +579,9 @@ export default async function PurchaseOrderDetailPage({
 
             {/* ── Financial Summary ───────────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <FinancialCard label="Subtotal" value={formatCOP(subtotal)} />
-                <FinancialCard label="IVA" value={formatCOP(taxTotal)} />
-                <FinancialCard label="Total orden" value={formatCOP(total)} highlight />
+                <FinancialCard label="Subtotal" value={formatCurrency(subtotal, currency)} />
+                <FinancialCard label="IVA" value={formatCurrency(taxTotal, currency)} />
+                <FinancialCard label={`Total ${currency}`} value={formatCurrency(total, currency)} highlight />
             </div>
 
             {/* ── Lines Table ─────────────────────────────────────────────────── */}
@@ -728,7 +732,7 @@ export default async function PurchaseOrderDetailPage({
                                                 {/* Costo Unit. */}
                                                 <td className="px-4 py-5 text-right">
                                                     <span className="text-sm font-black text-slate-700 font-mono tracking-tight">
-                                                        {formatCOP(unitCost)}
+                                                        {formatCurrency(unitCost, currency)}
                                                     </span>
                                                 </td>
 
@@ -742,7 +746,7 @@ export default async function PurchaseOrderDetailPage({
                                                 {/* Subtotal línea */}
                                                 <td className="px-8 py-5 text-right">
                                                     <span className="text-sm font-black text-slate-900 font-mono tracking-tight">
-                                                        {formatCOP(lineSubtotal)}
+                                                        {formatCurrency(lineSubtotal, currency)}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -777,7 +781,7 @@ export default async function PurchaseOrderDetailPage({
                                         <td className="px-4 py-5" />
                                         <td className="px-8 py-5 text-right">
                                             <span className="text-base font-black text-slate-900 font-mono tracking-tight">
-                                                {formatCOP(total)}
+                                                {formatCurrency(total, currency)}
                                             </span>
                                         </td>
                                     </tr>

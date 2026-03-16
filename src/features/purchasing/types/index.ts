@@ -3,6 +3,9 @@ import { z } from 'zod';
 export const PO_STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'] as const;
 export type POStatus = typeof PO_STATUSES[number];
 
+export const PO_CURRENCIES = ['COP', 'USD'] as const;
+export type POCurrency = typeof PO_CURRENCIES[number];
+
 export const poLineSchema = z.object({
     id: z.string().uuid().optional(),
     order_id: z.string().uuid().optional(),
@@ -21,6 +24,7 @@ export const purchaseOrderSchema = z.object({
     po_number: z.string().optional(),
     supplier_id: z.string().uuid(),
     warehouse_id: z.string().uuid().optional(),
+    currency: z.enum(PO_CURRENCIES).default('COP'),
     status: z.enum(PO_STATUSES).default('DRAFT'),
     order_date: z.string().default(() => new Date().toISOString().split('T')[0]),
     expected_delivery: z.string().optional(),
@@ -34,10 +38,19 @@ export interface PurchaseOrderWithDetails extends Omit<PurchaseOrder, 'lines'> {
     subtotal: number;
     tax_total: number;
     total: number;
+    currency: POCurrency;
     supplier?: { legal_name: string; doc_number: string };
     warehouse?: { name: string };
     approved_by_user?: { email: string };
     lines: Array<POLine & { product?: { name: string; sku: string } }>;
     created_at?: string;
     approved_at?: string;
+}
+
+export function formatPOCurrency(amount: number, currency: POCurrency = 'COP'): string {
+    return new Intl.NumberFormat(currency === 'COP' ? 'es-CO' : 'en-US', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: currency === 'COP' ? 0 : 2,
+    }).format(amount);
 }

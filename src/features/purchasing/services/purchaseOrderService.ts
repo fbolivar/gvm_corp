@@ -9,6 +9,20 @@ export const purchaseOrderService = {
         return tenantData?.id;
     },
 
+    async getNextPONumber(client: SupabaseClient): Promise<string> {
+        const tenant_id = await this.getTenantId(client);
+        if (!tenant_id) throw new Error('No tenant found');
+        const year = new Date().getFullYear();
+        const { data } = await client
+            .from('po_number_sequences')
+            .select('last_value')
+            .eq('tenant_id', tenant_id)
+            .eq('year', year)
+            .maybeSingle();
+        const nextVal = ((data?.last_value as number) ?? 0) + 1;
+        return `OC-${year}-${String(nextVal).padStart(5, '0')}`;
+    },
+
     async getOrders(client: SupabaseClient, filters?: { status?: string; search?: string }) {
         let query = client
             .from('purchase_orders')

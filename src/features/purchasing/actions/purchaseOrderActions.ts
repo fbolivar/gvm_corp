@@ -5,6 +5,16 @@ import { purchaseOrderService } from '../services/purchaseOrderService';
 import { purchaseOrderSchema } from '../types';
 import { revalidatePath } from 'next/cache';
 
+export async function getNextPONumberAction(): Promise<{ poNumber?: string; error?: string }> {
+    const supabase = await createClient();
+    try {
+        const poNumber = await purchaseOrderService.getNextPONumber(supabase);
+        return { poNumber };
+    } catch (error: unknown) {
+        return { error: (error as Error).message };
+    }
+}
+
 export async function createPurchaseOrderAction(formData: unknown) {
     const supabase = await createClient();
     const parsed = purchaseOrderSchema.safeParse(formData);

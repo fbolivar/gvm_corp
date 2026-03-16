@@ -3,7 +3,7 @@
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
     Building2,
@@ -19,12 +19,15 @@ import {
     Loader2,
     Send,
     Save,
+    Hash,
+    Banknote,
 } from "lucide-react";
 
-import { purchaseOrderSchema, type PurchaseOrder } from "@/features/purchasing/types";
+import { purchaseOrderSchema, type PurchaseOrder, type POCurrency } from "@/features/purchasing/types";
 import {
     createPurchaseOrderAction,
     submitForApprovalAction,
+    getNextPONumberAction,
 } from "@/features/purchasing/actions/purchaseOrderActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -82,8 +85,15 @@ function useTotals(control: ReturnType<typeof useForm<PurchaseOrder>>["control"]
 // Format helper
 // ---------------------------------------------------------------------------
 
-function fmt(value: number) {
+function fmt(value: number, currency: POCurrency = "COP") {
+    if (currency === "USD") {
+        return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
     return value.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function currencySymbol(currency: POCurrency) {
+    return currency === "USD" ? "US$" : "$";
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +104,7 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
     const router = useRouter();
     const [loadingDraft, setLoadingDraft] = useState(false);
     const [loadingApproval, setLoadingApproval] = useState(false);
+    const [nextPONumber, setNextPONumber] = useState<string>("—");
 
     const today = new Date().toISOString().split("T")[0];
 
@@ -102,6 +113,7 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
         defaultValues: {
             supplier_id: "",
             warehouse_id: undefined,
+            currency: "COP",
             status: "DRAFT",
             order_date: today,
             expected_delivery: undefined,
@@ -109,6 +121,15 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
             lines: [],
         },
     });
+
+    const selectedCurrency = useWatch({ control: form.control, name: "currency" }) as POCurrency ?? "COP";
+
+    // Fetch next PO number on mount
+    useEffect(() => {
+        getNextPONumberAction().then((res) => {
+            if (res.poNumber) setNextPONumber(res.poNumber);
+        });
+    }, []);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -203,6 +224,41 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
                 </CardHeader>
 
                 <CardContent className="p-10 pt-4 space-y-8">
+                    {/* Row 0: PO Number + Currency */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Next PO Number (read-only) */}
+                        <div className="space-y-2">
+                            <Label className={labelClass}>Consecutivo OC</Label>
+                            <div className="relative">
+                                <Hash className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-amber-400 pointer-events-none z-10" />
+                                <div className="w-full h-14 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl px-12 flex items-center">
+                                    <span className="text-lg font-black text-slate-900 tracking-tight font-mono">
+                                        {nextPONumber}
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-[9px] font-medium text-slate-400 ml-1">
+                                Se asignará automáticamente al guardar
+                            </p>
+                        </div>
+
+                        {/* Currency selector */}
+                        <div className="space-y-2">
+                            <Label className={labelClass}>Moneda</Label>
+                            <div className="relative">
+                                <Banknote className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 pointer-events-none z-10" />
+                                <select
+                                    {...form.register("currency")}
+                                    className={selectClass}
+                                >
+                                    <option value="COP">COP — Pesos Colombianos</option>
+                                    <option value="USD">USD — Dólares Americanos</option>
+                                </select>
+                                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Row 1: Supplier + Warehouse */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Supplier */}
@@ -349,6 +405,7 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
                                     index={index}
                                     form={form}
                                     products={products}
+                                    currency={selectedCurrency}
                                     onProductSelect={handleProductSelect}
                                     onRemove={() => remove(index)}
                                 />
@@ -369,9 +426,14 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
                 <Card className="rounded-[3rem] border-none bg-slate-950 shadow-active overflow-hidden">
                     <CardContent className="p-10">
                         <div className="flex flex-col items-end gap-4">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest self-start">
-                                Resumen Financiero
-                            </p>
+                            <div className="flex items-center justify-between w-full">
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    Resumen Financiero
+                                </p>
+                                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full">
+                                    {selectedCurrency}
+                                </span>
+                            </div>
 
                             <div className="w-full max-w-sm space-y-3">
                                 <div className="flex items-center justify-between">
@@ -379,7 +441,7 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
                                         Subtotal
                                     </span>
                                     <span className="text-sm font-bold text-slate-300 tabular-nums">
-                                        $ {fmt(subtotal)}
+                                        {currencySymbol(selectedCurrency)} {fmt(subtotal, selectedCurrency)}
                                     </span>
                                 </div>
 
@@ -388,7 +450,7 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
                                         IVA
                                     </span>
                                     <span className="text-sm font-bold text-amber-400 tabular-nums">
-                                        $ {fmt(iva)}
+                                        {currencySymbol(selectedCurrency)} {fmt(iva, selectedCurrency)}
                                     </span>
                                 </div>
 
@@ -396,10 +458,10 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
 
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-black text-white uppercase tracking-widest">
-                                        Total COP
+                                        Total {selectedCurrency}
                                     </span>
                                     <span className="text-2xl font-black text-white tabular-nums tracking-tighter">
-                                        $ {fmt(total)}
+                                        {currencySymbol(selectedCurrency)} {fmt(total, selectedCurrency)}
                                     </span>
                                 </div>
                             </div>
@@ -462,11 +524,12 @@ interface LineRowProps {
     index: number;
     form: ReturnType<typeof useForm<PurchaseOrder>>;
     products: Array<{ id?: string; name: string; sku: string; cost?: number }>;
+    currency: POCurrency;
     onProductSelect: (index: number, productId: string) => void;
     onRemove: () => void;
 }
 
-function LineRow({ index, form, products, onProductSelect, onRemove }: LineRowProps) {
+function LineRow({ index, form, products, currency, onProductSelect, onRemove }: LineRowProps) {
     const qty = useWatch({ control: form.control, name: `lines.${index}.qty` }) ?? 0;
     const unitCost = useWatch({ control: form.control, name: `lines.${index}.unit_cost` }) ?? 0;
     const taxRate = useWatch({ control: form.control, name: `lines.${index}.tax_rate` }) ?? 0.19;
@@ -545,7 +608,7 @@ function LineRow({ index, form, products, onProductSelect, onRemove }: LineRowPr
                 {/* Line total (read-only) */}
                 <div className="flex items-center justify-end">
                     <span className="text-sm font-black text-slate-900 tabular-nums tracking-tighter">
-                        $ {lineTotal.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        {currencySymbol(currency)} {fmt(lineTotal, currency)}
                     </span>
                 </div>
 
