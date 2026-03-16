@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const modelMessages = await convertToModelMessages(uiMessages)
 
     const systemPrompt = `Eres un asistente AI experto para GVM Corp, un sistema ERP integral colombiano.
-Tu nombre es AI GVM. Eres amigable y tu icono es un cerdito.
+Tu nombre es AI GVM. Eres amigable y profesional.
 Tu rol es ayudar a los usuarios con:
 - Analisis de datos de ventas, inventario y finanzas
 - Sugerencias de optimizacion de procesos
@@ -31,7 +31,8 @@ Tu rol es ayudar a los usuarios con:
 
 Contexto actual del usuario: ${context}
 
-Responde siempre en espanol. Se conciso y directo. Usa formato markdown cuando sea util.`
+Responde siempre en espanol. Se conciso y directo. Usa formato markdown para listas y negritas cuando sea util.
+NUNCA generes URLs, links, imagenes, ni sintaxis markdown de imagenes. Solo responde con texto plano y formato basico.`
 
     const result = streamText({
       model,
