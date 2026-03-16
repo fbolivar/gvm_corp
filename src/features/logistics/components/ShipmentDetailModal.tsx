@@ -19,13 +19,13 @@ import {
     Truck,
     Package,
     Download,
-    Clock,
     CheckCircle2,
     MapPin,
-    Phone,
     User,
     ArrowRight,
-    RefreshCw
+    RefreshCw,
+    DollarSign,
+    Users
 } from "lucide-react"
 
 interface Props {
@@ -34,7 +34,56 @@ interface Props {
     onUpdate: () => void
 }
 
-const statusSteps: ShipmentStatus[] = ['PENDING', 'PACKED', 'SHIPPED', 'DELIVERED']
+const STATUS_STEPS: ShipmentStatus[] = [
+    'RECIBIDO',
+    'EN_ALISTAMIENTO',
+    'LISTO_DESPACHO',
+    'DESPACHADO',
+    'EN_TRANSITO',
+    'ENTREGADO',
+]
+
+const STATUS_LABELS: Record<ShipmentStatus, string> = {
+    RECIBIDO: 'Recibido',
+    EN_ALISTAMIENTO: 'En Alistamiento',
+    LISTO_DESPACHO: 'Listo Despacho',
+    DESPACHADO: 'Despachado',
+    EN_TRANSITO: 'En Tránsito',
+    ENTREGADO: 'Entregado',
+    RETURNED: 'Devuelto',
+}
+
+const STATUS_COLORS: Record<ShipmentStatus, string> = {
+    RECIBIDO: 'bg-amber-100 text-amber-700 border-amber-200',
+    EN_ALISTAMIENTO: 'bg-sky-100 text-sky-700 border-sky-200',
+    LISTO_DESPACHO: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    DESPACHADO: 'bg-purple-100 text-purple-700 border-purple-200',
+    EN_TRANSITO: 'bg-teal-100 text-teal-700 border-teal-200',
+    ENTREGADO: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    RETURNED: 'bg-rose-100 text-rose-700 border-rose-200',
+}
+
+function getNextStatus(current: ShipmentStatus): ShipmentStatus | null {
+    const idx = STATUS_STEPS.indexOf(current)
+    if (idx === -1 || idx >= STATUS_STEPS.length - 1) return null
+    return STATUS_STEPS[idx + 1]
+}
+
+const NEXT_BUTTON_STYLES: Partial<Record<ShipmentStatus, string>> = {
+    EN_ALISTAMIENTO: 'bg-sky-600 hover:bg-sky-700 shadow-sky-100',
+    LISTO_DESPACHO: 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100',
+    DESPACHADO: 'bg-purple-600 hover:bg-purple-700 shadow-purple-100',
+    EN_TRANSITO: 'bg-teal-600 hover:bg-teal-700 shadow-teal-100',
+    ENTREGADO: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100',
+}
+
+const NEXT_BUTTON_LABELS: Partial<Record<ShipmentStatus, string>> = {
+    EN_ALISTAMIENTO: 'Iniciar Alistamiento',
+    LISTO_DESPACHO: 'Marcar Listo para Despacho',
+    DESPACHADO: 'Registrar Despacho',
+    EN_TRANSITO: 'Marcar En Tránsito',
+    ENTREGADO: 'Confirmar Entrega',
+}
 
 export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     const supabase = createClient()
@@ -81,6 +130,12 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
 
     if (!shipmentId) return null
 
+    const currentStatusColor = shipment ? (STATUS_COLORS[shipment.status as ShipmentStatus] ?? 'bg-slate-100 text-slate-700') : ''
+    const nextStatus = shipment ? getNextStatus(shipment.status as ShipmentStatus) : null
+    const orderTotal: number = shipment?.order?.total ?? 0
+    const freightCost: number = shipment?.freight_cost ?? 0
+    const freightPct = orderTotal > 0 ? Math.round((freightCost / orderTotal) * 100) : 0
+
     return (
         <Dialog open={!!shipmentId} onOpenChange={onClose}>
             <DialogContent className="max-w-5xl rounded-[3rem] p-0 overflow-hidden border-none shadow-premium bg-white">
@@ -107,8 +162,8 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                 <div className="min-w-0">
                                     <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight italic leading-none truncate">#{shipment.order?.number}</h2>
                                     <div className="mt-2 sm:mt-3">
-                                        <Badge className="bg-slate-900 text-white font-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase text-[8px] sm:text-[10px] tracking-[0.2em] shadow-sm border-none">
-                                            {shipment.status}
+                                        <Badge className={cn("font-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-full uppercase text-[8px] sm:text-[10px] tracking-[0.2em] shadow-sm border", currentStatusColor)}>
+                                            {STATUS_LABELS[shipment.status as ShipmentStatus] ?? shipment.status}
                                         </Badge>
                                     </div>
                                 </div>
@@ -116,7 +171,7 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6 sm:gap-8">
                                 <div className="space-y-3">
-                                    <Label className="text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-widest pl-1">Destinatario</Label>
+                                    <LabelText>Destinatario</LabelText>
                                     <div className="bg-white p-4 sm:p-5 rounded-[1.5rem] sm:rounded-3xl shadow-sm space-y-3 border border-slate-100/50">
                                         <div className="flex items-center gap-3">
                                             <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
@@ -134,7 +189,7 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                 </div>
 
                                 <div className="space-y-3">
-                                    <Label className="text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-widest pl-1">Detalles de Envío</Label>
+                                    <LabelText>Detalles de Envío</LabelText>
                                     <div className="bg-white p-4 sm:p-5 rounded-[1.5rem] sm:rounded-3xl shadow-sm space-y-3 sm:space-y-4 border border-slate-100/50">
                                         <div className="flex items-center justify-between">
                                             <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Transporte:</span>
@@ -146,6 +201,74 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Freight Cost vs Order Total */}
+                                <div className="space-y-3">
+                                    <LabelText>Costo Flete vs Orden</LabelText>
+                                    <div className="bg-white p-4 sm:p-5 rounded-[1.5rem] sm:rounded-3xl shadow-sm space-y-3 border border-slate-100/50">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                <DollarSign className="h-3 w-3" /> Flete:
+                                            </span>
+                                            <span className="text-[10px] sm:text-xs font-black text-slate-900 italic">
+                                                {freightCost.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Orden:</span>
+                                            <span className="text-[10px] sm:text-xs font-black text-slate-900 italic">
+                                                {orderTotal.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })}
+                                            </span>
+                                        </div>
+                                        <div className="pt-1">
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">% Flete / Orden</span>
+                                                <span className={cn(
+                                                    "text-[10px] font-black",
+                                                    freightPct > 15 ? 'text-rose-600' : freightPct > 8 ? 'text-amber-600' : 'text-emerald-600'
+                                                )}>{freightPct}%</span>
+                                            </div>
+                                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className={cn(
+                                                        "h-full rounded-full transition-all duration-700",
+                                                        freightPct > 15 ? 'bg-rose-500' : freightPct > 8 ? 'bg-amber-500' : 'bg-emerald-500'
+                                                    )}
+                                                    style={{ width: `${Math.min(freightPct, 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Collaborators */}
+                                {(shipment.prepared_by || shipment.verified_by) && (
+                                    <div className="space-y-3">
+                                        <LabelText className="flex items-center gap-1">
+                                            <Users className="h-3 w-3" /> Responsables
+                                        </LabelText>
+                                        <div className="bg-white p-4 sm:p-5 rounded-[1.5rem] sm:rounded-3xl shadow-sm space-y-3 border border-slate-100/50">
+                                            {shipment.prepared_by && (
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Preparó:</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-600 italic truncate max-w-[120px]">{shipment.prepared_by_profile?.email ?? shipment.prepared_by}</span>
+                                                </div>
+                                            )}
+                                            {shipment.verified_by && (
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Verificó:</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-600 italic truncate max-w-[120px]">{shipment.verified_by_profile?.email ?? shipment.verified_by}</span>
+                                                </div>
+                                            )}
+                                            {shipment.delivered_by_name && (
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Entregó:</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-600 italic truncate max-w-[120px]">{shipment.delivered_by_name}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="pt-6 sm:pt-8 border-t border-slate-200 space-y-4">
@@ -162,37 +285,38 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
 
                         {/* Main Body: Workflow & items */}
                         <div className="flex-1 bg-white p-6 sm:p-10 space-y-10 sm:space-y-12 overflow-y-auto custom-scrollbar">
-                            {/* Actions - Prioritized on top for mobile */}
+                            {/* Actions */}
                             <div className="bg-white shadow-premium rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 group">
                                 <div className="space-y-1 text-center md:text-left">
                                     <p className="text-slate-900 font-black italic text-base sm:text-lg tracking-tight decoration-primary/20 decoration-wavy underline underline-offset-8">Siguiente Paso Logístico</p>
                                     <p className="text-[8px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest pt-2">Actualiza el progreso del despacho</p>
                                 </div>
                                 <div className="flex gap-2 w-full md:w-auto">
-                                    {shipment.status === 'PENDING' && (
-                                        <Button disabled={updating} onClick={() => handleUpdateStatus('PACKED')} className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-95 gap-3 w-full">
-                                            Pasar a Empaque <ArrowRight className="h-4 sm:h-5 w-4 sm:w-5" />
+                                    {nextStatus && nextStatus !== 'RETURNED' ? (
+                                        <Button
+                                            disabled={updating}
+                                            onClick={() => handleUpdateStatus(nextStatus)}
+                                            className={cn(
+                                                "h-12 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl text-white font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-lg transition-all active:scale-95 gap-3 w-full",
+                                                NEXT_BUTTON_STYLES[nextStatus] ?? 'bg-slate-700 hover:bg-slate-800 shadow-slate-100'
+                                            )}
+                                        >
+                                            {NEXT_BUTTON_LABELS[nextStatus] ?? STATUS_LABELS[nextStatus]}
+                                            <ArrowRight className="h-4 sm:h-5 w-4 sm:w-5" />
                                         </Button>
-                                    )}
-                                    {shipment.status === 'PACKED' && (
-                                        <Button disabled={updating} onClick={() => handleUpdateStatus('SHIPPED')} className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-lg shadow-purple-100 transition-all active:scale-95 gap-3 w-full">
-                                            Iniciar Tránsito <Truck className="h-4 sm:h-5 w-4 sm:w-5" />
-                                        </Button>
-                                    )}
-                                    {shipment.status === 'SHIPPED' && (
-                                        <Button disabled={updating} onClick={() => handleUpdateStatus('DELIVERED')} className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[9px] sm:text-[10px] tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95 gap-3 w-full">
-                                            Confirmar Entrega <CheckCircle2 className="h-4 sm:h-5 w-4 sm:w-5" />
-                                        </Button>
-                                    )}
-                                    {shipment.status === 'DELIVERED' && (
+                                    ) : shipment.status === 'ENTREGADO' ? (
                                         <div className="text-emerald-600 font-black text-[8px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-emerald-50 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-sm w-full">
                                             <CheckCircle2 className="h-4 sm:h-5 w-4 sm:w-5" /> Entrega Completada
                                         </div>
-                                    )}
+                                    ) : shipment.status === 'RETURNED' ? (
+                                        <div className="text-rose-600 font-black text-[8px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-rose-50 rounded-xl sm:rounded-2xl border border-rose-100 shadow-sm w-full">
+                                            Despacho Devuelto
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
 
-                            {/* Workflow steps */}
+                            {/* Workflow steps timeline */}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between px-1">
                                     <h3 className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.25em]">Traza Operativa</h3>
@@ -200,22 +324,29 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                 </div>
 
                                 <div className="bg-slate-50 rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 relative border border-slate-100 shadow-sm overflow-x-auto custom-scrollbar">
-                                    <div className="min-w-[450px] relative py-4">
+                                    <div className="min-w-[540px] relative py-4">
                                         {/* Progress Line */}
-                                        <div className="absolute top-[44px] left-[40px] right-[40px] h-1 sm:h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-primary transition-all duration-1000 ease-out"
-                                                style={{ width: `${(statusSteps.indexOf(shipment.status) / (statusSteps.length - 1)) * 100}%` }}
-                                            />
-                                        </div>
+                                        {(() => {
+                                            const currentIdx = STATUS_STEPS.indexOf(shipment.status as ShipmentStatus)
+                                            const pct = currentIdx >= 0 ? Math.round((currentIdx / (STATUS_STEPS.length - 1)) * 100) : 0
+                                            return (
+                                                <div className="absolute top-[44px] left-[40px] right-[40px] h-1 sm:h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-primary transition-all duration-1000 ease-out"
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                            )
+                                        })()}
 
                                         <div className="flex items-center justify-between relative px-2">
-                                            {statusSteps.map((step, idx) => {
-                                                const isCompleted = statusSteps.indexOf(shipment.status) >= idx;
-                                                const isCurrent = shipment.status === step;
+                                            {STATUS_STEPS.map((step, idx) => {
+                                                const currentIdx = STATUS_STEPS.indexOf(shipment.status as ShipmentStatus)
+                                                const isCompleted = currentIdx >= idx
+                                                const isCurrent = shipment.status === step
 
                                                 return (
-                                                    <div key={step} className="relative z-10 flex flex-col items-center gap-3 sm:gap-4 group">
+                                                    <div key={step} className="relative z-10 flex flex-col items-center gap-3 sm:gap-4">
                                                         <div className={cn(
                                                             "h-10 w-10 sm:h-14 sm:w-14 rounded-full flex items-center justify-center border-[4px] sm:border-[8px] border-slate-50 shadow-premium transition-all duration-500",
                                                             isCompleted ? 'bg-primary text-white' : 'bg-white text-slate-300',
@@ -225,10 +356,10 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                                         </div>
                                                         <div className="text-center">
                                                             <span className={cn(
-                                                                "text-[8px] sm:text-[10px] font-black uppercase tracking-widest block transition-colors",
+                                                                "text-[8px] sm:text-[9px] font-black uppercase tracking-widest block transition-colors leading-tight",
                                                                 isCompleted ? 'text-slate-900' : 'text-slate-400'
                                                             )}>
-                                                                {step === 'PENDING' ? 'Recibido' : step === 'PACKED' ? 'Empaque' : step === 'SHIPPED' ? 'En Tránsito' : 'Entregado'}
+                                                                {STATUS_LABELS[step]}
                                                             </span>
                                                             {isCurrent && <span className="text-[7px] sm:text-[8px] font-black text-primary uppercase animate-pulse">Actual</span>}
                                                         </div>
@@ -277,7 +408,7 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     )
 }
 
-function Label({ children, className }: { children: React.ReactNode, className?: string }) {
+function LabelText({ children, className }: { children: React.ReactNode, className?: string }) {
     return (
         <label className={cn("block text-[10px] font-black text-slate-400 uppercase tracking-widest", className)}>
             {children}

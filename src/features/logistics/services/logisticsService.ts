@@ -1,6 +1,15 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { shipmentSchema, shipmentItemSchema, Carrier, Shipment, ShipmentItem, ShipmentStatus } from '../types';
+import { Carrier, Shipment, ShipmentItem, ShipmentStatus } from '../types';
 import { inventoryService } from '@/features/inventory/services/inventoryService';
+
+export interface ShipmentFulfillment {
+    totalOrdered: number;
+    totalShipped: number;
+    pctUnits: number;
+    totalValueOrdered: number;
+    totalValueShipped: number;
+    pctValue: number;
+}
 
 export const logisticsService = {
     // Carrier Methods
@@ -85,12 +94,22 @@ export const logisticsService = {
         const tenant_id = await this.getTenantId(supabase);
         if (!tenant_id) throw new Error("Acceso denegado: No se pudo determinar el tenant");
 
-        // 1. Create Shipment Header
+        // 1. Create Shipment Header — include all new fields from the payload
         const { data: newShipment, error: sError } = await supabase
             .from('logistics_shipments')
             .insert({
-                ...shipment,
-                tenant_id
+                order_id: shipment.order_id,
+                carrier_id: shipment.carrier_id,
+                warehouse_id: shipment.warehouse_id,
+                tracking_number: shipment.tracking_number,
+                status: shipment.status,
+                notes: shipment.notes,
+                freight_cost: shipment.freight_cost ?? 0,
+                prepared_by: shipment.prepared_by ?? null,
+                verified_by: shipment.verified_by ?? null,
+                dispatched_by: shipment.dispatched_by ?? null,
+                delivered_by_name: shipment.delivered_by_name ?? null,
+                tenant_id,
             })
             .select()
             .single();
@@ -122,9 +141,13 @@ export const logisticsService = {
 
         if (fetchError) throw fetchError;
 
-        const updates: any = { status };
-        if (status === 'SHIPPED') updates.shipped_at = new Date().toISOString();
-        if (status === 'DELIVERED') updates.delivered_at = new Date().toISOString();
+        const updates: Record<string, unknown> = { status };
+
+        // DESPACHADO = physically handed off to carrier → record shipped_at
+        if (status === 'DESPACHADO') updates.shipped_at = new Date().toISOString();
+
+        // ENTREGADO = confirmed delivery at destination → record delivered_at
+        if (status === 'ENTREGADO') updates.delivered_at = new Date().toISOString();
 
         const { error } = await supabase
             .from('logistics_shipments')
@@ -133,11 +156,11 @@ export const logisticsService = {
 
         if (error) throw error;
 
-        // Inventory Logic: If status changed to SHIPPED, create OUT movements
-        if (status === 'SHIPPED' && shipment.status !== 'SHIPPED') {
+        // Inventory Logic: when status changes to DESPACHADO, create OUT movements
+        if (status === 'DESPACHADO' && shipment.status !== 'DESPACHADO') {
             for (const item of shipment.items) {
                 try {
-                    // Get current cost for accounting
+                    // Get current average cost for accounting
                     const cost = await inventoryService.getAvgCost(supabase, item.product_id, shipment.warehouse_id);
 
                     await inventoryService.createMovement(supabase, {
@@ -151,8 +174,9 @@ export const logisticsService = {
                         ref_doc_id: shipmentId,
                         occurred_at: new Date().toISOString()
                     });
-                } catch (invError: any) {
-                    console.error("Critical: Failed to deduct inventory for shipment item", invError?.message || invError);
+                } catch (invError: unknown) {
+                    const message = invError instanceof Error ? invError.message : String(invError);
+                    console.error("Critical: Failed to deduct inventory for shipment item", message);
                 }
             }
         }
@@ -200,20 +224,73 @@ export const logisticsService = {
 
         if (carrierError) throw carrierError;
 
+        const rows = statusData || [];
+
         const stats = {
-            total: (statusData || []).length,
-            pending: (statusData || []).filter(s => s.status === 'PENDING').length,
-            packed: (statusData || []).filter(s => s.status === 'PACKED').length,
-            shipped: (statusData || []).filter(s => s.status === 'SHIPPED').length,
-            delivered: (statusData || []).filter(s => s.status === 'DELIVERED').length,
+            total: rows.length,
+            // RECIBIDO = newly received orders awaiting processing
+            pending: rows.filter(s => s.status === 'RECIBIDO').length,
+            // EN_ALISTAMIENTO = orders being picked/packed
+            packed: rows.filter(s => s.status === 'EN_ALISTAMIENTO').length,
+            // DESPACHADO + EN_TRANSITO = in transit to customer
+            shipped: rows.filter(s => s.status === 'DESPACHADO' || s.status === 'EN_TRANSITO').length,
+            // ENTREGADO = confirmed delivered
+            delivered: rows.filter(s => s.status === 'ENTREGADO').length,
             ordersToProcess: count || 0,
-            byCarrier: (carrierStats || []).reduce((acc: any, curr: any) => {
-                const name = curr.carrier?.name || 'Interno';
-                acc[name] = (acc[name] || 0) + 1;
+            byCarrier: (carrierStats || []).reduce((acc: Record<string, number>, curr) => {
+                // Supabase returns the joined relation as an array when using select()
+                const carrierRel = curr.carrier;
+                const carrierName = Array.isArray(carrierRel)
+                    ? (carrierRel[0]?.name ?? 'Interno')
+                    : ((carrierRel as { name?: string } | null)?.name ?? 'Interno');
+                acc[carrierName] = (acc[carrierName] || 0) + 1;
                 return acc;
             }, {})
         };
 
         return stats;
-    }
+    },
+
+    async getShipmentFulfillment(supabase: SupabaseClient, shipmentId: string): Promise<ShipmentFulfillment> {
+        // Fetch shipment items joined with product cost (avg_cost or last_cost)
+        const { data: items, error } = await supabase
+            .from('logistics_shipment_items')
+            .select(`
+                qty_ordered,
+                qty_shipped,
+                product:products(avg_cost, last_cost)
+            `)
+            .eq('shipment_id', shipmentId);
+
+        if (error) throw error;
+
+        let totalOrdered = 0;
+        let totalShipped = 0;
+        let totalValueOrdered = 0;
+        let totalValueShipped = 0;
+
+        for (const item of items ?? []) {
+            const product = Array.isArray(item.product) ? item.product[0] : item.product;
+            const unitCost: number = (product?.avg_cost ?? product?.last_cost ?? 0) as number;
+
+            totalOrdered += item.qty_ordered;
+            totalShipped += item.qty_shipped;
+            totalValueOrdered += item.qty_ordered * unitCost;
+            totalValueShipped += item.qty_shipped * unitCost;
+        }
+
+        const pctUnits = totalOrdered > 0 ? Math.round((totalShipped / totalOrdered) * 100) : 0;
+        const pctValue = totalValueOrdered > 0
+            ? Math.round((totalValueShipped / totalValueOrdered) * 100)
+            : 0;
+
+        return {
+            totalOrdered,
+            totalShipped,
+            pctUnits,
+            totalValueOrdered,
+            totalValueShipped,
+            pctValue,
+        };
+    },
 };

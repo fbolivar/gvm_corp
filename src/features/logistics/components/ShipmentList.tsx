@@ -14,14 +14,20 @@ import {
     Clock,
     CheckCircle2,
     Package,
-    ArrowRight
+    ArrowRight,
+    XCircle,
+    PackageCheck,
+    Navigation,
+    ListChecks,
 } from "lucide-react"
 
 const statusConfig: Record<ShipmentStatus, { label: string, color: string, icon: any }> = {
-    'PENDING': { label: 'Por Empacar', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
-    'PACKED': { label: 'Empacado', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Package },
-    'SHIPPED': { label: 'En Camino', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Truck },
-    'DELIVERED': { label: 'Entregado', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
+    'RECIBIDO': { label: 'Recibido', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
+    'EN_ALISTAMIENTO': { label: 'En Alistamiento', color: 'bg-sky-100 text-sky-700 border-sky-200', icon: Package },
+    'LISTO_DESPACHO': { label: 'Listo Despacho', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: ListChecks },
+    'DESPACHADO': { label: 'Despachado', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: PackageCheck },
+    'EN_TRANSITO': { label: 'En Tránsito', color: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: Navigation },
+    'ENTREGADO': { label: 'Entregado', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 },
     'RETURNED': { label: 'Devuelto', color: 'bg-rose-100 text-rose-700 border-rose-200', icon: XCircle },
 }
 
@@ -112,26 +118,5 @@ export function ShipmentList({ onSelectShipment }: { onSelectShipment: (id: stri
                 </div>
             )}
         </div>
-    )
-}
-
-function XCircle(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <circle cx="12" cy="12" r="10" />
-            <path d="m15 9-6 6" />
-            <path d="m9 9 6 6" />
-        </svg>
     )
 }

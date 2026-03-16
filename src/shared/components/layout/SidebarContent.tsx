@@ -146,6 +146,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Productos', href: "/products", icon: Tag },
                         { title: t.sidebar.movements, href: "/inventory/new", icon: History },
                         { title: t.sidebar.warehouses, href: "/inventory/warehouses", icon: Warehouse },
+                        { title: 'Traslados', href: "/inventory/transfers", icon: ArrowLeftRight },
                         { title: t.sidebar.valuation, href: "/accounting/reports/inventory-valuation", icon: Package2 },
                         { title: t.sidebar.lots, href: "/inventory/lots", icon: FlaskConical },
                         { title: 'Análisis ABC', href: "/inventory/analysis", icon: BarChart3 },

@@ -20,11 +20,11 @@ import {
 } from "@/shared/components/ui/dialog"
 import {
     Truck,
-    Package,
-    Info,
     AlertTriangle,
     CheckCircle2,
-    Warehouse as WarehouseIcon
+    Warehouse as WarehouseIcon,
+    DollarSign,
+    Users
 } from "lucide-react"
 
 interface Props {
@@ -41,6 +41,9 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
     const [selectedWarehouse, setSelectedWarehouse] = useState<string>('')
     const [trackingNumber, setTrackingNumber] = useState('')
     const [notes, setNotes] = useState('')
+    const [freightCost, setFreightCost] = useState<number>(0)
+    const [currentUserEmail, setCurrentUserEmail] = useState<string>('')
+    const [currentUserId, setCurrentUserId] = useState<string>('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [shipmentItems, setShipmentItems] = useState<Partial<ShipmentItem>[]>([])
 
@@ -48,6 +51,7 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
         if (order) {
             loadCarriers()
             loadWarehouses()
+            loadCurrentUser()
             // Default: ship everything in the order
             const initialItems = order.lines.map((line: any) => ({
                 product_id: line.product_id,
@@ -57,6 +61,18 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
             setShipmentItems(initialItems)
         }
     }, [order])
+
+    async function loadCurrentUser() {
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                setCurrentUserEmail(user.email || user.id)
+                setCurrentUserId(user.id)
+            }
+        } catch (error) {
+            console.error(error)
+        }
+    }
 
     async function loadCarriers() {
         try {
@@ -97,7 +113,10 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
                 warehouse_id: selectedWarehouse,
                 tracking_number: trackingNumber,
                 notes: notes,
-                status: 'PENDING'
+                status: 'RECIBIDO',
+                freight_cost: freightCost,
+                prepared_by: currentUserId || null,
+                verified_by: currentUserId || null,
             }
 
             await logisticsService.createShipment(supabase, shipmentPayload, shipmentItems)
@@ -181,6 +200,44 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
                             />
                         </div>
                     </div>
+
+                    {/* Freight Cost */}
+                    <div className="space-y-4">
+                        <Label className="text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                            <DollarSign className="h-3 sm:h-3.5 w-3 sm:w-3.5" /> Costo del Flete
+                        </Label>
+                        <div className="relative">
+                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm pointer-events-none">$</span>
+                            <Input
+                                type="number"
+                                min={0}
+                                step={100}
+                                placeholder="0"
+                                value={freightCost === 0 ? '' : freightCost}
+                                onChange={(e) => setFreightCost(parseFloat(e.target.value) || 0)}
+                                className="h-12 sm:h-14 bg-slate-50 border-none rounded-xl sm:rounded-2xl pl-10 pr-5 text-slate-900 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Collaborators */}
+                    {currentUserEmail && (
+                        <div className="space-y-4">
+                            <Label className="text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                                <Users className="h-3 sm:h-3.5 w-3 sm:w-3.5" /> Responsables del Despacho
+                            </Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Preparado por</p>
+                                    <p className="text-xs font-black text-slate-900 italic truncate">{currentUserEmail}</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Verificado por</p>
+                                    <p className="text-xs font-black text-slate-900 italic truncate">{currentUserEmail}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Items Table */}
                     <div className="space-y-5">
