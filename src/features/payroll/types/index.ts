@@ -206,6 +206,20 @@ export interface AttendanceGeoZone {
 }
 
 // ─── PUNCTUALITY REPORT ──────────────────────────────────────────────────────
+// ─── KIOSK TERMINALS ────────────────────────────────────────────────────────
+export interface KioskTerminal {
+    id: string;
+    tenant_id: string;
+    name: string;
+    token: string;
+    is_active: boolean;
+    gps_lat?: number;
+    gps_lng?: number;
+    last_ping_at?: string;
+    expires_at?: string;
+    created_at: string;
+}
+
 export interface PunctualityRecord {
     employee_id: string;
     name: string;

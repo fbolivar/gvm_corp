@@ -71,6 +71,7 @@ import {
     FileOutput,
     CalendarClock,
     Timer,
+    QrCode,
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -224,6 +225,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Ausencias', href: "/payroll/absences", icon: CalendarDays },
                         { title: 'Turnos', href: "/payroll/schedules", icon: CalendarClock },
                         { title: 'Puntualidad', href: "/payroll/punctuality", icon: Timer },
+                        { title: 'Terminales QR', href: "/payroll/terminals", icon: QrCode },
                         { title: 'Capacitación', href: "/payroll/training", icon: GraduationCap },
                     ]
                 },
