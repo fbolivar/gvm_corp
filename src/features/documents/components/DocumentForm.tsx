@@ -26,7 +26,8 @@ import {
     ShieldCheck,
     Coins,
     LayoutDashboard,
-    ArrowRight
+    ArrowRight,
+    Loader
 } from "lucide-react"
 import { useEffect } from "react"
 import { format } from "date-fns"
@@ -407,50 +408,41 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                 </CardContent>
             </Card>
 
-            <Card className="rounded-[4rem] border-none bg-white shadow-premium overflow-hidden p-2">
-                <CardContent className="p-10">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
-                        <div className="md:col-span-7 flex items-end h-full">
-                            {(() => {
-                                const lines = form.watch('lines');
-                                const hasStockIssues = isSale && lines?.some((line: any) => {
-                                    const prod = products.find(p => p.id === line.product_id);
-                                    return prod && (Number(line.qty) || 0) > (prod.stock_qty || 0);
-                                });
-                                if (!hasStockIssues) return null;
-                                return (
-                                    <div className="flex items-center gap-6 p-6 bg-rose-900 border border-rose-800 rounded-[2rem] shadow-premium animate-pulse relative overflow-hidden w-full">
-                                        <AlertCircle className="h-8 w-8 text-rose-500 shrink-0" />
-                                        <div className="space-y-1">
-                                            <p className="text-[9px] font-black text-rose-500/50 uppercase tracking-[0.3em]">Protocolo de Seguridad Inventario</p>
-                                            <p className="text-[10px] text-rose-100 font-black uppercase tracking-widest leading-none">Bloqueo Activo: Cantidades exceden disponibilidad física.</p>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                        <div className="md:col-span-5 space-y-10">
-                            <DocumentTotals control={form.control} products={products} />
-                            <div className="flex gap-6">
-                                <Button type="button" variant="outline" onClick={() => window.history.back()} className="flex-1 h-20 rounded-[2rem] border-none bg-slate-50 text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-slate-100 transition-all shadow-inner group/btn">
-                                    <LayoutDashboard className="mr-3 h-5 w-5 group-hover:rotate-12 transition-transform" /> Descartar
-                                </Button>
-                                <Button type="button" onClick={form.handleSubmit(handleFormSubmit)} disabled={isLoading || fields.length === 0} className={cn(
-                                    "flex-[2.5] h-20 rounded-[2rem] font-black shadow-active transition-all hover:scale-105 active:scale-95 text-[11px] uppercase tracking-[0.4em] border-none group/save",
-                                    isSale ? "bg-amber-600 text-white shadow-amber-600/20" : "bg-emerald-600 text-white shadow-emerald-600/20"
-                                )}>
-                                    {isLoading ? <div className="flex items-center gap-4"><div className="h-6 w-6 border-4 border-white/20 border-t-white rounded-full animate-spin" /><span>Procesando...</span></div> :
-                                        <div className="flex items-center gap-4">
-                                            <CheckCircle2 className="h-7 w-7 group-hover:scale-110 transition-transform" />
-                                            <span>Registrar {isSale ? 'Maestro Venta' : 'Costo de Adquisición'}</span>
-                                            <ArrowRight className="h-5 w-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
-                                        </div>}
-                                </Button>
-                            </div>
+            {/* Stock Alert */}
+            {(() => {
+                const lines = form.watch('lines');
+                const hasStockIssues = isSale && lines?.some((line: any) => {
+                    const prod = products.find(p => p.id === line.product_id);
+                    return prod && (Number(line.qty) || 0) > (prod.stock_qty || 0);
+                });
+                if (!hasStockIssues) return null;
+                return (
+                    <div className="flex items-center gap-6 p-6 bg-rose-900 border border-rose-800 rounded-[2rem] shadow-premium animate-pulse relative overflow-hidden">
+                        <AlertCircle className="h-8 w-8 text-rose-500 shrink-0" />
+                        <div className="space-y-1">
+                            <p className="text-[9px] font-black text-rose-500/50 uppercase tracking-[0.3em]">Protocolo de Seguridad Inventario</p>
+                            <p className="text-[10px] text-rose-100 font-black uppercase tracking-widest leading-none">Bloqueo Activo: Cantidades exceden disponibilidad física.</p>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                );
+            })()}
+
+            {/* Totals + Actions */}
+            <div className="max-w-xl ml-auto space-y-6">
+                <DocumentTotals control={form.control} products={products} />
+                <div className="flex gap-4">
+                    <Button type="button" variant="outline" onClick={() => window.history.back()} className="flex-1 h-16 rounded-2xl border-slate-200 text-slate-500 font-bold text-xs uppercase tracking-wider hover:bg-slate-50 transition-all">
+                        Descartar
+                    </Button>
+                    <Button type="button" onClick={form.handleSubmit(handleFormSubmit)} disabled={isLoading || fields.length === 0} className={cn(
+                        "flex-[2] h-16 rounded-2xl font-bold shadow-active transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider border-none gap-3",
+                        isSale ? "bg-amber-600 text-white shadow-amber-600/20 hover:bg-amber-700" : "bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700"
+                    )}>
+                        {isLoading ? <><Loader className="h-5 w-5 animate-spin" /> Procesando...</> :
+                            <><CheckCircle2 className="h-5 w-5" /> Registrar {isSale ? 'Pedido' : 'Compra'}</>}
+                    </Button>
+                </div>
+            </div>
         </div>
     )
 }
