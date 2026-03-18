@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { partyService } from "./services/partyService";
 import { Party, partySchema } from "./types";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 export async function createPartyAction(data: Party) {
     const supabase = await createClient();
@@ -16,13 +15,12 @@ export async function createPartyAction(data: Party) {
     }
 
     try {
-        await partyService.createParty(supabase, parsed.data);
+        const result = await partyService.createParty(supabase, parsed.data);
+        revalidatePath('/parties');
+        return { success: true, data: result };
     } catch (error: any) {
         return { error: error.message };
     }
-
-    revalidatePath('/parties');
-    redirect('/parties');
 }
 
 export async function updatePartyAction(id: string, data: Party) {
@@ -41,5 +39,5 @@ export async function updatePartyAction(id: string, data: Party) {
 
     revalidatePath('/parties');
     revalidatePath(`/parties/${id}`);
-    redirect('/parties');
+    return { success: true };
 }
