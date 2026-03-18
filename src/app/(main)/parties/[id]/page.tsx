@@ -1,9 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { partyService } from '@/features/parties/services/partyService';
-import { updatePartyAction } from '@/features/parties/actions'; // We need a client wrapper for action...
-// Wait, we can't pass server action directly to client component prop if checking types logic?
-// Yes we can.
-
 import EditPartyClient from './client';
 import { notFound } from 'next/navigation';
 
@@ -17,14 +13,27 @@ export default async function EditPartyPage({ params }: PageProps) {
 
     try {
         const party = await partyService.getPartyById(supabase, id);
+        if (!party) notFound();
 
-        if (!party) {
-            notFound();
-        }
+        // Fetch price lists
+        const { data: priceLists } = await supabase
+            .from('price_lists')
+            .select('id, name')
+            .order('name');
+
+        // Fetch team members as salespeople
+        const { data: salespeople } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .order('full_name');
 
         return (
             <div className="pb-20">
-                <EditPartyClient party={party} />
+                <EditPartyClient
+                    party={party}
+                    priceLists={priceLists || []}
+                    salespeople={salespeople || []}
+                />
             </div>
         );
     } catch (e) {

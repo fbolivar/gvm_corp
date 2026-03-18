@@ -118,7 +118,7 @@ const nextConfig: NextConfig = {
   // 8. Experimental: optimize package imports to reduce bundle size
   experimental: {
     optimizePackageImports: [
-      // lucide-react removed — Turbopack handles tree-shaking natively
+      'lucide-react',
       'recharts',
       'date-fns',
       '@radix-ui/react-dialog',
