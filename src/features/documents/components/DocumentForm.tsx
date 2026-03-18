@@ -101,19 +101,23 @@ const DocumentTotals = ({ control, products }: { control: any; products: Product
 };
 
 export function DocumentForm({ parties, products, initialData, onSubmit, isLoading }: DocumentFormProps) {
+    const defaults = {
+        doc_type: 'INVOICE' as const,
+        status: 'DRAFT' as const,
+        currency: 'COP',
+        issue_date: format(new Date(), 'yyyy-MM-dd'),
+        party_id: '',
+        lines: [],
+        subtotal: 0,
+        taxes: 0,
+        total: 0,
+        ...initialData,
+    };
     const form = useForm<Document>({
         resolver: zodResolver(documentSchema) as any,
-        mode: 'onChange',
-        defaultValues: initialData || {
-            doc_type: 'INVOICE',
-            status: 'DRAFT',
-            currency: 'COP',
-            issue_date: format(new Date(), 'yyyy-MM-dd'),
-            lines: [],
-            subtotal: 0,
-            taxes: 0,
-            total: 0
-        }
+        mode: 'onSubmit',
+        reValidateMode: 'onChange',
+        defaultValues: defaults,
     });
 
     const { fields, append, remove } = useFieldArray({ control: form.control, name: "lines" });
