@@ -57,11 +57,33 @@ Thumbs.db
 # Claude Code
 .claude/skills/**/node_modules
 .claude/plugins
+.claude/settings.local.json
 *.mcp.json
 !example.mcp.json
+
+# Playwright MCP
+.playwright-mcp/
+
+# Test artifacts
+test-results/
+*.png
+!public/**/*.png
+playwright.config.ts
+test-order-flow.*
+validate-*.mjs
+verify-test-data.sql
+associate-user-to-tenant.sql
+
+# Temporary docs (not part of the app)
+QUICK-START-TESTING.md
+REPORTE-VERIFICACION-SUPABASE.md
+SETUP-USUARIOS-PRUEBA.md
+TEST-FLOW-REPORT*.md
+VALIDACION-FLUJO-PEDIDOS.md
 
 # Supabase
 supabase/.branches
 supabase/.temp
 
+# Vercel
 .vercel
