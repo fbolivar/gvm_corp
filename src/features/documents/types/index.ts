@@ -12,14 +12,14 @@ export type DocumentStatus = z.infer<typeof DocumentStatusEnum>;
 export const documentLineSchema = z.object({
     id: z.string().uuid().optional(),
     document_id: z.string().uuid().optional(),
-    product_id: z.string().uuid().optional().nullable(),
+    product_id: z.preprocess(v => v === '' ? null : v, z.string().optional().nullable()),
 
     description: z.string().min(1, "Descripción requerida"),
     qty: z.number().min(0.0001, "Cantidad debe ser mayor a 0"),
     unit_price: z.number().min(0, "Precio no puede ser negativo"),
 
     // Calculated fields (frontend validation mostly, backend re-calculates)
-    line_total: z.number(),
+    line_total: z.number().default(0),
 
     // Tax Config stored as JSONB
     // Simple structure for V3: { id: string, name: string, rate: number }[]
