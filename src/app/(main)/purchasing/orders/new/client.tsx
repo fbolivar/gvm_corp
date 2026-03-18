@@ -42,8 +42,21 @@ import { cn } from "@/shared/lib/utils";
 
 interface Props {
     parties: Array<{ id?: string; legal_name: string; doc_number?: string }>;
-    products: Array<{ id?: string; name: string; sku: string; cost?: number }>;
+    products: Array<{ id?: string; name: string; sku: string; cost?: number; tax_category?: string }>;
     warehouses: Array<{ id?: string; name: string }>;
+}
+
+/** Map product tax_category to numeric tax_rate */
+function taxCategoryToRate(cat?: string): number {
+    if (cat === 'IVA_5') return 0.05;
+    if (cat === 'IVA_19') return 0.19;
+    return 0; // IVA_0 or default
+}
+
+function taxRateLabel(rate: number): string {
+    if (rate === 0.05) return '5% IVA';
+    if (rate === 0.19) return '19% IVA';
+    return '0% Excluido';
 }
 
 // ---------------------------------------------------------------------------
@@ -147,7 +160,7 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
             product_id: "",
             qty: 1,
             unit_cost: 0,
-            tax_rate: 0.19,
+            tax_rate: 0,
             qty_received: 0,
             notes: "",
         });
@@ -156,12 +169,20 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
     function handleProductSelect(index: number, productId: string) {
         const product = products.find((p) => p.id === productId);
         form.setValue(`lines.${index}.unit_cost`, product?.cost ?? 0);
+        form.setValue(`lines.${index}.tax_rate`, taxCategoryToRate(product?.tax_category));
     }
 
     async function handleSaveDraft() {
         const valid = await form.trigger();
         if (!valid) {
-            toast.error("Por favor complete todos los campos requeridos");
+            const errors = form.formState.errors;
+            const missing: string[] = [];
+            if (errors.supplier_id) missing.push('Proveedor');
+            if (errors.lines && !Array.isArray(errors.lines)) missing.push('Líneas de producto (mínimo 1)');
+            if (Array.isArray(errors.lines)) missing.push('Campos en líneas de producto');
+            toast.error(missing.length > 0
+                ? `Falta: ${missing.join(', ')}`
+                : "Por favor complete todos los campos requeridos");
             return;
         }
         setLoadingDraft(true);
@@ -182,7 +203,14 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
     async function handleSaveAndSubmit() {
         const valid = await form.trigger();
         if (!valid) {
-            toast.error("Por favor complete todos los campos requeridos");
+            const errors = form.formState.errors;
+            const missing: string[] = [];
+            if (errors.supplier_id) missing.push('Proveedor');
+            if (errors.lines && !Array.isArray(errors.lines)) missing.push('Líneas de producto (mínimo 1)');
+            if (Array.isArray(errors.lines)) missing.push('Campos en líneas de producto');
+            toast.error(missing.length > 0
+                ? `Falta: ${missing.join(', ')}`
+                : "Por favor complete todos los campos requeridos");
             return;
         }
         setLoadingApproval(true);
@@ -592,17 +620,12 @@ function LineRow({ index, form, products, currency, onProductSelect, onRemove }:
                     />
                 </div>
 
-                {/* Tax rate */}
+                {/* Tax rate (read-only — comes from product) */}
                 <div className="relative">
-                    <select
-                        {...form.register(`lines.${index}.tax_rate`, { valueAsNumber: true })}
-                        className="w-full h-12 bg-white border-none rounded-xl px-4 pr-8 text-xs font-bold text-slate-900 appearance-none shadow-inner focus:ring-4 focus:ring-primary/5 outline-none hover:bg-slate-50 transition-all cursor-pointer"
-                    >
-                        <option value={0}>0% Excluido</option>
-                        <option value={0.05}>5% IVA</option>
-                        <option value={0.19}>19% IVA</option>
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300 pointer-events-none" />
+                    <input type="hidden" {...form.register(`lines.${index}.tax_rate`, { valueAsNumber: true })} />
+                    <div className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 flex items-center justify-center text-xs font-bold text-slate-500 cursor-not-allowed select-none">
+                        {taxRateLabel(Number(taxRate))}
+                    </div>
                 </div>
 
                 {/* Line total (read-only) */}
