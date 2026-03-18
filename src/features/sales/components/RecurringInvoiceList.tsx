@@ -10,6 +10,7 @@ import { Zap, Pause, Play, XCircle, Loader2, Calendar, RefreshCw, Plus } from 'l
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 
 const FREQ_LABELS: Record<string, string> = {
     WEEKLY: 'Semanal',
@@ -47,9 +48,11 @@ export function RecurringInvoiceList({ initialItems }: Props) {
     const [items, setItems] = useState<RecurringInvoice[]>(initialItems);
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [lastGenerated, setLastGenerated] = useState<Record<string, string>>({});
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const handleGenerate = async (item: RecurringInvoice) => {
-        if (!confirm(`¿Generar factura ahora para "${item.name}"?`)) return;
+        const ok = await confirmFn({ title: "Generar Factura", description: `¿Generar factura ahora para "${item.name}"?`, variant: "warning", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setProcessingId(item.id + '-gen');
         const result = await generateRecurringInvoiceAction(item.id);
         setProcessingId(null);
@@ -66,7 +69,10 @@ export function RecurringInvoiceList({ initialItems }: Props) {
     };
 
     const handleStatus = async (item: RecurringInvoice, status: 'ACTIVE' | 'PAUSED' | 'CANCELLED') => {
-        if (status === 'CANCELLED' && !confirm(`¿Cancelar definitivamente "${item.name}"?`)) return;
+        if (status === 'CANCELLED') {
+            const ok = await confirmFn({ title: "Cancelar Recurrencia", description: `¿Cancelar definitivamente "${item.name}"?`, variant: "warning", confirmLabel: "Confirmar" })
+            if (!ok) return;
+        }
         setProcessingId(item.id + '-status');
         const result = await updateRecurringStatusAction(item.id, status);
         setProcessingId(null);
@@ -92,6 +98,7 @@ export function RecurringInvoiceList({ initialItems }: Props) {
                         </Link>
                     </Button>
                 </CardContent>
+                {ConfirmDialogEl}
             </Card>
         );
     }
@@ -214,6 +221,7 @@ export function RecurringInvoiceList({ initialItems }: Props) {
                     </Card>
                 );
             })}
+            {ConfirmDialogEl}
         </div>
     );
 }

@@ -17,6 +17,7 @@ import { Badge } from "@/shared/components/ui/badge"
 import { cn } from "@/shared/lib/utils"
 import { emitDianAction } from "@/features/dian/actions"
 import { toast } from "sonner"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface SalesInvoiceListProps {
     invoices: Document[]
@@ -39,6 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
 
     const filteredInvoices = invoices.filter(inv =>
         inv.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -46,7 +48,8 @@ export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
     );
 
     const handleEmit = async (docId: string) => {
-        if (!confirm("¿Deseas emitir esta factura a la DIAN (Simulación)?")) return;
+        const ok = await confirmFn({ title: "Emitir a la DIAN", description: "¿Deseas emitir esta factura a la DIAN (Simulación)?", variant: "warning", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setProcessingId(docId);
         const result = await emitDianAction(docId);
         setProcessingId(null);
@@ -166,6 +169,7 @@ export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
                     </Table>
                 </div>
             )}
+            {ConfirmDialogEl}
         </div>
     )
 }

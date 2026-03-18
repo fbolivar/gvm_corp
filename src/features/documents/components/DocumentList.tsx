@@ -12,6 +12,7 @@ import { convertDocumentAction } from "@/features/sales/convertActions"
 import { Badge } from "@/shared/components/ui/badge"
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { cn } from "@/shared/lib/utils"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface DocumentListProps {
     documents: Document[]
@@ -19,9 +20,11 @@ interface DocumentListProps {
 
 export function DocumentList({ documents }: DocumentListProps) {
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
 
     const handleEmit = async (docId: string) => {
-        if (!confirm("¿Confirmar emisión a la DIAN (Simulación)?")) return;
+        const ok = await confirmFn({ title: "Confirmar", description: "¿Confirmar emisión a la DIAN (Simulación)?", variant: "warning", confirmLabel: "Confirmar" })
+        if (!ok) return
         setProcessingId(docId);
         const result = await emitDianAction(docId);
         setProcessingId(null);
@@ -30,7 +33,8 @@ export function DocumentList({ documents }: DocumentListProps) {
 
     const handleConvert = async (docId: string, targetType: any) => {
         const label = targetType === 'SALES_ORDER' ? 'PEDIDO' : 'FACTURA';
-        if (!confirm(`¿Convertir este documento a ${label}?`)) return;
+        const ok = await confirmFn({ title: "Confirmar", description: `¿Convertir este documento a ${label}?`, variant: "warning", confirmLabel: "Confirmar" })
+        if (!ok) return
 
         setProcessingId(docId);
         const result = await convertDocumentAction(docId, targetType);
@@ -133,7 +137,8 @@ export function DocumentList({ documents }: DocumentListProps) {
                                                 <>
                                                     <Button variant="outline" size="sm" className="h-8 rounded-lg border-amber-100 text-amber-600 text-[10px] font-bold hover:bg-amber-50"
                                                         onClick={async () => {
-                                                            if (!confirm("¿Registrar entrada de mercancía para esta Orden de Compra?")) return;
+                                                            const ok = await confirmFn({ title: "Confirmar", description: "¿Registrar entrada de mercancía para esta Orden de Compra?", variant: "warning", confirmLabel: "Confirmar" })
+                                                            if (!ok) return
                                                             setProcessingId(doc.id!);
                                                             const { markAsReceivedAction } = await import("@/features/purchasing/actions");
                                                             const result = await markAsReceivedAction(doc.id!);
@@ -178,6 +183,7 @@ export function DocumentList({ documents }: DocumentListProps) {
                     </TableBody>
                 </Table>
             </CardContent>
+            {ConfirmDialogEl}
         </Card>
     )
 }

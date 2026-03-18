@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
+import { useConfirm } from "@/shared/hooks/useConfirm";
 
 interface BackupRecord {
     id: string;
@@ -44,6 +45,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export function BackupManager({ tenantId }: { tenantId: string }) {
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
     const [loading, setLoading] = useState(false);
     const [history, setHistory] = useState<BackupRecord[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
@@ -140,7 +142,8 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
     };
 
     const handleDelete = async (backupId: string) => {
-        if (!confirm('¿Eliminar esta copia de seguridad? Esta acción no se puede deshacer.')) return;
+        const ok = await confirmFn({ title: "Confirmar", description: "¿Eliminar esta copia de seguridad? Esta acción no se puede deshacer.", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setDeletingId(backupId);
         try {
             const res = await fetch(`/api/backup/${backupId}`, { method: 'DELETE' });
@@ -374,6 +377,7 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                     )}
                 </CardContent>
             </Card>
+        {ConfirmDialogEl}
         </div>
     );
 }

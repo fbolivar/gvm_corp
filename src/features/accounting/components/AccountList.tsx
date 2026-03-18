@@ -17,6 +17,7 @@ import { cn } from "@/shared/lib/utils";
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
+import { useConfirm } from "@/shared/hooks/useConfirm";
 import Link from "next/link";
 
 interface AccountListProps {
@@ -28,6 +29,7 @@ export function AccountList({ accounts }: AccountListProps) {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const { toast } = useToast();
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const filtered = useMemo(() => {
         if (!search.trim()) return accounts;
@@ -37,8 +39,9 @@ export function AccountList({ accounts }: AccountListProps) {
         );
     }, [accounts, search]);
 
-    const handleDelete = (account: Account) => {
-        if (!confirm(`Eliminar cuenta ${account.code} — ${account.name}?`)) return;
+    const handleDelete = async (account: Account) => {
+        const ok = await confirmFn({ title: "Confirmar accion", description: `Eliminar cuenta ${account.code} — ${account.name}?`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
 
         startTransition(async () => {
             const result = await deleteAccountAction(account.id);
@@ -78,7 +81,7 @@ export function AccountList({ accounts }: AccountListProps) {
         );
     }
 
-    return (
+    return (<>
         <Card className={cn(
             "rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden",
             isPending && "opacity-60 pointer-events-none"
@@ -217,7 +220,8 @@ export function AccountList({ accounts }: AccountListProps) {
                 </Table>
             </CardContent>
         </Card>
-    );
+        {ConfirmDialogEl}
+    </>);
 }
 
 function getLevel(code: string): number {

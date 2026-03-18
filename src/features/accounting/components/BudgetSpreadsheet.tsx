@@ -11,6 +11,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { CheckCircle, Lock, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
     DRAFT:    { label: 'Borrador',  color: 'bg-slate-50 text-slate-600' },
@@ -62,6 +63,7 @@ export function BudgetSpreadsheet({ budget: initialBudget, lines: initialLines, 
     const [editValue, setEditValue]     = useState('');
     const [saving, setSaving]           = useState(false);
     const [statusLoading, setStatusLoading] = useState(false);
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const isEditable = budget.status === 'DRAFT';
 
@@ -82,8 +84,14 @@ export function BudgetSpreadsheet({ budget: initialBudget, lines: initialLines, 
     }, [editValue]);
 
     const handleStatusChange = async (newStatus: Budget['status']) => {
-        if (newStatus === 'APPROVED' && !confirm('¿Aprobar el presupuesto? No podrá modificar los valores.')) return;
-        if (newStatus === 'CLOSED'   && !confirm('¿Cerrar definitivamente el presupuesto?')) return;
+        if (newStatus === 'APPROVED') {
+            const ok = await confirmFn({ title: "Confirmar accion", description: '¿Aprobar el presupuesto? No podrá modificar los valores.', variant: "danger", confirmLabel: "Confirmar" })
+            if (!ok) return;
+        }
+        if (newStatus === 'CLOSED') {
+            const ok = await confirmFn({ title: "Confirmar accion", description: '¿Cerrar definitivamente el presupuesto?', variant: "danger", confirmLabel: "Confirmar" })
+            if (!ok) return;
+        }
         setStatusLoading(true);
         const result = await updateBudgetStatusAction(budget.id, newStatus);
         setStatusLoading(false);
@@ -99,7 +107,7 @@ export function BudgetSpreadsheet({ budget: initialBudget, lines: initialLines, 
 
     const si = STATUS_MAP[budget.status];
 
-    return (
+    return (<>
         <div className="space-y-6">
             {/* Header strip */}
             <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
@@ -251,5 +259,6 @@ export function BudgetSpreadsheet({ budget: initialBudget, lines: initialLines, 
                 );
             })}
         </div>
-    );
+        {ConfirmDialogEl}
+    </>);
 }

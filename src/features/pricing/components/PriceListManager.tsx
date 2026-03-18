@@ -15,6 +15,7 @@ import {
     Plus, Trash2, Tags, ChevronDown, ChevronUp,
     Star, Loader2, Save, X, Package
 } from "lucide-react"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface PriceList {
     id: string
@@ -48,6 +49,7 @@ interface Props {
 
 export function PriceListManager({ priceLists, products }: Props) {
     const router = useRouter()
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
     const [showCreate, setShowCreate] = useState(false)
     const [name, setName] = useState('')
     const [creating, setCreating] = useState(false)
@@ -82,7 +84,8 @@ export function PriceListManager({ priceLists, products }: Props) {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Esta accion eliminara la lista y todos sus precios. Desea continuar?")) return
+        const ok = await confirmFn({ title: "Confirmar", description: "Esta accion eliminara la lista y todos sus precios. Desea continuar?", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
         const result = await deletePriceListAction(id)
         if (result.error) toast.error(result.error)
         else { toast.success("Lista eliminada"); router.refresh() }
@@ -157,6 +160,7 @@ export function PriceListManager({ priceLists, products }: Props) {
 
     return (
         <div className="space-y-6">
+            {ConfirmDialogEl}
             {/* KPI cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">

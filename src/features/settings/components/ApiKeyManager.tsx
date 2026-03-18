@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button"
 import { Badge } from "@/shared/components/ui/badge"
 import { toast } from "sonner"
 import { createApiKeyAction, deleteApiKeyAction } from "../actions/apiKeyActions"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 import {
     Plus,
     Trash2,
@@ -34,6 +35,7 @@ interface Props {
 
 export function ApiKeyManager({ apiKeys }: Props) {
     const router = useRouter()
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
     const [showCreate, setShowCreate] = useState(false)
     const [name, setName] = useState('')
     const [creating, setCreating] = useState(false)
@@ -60,12 +62,8 @@ export function ApiKeyManager({ apiKeys }: Props) {
     }
 
     const handleDelete = async (id: string) => {
-        if (
-            !confirm(
-                "Eliminar esta API key? Las integraciones que la usen dejaran de funcionar."
-            )
-        )
-            return
+        const ok = await confirmFn({ title: "Confirmar", description: "Eliminar esta API key? Las integraciones que la usen dejaran de funcionar.", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
         const result = await deleteApiKeyAction(id)
         if (result.error) toast.error(result.error)
         else {
@@ -282,6 +280,7 @@ export function ApiKeyManager({ apiKeys }: Props) {
                     </div>
                 )}
             </div>
+        {ConfirmDialogEl}
         </div>
     )
 }

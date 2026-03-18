@@ -38,6 +38,7 @@ import { cn } from "@/shared/lib/utils"
 import Link from "next/link"
 import { documentPdfService } from '../services/documentPdfService'
 import type { TenantPdfInfo, DianResolutionPdfInfo } from '../services/documentPdfService'
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface DocumentDetailProps {
     document: Document;
@@ -51,13 +52,15 @@ interface DocumentDetailProps {
 
 export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianResolution }: DocumentDetailProps) {
     const router = useRouter();
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
     const [processing, setProcessing] = useState(false);
     const [creatingLink, setCreatingLink] = useState(false);
     const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
 
     const handleEmit = async () => {
-        if (!confirm("¿Confirmar emisión oficial a la DIAN? Esta acción generará el XML legal y el CUFE.")) return;
+        const ok = await confirmFn({ title: "Confirmar", description: "¿Confirmar emisión oficial a la DIAN? Esta acción generará el XML legal y el CUFE.", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
 
         setProcessing(true);
         const result = await emitDianAction(document.id!);
@@ -132,6 +135,7 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            {ConfirmDialogEl}
             {/* 🔗 TRAZABILIDAD (LINEAGE) */}
             {(relatedDocuments?.parent || (relatedDocuments?.children && relatedDocuments.children.length > 0)) && (
                 <div className="flex flex-wrap items-center gap-4 px-1 pb-2 overflow-x-auto no-scrollbar">

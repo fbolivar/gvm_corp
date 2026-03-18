@@ -19,6 +19,7 @@ import {
     Activity,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import type { PettyCashFund, PettyCashTransaction, ExpenseCategory } from '../services/pettyCashService';
@@ -664,13 +665,15 @@ function FundCard({
     onTransactionChange,
     onClose,
 }: FundCardProps) {
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
     const [activePanel, setActivePanel] = useState<PanelTab>('historial');
     const [isPending, startTransition] = useTransition();
 
     const isActive = fund.status === 'ACTIVE';
 
-    function handleClose() {
-        if (!confirm(`Cerrar la caja menor "${fund.name}"? Esta accion no se puede deshacer.`)) return;
+    async function handleClose() {
+        const ok = await confirmFn({ title: "Confirmar", description: `Cerrar la caja menor "${fund.name}"? Esta accion no se puede deshacer.`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
         startTransition(async () => {
             const result = await closePettyCashFundAction(fund.id);
             if (result.error) {
@@ -813,6 +816,7 @@ function FundCard({
                     </div>
                 </div>
             )}
+            {ConfirmDialogEl}
         </div>
     );
 }

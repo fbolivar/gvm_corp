@@ -13,6 +13,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { CheckCircle2, Circle, Lock, Unlock, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 
 interface Props {
     period: FiscalPeriod;
@@ -30,6 +31,7 @@ export function PeriodClosePanel({ period: initialPeriod, items: initialItems }:
     const [items, setItems] = useState<PeriodCloseItem[]>(initialItems);
     const [loadingId, setLoadingId] = useState<string | null>(null);
     const [loadingAction, setLoadingAction] = useState(false);
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const confirmedCount = items.filter(i => i.is_confirmed).length;
     const totalCount = CHECKLIST_ITEMS.length;
@@ -57,7 +59,10 @@ export function PeriodClosePanel({ period: initialPeriod, items: initialItems }:
             alert('Todos los ítems del checklist deben estar confirmados antes de cerrar el período.');
             return;
         }
-        if (newStatus === 'CLOSED' && !confirm(`Confirmar el CIERRE DEFINITIVO del período ${periodLabel(period.period)}? Esta acción bloqueará el período.`)) return;
+        if (newStatus === 'CLOSED') {
+            const ok = await confirmFn({ title: "Confirmar", description: `Confirmar el CIERRE DEFINITIVO del período ${periodLabel(period.period)}? Esta acción bloqueará el período.`, variant: "danger", confirmLabel: "Confirmar" })
+            if (!ok) return;
+        }
         setLoadingAction(true);
         const result = await updatePeriodStatusAction(period.id, newStatus);
         setLoadingAction(false);
@@ -72,6 +77,7 @@ export function PeriodClosePanel({ period: initialPeriod, items: initialItems }:
 
     return (
         <div className="space-y-6">
+            {ConfirmDialogEl}
             {/* Period header */}
             <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
                 <CardHeader className="py-5 px-6">

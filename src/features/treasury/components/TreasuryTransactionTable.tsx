@@ -45,9 +45,11 @@ interface TreasuryTransactionTableProps {
 }
 
 import { pdfReportService } from "@/features/accounting/services/pdfReportService"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTransactionTableProps) {
 
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
     const supabase = createClient();
     const router = useRouter();
 
@@ -66,7 +68,8 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
     };
 
     const handleVoid = async (txId: string) => {
-        if (!confirm("¿Está seguro de anular este movimiento? Esta acción eliminará los registros contables vinculados.")) return;
+        const ok = await confirmFn({ title: "Confirmar", description: "¿Está seguro de anular este movimiento? Esta acción eliminará los registros contables vinculados.", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
 
         try {
             await treasuryService.voidTransaction(supabase, txId);
@@ -261,6 +264,7 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
                     )}
                 </TableBody>
             </Table>
+        {ConfirmDialogEl}
         </div>
     )
 }

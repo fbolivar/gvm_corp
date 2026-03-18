@@ -13,8 +13,10 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { settingsService, DianResolution } from "@/features/settings/services/settingsService";
 import { format } from "date-fns";
+import { useConfirm } from "@/shared/hooks/useConfirm";
 
 export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
     const [resolutions, setResolutions] = useState<DianResolution[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [editingRes, setEditingRes] = useState<Partial<DianResolution> | null>(null);
@@ -50,7 +52,8 @@ export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("¿Está seguro de eliminar esta resolución?")) return;
+        const ok = await confirmFn({ title: "Confirmar", description: "¿Está seguro de eliminar esta resolución?", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
         try {
             await settingsService.deleteResolution(supabase, id);
             toast.success("Resolución eliminada");
@@ -141,6 +144,7 @@ export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
                 </Table>
             </div>
 
+            {ConfirmDialogEl}
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>

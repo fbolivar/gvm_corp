@@ -17,6 +17,7 @@ import {
     receiveTransferAction,
 } from "@/features/warehouse-transfers/actions/transferActions";
 import { TransferWithDetails, TransferStatus, TransferLine } from "@/features/warehouse-transfers/types";
+import { useConfirm } from "@/shared/hooks/useConfirm";
 
 // ─── Receive Form (inline) ─────────────────────────────────────────────────────
 
@@ -165,6 +166,7 @@ interface Props {
 export function TransferDetailActions({ transfer }: Props) {
     const router = useRouter();
     const status = transfer.status as TransferStatus;
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const [loadingSend, setLoadingSend] = useState(false);
     const [loadingCancel, setLoadingCancel] = useState(false);
@@ -191,7 +193,8 @@ export function TransferDetailActions({ transfer }: Props) {
     }
 
     async function handleCancel() {
-        if (!confirm("¿Está seguro de anular este traslado?")) return;
+        const ok = await confirmFn({ title: "Confirmar", description: "¿Está seguro de anular este traslado?", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setLoadingCancel(true);
         try {
             const result = await cancelTransferAction(transfer.id!);
@@ -215,6 +218,7 @@ export function TransferDetailActions({ transfer }: Props) {
 
     return (
         <div className="space-y-6">
+            {ConfirmDialogEl}
             {/* DRAFT actions */}
             {status === "DRAFT" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

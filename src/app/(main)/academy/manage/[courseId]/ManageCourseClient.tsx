@@ -7,6 +7,7 @@ import { Course, Lesson, DIFFICULTY_CONFIG, MODULE_LABELS } from "@/features/aca
 import { togglePublishAction, deleteLessonAction } from "@/features/academy/actions"
 import { Eye, EyeOff, Trash2, GripVertical, FileText, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface ManageCourseClientProps {
     course: Course
@@ -15,6 +16,7 @@ interface ManageCourseClientProps {
 
 export function ManageCourseClient({ course, lessons }: ManageCourseClientProps) {
     const [isPending, startTransition] = useTransition()
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
     const diff = DIFFICULTY_CONFIG[course.difficulty] ?? DIFFICULTY_CONFIG.BEGINNER
     const moduleLabel = course.module_key ? MODULE_LABELS[course.module_key] : null
 
@@ -29,8 +31,9 @@ export function ManageCourseClient({ course, lessons }: ManageCourseClientProps)
         })
     }
 
-    const handleDeleteLesson = (lessonId: string) => {
-        if (!confirm("Eliminar esta leccion?")) return
+    const handleDeleteLesson = async (lessonId: string) => {
+        const ok = await confirmFn({ title: "Confirmar", description: "Eliminar esta leccion?", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
         startTransition(async () => {
             try {
                 await deleteLessonAction(lessonId)
@@ -43,6 +46,7 @@ export function ManageCourseClient({ course, lessons }: ManageCourseClientProps)
 
     return (
         <div className="space-y-4">
+            {ConfirmDialogEl}
             {/* Course info */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
                 <div className="flex items-center justify-between">

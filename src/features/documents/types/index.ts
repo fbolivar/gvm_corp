@@ -8,16 +8,16 @@ export const DocumentStatusEnum = z.enum(['DRAFT', 'SIGNED', 'SENT', 'ACCEPTED',
 export type DocumentType = z.infer<typeof DocumentTypeEnum>;
 export type DocumentStatus = z.infer<typeof DocumentStatusEnum>;
 
-// Line Item Schema — kept lenient for frontend forms; backend re-validates
+// Line Item Schema
 export const documentLineSchema = z.object({
     id: z.string().optional(),
     document_id: z.string().optional(),
-    product_id: z.any().optional(),
+    product_id: z.string().uuid().optional().nullable(),
     description: z.string().optional().default(''),
-    qty: z.any().optional().default(1),
-    unit_price: z.any().optional().default(0),
-    line_total: z.any().optional().default(0),
-    tax_config: z.any().optional(),
+    qty: z.coerce.number().min(0).default(1),
+    unit_price: z.coerce.number().min(0).default(0),
+    line_total: z.coerce.number().min(0).default(0),
+    tax_config: z.any().optional().nullable(),
 });
 
 export type DocumentLine = z.infer<typeof documentLineSchema>;

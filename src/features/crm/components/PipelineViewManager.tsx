@@ -9,6 +9,7 @@ import { cn } from "@/shared/lib/utils"
 import { deleteOpportunityAction } from "../actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface Props {
     opportunities: Record<string, unknown>[]
@@ -17,9 +18,11 @@ interface Props {
 export function PipelineViewManager({ opportunities }: Props) {
     const [view, setView] = useState<'kanban' | 'list'>('kanban');
     const router = useRouter();
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const handleDelete = async (id: string) => {
-        if (!confirm("¿Eliminar esta oportunidad? Esta acción no se puede deshacer.")) return;
+        const ok = await confirmFn({ title: "Confirmar accion", description: "¿Eliminar esta oportunidad? Esta acción no se puede deshacer.", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
         const result = await deleteOpportunityAction(id);
         if (result.error) {
             toast.error(result.error);
@@ -74,6 +77,7 @@ export function PipelineViewManager({ opportunities }: Props) {
                     <OpportunityTable opportunities={opportunities} onDelete={handleDelete} />
                 )}
             </div>
+            {ConfirmDialogEl}
         </div>
     );
 }

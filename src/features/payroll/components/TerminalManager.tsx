@@ -9,6 +9,7 @@ import { Badge } from "@/shared/components/ui/badge"
 import { toast } from "sonner"
 import { Plus, Loader2, Trash2, Copy, Power, QrCode, ExternalLink } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface Props {
     terminals: KioskTerminalType[]
@@ -20,6 +21,7 @@ export function TerminalManager({ terminals: initialTerminals, baseUrl }: Props)
     const [name, setName] = useState('')
     const [isPending, startTransition] = useTransition()
     const [showQr, setShowQr] = useState<string | null>(null)
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
 
     const handleCreate = () => {
         if (!name.trim()) return
@@ -47,8 +49,9 @@ export function TerminalManager({ terminals: initialTerminals, baseUrl }: Props)
         })
     }
 
-    const handleDelete = (id: string, termName: string) => {
-        if (!confirm(`Eliminar terminal "${termName}"?`)) return
+    const handleDelete = async (id: string, termName: string) => {
+        const ok = await confirmFn({ title: "Confirmar", description: `Eliminar terminal "${termName}"?`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
         startTransition(async () => {
             try {
                 await deleteTerminalAction(id)
@@ -68,6 +71,7 @@ export function TerminalManager({ terminals: initialTerminals, baseUrl }: Props)
 
     return (
         <div className="space-y-6">
+            {ConfirmDialogEl}
             {/* Create form */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">

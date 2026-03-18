@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button"
 import { Badge } from "@/shared/components/ui/badge"
 import { Trash2, Clock, Moon, Sun, Star, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface Props {
     schedules: WorkSchedule[]
@@ -15,9 +16,11 @@ interface Props {
 
 export function ScheduleList({ schedules, assignmentCounts }: Props) {
     const [isPending, startTransition] = useTransition()
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
 
-    const handleDelete = (id: string, name: string) => {
-        if (!confirm(`Eliminar turno "${name}"? Los empleados asignados quedaran sin turno.`)) return
+    const handleDelete = async (id: string, name: string) => {
+        const ok = await confirmFn({ title: "Confirmar", description: `Eliminar turno "${name}"? Los empleados asignados quedaran sin turno.`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
 
         startTransition(async () => {
             try {
@@ -31,6 +34,7 @@ export function ScheduleList({ schedules, assignmentCounts }: Props) {
 
     return (
         <div className="divide-y divide-slate-50">
+            {ConfirmDialogEl}
             {schedules.length === 0 ? (
                 <div className="p-12 text-center">
                     <Clock className="h-10 w-10 text-slate-200 mx-auto mb-3" />

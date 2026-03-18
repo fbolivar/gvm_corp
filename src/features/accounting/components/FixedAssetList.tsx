@@ -12,6 +12,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { TrendingDown, Trash2, Loader2, Package } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 
 const STATUS_LABELS: Record<string, string> = {
     ACTIVE: 'Activo', DISPOSED: 'Dado de Baja', FULLY_DEPRECIATED: 'Depreciado Total',
@@ -27,11 +28,13 @@ interface Props { initialAssets: FixedAsset[] }
 export function FixedAssetList({ initialAssets }: Props) {
     const [assets, setAssets] = useState<FixedAsset[]>(initialAssets);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const handleDepreciate = async (asset: FixedAsset) => {
         const monthly = monthlyDepreciation(asset);
         if (monthly === 0) { alert('Este activo no se deprecia (terreno o vida útil cero).'); return; }
-        if (!confirm(`Registrar 1 mes de depreciación ($${monthly.toLocaleString('es-CO', { maximumFractionDigits: 0 })}) para "${asset.name}"?`)) return;
+        const ok = await confirmFn({ title: "Confirmar accion", description: `Registrar 1 mes de depreciación ($${monthly.toLocaleString('es-CO', { maximumFractionDigits: 0 })}) para "${asset.name}"?`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setProcessingId(asset.id + '-dep');
         const result = await registerDepreciationAction(asset.id, 1);
         setProcessingId(null);
@@ -52,7 +55,8 @@ export function FixedAssetList({ initialAssets }: Props) {
     };
 
     const handleDispose = async (asset: FixedAsset) => {
-        if (!confirm(`Dar de baja definitiva el activo "${asset.name}"?`)) return;
+        const ok = await confirmFn({ title: "Confirmar accion", description: `Dar de baja definitiva el activo "${asset.name}"?`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setProcessingId(asset.id + '-dispose');
         const result = await disposeFixedAssetAction(asset.id);
         setProcessingId(null);
@@ -80,7 +84,7 @@ export function FixedAssetList({ initialAssets }: Props) {
         );
     }
 
-    return (
+    return (<>
         <div className="space-y-3">
             {assets.map(asset => {
                 const nbv = netBookValue(asset);
@@ -187,5 +191,6 @@ export function FixedAssetList({ initialAssets }: Props) {
                 );
             })}
         </div>
-    );
+        {ConfirmDialogEl}
+    </>);
 }

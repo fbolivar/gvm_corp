@@ -17,6 +17,7 @@ import { Badge } from "@/shared/components/ui/badge"
 import { cn } from "@/shared/lib/utils"
 import { convertDocumentAction } from "../convertActions"
 import { toast } from "sonner"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface SalesQuotationListProps {
     quotations: Document[]
@@ -39,6 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
 
     const filteredQuotations = quotations.filter(quote =>
         quote.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -46,7 +48,8 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
     );
 
     const handleConvertToOrder = async (docId: string) => {
-        if (!confirm("¿Convertir esta cotización en un Pedido de Venta?")) return;
+        const ok = await confirmFn({ title: "Convertir a Pedido", description: "¿Convertir esta cotización en un Pedido de Venta?", variant: "warning", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setProcessingId(docId);
         const result = await convertDocumentAction(docId, 'SALES_ORDER');
         setProcessingId(null);
@@ -54,7 +57,8 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
     };
 
     const handleConvertToInvoice = async (docId: string) => {
-        if (!confirm("¿Convertir esta cotización en una Factura de Venta?")) return;
+        const ok = await confirmFn({ title: "Convertir a Factura", description: "¿Convertir esta cotización en una Factura de Venta?", variant: "warning", confirmLabel: "Confirmar" })
+        if (!ok) return;
         setProcessingId(docId + '-invoice');
         const result = await convertDocumentAction(docId, 'INVOICE');
         setProcessingId(null);
@@ -174,6 +178,7 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
                     </Table>
                 </div>
             )}
+            {ConfirmDialogEl}
         </div>
     )
 }

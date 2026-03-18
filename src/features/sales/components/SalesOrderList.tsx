@@ -20,6 +20,7 @@ import Link from "next/link"
 import { cn } from "@/shared/lib/utils"
 import { convertDocumentAction } from "../convertActions"
 import { toast } from "sonner"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface SalesOrderListProps {
     orders: Document[]
@@ -60,6 +61,7 @@ function formatDate(dateStr: string | null | undefined) {
 export function SalesOrderList({ orders }: SalesOrderListProps) {
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState("")
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
 
     const filteredOrders = orders.filter(order =>
         order.number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,7 +69,8 @@ export function SalesOrderList({ orders }: SalesOrderListProps) {
     )
 
     const handleConvertToInvoice = async (docId: string) => {
-        if (!confirm("¿Deseas convertir este pedido en una Factura?")) return
+        const ok = await confirmFn({ title: "Convertir a Factura", description: "¿Deseas convertir este pedido en una Factura?", variant: "warning", confirmLabel: "Confirmar" })
+        if (!ok) return
         setProcessingId(docId)
         const result = await convertDocumentAction(docId, 'INVOICE')
         setProcessingId(null)
@@ -89,6 +92,7 @@ export function SalesOrderList({ orders }: SalesOrderListProps) {
                         <Plus className="h-3.5 w-3.5 mr-1.5" /> Crear primer pedido
                     </Link>
                 </Button>
+                {ConfirmDialogEl}
             </div>
         )
     }
@@ -190,6 +194,7 @@ export function SalesOrderList({ orders }: SalesOrderListProps) {
                     </table>
                 </div>
             )}
+            {ConfirmDialogEl}
         </div>
     )
 }

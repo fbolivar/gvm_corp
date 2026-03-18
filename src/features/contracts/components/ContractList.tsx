@@ -12,12 +12,14 @@ import { updateContractStatusAction } from '../contractActions';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { FileText, ChevronRight, AlertTriangle, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { useConfirm } from '@/shared/hooks/useConfirm';
 
 interface Props { initialContracts: Contract[] }
 
 export function ContractList({ initialContracts }: Props) {
     const [contracts, setContracts] = useState<Contract[]>(initialContracts);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
 
     const handleStatus = async (id: string, status: 'ACTIVE' | 'TERMINATED' | 'SUSPENDED') => {
         setProcessingId(id);
@@ -32,22 +34,27 @@ export function ContractList({ initialContracts }: Props) {
 
     if (contracts.length === 0) {
         return (
-            <div className="py-32 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
-                <div className="h-20 w-20 rounded-[2rem] bg-white shadow-sm border border-slate-50 flex items-center justify-center">
-                    <FileText className="h-10 w-10 text-slate-200" />
+            <>
+                {ConfirmDialogEl}
+                <div className="py-32 text-center bg-slate-50/50 rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center gap-6">
+                    <div className="h-20 w-20 rounded-[2rem] bg-white shadow-sm border border-slate-50 flex items-center justify-center">
+                        <FileText className="h-10 w-10 text-slate-200" />
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Sin Contratos</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Registra tu primer contrato para centralizar la gestión</p>
+                    </div>
+                    <Button className="bg-slate-900 hover:bg-violet-600 text-white font-black text-[10px] uppercase tracking-widest h-14 px-10 rounded-2xl shadow-active" asChild>
+                        <Link href="/contracts/new">Nuevo Contrato</Link>
+                    </Button>
                 </div>
-                <div className="space-y-2">
-                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Sin Contratos</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Registra tu primer contrato para centralizar la gestión</p>
-                </div>
-                <Button className="bg-slate-900 hover:bg-violet-600 text-white font-black text-[10px] uppercase tracking-widest h-14 px-10 rounded-2xl shadow-active" asChild>
-                    <Link href="/contracts/new">Nuevo Contrato</Link>
-                </Button>
-            </div>
+            </>
         );
     }
 
     return (
+        <>
+        {ConfirmDialogEl}
         <div className="space-y-4">
             {contracts.map(contract => {
                 const days = daysUntilExpiry(contract);
@@ -126,7 +133,7 @@ export function ContractList({ initialContracts }: Props) {
                                 {contract.status === 'ACTIVE' && (
                                     <Button
                                         variant="outline"
-                                        onClick={() => { if (confirm('¿Terminar este contrato?')) handleStatus(contract.id, 'TERMINATED'); }}
+                                        onClick={async () => { const ok = await confirmFn({ title: "Confirmar", description: '¿Terminar este contrato?', variant: "danger", confirmLabel: "Confirmar" }); if (ok) handleStatus(contract.id, 'TERMINATED'); }}
                                         disabled={isProcessing}
                                         className="h-12 px-5 rounded-2xl border-slate-100 text-rose-400 hover:bg-rose-50 hover:border-rose-200 font-black text-[10px] uppercase tracking-widest"
                                     >
@@ -146,5 +153,6 @@ export function ContractList({ initialContracts }: Props) {
                 );
             })}
         </div>
+        </>
     );
 }

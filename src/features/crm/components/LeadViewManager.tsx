@@ -11,6 +11,7 @@ import { LeadConversionDialog } from "./LeadConversionDialog"
 import { deleteLeadAction } from "../actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface Props {
     leads: Lead[]
@@ -22,15 +23,17 @@ export function LeadViewManager({ leads }: Props) {
     const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
     const router = useRouter()
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
 
     const handleConvertClick = (lead: Lead) => {
         setSelectedLead(lead)
         setIsConvertDialogOpen(true)
     }
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         const lead = leads.find(l => l.id === id)
-        if (!confirm(`¿Eliminar el prospecto "${lead?.name || ''}"? Esta acción no se puede deshacer.`)) return
+        const ok = await confirmFn({ title: "Confirmar accion", description: `¿Eliminar el prospecto "${lead?.name || ''}"? Esta acción no se puede deshacer.`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
 
         startTransition(async () => {
             const result = await deleteLeadAction(id)
@@ -102,6 +105,7 @@ export function LeadViewManager({ leads }: Props) {
                     router.refresh()
                 }}
             />
+            {ConfirmDialogEl}
         </div>
     );
 }

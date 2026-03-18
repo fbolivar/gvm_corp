@@ -51,6 +51,7 @@ import { settingsService, TeamMember, AppRole, AppModule, RolePermission, Zone }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
+import { useConfirm } from "@/shared/hooks/useConfirm";
 
 interface Props {
     initialMembers: TeamMember[];
@@ -112,6 +113,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [passwordLoading, setPasswordLoading] = useState(false);
 
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
     const supabase = createClient();
     const router = useRouter();
 
@@ -200,7 +202,8 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     }
 
     async function handleRemoveMember(memberId: string, memberEmail: string) {
-        if (!confirm(`¿Estás seguro de que deseas remover a ${memberEmail} del equipo?`)) return;
+        const ok = await confirmFn({ title: "Confirmar", description: `¿Estás seguro de que deseas remover a ${memberEmail} del equipo?`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return;
 
         setActionLoading(memberId);
         try {
@@ -964,6 +967,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
             </Tabs>
 
             {/* Modal: Cambiar Contraseña */}
+            {ConfirmDialogEl}
             {passwordModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md mx-4 animate-in slide-in-from-bottom-4 duration-300">

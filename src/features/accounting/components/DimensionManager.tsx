@@ -11,6 +11,7 @@ import {
     createDimensionValueAction,
     deleteDimensionValueAction,
 } from "../actions/dimensionActions"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 import {
     Plus,
     Trash2,
@@ -47,6 +48,7 @@ interface Props {
 
 export function DimensionManager({ dimensions, dimensionValues }: Props) {
     const router = useRouter()
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
     const [expandedId, setExpandedId] = useState<string | null>(null)
 
     // Create dimension form state
@@ -84,7 +86,8 @@ export function DimensionManager({ dimensions, dimensionValues }: Props) {
     }
 
     const handleDeleteDim = async (id: string) => {
-        if (!confirm("Eliminar esta dimension y todos sus valores?")) return
+        const ok = await confirmFn({ title: "Confirmar", description: "Eliminar esta dimension y todos sus valores?", variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
         const result = await deleteDimensionAction(id)
         if (result.error) {
             toast.error(result.error)
@@ -129,6 +132,7 @@ export function DimensionManager({ dimensions, dimensionValues }: Props) {
 
     return (
         <div className="space-y-6">
+            {ConfirmDialogEl}
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white rounded-[2rem] p-6 shadow-premium border border-slate-50">

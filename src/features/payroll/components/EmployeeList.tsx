@@ -52,6 +52,7 @@ import {
 import { LinkUserModal } from "./LinkUserModal"
 import { deactivateEmployeeAction } from "../actions"
 import { useRouter } from "next/navigation"
+import { useConfirm } from "@/shared/hooks/useConfirm"
 
 interface EmployeeListProps {
     employees: Employee[]
@@ -60,6 +61,7 @@ interface EmployeeListProps {
 export function EmployeeList({ employees }: EmployeeListProps) {
     const supabase = createClient()
     const router = useRouter()
+    const [ConfirmDialogEl, confirmFn] = useConfirm()
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
     const [search, setSearch] = useState('')
     const [isBulkOpen, setIsBulkOpen] = useState(false)
@@ -70,7 +72,8 @@ export function EmployeeList({ employees }: EmployeeListProps) {
 
     const handleDeactivateEmployee = async (emp: Employee) => {
         const name = emp.party?.legal_name || 'este empleado'
-        if (!confirm(`¿Estás seguro de que deseas desactivar a ${name}? Se desvinculará su cuenta de usuario.`)) return
+        const ok = await confirmFn({ title: "Confirmar", description: `¿Estás seguro de que deseas desactivar a ${name}? Se desvinculará su cuenta de usuario.`, variant: "danger", confirmLabel: "Confirmar" })
+        if (!ok) return
         const result = await deactivateEmployeeAction(emp.id!)
         if (result.success) {
             toast.success(`${name} fue desactivado exitosamente`)
@@ -427,6 +430,8 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                     )}
                 </div>
             )}
+
+            {ConfirmDialogEl}
 
             {/* Link User Modal */}
             {linkModalEmployee && (
