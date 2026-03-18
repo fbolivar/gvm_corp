@@ -32,6 +32,7 @@ import {
 import { useEffect } from "react"
 import { format } from "date-fns"
 import { cn } from "@/shared/lib/utils"
+import { toast } from "sonner"
 
 interface DocumentFormProps {
     parties: Party[]
@@ -151,7 +152,22 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
         data.subtotal = subtotal;
         data.taxes = taxes;
         data.total = subtotal + taxes;
-        await onSubmit(data);
+        try {
+            await onSubmit(data);
+            toast.success('Documento registrado correctamente');
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Error al guardar el documento');
+        }
+    };
+
+    const handleValidationError = () => {
+        const errors = form.formState.errors;
+        const messages: string[] = [];
+        if (errors.party_id) messages.push('Selecciona un cliente/tercero');
+        if (errors.issue_date) messages.push('Fecha inválida');
+        if (errors.lines) messages.push('Revisa los items: descripción y cantidad son obligatorios');
+        if (fields.length === 0) messages.push('Agrega al menos un item');
+        toast.error(messages.length > 0 ? messages.join('. ') : 'Revisa los campos del formulario');
     };
 
     return (
@@ -434,7 +450,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                     <Button type="button" variant="outline" onClick={() => window.history.back()} className="flex-1 h-16 rounded-2xl border-slate-200 text-slate-500 font-bold text-xs uppercase tracking-wider hover:bg-slate-50 transition-all">
                         Descartar
                     </Button>
-                    <Button type="button" onClick={form.handleSubmit(handleFormSubmit)} disabled={isLoading || fields.length === 0} className={cn(
+                    <Button type="button" onClick={form.handleSubmit(handleFormSubmit, handleValidationError)} disabled={isLoading} className={cn(
                         "flex-[2] h-16 rounded-2xl font-bold shadow-active transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider border-none gap-3",
                         isSale ? "bg-amber-600 text-white shadow-amber-600/20 hover:bg-amber-700" : "bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700"
                     )}>

@@ -5,6 +5,7 @@ import { createSalesDocumentAction } from '@/features/sales/actions';
 import { Document } from "@/features/documents/types";
 import { Party } from "@/features/parties/types";
 import { Product } from "@/features/products/types";
+import { toast } from "sonner";
 
 interface Props {
     parties: Party[];
@@ -18,7 +19,8 @@ export default function NewOrderClient({ parties, products }: Props) {
             '/sales/orders'
         );
         if (result?.error) {
-            alert(`Error: ${result.error}`);
+            toast.error(result.error);
+            throw new Error(result.error);
         }
     };
 
