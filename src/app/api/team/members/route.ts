@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Body JSON inválido' }, { status: 400 });
         }
 
-        console.log('[API /team/members] body received:', JSON.stringify(body));
+        // debug: [API /team/members] body received:', JSON.stringify(body));
 
         const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
         const role = typeof body.role === 'string' ? body.role.trim() : '';
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
             .eq('name', role)
             .maybeSingle();
 
-        console.log('[API /team/members] role lookup:', role, '→ appRole:', appRole?.id || 'NOT FOUND');
+        // debug: [API /team/members] role lookup:', role, '→ appRole:', appRole?.id || 'NOT FOUND');
 
         // 5. Admin client for privileged operations
         const adminClient = createAdminClient();
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (createError) {
-            console.log('[API /team/members] createUser failed:', createError.message, '— status:', createError.status);
+            // debug: [API /team/members] createUser failed:', createError.message, '— status:', createError.status);
 
             // If user already exists, find and link
             const isAlreadyExists =
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
                 createError.status === 422;
 
             if (isAlreadyExists) {
-                console.log('[API /team/members] User already exists, searching...');
+                // debug: [API /team/members] User already exists, searching...');
 
                 // Search existing user by email
                 const { data: listData, error: listError } = await adminClient.auth.admin.listUsers({
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
                 }
 
                 targetUserId = existingUser.id;
-                console.log('[API /team/members] Found existing user:', targetUserId);
+                // debug: [API /team/members] Found existing user:', targetUserId);
 
                 // Update password if provided
                 if (password) {
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
             targetUserId = newUser.user.id;
             isNewUser = true;
-            console.log('[API /team/members] New user created:', targetUserId);
+            // debug: [API /team/members] New user created:', targetUserId);
 
             // Create profile
             const { error: profileErr } = await adminClient
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: `Error vinculando: ${linkError.message}` }, { status: 500 });
         }
 
-        console.log('[API /team/members] SUCCESS:', email, isNewUser ? 'NEW' : 'EXISTING');
+        // debug: [API /team/members] SUCCESS:', email, isNewUser ? 'NEW' : 'EXISTING');
 
         return NextResponse.json({
             success: true,

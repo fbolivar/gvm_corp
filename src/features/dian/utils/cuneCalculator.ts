@@ -33,7 +33,5 @@ export const calculateCune = (
         tipoAmb
     ].join('');
 
-    console.log("CUNE String:", concatenated);
-
     return createHash('sha384').update(concatenated).digest('hex');
 }

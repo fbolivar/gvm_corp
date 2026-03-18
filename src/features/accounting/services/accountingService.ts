@@ -526,7 +526,6 @@ export const accountingService = {
         });
 
         const result = Object.values(aggregation).sort((a, b) => a.code.localeCompare(b.code));
-        console.log(`[accounting] getTrialBalance: ${result.length} accounts for ${startDate} to ${endDate}${dimensionValueId ? ` [dim: ${dimensionValueId}]` : ''}`);
         return result;
     },
 

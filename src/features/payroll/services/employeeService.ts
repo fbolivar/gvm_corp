@@ -38,16 +38,13 @@ export const employeeService = {
 
     // Helper to get tenant with MULTIPLE FALLBACKS
     async getTenantId(client: SupabaseClient) {
-        console.log("getTenantId: 1. Trying RPC 'get_my_tenant_id'...");
         const { data: rpcData, error: rpcError } = await client.rpc('get_my_tenant_id');
 
         if (!rpcError && rpcData) {
-            console.log("getTenantId: RPC success. Tenant:", rpcData);
             return rpcData;
         }
         console.warn("getTenantId: RPC failed/null. Data:", rpcData, "Error:", rpcError);
 
-        console.log("getTenantId: 2. Trying DB 'tenants' table fallback...");
         // 2. Fallback: Get first tenant (For dev/MVP)
         const { data: tenantData, error: tenantError } = await client
             .from('tenants')
@@ -56,24 +53,19 @@ export const employeeService = {
             .maybeSingle();
 
         if (tenantData?.id) {
-            console.log("getTenantId: DB Fallback success. Tenant:", tenantData.id);
             return tenantData.id;
         }
         console.error("getTenantId: DB Fallback failed.", tenantError);
 
         // 3. Emergency Fallback: Hardcoded ID (Known valid Tenant from previous query)
-        console.log("getTenantId: 3. Emergency Fallback (Hardcoded ID)...");
         return '134320f0-20ef-4a56-8087-050d517c8282';
     },
 
     async createEmployee(client: SupabaseClient, employee: Employee & { party: Party }) {
         try {
-            console.log("createEmployee (VERSION FINAL DEBUG V2) started with:", JSON.stringify(employee, null, 2));
-
             // 0. Get Tenant ID to ensure RLS doesn't block inserts
             const tenantId = await this.getTenantId(client);
             if (!tenantId) throw new Error("CRITICAL: No se pudo obtener el Tenant ID ni siquiera con fallback.");
-            console.log("Using Tenant ID:", tenantId);
 
             // 1. Check if party exists by Identifiacion, otherwise Create Party
             let partyId = employee.party_id;
@@ -93,7 +85,6 @@ export const employeeService = {
                 }
 
                 if (existingParty) {
-                    console.log("Found existing party:", existingParty.id);
                     partyId = existingParty.id;
                 } else {
                     // Sanitized Party Data (Explicit fields)
@@ -108,8 +99,6 @@ export const employeeService = {
                         is_vendor: false,
                         is_customer: false,
                     };
-
-                    console.log("Party Data to Upsert (SANITIZED):", JSON.stringify(partyData, null, 2));
 
                     const { data: newParty, error: partyError } = await client
                         .from('parties')
@@ -151,8 +140,6 @@ export const employeeService = {
             if (employee.user_id) {
                 employeeInsertData.user_id = employee.user_id;
             }
-
-            console.log("Creating employee record (SANITIZED):", JSON.stringify(employeeInsertData, null, 2));
 
             const { data: newEmployee, error: empError } = await client
                 .from('employees')

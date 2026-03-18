@@ -1,5 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai'
 import { streamText, type UIMessage, convertToModelMessages } from 'ai'
+import { createClient } from '@/lib/supabase/server'
 
 // Use OpenRouter as provider (OpenAI-compatible)
 const openrouter = createOpenAI({
@@ -13,6 +14,16 @@ export const maxDuration = 30
 
 export async function POST(req: Request) {
   try {
+    // Auth check
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'No autenticado' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const body = await req.json()
     const context = body.context || 'Modulo general'
 

@@ -49,13 +49,6 @@ export const notificationService = {
         body: string;
         attachments?: { name: string, url: string }[];
     }) {
-        console.log(`[EMAIL SIMULATOR] Sending email to ${data.to}...`);
-        console.log(`Subject: ${data.subject}`);
-        console.log(`Body: ${data.body}`);
-        if (data.attachments) {
-            console.log(`Attachments: ${data.attachments.map(a => a.name).join(', ')}`);
-        }
-
         await new Promise(resolve => setTimeout(resolve, 500));
         return { success: true };
     },

@@ -7,6 +7,9 @@ import { z } from 'zod';
 export async function GET(request: NextRequest) {
     try {
         const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
         const searchParams = request.nextUrl.searchParams;
 
         // Parse filters

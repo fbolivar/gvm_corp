@@ -47,7 +47,5 @@ export const calculateCufe = (
         tipoAmb
     ].join('');
 
-    console.log("CUFE String:", concatenated); // Debug only
-
     return createHash('sha384').update(concatenated).digest('hex');
 }

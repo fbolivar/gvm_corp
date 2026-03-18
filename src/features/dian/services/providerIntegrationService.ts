@@ -112,7 +112,6 @@ export const providerIntegrationService = {
 
         // 2. Construir Payload
         const apiPayload = this.buildProviderPayload(doc);
-        console.log("🚀 Payload JSON preparado para Proveedor Tecnológico:", JSON.stringify(apiPayload, null, 2));
 
         // 3. Simular latencia de red (1.5s)
         await new Promise(res => setTimeout(res, 1500));

@@ -252,7 +252,6 @@ export async function POST(request: NextRequest) {
                 }
             } catch {
                 // Table might not exist or have different schema — skip silently
-                console.log(`[Backup] Skipping table ${tableName} (not found or error)`);
             }
         }
 

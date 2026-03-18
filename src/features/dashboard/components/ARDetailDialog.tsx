@@ -49,9 +49,7 @@ export function ARDetailDialog({ isOpen, onClose, bucket }: Props) {
         if (!bucket) return
         setLoading(true)
         try {
-            console.log("Loading details for bucket:", bucket);
             const data = await dashboardService.getARAgingInvoices(supabase, bucket.min, bucket.max)
-            console.log("Details loaded:", data);
             setInvoices(data)
         } catch (error: any) {
             console.error("Error loading AR details:", {
