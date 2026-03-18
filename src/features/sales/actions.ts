@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server"
 import { documentService } from "@/features/documents/services/documentService"
 import { Document, documentSchema } from "@/features/documents/types"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 
 export async function createSalesDocumentAction(data: Document, redirectPath: string) {
     const supabase = await createClient();
@@ -15,11 +14,10 @@ export async function createSalesDocumentAction(data: Document, redirectPath: st
     }
 
     try {
-        await documentService.createDocument(supabase, parsed.data as any);
+        const result = await documentService.createDocument(supabase, parsed.data as any);
+        revalidatePath(redirectPath);
+        return { success: true, data: result };
     } catch (error: any) {
         return { error: error.message };
     }
-
-    revalidatePath(redirectPath);
-    redirect(redirectPath);
 }

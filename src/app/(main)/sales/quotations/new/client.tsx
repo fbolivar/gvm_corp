@@ -5,6 +5,8 @@ import { createSalesDocumentAction } from '@/features/sales/actions';
 import { Document } from "@/features/documents/types";
 import { Party } from "@/features/parties/types";
 import { Product } from "@/features/products/types";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 function FormSkeleton() {
     return (
@@ -37,14 +39,23 @@ interface Props {
 }
 
 export default function NewQuotationClient({ parties, products, preSelectedProductId }: Props) {
+    const router = useRouter();
+
     const handleSubmit = async (data: Document) => {
         const result = await createSalesDocumentAction(
             { ...data, doc_type: 'QUOTATION' },
             '/sales/quotations'
         );
         if (result?.error) {
-            alert(`Error: ${result.error}`);
+            toast.error(result.error);
+            throw new Error(result.error);
         }
+
+        toast.success('✅ Cotización creada exitosamente', {
+            description: 'La cotización ha sido registrada correctamente en el sistema',
+            duration: 4000,
+        });
+        router.push('/sales/quotations');
     };
 
     const preProduct = preSelectedProductId

@@ -6,6 +6,8 @@ import { Product } from "@/features/products/types"
 import { DocumentForm } from "@/features/documents/components/DocumentForm"
 import { createSalesDocumentAction } from "@/features/sales/actions"
 import { useState } from "react"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface Props {
     parties: Party[]
@@ -14,6 +16,7 @@ interface Props {
 
 export default function NewInvoiceClient({ parties, products }: Props) {
     const [loading, setLoading] = useState(false)
+    const router = useRouter()
 
     const handleSubmit = async (data: Document) => {
         setLoading(true)
@@ -22,7 +25,17 @@ export default function NewInvoiceClient({ parties, products }: Props) {
             '/sales/invoices'
         )
         setLoading(false)
-        if (result?.error) alert(result.error)
+
+        if (result?.error) {
+            toast.error(result.error)
+            throw new Error(result.error)
+        }
+
+        toast.success('✅ Factura creada exitosamente', {
+            description: 'La factura ha sido registrada correctamente en el sistema',
+            duration: 4000,
+        })
+        router.push('/sales/invoices')
     }
 
     return (

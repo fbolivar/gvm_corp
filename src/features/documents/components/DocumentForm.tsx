@@ -154,7 +154,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
         data.total = subtotal + taxes;
         try {
             await onSubmit(data);
-            toast.success('Documento registrado correctamente');
+            // Success toast is now handled by the parent component
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : 'Error al guardar el documento');
         }
