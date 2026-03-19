@@ -168,8 +168,8 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
 
     function handleProductSelect(index: number, productId: string) {
         const product = products.find((p) => p.id === productId);
-        form.setValue(`lines.${index}.unit_cost`, product?.cost ?? 0);
-        form.setValue(`lines.${index}.tax_rate`, taxCategoryToRate(product?.tax_category));
+        form.setValue(`lines.${index}.unit_cost`, product?.cost ?? 0, { shouldValidate: true });
+        form.setValue(`lines.${index}.tax_rate`, taxCategoryToRate(product?.tax_category), { shouldValidate: true });
     }
 
     async function handleSaveDraft() {
@@ -178,8 +178,14 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
             const errors = form.formState.errors;
             const missing: string[] = [];
             if (errors.supplier_id) missing.push('Proveedor');
-            if (errors.lines && !Array.isArray(errors.lines)) missing.push('Líneas de producto (mínimo 1)');
-            if (Array.isArray(errors.lines)) missing.push('Campos en líneas de producto');
+            if (errors.lines && !Array.isArray(errors.lines)) missing.push('Mínimo 1 línea de producto');
+            if (Array.isArray(errors.lines)) {
+                errors.lines.forEach((lineErr, i) => {
+                    if (lineErr?.product_id) missing.push(`Línea ${i + 1}: seleccione producto`);
+                    if (lineErr?.qty) missing.push(`Línea ${i + 1}: cantidad inválida`);
+                    if (lineErr?.unit_cost) missing.push(`Línea ${i + 1}: costo inválido`);
+                });
+            }
             toast.error(missing.length > 0
                 ? `Falta: ${missing.join(', ')}`
                 : "Por favor complete todos los campos requeridos");
@@ -206,8 +212,14 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
             const errors = form.formState.errors;
             const missing: string[] = [];
             if (errors.supplier_id) missing.push('Proveedor');
-            if (errors.lines && !Array.isArray(errors.lines)) missing.push('Líneas de producto (mínimo 1)');
-            if (Array.isArray(errors.lines)) missing.push('Campos en líneas de producto');
+            if (errors.lines && !Array.isArray(errors.lines)) missing.push('Mínimo 1 línea de producto');
+            if (Array.isArray(errors.lines)) {
+                errors.lines.forEach((lineErr, i) => {
+                    if (lineErr?.product_id) missing.push(`Línea ${i + 1}: seleccione producto`);
+                    if (lineErr?.qty) missing.push(`Línea ${i + 1}: cantidad inválida`);
+                    if (lineErr?.unit_cost) missing.push(`Línea ${i + 1}: costo inválido`);
+                });
+            }
             toast.error(missing.length > 0
                 ? `Falta: ${missing.join(', ')}`
                 : "Por favor complete todos los campos requeridos");
@@ -581,7 +593,7 @@ function LineRow({ index, form, products, currency, onProductSelect, onRemove }:
                     <select
                         {...form.register(`lines.${index}.product_id`)}
                         onChange={(e) => {
-                            form.setValue(`lines.${index}.product_id`, e.target.value);
+                            form.setValue(`lines.${index}.product_id`, e.target.value, { shouldValidate: true });
                             onProductSelect(index, e.target.value);
                         }}
                         className="w-full h-12 bg-white border-none rounded-xl pl-10 pr-8 text-xs font-bold text-slate-900 appearance-none shadow-inner focus:ring-4 focus:ring-primary/5 outline-none hover:bg-slate-50 transition-all cursor-pointer"
@@ -653,7 +665,10 @@ function LineRow({ index, form, products, currency, onProductSelect, onRemove }:
                 form.formState.errors.lines?.[index]?.qty ||
                 form.formState.errors.lines?.[index]?.unit_cost) && (
                 <p className="text-rose-500 text-[9px] font-black uppercase tracking-widest mt-2 ml-1 md:col-start-2">
-                    Complete todos los campos de esta línea
+                    {form.formState.errors.lines?.[index]?.product_id?.message
+                        || form.formState.errors.lines?.[index]?.qty?.message
+                        || form.formState.errors.lines?.[index]?.unit_cost?.message
+                        || 'Complete todos los campos de esta línea'}
                 </p>
             )}
         </div>
