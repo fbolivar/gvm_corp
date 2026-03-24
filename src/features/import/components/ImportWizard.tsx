@@ -1,26 +1,237 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, FileText, CheckCircle2, XCircle, ArrowRight, RotateCcw, Download, Users, Package, Banknote } from 'lucide-react'
+import * as XLSX from 'xlsx'
+import {
+  Upload,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  RotateCcw,
+  Download,
+  Users,
+  Package,
+  Banknote,
+  UserCheck,
+  Landmark,
+  BookOpen,
+} from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/components/ui/button'
 import {
   importClientsAction,
   importProductsAction,
   importTransactionsAction,
+  importEmployeesAction,
+  importBankAccountsAction,
+  importOpeningEntryAction,
   type ImportResult,
 } from '../actions'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type ImportType = 'clients' | 'products' | 'transactions'
+type ImportType =
+  | 'clients'
+  | 'products'
+  | 'transactions'
+  | 'employees'
+  | 'bank_accounts'
+  | 'opening_entry'
+
 type WizardStep = 1 | 2 | 3
 
 interface ParsedRow {
   [key: string]: string
 }
 
-// ─── CSV templates ────────────────────────────────────────────────────────────
+// ─── WorldOffice / generic column mapping ────────────────────────────────────
+
+const COLUMN_MAPPINGS: Record<string, string> = {
+  // Terceros
+  'razon social': 'nombre',
+  'razón social': 'nombre',
+  razon_social: 'nombre',
+  'nombre comercial': 'nombre',
+  'nombre o razon social': 'nombre',
+  nit: 'numero_documento',
+  'nit/cc': 'numero_documento',
+  cedula: 'numero_documento',
+  cédula: 'numero_documento',
+  'numero documento': 'numero_documento',
+  'número documento': 'numero_documento',
+  'no. documento': 'numero_documento',
+  documento: 'numero_documento',
+  'tipo documento': 'tipo_documento',
+  'tipo doc': 'tipo_documento',
+  'tipo id': 'tipo_documento',
+  correo: 'email',
+  'correo electronico': 'email',
+  'correo electrónico': 'email',
+  'e-mail': 'email',
+  mail: 'email',
+  telefono: 'telefono',
+  teléfono: 'telefono',
+  tel: 'telefono',
+  celular: 'telefono',
+  movil: 'telefono',
+  móvil: 'telefono',
+  ciudad: 'ciudad',
+  municipio: 'ciudad',
+  direccion: 'direccion',
+  dirección: 'direccion',
+  dir: 'direccion',
+  // Products
+  descripcion: 'descripcion',
+  descripción: 'descripcion',
+  producto: 'nombre',
+  referencia: 'sku',
+  codigo: 'sku',
+  código: 'sku',
+  cod: 'sku',
+  ref: 'sku',
+  precio: 'precio_venta',
+  'precio venta': 'precio_venta',
+  'precio de venta': 'precio_venta',
+  pvp: 'precio_venta',
+  'valor venta': 'precio_venta',
+  costo: 'costo',
+  'costo unitario': 'costo',
+  'costo promedio': 'costo',
+  'valor costo': 'costo',
+  existencia: 'stock',
+  existencias: 'stock',
+  cantidad: 'stock',
+  saldo: 'stock',
+  grupo: 'categoria',
+  categoria: 'categoria',
+  categoría: 'categoria',
+  familia: 'categoria',
+  iva: 'tipo_iva',
+  'tarifa iva': 'tipo_iva',
+  '% iva': 'tipo_iva',
+  'tipo iva': 'tipo_iva',
+  unidad: 'unidad_medida',
+  'unidad medida': 'unidad_medida',
+  um: 'unidad_medida',
+  // Employees
+  cargo: 'cargo',
+  puesto: 'cargo',
+  posición: 'cargo',
+  posicion: 'cargo',
+  departamento: 'departamento',
+  area: 'departamento',
+  área: 'departamento',
+  salario: 'salario_base',
+  'salario basico': 'salario_base',
+  'salario básico': 'salario_base',
+  sueldo: 'salario_base',
+  'fecha ingreso': 'fecha_ingreso',
+  'fecha de ingreso': 'fecha_ingreso',
+  'fecha inicio': 'fecha_ingreso',
+  contrato: 'tipo_contrato',
+  'tipo contrato': 'tipo_contrato',
+  // Bank accounts
+  cuenta: 'numero_cuenta',
+  'numero cuenta': 'numero_cuenta',
+  'número cuenta': 'numero_cuenta',
+  'no. cuenta': 'numero_cuenta',
+  banco: 'banco',
+  entidad: 'banco',
+  'tipo cuenta': 'tipo_cuenta',
+  moneda: 'moneda',
+  // Opening entry
+  'cuenta puc': 'cuenta_puc',
+  'codigo cuenta': 'cuenta_puc',
+  'código cuenta': 'cuenta_puc',
+  'cuenta contable': 'cuenta_puc',
+  debito: 'debito',
+  débito: 'debito',
+  debe: 'debito',
+  credito: 'credito',
+  crédito: 'credito',
+  haber: 'credito',
+}
+
+/** Normalizes a header string: trim, lowercase, remove accents for lookup */
+function normalizeHeader(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+/** Given raw header strings, return a map of originalHeader → gvmField (or same if not mapped) */
+function buildHeaderMap(rawHeaders: string[]): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const raw of rawHeaders) {
+    const normalized = normalizeHeader(raw)
+    const mapped = COLUMN_MAPPINGS[normalized]
+    map.set(raw, mapped ?? raw.trim().toLowerCase())
+  }
+  return map
+}
+
+// ─── CSV parser ────────────────────────────────────────────────────────────────
+
+function parseCsv(text: string): { rows: ParsedRow[]; headerMap: Map<string, string> } {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+
+  if (lines.length < 2) return { rows: [], headerMap: new Map() }
+
+  const rawHeaders = lines[0].split(',').map((h) => h.trim())
+  const headerMap = buildHeaderMap(rawHeaders)
+
+  const rows: ParsedRow[] = []
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(',').map((c) => c.trim())
+    const row: ParsedRow = {}
+    rawHeaders.forEach((raw, idx) => {
+      const gvmKey = headerMap.get(raw) ?? raw.trim().toLowerCase()
+      row[gvmKey] = cells[idx] ?? ''
+    })
+    rows.push(row)
+  }
+
+  return { rows, headerMap }
+}
+
+// ─── XLSX parser ───────────────────────────────────────────────────────────────
+
+function parseXlsx(buffer: ArrayBuffer): { rows: ParsedRow[]; headerMap: Map<string, string> } {
+  const workbook = XLSX.read(buffer, { type: 'array' })
+  const sheetName = workbook.SheetNames[0]
+  if (!sheetName) return { rows: [], headerMap: new Map() }
+
+  const sheet = workbook.Sheets[sheetName]
+  const raw = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 }) as unknown[][]
+
+  if (raw.length < 2) return { rows: [], headerMap: new Map() }
+
+  const rawHeaders = (raw[0] as unknown[]).map((h) => String(h ?? '').trim())
+  const headerMap = buildHeaderMap(rawHeaders)
+
+  const rows: ParsedRow[] = []
+  for (let i = 1; i < raw.length; i++) {
+    const cells = raw[i] as unknown[]
+    // Skip completely empty rows
+    if (!cells || cells.every((c) => c === '' || c === null || c === undefined)) continue
+    const row: ParsedRow = {}
+    rawHeaders.forEach((raw_h, idx) => {
+      const gvmKey = headerMap.get(raw_h) ?? raw_h.toLowerCase()
+      row[gvmKey] = String(cells[idx] ?? '').trim()
+    })
+    rows.push(row)
+  }
+
+  return { rows, headerMap }
+}
+
+// ─── Templates ─────────────────────────────────────────────────────────────────
 
 const TEMPLATES: Record<ImportType, { headers: string[]; sample: string[][] }> = {
   clients: {
@@ -44,40 +255,85 @@ const TEMPLATES: Record<ImportType, { headers: string[]; sample: string[][] }> =
       ['Cobro cliente pedido 001', '3200000', 'RECEIPT', '2026-03-02'],
     ],
   },
+  employees: {
+    headers: [
+      'nombre',
+      'tipo_documento',
+      'numero_documento',
+      'email',
+      'cargo',
+      'departamento',
+      'salario_base',
+      'fecha_ingreso',
+      'tipo_contrato',
+    ],
+    sample: [
+      [
+        'María García López',
+        'CC',
+        '52834567',
+        'maria@gvm.com',
+        'Contadora',
+        'Contabilidad',
+        '4500000',
+        '2024-01-15',
+        'INDEFINIDO',
+      ],
+    ],
+  },
+  bank_accounts: {
+    headers: ['nombre', 'numero_cuenta', 'banco', 'tipo_cuenta', 'moneda', 'saldo'],
+    sample: [
+      ['Cuenta Corriente Principal', '123456789', 'Bancolombia', 'CHECKING', 'COP', '15000000'],
+    ],
+  },
+  opening_entry: {
+    headers: ['cuenta_puc', 'descripcion', 'debito', 'credito'],
+    sample: [
+      ['11050501', 'Saldo Bancolombia', '15000000', '0'],
+      ['13050501', 'Cartera clientes', '8500000', '0'],
+      ['22050501', 'Proveedores', '0', '12000000'],
+      ['36050501', 'Resultado ejercicio', '0', '11500000'],
+    ],
+  },
 }
+
+// ─── Type config ──────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<
   ImportType,
   { label: string; description: string; icon: React.ComponentType<{ className?: string }> }
 > = {
-  clients: { label: 'Clientes', description: 'Importa terceros de tipo cliente', icon: Users },
-  products: { label: 'Productos', description: 'Importa catálogo de productos', icon: Package },
-  transactions: { label: 'Transacciones', description: 'Importa movimientos de tesorería', icon: Banknote },
-}
-
-// ─── CSV parser ───────────────────────────────────────────────────────────────
-
-function parseCsv(text: string): ParsedRow[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-
-  if (lines.length < 2) return []
-
-  const headers = lines[0].split(',').map((h) => h.trim().toLowerCase())
-  const rows: ParsedRow[] = []
-
-  for (let i = 1; i < lines.length; i++) {
-    const cells = lines[i].split(',').map((c) => c.trim())
-    const row: ParsedRow = {}
-    headers.forEach((header, idx) => {
-      row[header] = cells[idx] ?? ''
-    })
-    rows.push(row)
-  }
-
-  return rows
+  clients: {
+    label: 'Terceros',
+    description: 'Clientes, proveedores y contactos',
+    icon: Users,
+  },
+  products: {
+    label: 'Productos',
+    description: 'Catálogo de productos e inventario',
+    icon: Package,
+  },
+  transactions: {
+    label: 'Transacciones',
+    description: 'Movimientos de tesorería',
+    icon: Banknote,
+  },
+  employees: {
+    label: 'Empleados',
+    description: 'Nómina y recursos humanos',
+    icon: UserCheck,
+  },
+  bank_accounts: {
+    label: 'Cuentas Bancarias',
+    description: 'Cuentas de tesorería',
+    icon: Landmark,
+  },
+  opening_entry: {
+    label: 'Asiento de Apertura',
+    description: 'Saldos iniciales contables',
+    icon: BookOpen,
+  },
 }
 
 // ─── Template download ────────────────────────────────────────────────────────
@@ -145,12 +401,84 @@ function StepIndicator({ current }: { current: WizardStep }) {
   )
 }
 
+// ─── Column mapping badge ─────────────────────────────────────────────────────
+
+function ColumnMappingPanel({
+  headerMap,
+  expectedFields,
+}: {
+  headerMap: Map<string, string>
+  expectedFields: string[]
+}) {
+  if (headerMap.size === 0) return null
+
+  const entries = Array.from(headerMap.entries())
+  const mappedGvmFields = new Set(entries.map(([, gvm]) => gvm))
+  const unmappedExpected = expectedFields.filter((f) => !mappedGvmFields.has(f))
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 space-y-3">
+      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+        Columnas detectadas
+      </p>
+
+      {/* Mapped columns */}
+      <div className="flex flex-wrap gap-2">
+        {entries.map(([source, gvm]) => {
+          const isMapped = source.trim().toLowerCase() !== gvm
+          return (
+            <div
+              key={source}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold border',
+                isMapped
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-slate-100 border-slate-200 text-slate-500'
+              )}
+            >
+              {isMapped ? (
+                <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+              ) : (
+                <span className="h-3 w-3 rounded-full bg-slate-300 shrink-0 inline-block" />
+              )}
+              <span className="text-slate-400">{source}</span>
+              {isMapped && (
+                <>
+                  <ArrowRight className="h-2.5 w-2.5 text-emerald-400" />
+                  <span className="font-black text-emerald-600">{gvm}</span>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Missing expected fields */}
+      {unmappedExpected.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {unmappedExpected.map((field) => (
+            <div
+              key={field}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold border bg-amber-50 border-amber-200 text-amber-700"
+            >
+              <XCircle className="h-3 w-3 text-amber-400 shrink-0" />
+              <span>{field}</span>
+              <span className="text-amber-400 font-normal">no encontrado</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ImportWizard() {
   const [step, setStep] = useState<WizardStep>(1)
   const [importType, setImportType] = useState<ImportType | null>(null)
   const [rows, setRows] = useState<ParsedRow[]>([])
+  const [headerMap, setHeaderMap] = useState<Map<string, string>>(new Map())
   const [fileError, setFileError] = useState<string | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
   const [importing, setImporting] = useState(false)
@@ -161,29 +489,49 @@ export function ImportWizard() {
   function handleFile(file: File) {
     setFileError(null)
 
-    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-      setFileError('Para importar archivos Excel, ábrelo en Excel y guárdalo como CSV (UTF-8) primero.')
+    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+    const isCsv = file.name.endsWith('.csv') || file.type === 'text/csv'
+
+    if (!isXlsx && !isCsv) {
+      setFileError('Solo se aceptan archivos .csv, .xlsx o .xls')
       return
     }
 
-    if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
-      setFileError('Solo se aceptan archivos .csv')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = e.target?.result as string
-      const parsed = parseCsv(text)
-      if (parsed.length === 0) {
-        setFileError('El archivo está vacío o tiene un formato incorrecto.')
-        return
+    if (isXlsx) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const buffer = e.target?.result as ArrayBuffer
+          const { rows: parsed, headerMap: hMap } = parseXlsx(buffer)
+          if (parsed.length === 0) {
+            setFileError('El archivo está vacío o tiene un formato incorrecto.')
+            return
+          }
+          setRows(parsed)
+          setHeaderMap(hMap)
+          setStep(2)
+        } catch {
+          setFileError('No se pudo leer el archivo Excel. Verifica que no esté dañado.')
+        }
       }
-      setRows(parsed)
-      setStep(2)
+      reader.onerror = () => setFileError('No se pudo leer el archivo.')
+      reader.readAsArrayBuffer(file)
+    } else {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const text = e.target?.result as string
+        const { rows: parsed, headerMap: hMap } = parseCsv(text)
+        if (parsed.length === 0) {
+          setFileError('El archivo está vacío o tiene un formato incorrecto.')
+          return
+        }
+        setRows(parsed)
+        setHeaderMap(hMap)
+        setStep(2)
+      }
+      reader.onerror = () => setFileError('No se pudo leer el archivo.')
+      reader.readAsText(file, 'utf-8')
     }
-    reader.onerror = () => setFileError('No se pudo leer el archivo.')
-    reader.readAsText(file, 'utf-8')
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -206,13 +554,23 @@ export function ImportWizard() {
 
     try {
       let res: ImportResult
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = rows as any
+
       if (importType === 'clients') {
-        res = await importClientsAction(rows as unknown as Parameters<typeof importClientsAction>[0])
+        res = await importClientsAction(data)
       } else if (importType === 'products') {
-        res = await importProductsAction(rows as unknown as Parameters<typeof importProductsAction>[0])
+        res = await importProductsAction(data)
+      } else if (importType === 'transactions') {
+        res = await importTransactionsAction(data)
+      } else if (importType === 'employees') {
+        res = await importEmployeesAction(data)
+      } else if (importType === 'bank_accounts') {
+        res = await importBankAccountsAction(data)
       } else {
-        res = await importTransactionsAction(rows as unknown as Parameters<typeof importTransactionsAction>[0])
+        res = await importOpeningEntryAction(data)
       }
+
       setResult(res)
       setStep(3)
     } catch (err) {
@@ -232,15 +590,17 @@ export function ImportWizard() {
     setStep(1)
     setImportType(null)
     setRows([])
+    setHeaderMap(new Map())
     setFileError(null)
     setResult(null)
     setImporting(false)
   }
 
-  // ── Preview headers ────────────────────────────────────────────────────────
+  // ── Preview helpers ────────────────────────────────────────────────────────
 
   const previewHeaders = rows.length > 0 ? Object.keys(rows[0]) : []
   const previewRows = rows.slice(0, 10)
+  const expectedFields = importType ? TEMPLATES[importType].headers : []
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -260,7 +620,7 @@ export function ImportWizard() {
               Centro de Importación
             </h1>
             <p className="text-slate-400 text-sm font-medium mt-0.5">
-              Carga masiva de datos mediante archivos CSV
+              Carga masiva de datos mediante archivos Excel o CSV
             </p>
           </div>
         </div>
@@ -278,7 +638,7 @@ export function ImportWizard() {
               <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-4">
                 1. Selecciona el tipo de datos
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {(Object.entries(TYPE_CONFIG) as [ImportType, (typeof TYPE_CONFIG)[ImportType]][]).map(
                   ([key, config]) => {
                     const Icon = config.icon
@@ -331,7 +691,7 @@ export function ImportWizard() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                  2. Carga tu archivo CSV
+                  2. Carga tu archivo Excel o CSV
                 </h2>
                 {importType && (
                   <button
@@ -365,9 +725,13 @@ export function ImportWizard() {
                 />
                 <FileText className="h-10 w-10 mx-auto text-slate-300 mb-3" />
                 <p className="text-sm font-black text-slate-500 italic uppercase tracking-wide">
-                  {importType ? 'Arrastra tu CSV aquí o haz clic para seleccionar' : 'Primero selecciona el tipo de datos'}
+                  {importType
+                    ? 'Arrastra tu archivo aquí o haz clic para seleccionar'
+                    : 'Primero selecciona el tipo de datos'}
                 </p>
-                <p className="text-xs text-slate-400 mt-1.5">Archivos .csv (máx. 5 MB)</p>
+                <p className="text-xs text-slate-400 mt-1.5">
+                  Archivos .xlsx, .xls o .csv — máx. 5 MB
+                </p>
               </div>
 
               {fileError && (
@@ -382,7 +746,7 @@ export function ImportWizard() {
 
         {/* ── STEP 2: Preview ── */}
         {step === 2 && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black text-slate-900 uppercase italic tracking-tight">
@@ -390,16 +754,22 @@ export function ImportWizard() {
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5 font-medium">
                   Mostrando las primeras {previewRows.length} de{' '}
-                  <span className="font-black text-indigo-600">{rows.length} filas</span> listas para importar
+                  <span className="font-black text-indigo-600">{rows.length} filas</span> listas
+                  para importar
                 </p>
               </div>
               <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2">
                 <span className="text-2xl font-black text-indigo-600">{rows.length}</span>
                 <span className="text-[10px] font-black uppercase text-indigo-400 leading-tight tracking-widest">
-                  filas<br />total
+                  filas
+                  <br />
+                  total
                 </span>
               </div>
             </div>
+
+            {/* Column mapping panel */}
+            <ColumnMappingPanel headerMap={headerMap} expectedFields={expectedFields} />
 
             {/* Table */}
             <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm">
@@ -429,7 +799,9 @@ export function ImportWizard() {
                         'hover:bg-indigo-50/40'
                       )}
                     >
-                      <td className="px-4 py-2.5 text-[10px] font-black text-slate-300">{i + 2}</td>
+                      <td className="px-4 py-2.5 text-[10px] font-black text-slate-300">
+                        {i + 2}
+                      </td>
                       {previewHeaders.map((h) => (
                         <td
                           key={h}
