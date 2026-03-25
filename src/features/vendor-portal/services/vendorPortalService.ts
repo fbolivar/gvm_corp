@@ -49,7 +49,7 @@ export const vendorPortalService = {
         const { data: parties } = await client
             .from('parties')
             .select('id, legal_name, nit, email, phone, city')
-            .eq('status', 'ACTIVE')
+            .eq('is_vendor', true)
             .order('legal_name');
 
         if (!parties || parties.length === 0) return [];
