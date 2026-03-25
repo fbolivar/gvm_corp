@@ -457,16 +457,16 @@ export function WorldOfficeImportClient() {
 
       const key = [...selectedTables][i]
       try {
-        const result = await callApi({ action: 'import', table_key: key, connection: config })
+        const apiResult = await callApi({ action: 'import', table_key: key, connection: config })
+        // API returns { results: [{ imported, errors, total, error_details }] } for single table
+        const tableResult = apiResult.results?.[0] ?? apiResult
         updated[i] = {
           ...updated[i],
-          status: result.error ? 'error' : 'done',
-          imported: result.inserted ?? result.imported ?? 0,
-          errors: result.errors?.length ?? result.error_count ?? 0,
-          total: result.total ?? updated[i].total,
-          errorDetails: result.errors?.map((e: { message?: string } | string) =>
-            typeof e === 'string' ? e : e.message ?? String(e)
-          ),
+          status: apiResult.error ? 'error' : (tableResult.errors > 0 && tableResult.imported === 0) ? 'error' : 'done',
+          imported: tableResult.imported ?? 0,
+          errors: tableResult.errors ?? 0,
+          total: tableResult.total ?? updated[i].total,
+          errorDetails: tableResult.error_details ?? [],
         }
       } catch (err) {
         updated[i] = {
