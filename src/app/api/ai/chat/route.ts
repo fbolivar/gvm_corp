@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createOpenAI } from '@ai-sdk/openai'
-import { generateText, streamText, type UIMessage, convertToModelMessages } from 'ai'
+import { streamText, type UIMessage, convertToModelMessages } from 'ai'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -10,8 +10,7 @@ const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY ?? '',
 })
 
-// Use a model with strong tool-calling support
-const model = openrouter('anthropic/claude-3.5-haiku')
+const model = openrouter('meta-llama/llama-3.3-70b-instruct')
 
 export const maxDuration = 60
 
@@ -439,46 +438,72 @@ REGLAS:
 
 El usuario está en: ${context}`
 
+    // Smart data fetching: detect what the user needs from their last message
+    const lastUserMsg = uiMessages.filter(m => m.role === 'user').pop()
+    const query = (lastUserMsg?.content ?? '').toString().toLowerCase()
     const tools = createBusinessTools(tenantId)
 
-    // Step 1: Use generateText to execute tool calls and get data
-    const toolResult = await generateText({
-      model,
-      system: systemPrompt,
-      messages: modelMessages,
-      tools,
-      maxSteps: 3,
-    })
+    const dataBlocks: string[] = []
 
-    // Step 2: If tools were called, stream a final response with the data context
-    const toolMessages = toolResult.response?.messages ?? []
-    const hasToolCalls = toolMessages.some(m => m.role === 'tool')
+    // Detect intent from keywords and pre-fetch relevant data
+    const needsSales = /vent|factur|ingreso|revenue/i.test(query)
+    const needsInventory = /inventar|stock|product|lote|venc|agot|exist/i.test(query)
+    const needsReceivables = /cartera|cobr|debe|pend|pago|mora|vencid/i.test(query)
+    const needsPayroll = /nomin|emplead|salari|prestam|personal|sueldo/i.test(query)
+    const needsPurchases = /compra|orden|proveedor|oc-|pedido/i.test(query)
+    const needsTreasury = /tesorer|banco|saldo|cuenta|flujo|caja/i.test(query)
+    const needsCRM = /pipeline|oportunid|lead|crm|prospect|client/i.test(query)
+    const needsKPIs = /resumen|ejecutiv|kpi|indicador|dashboard|general|negocio|como va/i.test(query)
 
-    if (hasToolCalls && toolResult.text) {
-      // The model already generated a final text response with tool data
-      return new Response(toolResult.text, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      })
+    try {
+      const fetches = []
+      if (needsSales || needsKPIs) fetches.push(tools.query_sales_summary.execute({ period: undefined }))
+      else fetches.push(null)
+      if (needsInventory) fetches.push(tools.query_inventory.execute({ type: 'stock' }))
+      else fetches.push(null)
+      if (needsReceivables || needsKPIs) fetches.push(tools.query_receivables.execute({}))
+      else fetches.push(null)
+      if (needsPayroll || needsKPIs) fetches.push(tools.query_payroll.execute({}))
+      else fetches.push(null)
+      if (needsPurchases || needsKPIs) fetches.push(tools.query_purchases.execute({}))
+      else fetches.push(null)
+      if (needsTreasury || needsKPIs) fetches.push(tools.query_treasury.execute({}))
+      else fetches.push(null)
+      if (needsCRM || needsKPIs) fetches.push(tools.query_crm.execute({}))
+      else fetches.push(null)
+      if (needsKPIs) fetches.push(tools.query_kpis.execute({}))
+      else fetches.push(null)
+
+      // Also fetch expiring lots if inventory related
+      if (needsInventory) fetches.push(tools.query_inventory.execute({ type: 'expiring_lots' }))
+      else fetches.push(null)
+
+      const [sales, inventory, receivables, payroll, purchases, treasury, crm, kpis, expiringLots] = await Promise.all(fetches)
+
+      if (sales) dataBlocks.push(`DATOS DE VENTAS:\n${JSON.stringify(sales, null, 2)}`)
+      if (inventory) dataBlocks.push(`DATOS DE INVENTARIO:\n${JSON.stringify(inventory, null, 2)}`)
+      if (receivables) dataBlocks.push(`DATOS DE CARTERA:\n${JSON.stringify(receivables, null, 2)}`)
+      if (payroll) dataBlocks.push(`DATOS DE NÓMINA:\n${JSON.stringify(payroll, null, 2)}`)
+      if (purchases) dataBlocks.push(`DATOS DE COMPRAS:\n${JSON.stringify(purchases, null, 2)}`)
+      if (treasury) dataBlocks.push(`DATOS DE TESORERÍA:\n${JSON.stringify(treasury, null, 2)}`)
+      if (crm) dataBlocks.push(`DATOS DE CRM/PIPELINE:\n${JSON.stringify(crm, null, 2)}`)
+      if (kpis) dataBlocks.push(`KPIs EJECUTIVOS:\n${JSON.stringify(kpis, null, 2)}`)
+      if (expiringLots) dataBlocks.push(`LOTES POR VENCER:\n${JSON.stringify(expiringLots, null, 2)}`)
+    } catch (e) {
+      console.error('[ai/chat] Data fetch error:', e)
     }
 
-    if (hasToolCalls) {
-      // Tools were called but no final text — stream a summary with all context
-      const allMessages = [...modelMessages, ...toolMessages]
-      const stream = streamText({
-        model,
-        system: systemPrompt + '\n\nYa ejecutaste las herramientas. Ahora presenta los resultados al usuario de forma clara y concisa.',
-        messages: allMessages,
-      })
-      return stream.toTextStreamResponse()
-    }
+    const dataContext = dataBlocks.length > 0
+      ? `\n\n--- DATOS REALES DEL NEGOCIO (usa estos datos para responder) ---\n${dataBlocks.join('\n\n')}\n--- FIN DATOS ---`
+      : ''
 
-    // No tools needed — stream directly
-    const stream = streamText({
+    const result = streamText({
       model,
-      system: systemPrompt,
+      system: systemPrompt + dataContext,
       messages: modelMessages,
     })
-    return stream.toTextStreamResponse()
+
+    return result.toTextStreamResponse()
   } catch (error: unknown) {
     console.error('[ai/chat] Error:', error)
     const msg = error instanceof Error ? error.message : 'Error del AI'
