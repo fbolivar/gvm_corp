@@ -10,7 +10,6 @@ const MobileNav = dynamic(() => import("@/shared/components/layout/MobileNav").t
 const Header = dynamic(() => import("@/shared/components/layout/Header").then(mod => mod.Header), { ssr: false })
 const CommandPalette = dynamic(() => import("@/features/search/components/CommandPalette").then(mod => mod.CommandPalette), { ssr: false })
 const BarcodeScanner = dynamic(() => import("@/shared/components/BarcodeScanner").then(mod => mod.BarcodeScanner), { ssr: false })
-const AICopilot = dynamic(() => import("@/features/ai/components/AICopilot").then(mod => mod.AICopilot), { ssr: false })
 
 export default function MainLayout({
   children,
@@ -44,8 +43,6 @@ export default function MainLayout({
       {/* Toast notifications */}
       <Toaster richColors position="top-center" closeButton />
 
-      {/* AI Copilot floating button */}
-      <AICopilot />
     </div>
   )
 }
