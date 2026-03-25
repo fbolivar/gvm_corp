@@ -261,7 +261,7 @@ const PREVIEW_TABLE_MAP: Record<
 }
 
 async function handlePreview(body: Record<string, unknown>) {
-  const table = String(body.table || '')
+  const table = String(body.table_key || body.table || '')
   const meta = PREVIEW_TABLE_MAP[table]
 
   if (!meta) {
@@ -312,9 +312,11 @@ async function handlePreview(body: Record<string, unknown>) {
 // ─── action: import ───────────────────────────────────────────────────────────
 
 async function handleImport(body: Record<string, unknown>) {
-  const tables: string[] = Array.isArray(body.tables)
-    ? body.tables.map(String)
-    : ['terceros', 'inventarios']
+  const tables: string[] = body.table_key
+    ? [String(body.table_key)]
+    : Array.isArray(body.tables)
+      ? body.tables.map(String)
+      : ['terceros', 'inventarios']
 
   const config = buildMssqlConfig((body.connection ?? body) as ConnectionParams)
   const supabase = createAdminClient()
