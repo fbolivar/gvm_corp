@@ -213,7 +213,8 @@ export async function POST(req: NextRequest) {
 // ─── action: test ─────────────────────────────────────────────────────────────
 
 async function handleTest(body: Record<string, unknown>) {
-  const config = buildMssqlConfig(body as ConnectionParams)
+  const conn = (body.connection ?? body) as ConnectionParams
+  const config = buildMssqlConfig(conn)
   let pool: sql.ConnectionPool | null = null
 
   try {
@@ -272,7 +273,7 @@ async function handlePreview(body: Record<string, unknown>) {
     )
   }
 
-  const config = buildMssqlConfig(body as ConnectionParams)
+  const config = buildMssqlConfig((body.connection ?? body) as ConnectionParams)
   let pool: sql.ConnectionPool | null = null
 
   try {
@@ -315,7 +316,7 @@ async function handleImport(body: Record<string, unknown>) {
     ? body.tables.map(String)
     : ['terceros', 'inventarios']
 
-  const config = buildMssqlConfig(body as ConnectionParams)
+  const config = buildMssqlConfig((body.connection ?? body) as ConnectionParams)
   const supabase = createAdminClient()
 
   const results: ImportTableResult[] = []
