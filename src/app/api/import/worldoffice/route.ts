@@ -406,45 +406,30 @@ async function importTerceros(
   pool: sql.ConnectionPool,
   supabase: ReturnType<typeof createAdminClient>,
 ): Promise<ImportTableResult> {
-  // Discover column names to handle encoding issues
   const tCols = await getColumns(pool, 'Terceros')
-  const dCols = await getColumns(pool, 'Terceros - Direcciones')
 
-  // Map column names robustly
   const colId = findCol(tCols, 'IdTercero', 'Id', 'ID') ?? 'IdTercero'
   const colIdent = findCol(tCols, 'Identificacion', 'NumeroDocumento', 'Nit') ?? 'Identificacion'
-  const colTipoIdent = findCol(tCols, 'IdTipoIdentificacion', 'TipoDocumento', 'TipoIdentificacion') ?? 'IdTipoIdentificacion'
+  const colTipoIdent = findCol(tCols, 'IdTipoIdentificacion', 'TipoDocumento') ?? 'IdTipoIdentificacion'
   const colNombre = findCol(tCols, 'Nombre', 'NombreRazonSocial', 'RazonSocial') ?? 'Nombre'
   const colApellidos = findCol(tCols, 'Apellidos', 'PrimerApellido')
-  const colPropiedades = findCol(tCols, 'Propiedades', 'TipoTercero', 'Tipo')
+  const colPropiedades = findCol(tCols, 'Propiedades', 'TipoTercero')
   const colPlazo = findCol(tCols, 'Plazo', 'PlazoPago', 'DiasCredito')
   const colCupo = findCol(tCols, 'CupoCredito', 'LimiteCredito', 'Cupo')
-  const colActivo = findCol(tCols, 'Activo', 'Estado', 'Active')
+  const colActivo = findCol(tCols, 'Activo', 'Estado')
 
-  // Direction table columns
-  const dColCodigo = findCol(dCols, 'Código', 'Codigo', 'IdTercero', 'Cod') ?? 'Código'
-  const dColTipo = findCol(dCols, 'Tipo de Dirección', 'TipoDireccion', 'Tipo') ?? 'Tipo de Dirección'
-  const dColDir = findCol(dCols, 'Direccion', 'Dirección', 'Address') ?? 'Direccion'
-  const dColTel = findCol(dCols, 'Telefono1', 'Telefono', 'Phone') ?? 'Telefono1'
-  const dColEmail = findCol(dCols, 'Email', 'Correo', 'eMail') ?? 'Email'
-  const dColCiudad = findCol(dCols, 'Ciudad', 'City', 'Municipio', 'IdCiudad')
-
-  // Build SELECT using discovered column names
   const apellidosPart = colApellidos
     ? `RTRIM(ISNULL(t.[${colNombre}],'') + ' ' + ISNULL(t.[${colApellidos}],''))`
     : `t.[${colNombre}]`
   const nombreExpr = colApellidos
     ? `CASE WHEN t.[${colApellidos}] IS NOT NULL AND LTRIM(RTRIM(t.[${colApellidos}])) != '' THEN ${apellidosPart} ELSE t.[${colNombre}] END`
     : `t.[${colNombre}]`
-  const propiedadesExpr = colPropiedades
-    ? `t.[${colPropiedades}]`
-    : `NULL`
+  const propiedadesExpr = colPropiedades ? `t.[${colPropiedades}]` : `NULL`
   const plazoExpr = colPlazo ? `t.[${colPlazo}]` : `0`
   const cupoExpr = colCupo ? `t.[${colCupo}]` : `0`
-  const activoFilter = colActivo
-    ? `WHERE t.[${colActivo}] = 1 OR t.[${colActivo}] IS NULL`
-    : ``
+  const activoFilter = colActivo ? `WHERE t.[${colActivo}] = 1 OR t.[${colActivo}] IS NULL` : ``
 
+  // First try: simple query WITHOUT join (avoids type mismatch errors)
   const query = `
     SELECT
       t.[${colId}]          AS wo_id,
@@ -453,15 +438,8 @@ async function importTerceros(
       ${nombreExpr}         AS legal_name,
       ${propiedadesExpr}    AS propiedades,
       ${plazoExpr}          AS payment_term_days,
-      ${cupoExpr}           AS credit_limit,
-      d.[${dColDir}]        AS address,
-      d.[${dColTel}]        AS phone,
-      d.[${dColEmail}]      AS email,
-      ${dColCiudad ? `d.[${dColCiudad}]` : `NULL`} AS city
+      ${cupoExpr}           AS credit_limit
     FROM Terceros t
-    LEFT JOIN [Terceros - Direcciones] d
-      ON t.[${colId}] = d.[${dColCodigo}]
-      AND d.[${dColTipo}] = 1
     ${activoFilter}
   `
 
@@ -473,31 +451,48 @@ async function importTerceros(
     return { table: 'terceros', imported: 0, updated: 0, errors: 0, total: 0, error_details: [] }
   }
 
+  // Try to load direcciones separately into a map keyed by IdTercero
+  const dirMap = new Map<string, { address?: string; phone?: string; email?: string; city?: string }>()
+  try {
+    const dCols = await getColumns(pool, 'Terceros - Direcciones')
+    const dColCodigo = findCol(dCols, 'IdTercero', 'Código', 'Codigo') ?? 'IdTercero'
+    const dColDir = findCol(dCols, 'Direccion', 'Dirección') ?? 'Direccion'
+    const dColTel = findCol(dCols, 'Telefono1') ?? 'Telefono1'
+    const dColEmail = findCol(dCols, 'Email', 'Correo') ?? 'Email'
+
+    const dirResult = await pool.request().query(
+      `SELECT [${dColCodigo}] AS cod, [${dColDir}] AS dir, [${dColTel}] AS tel, [${dColEmail}] AS email FROM [Terceros - Direcciones]`
+    )
+    for (const d of dirResult.recordset) {
+      const key = String(d.cod)
+      if (!dirMap.has(key)) {
+        dirMap.set(key, { address: d.dir, phone: d.tel, email: d.email })
+      }
+    }
+  } catch {
+    // Direcciones join failed — continue without addresses
+  }
+
   const mapped: Record<string, unknown>[] = rows
-    .filter((row) => {
-      const docNum = safeString(row.doc_number)
-      const legalName = safeString(row.legal_name)
-      return docNum !== null && legalName !== null
+    .filter((row) => safeString(row.doc_number) !== null && safeString(row.legal_name) !== null)
+    .map((row) => {
+      const dir = dirMap.get(String(row.wo_id)) ?? {}
+      return {
+        tenant_id: TENANT_ID,
+        legal_name: safeString(row.legal_name),
+        doc_type: mapDocType(row.tipo_identificacion),
+        doc_number: safeString(row.doc_number),
+        email: safeString(dir.email),
+        phone: safeString(dir.phone),
+        address: safeString(dir.address),
+        party_type: mapPartyType(row.propiedades),
+        payment_term_days: safeNumber(row.payment_term_days),
+        credit_limit: safeNumber(row.credit_limit),
+      }
     })
-    .map((row) => ({
-      tenant_id: TENANT_ID,
-      legal_name: safeString(row.legal_name),
-      doc_type: mapDocType(row.tipo_identificacion),
-      doc_number: safeString(row.doc_number),
-      email: safeString(row.email),
-      phone: safeString(row.phone),
-      address: safeString(row.address),
-      city: safeString(row.city),
-      party_type: mapPartyType(row.propiedades),
-      payment_term_days: safeNumber(row.payment_term_days),
-      credit_limit: safeNumber(row.credit_limit),
-    }))
 
   const { imported, updated, errors, error_details } = await batchUpsert(
-    supabase,
-    'parties',
-    mapped,
-    'tenant_id,doc_number',
+    supabase, 'parties', mapped, 'tenant_id,doc_number',
   )
 
   return { table: 'terceros', imported, updated, errors, total, error_details }
@@ -556,49 +551,33 @@ async function importInventarios(
 
   let query: string
 
+  // Simple query first — no JOINs to avoid type mismatches
+  query = `
+    SELECT
+      i.[${colIdInventario}]    AS wo_id,
+      ${skuExpr}                AS sku,
+      i.[${colName}]            AS name,
+      ${priceExpr}              AS unit_price,
+      ${unitExpr}               AS unit,
+      ${ivaExpr}                AS iva,
+      ${tipoIvaExpr}            AS tipo_iva,
+      ${descExpr}               AS description
+    FROM Inventarios i
+    ${activoFilter}
+  `
+
+  // Try to get stock from per-warehouse table separately
+  const stockMap = new Map<number, { qty: number; cost: number }>()
   if (hasBodesaTable && bColIdInv && bColExist) {
-    const costoExpr = bColCosto ? `ISNULL(ib.[${bColCosto}], 0)` : `0`
-    query = `
-      SELECT
-        i.[${colIdInventario}]    AS wo_id,
-        ${skuExpr}                AS sku,
-        i.[${colName}]            AS name,
-        ${priceExpr}              AS unit_price,
-        ${unitExpr}               AS unit,
-        ${ivaExpr}                AS iva,
-        ${tipoIvaExpr}            AS tipo_iva,
-        ${descExpr}               AS description,
-        ISNULL(SUM(ib.[${bColExist}]), 0) AS stock_quantity,
-        ${costoExpr.replace('ib.', 'MAX(ib.')}      AS unit_cost
-      FROM Inventarios i
-      LEFT JOIN [Inventarios - Por Bodega] ib ON i.[${colIdInventario}] = ib.[${bColIdInv}]
-      ${activoFilter}
-      GROUP BY
-        i.[${colIdInventario}],
-        ${skuExpr.startsWith('i.') ? skuExpr : `i.[${colIdInventario}]`},
-        i.[${colName}],
-        ${priceExpr},
-        ${unitExpr !== 'NULL' ? unitExpr : 'NULL'},
-        ${ivaExpr},
-        ${tipoIvaExpr},
-        ${descExpr !== 'NULL' ? descExpr : 'NULL'}
-    `
-  } else {
-    query = `
-      SELECT
-        i.[${colIdInventario}]    AS wo_id,
-        ${skuExpr}                AS sku,
-        i.[${colName}]            AS name,
-        ${priceExpr}              AS unit_price,
-        ${unitExpr}               AS unit,
-        ${ivaExpr}                AS iva,
-        ${tipoIvaExpr}            AS tipo_iva,
-        ${descExpr}               AS description,
-        0                         AS stock_quantity,
-        0                         AS unit_cost
-      FROM Inventarios i
-      ${activoFilter}
-    `
+    try {
+      const costoCol = bColCosto ? `, SUM(ISNULL([${bColCosto}], 0)) AS cost` : ``
+      const stockResult = await pool.request().query(
+        `SELECT [${bColIdInv}] AS inv_id, SUM(ISNULL([${bColExist}], 0)) AS qty ${costoCol} FROM [Inventarios - Por Bodega] GROUP BY [${bColIdInv}]`
+      )
+      for (const s of stockResult.recordset) {
+        stockMap.set(Number(s.inv_id), { qty: Number(s.qty) || 0, cost: Number(s.cost) || 0 })
+      }
+    } catch { /* continue without stock */ }
   }
 
   const result = await pool.request().query(query)
@@ -617,8 +596,8 @@ async function importInventarios(
       sku: safeString(row.sku),
       description: safeString(row.description),
       unit_price: safeNumber(row.unit_price),
-      unit_cost: safeNumber(row.unit_cost),
-      stock_quantity: safeNumber(row.stock_quantity),
+      unit_cost: stockMap.get(Number(row.wo_id))?.cost ?? 0,
+      stock_quantity: stockMap.get(Number(row.wo_id))?.qty ?? 0,
       tax_category: mapTaxCategory(row.tipo_iva ?? row.iva),
       unit: safeString(row.unit),
     }))
@@ -757,12 +736,9 @@ async function importEmpleados(
   pool: sql.ConnectionPool,
   supabase: ReturnType<typeof createAdminClient>,
 ): Promise<ImportTableResult> {
-  // Check if contratos table exists
   const contratosCols = await getColumns(pool, 'Terceros - Contratos').catch(() => [])
   const tCols = await getColumns(pool, 'Terceros')
-  const dCols = await getColumns(pool, 'Terceros - Direcciones').catch(() => [])
 
-  // Map terceros columns
   const colId = findCol(tCols, 'IdTercero', 'Id') ?? 'IdTercero'
   const colIdent = findCol(tCols, 'Identificacion', 'NumeroDocumento') ?? 'Identificacion'
   const colTipoIdent = findCol(tCols, 'IdTipoIdentificacion', 'TipoDocumento') ?? 'IdTipoIdentificacion'
@@ -770,87 +746,62 @@ async function importEmpleados(
   const colSNombre = findCol(tCols, 'Segundo_Nombre', 'SegundoNombre')
   const colPApellido = findCol(tCols, 'Primer_Apellido', 'PrimerApellido', 'Apellidos')
   const colSApellido = findCol(tCols, 'Segundo_Apellido', 'SegundoApellido')
-  const colCargo = findCol(tCols, 'Cargo', 'Puesto', 'Position')
+  const colSueldo = findCol(tCols, 'Sueldo', 'Salario')
 
-  // Map direction columns
-  const dColCodigo = dCols.length > 0 ? (findCol(dCols, 'Código', 'Codigo', 'IdTercero') ?? 'Código') : null
-  const dColEmail = dCols.length > 0 ? findCol(dCols, 'Email', 'Correo') : null
-  const dColTel = dCols.length > 0 ? findCol(dCols, 'Telefono1', 'Telefono') : null
-  const dColTipo = dCols.length > 0 ? findCol(dCols, 'Tipo de Dirección', 'TipoDireccion', 'Tipo') : null
-
-  // Map contratos columns (required to identify employees)
   const hasContratos = contratosCols.length > 0
   const cColCodigo = hasContratos ? (findCol(contratosCols, 'Código', 'Codigo', 'IdTercero') ?? 'Código') : null
-  const cColTipoContrato = hasContratos ? findCol(contratosCols, 'Tipo Contrato', 'TipoContrato', 'Tipo') : null
-  const cColFechaIngreso = hasContratos ? findCol(contratosCols, 'Fecha Ingreso', 'FechaIngreso', 'FechaInicio') : null
-  const cColSueldo = hasContratos ? findCol(contratosCols, 'Sueldo', 'Salario', 'SalarioBase') : null
+  const cColTipoContrato = hasContratos ? findCol(contratosCols, 'Tipo Contrato', 'TipoContrato') : null
+  const cColFechaIngreso = hasContratos ? findCol(contratosCols, 'Fecha Ingreso', 'FechaIngreso') : null
+  const cColSueldo = hasContratos ? findCol(contratosCols, 'Sueldo', 'Salario') : null
 
   let query: string
 
   const sNombreExpr = colSNombre ? `t.[${colSNombre}]` : `NULL`
   const pApellidoExpr = colPApellido ? `t.[${colPApellido}]` : `NULL`
   const sApellidoExpr = colSApellido ? `t.[${colSApellido}]` : `NULL`
-  const cargoExpr = colCargo ? `t.[${colCargo}]` : `NULL`
-  const emailExpr = dColEmail && dColCodigo ? `d.[${dColEmail}]` : `NULL`
-  const telExpr = dColTel && dColCodigo ? `d.[${dColTel}]` : `NULL`
+  const sueldoTercero = colSueldo ? `t.[${colSueldo}]` : `0`
 
   if (hasContratos && cColCodigo && cColTipoContrato) {
     const tipoContratoExpr = `c.[${cColTipoContrato}]`
     const fechaExpr = cColFechaIngreso ? `CONVERT(varchar, c.[${cColFechaIngreso}], 23)` : `NULL`
-    const sueldoExpr = cColSueldo ? `c.[${cColSueldo}]` : `0`
+    const sueldoExpr = cColSueldo ? `c.[${cColSueldo}]` : sueldoTercero
 
-    const joinDirecciones =
-      dColCodigo && dColTipo
-        ? `LEFT JOIN [Terceros - Direcciones] d ON t.[${colId}] = d.[${dColCodigo}] AND d.[${dColTipo}] = 1`
-        : ``
-
+    // NO JOIN to Direcciones — avoids type mismatch errors
     query = `
       SELECT DISTINCT
+        t.[${colId}]        AS wo_id,
         t.[${colIdent}]     AS doc_number,
         t.[${colTipoIdent}] AS tipo_identificacion,
         t.[${colPNombre}]   AS first_name,
         ${sNombreExpr}      AS middle_name,
         ${pApellidoExpr}    AS last_name,
         ${sApellidoExpr}    AS second_last_name,
-        ${cargoExpr}        AS position,
         ${tipoContratoExpr} AS contract_type,
         ${fechaExpr}        AS start_date,
-        ${sueldoExpr}       AS salary,
-        ${emailExpr}        AS email,
-        ${telExpr}          AS phone
+        ${sueldoExpr}       AS salary
       FROM Terceros t
       INNER JOIN [Terceros - Contratos] c ON t.[${colId}] = c.[${cColCodigo}]
-      ${joinDirecciones}
       WHERE ${tipoContratoExpr} IS NOT NULL
     `
   } else {
-    // Fallback: use Propiedades column to find employees
     const colPropiedades = findCol(tCols, 'Propiedades', 'TipoTercero')
     const propFilter = colPropiedades
       ? `WHERE t.[${colPropiedades}] LIKE '%Empleado%'`
-      : `WHERE 1=0 -- No se puede identificar empleados sin tabla de contratos`
-
-    const joinDirecciones =
-      dColCodigo && dColTipo
-        ? `LEFT JOIN [Terceros - Direcciones] d ON t.[${colId}] = d.[${dColCodigo}] AND d.[${dColTipo}] = 1`
-        : ``
+      : `WHERE 1=0`
 
     query = `
       SELECT
+        t.[${colId}]        AS wo_id,
         t.[${colIdent}]     AS doc_number,
         t.[${colTipoIdent}] AS tipo_identificacion,
         t.[${colPNombre}]   AS first_name,
         ${sNombreExpr}      AS middle_name,
         ${pApellidoExpr}    AS last_name,
         ${sApellidoExpr}    AS second_last_name,
-        ${cargoExpr}        AS position,
         NULL                AS contract_type,
         NULL                AS start_date,
-        0                   AS salary,
-        ${emailExpr}        AS email,
-        ${telExpr}          AS phone
+        ${sueldoTercero}    AS salary
       FROM Terceros t
-      ${joinDirecciones}
       ${propFilter}
     `
   }
@@ -887,41 +838,47 @@ async function importEmpleados(
     }
   }
 
-  const mapped: Record<string, unknown>[] = rows
-    .filter((row) => safeString(row.doc_number) !== null)
-    .map((row) => {
-      const firstName = safeString(row.first_name) ?? ''
-      const lastName = safeString(row.last_name) ?? ''
-      const middleName = safeString(row.middle_name)
-      const secondLast = safeString(row.second_last_name)
+  // Step 1: Upsert employees as parties first
+  const validRows = rows.filter((row) => safeString(row.doc_number) !== null)
+  const partyRecords = validRows.map((row) => {
+    const firstName = safeString(row.first_name) ?? ''
+    const lastName = safeString(row.last_name) ?? ''
+    const middleName = safeString(row.middle_name)
+    const secondLast = safeString(row.second_last_name)
+    const fullName = [firstName, middleName, lastName, secondLast].filter(Boolean).join(' ').trim()
+    return {
+      tenant_id: TENANT_ID,
+      legal_name: fullName || firstName,
+      doc_type: mapDocType(row.tipo_identificacion),
+      doc_number: safeString(row.doc_number),
+      party_type: 'EMPLOYEE',
+    }
+  })
 
-      const fullName = [firstName, middleName, lastName, secondLast]
-        .filter(Boolean)
-        .join(' ')
-        .trim()
+  // Upsert parties
+  await batchUpsert(supabase, 'parties', partyRecords, 'tenant_id,doc_number')
 
-      return {
-        tenant_id: TENANT_ID,
-        doc_type: mapDocType(row.tipo_identificacion),
-        doc_number: safeString(row.doc_number),
-        first_name: firstName || null,
-        last_name: lastName || null,
-        full_name: fullName || null,
-        position: safeString(row.position),
-        contract_type: safeString(row.contract_type),
-        start_date: safeDate(row.start_date),
-        base_salary: safeNumber(row.salary),
-        email: safeString(row.email),
-        phone: safeString(row.phone),
-        status: 'ACTIVE',
-      }
-    })
+  // Step 2: Fetch party IDs by doc_number
+  const { data: allParties } = await supabase
+    .from('parties')
+    .select('id,doc_number')
+    .eq('tenant_id', TENANT_ID)
+  const partyMap = new Map((allParties ?? []).map((p: { id: string; doc_number: string }) => [p.doc_number, p.id]))
+
+  // Step 3: Create employee records linked to parties
+  const employeeRecords = validRows
+    .filter((row) => partyMap.has(safeString(row.doc_number) ?? ''))
+    .map((row) => ({
+      tenant_id: TENANT_ID,
+      party_id: partyMap.get(safeString(row.doc_number) ?? ''),
+      contract_type: safeString(row.contract_type) ?? 'INDEFINIDO',
+      start_date: safeDate(row.start_date) ?? '2026-01-01',
+      salary: safeNumber(row.salary) ?? 0,
+      status: 'ACTIVE',
+    }))
 
   const { imported, updated, errors, error_details } = await batchUpsert(
-    supabase,
-    'employees',
-    mapped,
-    'tenant_id,doc_number',
+    supabase, 'employees', employeeRecords, 'tenant_id,party_id',
   )
 
   return { table: 'empleados', imported, updated, errors, total, error_details }
