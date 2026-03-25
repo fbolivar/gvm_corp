@@ -86,17 +86,26 @@ async function getColumns(
   return result.recordset.map((r: Record<string, unknown>) => String(r.COLUMN_NAME))
 }
 
-// Find column by partial match (handles encoding issues like C¾digo → Código)
+// Find column by exact match first, then prefix fallback (handles encoding like C¾digo → Código)
 function findCol(columns: string[], ...candidates: string[]): string | null {
+  // 1. Exact match (case-insensitive)
   for (const candidate of candidates) {
     const found = columns.find(
       (c) => c.toLowerCase() === candidate.toLowerCase(),
     )
     if (found) return found
   }
-  // Fallback: partial match (first 4 chars)
+  // 2. Contains match — candidate is substring of column or vice versa
   for (const candidate of candidates) {
-    const prefix = candidate.substring(0, 4).toLowerCase()
+    const cl = candidate.toLowerCase()
+    const found = columns.find(
+      (c) => c.toLowerCase().includes(cl) || cl.includes(c.toLowerCase()),
+    )
+    if (found) return found
+  }
+  // 3. Prefix match (first 6 chars to avoid false positives like Telefono1 vs Telefono2)
+  for (const candidate of candidates) {
+    const prefix = candidate.substring(0, Math.min(6, candidate.length)).toLowerCase()
     const found = columns.find((c) => c.toLowerCase().startsWith(prefix))
     if (found) return found
   }
@@ -418,7 +427,7 @@ async function importTerceros(
   const dColDir = findCol(dCols, 'Direccion', 'Dirección', 'Address') ?? 'Direccion'
   const dColTel = findCol(dCols, 'Telefono1', 'Telefono', 'Phone') ?? 'Telefono1'
   const dColEmail = findCol(dCols, 'Email', 'Correo', 'eMail') ?? 'Email'
-  const dColCiudad = findCol(dCols, 'Ciudad', 'City') ?? 'Ciudad'
+  const dColCiudad = findCol(dCols, 'Ciudad', 'City', 'Municipio', 'IdCiudad')
 
   // Build SELECT using discovered column names
   const apellidosPart = colApellidos
@@ -448,7 +457,7 @@ async function importTerceros(
       d.[${dColDir}]        AS address,
       d.[${dColTel}]        AS phone,
       d.[${dColEmail}]      AS email,
-      d.[${dColCiudad}]     AS city
+      ${dColCiudad ? `d.[${dColCiudad}]` : `NULL`} AS city
     FROM Terceros t
     LEFT JOIN [Terceros - Direcciones] d
       ON t.[${colId}] = d.[${dColCodigo}]
@@ -699,14 +708,38 @@ async function importCuentasContables(
     }
   }
 
+  // Map WorldOffice IdCuentasContablesTipos to GVM type string
+  function mapAccountType(tipoId: unknown): string {
+    const id = Number(tipoId)
+    switch (id) {
+      case 1: return 'ASSET'       // Activo
+      case 2: return 'LIABILITY'   // Pasivo
+      case 3: return 'EQUITY'      // Patrimonio
+      case 4: return 'REVENUE'     // Ingreso
+      case 5: return 'EXPENSE'     // Gasto
+      case 6: return 'COST'        // Costo
+      case 7: return 'CONTINGENT'  // Cuentas de orden
+      default: return 'ASSET'
+    }
+  }
+
   const mapped: Record<string, unknown>[] = rows
     .filter((row) => safeString(row.code) !== null)
-    .map((row) => ({
-      tenant_id: TENANT_ID,
-      code: safeString(row.code),
-      name: safeString(row.name) ?? '',
-      type_id: row.type_id ? Number(row.type_id) : null,
-    }))
+    .map((row) => {
+      const code = safeString(row.code) ?? ''
+      const level = code.replace(/[^0-9]/g, '').length <= 1 ? 1
+        : code.replace(/[^0-9]/g, '').length <= 2 ? 2
+        : code.replace(/[^0-9]/g, '').length <= 4 ? 3
+        : code.replace(/[^0-9]/g, '').length <= 6 ? 4 : 5
+      return {
+        tenant_id: TENANT_ID,
+        code,
+        name: safeString(row.name) ?? '',
+        type: mapAccountType(row.type_id),
+        level,
+        is_active: true,
+      }
+    })
 
   const { imported, updated, errors, error_details } = await batchUpsert(
     supabase,
