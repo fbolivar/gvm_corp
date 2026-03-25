@@ -473,8 +473,19 @@ async function importTerceros(
     // Direcciones join failed — continue without addresses
   }
 
+  // Debug: log first row to diagnose column mapping
+  if (rows.length > 0) {
+    console.error('[WO-DEBUG] Terceros first row keys:', Object.keys(rows[0]))
+    console.error('[WO-DEBUG] Terceros first row sample:', JSON.stringify(rows[0]).substring(0, 500))
+    console.error('[WO-DEBUG] Terceros dirMap size:', dirMap.size)
+  }
+
   const mapped: Record<string, unknown>[] = rows
-    .filter((row) => safeString(row.doc_number) !== null && safeString(row.legal_name) !== null)
+    .filter((row) => {
+      const dn = safeString(row.doc_number)
+      const ln = safeString(row.legal_name)
+      return dn !== null && ln !== null
+    })
     .map((row) => {
       const dir = dirMap.get(String(row.wo_id)) ?? {}
       return {
@@ -490,6 +501,20 @@ async function importTerceros(
         credit_limit: safeNumber(row.credit_limit),
       }
     })
+
+  console.error('[WO-DEBUG] Terceros: total rows=', total, 'after filter=', mapped.length)
+
+  if (mapped.length === 0) {
+    const sampleKeys = rows.length > 0 ? Object.keys(rows[0]).join(', ') : 'NO ROWS'
+    const sampleVals = rows.length > 0 ? JSON.stringify(rows[0]).substring(0, 300) : 'N/A'
+    return {
+      table: 'terceros', imported: 0, updated: 0, errors: 1, total,
+      error_details: [
+        `Todas las filas fueron filtradas. Columnas SQL: ${sampleKeys}`,
+        `Ejemplo fila: ${sampleVals}`,
+      ],
+    }
+  }
 
   const { imported, updated, errors, error_details } = await batchUpsert(
     supabase, 'parties', mapped, 'tenant_id,doc_number',
@@ -585,8 +610,10 @@ async function importInventarios(
   const total = rows.length
 
   if (total === 0) {
-    return { table: 'inventarios', imported: 0, updated: 0, errors: 0, total: 0, error_details: [] }
+    return { table: 'inventarios', imported: 0, updated: 0, errors: 0, total: 0, error_details: [`Query devolvió 0 filas. Columnas descubiertas: ${iCols.join(', ')}`] }
   }
+
+  console.error('[WO-DEBUG] Productos: total=', total, 'first row keys=', Object.keys(rows[0]), 'sample=', JSON.stringify(rows[0]).substring(0, 300))
 
   const mapped: Record<string, unknown>[] = rows
     .filter((row) => safeString(row.name) !== null)
@@ -601,6 +628,16 @@ async function importInventarios(
       tax_category: mapTaxCategory(row.tipo_iva ?? row.iva),
       unit: safeString(row.unit),
     }))
+
+  console.error('[WO-DEBUG] Productos mapped:', mapped.length, 'sample:', mapped.length > 0 ? JSON.stringify(mapped[0]).substring(0, 300) : 'NONE')
+
+  if (mapped.length === 0) {
+    const sampleKeys = rows.length > 0 ? Object.keys(rows[0]).join(', ') : 'NO ROWS'
+    return {
+      table: 'inventarios', imported: 0, updated: 0, errors: 1, total,
+      error_details: [`Todas las filas filtradas (name es null). Columnas: ${sampleKeys}`, `Sample: ${JSON.stringify(rows[0]).substring(0, 300)}`],
+    }
+  }
 
   // Products: upsert on (tenant_id, sku) — only when sku exists
   const withSku = mapped.filter((r) => r.sku !== null)
