@@ -55,21 +55,21 @@ const nextConfig: NextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           // HSTS — force HTTPS for 1 year + subdomains (production only)
           ...(isProd ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' }] : []),
-          // CSP — restrict resource origins
+          // CSP — restrict resource origins (hardened)
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.app",
+              "script-src 'self' https://vercel.live https://*.vercel.app",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.supabase.co https://vercel.live",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://*.vercel.app",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live https://*.vercel.app https://openrouter.ai",
               "frame-src 'self' https://vercel.live",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
-              // upgrade-insecure-requests only in production (breaks localhost HTTP)
+              "object-src 'none'",
               ...(isProd ? ["upgrade-insecure-requests"] : []),
             ].join('; '),
           },
