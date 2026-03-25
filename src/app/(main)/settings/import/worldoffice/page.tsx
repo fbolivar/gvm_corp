@@ -1,11 +1,10 @@
-import { WorldOfficeImporter } from './WorldOfficeImporter'
+import { WorldOfficeImportClient } from './WorldOfficeImportClient'
 
-export const metadata = { title: 'Importar desde WorldOffice — GVM Corp' }
+export const metadata = {
+  title: 'Importar desde WorldOffice — GVM Corp',
+  description: 'Conexión directa a SQL Server WorldOffice para migrar terceros, productos, plan de cuentas y empleados.',
+}
 
 export default function WorldOfficeImportPage() {
-  return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto">
-      <WorldOfficeImporter />
-    </div>
-  )
+  return <WorldOfficeImportClient />
 }

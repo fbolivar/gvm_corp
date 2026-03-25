@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Link from 'next/link'
 import * as XLSX from 'xlsx'
 import {
   Upload,
@@ -16,6 +17,8 @@ import {
   UserCheck,
   Landmark,
   BookOpen,
+  Database,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/components/ui/button'
@@ -625,6 +628,31 @@ export function ImportWizard() {
           </div>
         </div>
       </div>
+
+      {/* WorldOffice direct-connection banner */}
+      <Link
+        href="/settings/import/worldoffice"
+        className="flex items-center gap-5 bg-gradient-to-r from-blue-900 to-slate-900 rounded-[2rem] p-6 mb-6 group hover:from-blue-800 hover:to-slate-800 transition-all shadow-lg"
+      >
+        <div className="h-12 w-12 bg-blue-500/20 border border-blue-500/30 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-blue-500/30 transition-colors">
+          <Database className="h-6 w-6 text-blue-300" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-blue-400 mb-0.5">
+            Conexion directa SQL Server
+          </p>
+          <p className="text-base font-black text-white uppercase tracking-tight leading-snug">
+            Importar desde WorldOffice
+          </p>
+          <p className="text-xs text-slate-400 font-medium mt-0.5">
+            Extrae terceros, productos, plan de cuentas y empleados directamente de tu base de datos
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-amber-500 rounded-xl px-4 py-2 shrink-0 group-hover:bg-amber-400 transition-colors shadow-lg shadow-amber-900/30">
+          <Zap className="h-3.5 w-3.5 text-white" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-white">Conectar</span>
+        </div>
+      </Link>
 
       {/* Wizard card */}
       <div className="bg-white rounded-[2rem] p-8 shadow-lg border border-slate-100">
