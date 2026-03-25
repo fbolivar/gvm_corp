@@ -255,7 +255,9 @@ const PREVIEW_TABLE_MAP: Record<
 > = {
   terceros: { worldoffice_table: 'Terceros', label: 'Terceros (Clientes/Proveedores)' },
   inventarios: { worldoffice_table: 'Inventarios', label: 'Inventarios (Productos)' },
+  productos: { worldoffice_table: 'Inventarios', label: 'Inventarios (Productos)' },
   puc: { worldoffice_table: 'CuentasContables', label: 'Plan Único de Cuentas' },
+  plan_cuentas: { worldoffice_table: 'CuentasContables', label: 'Plan Único de Cuentas' },
   empleados: { worldoffice_table: 'Terceros', label: 'Empleados (desde Terceros)' },
   direcciones: { worldoffice_table: 'Terceros - Direcciones', label: 'Direcciones de Terceros' },
 }
@@ -337,10 +339,12 @@ async function handleImport(body: Record<string, unknown>) {
             result = await importTerceros(pool, supabase)
             break
           case 'inventarios':
+          case 'productos':
             result = await importInventarios(pool, supabase)
             break
           case 'puc':
           case 'cuentas':
+          case 'plan_cuentas':
             result = await importCuentasContables(pool, supabase)
             break
           case 'empleados':

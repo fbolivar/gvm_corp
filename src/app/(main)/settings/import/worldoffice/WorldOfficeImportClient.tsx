@@ -404,7 +404,7 @@ export function WorldOfficeImportClient() {
       const preview: TablePreview = {
         key,
         name: IMPORT_TABLES.find((t) => t.key === key)?.label ?? key,
-        count: result.count ?? result.rows?.length ?? 0,
+        count: result.total ?? result.count ?? result.rows?.length ?? 0,
         columns: result.columns ?? (result.rows?.length ? Object.keys(result.rows[0]) : []),
         sample: result.rows ?? [],
       }
