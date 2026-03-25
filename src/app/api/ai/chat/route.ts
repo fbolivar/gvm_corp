@@ -419,7 +419,9 @@ export async function POST(req: Request) {
     const context = body.context || 'Modulo general'
 
     const uiMessages: UIMessage[] = body.messages ?? []
-    const modelMessages = await convertToModelMessages(uiMessages)
+    // Keep only last 6 messages to avoid context overflow
+    const recentMessages = uiMessages.slice(-6)
+    const modelMessages = await convertToModelMessages(recentMessages)
 
     const systemPrompt = `Eres AI GVM, el copiloto inteligente del ERP GVM Corporation S.A.S. — empresa colombiana de medicina veterinaria.
 
@@ -456,39 +458,43 @@ El usuario está en: ${context}`
     const needsKPIs = /resumen|ejecutiv|kpi|indicador|dashboard|general|negocio|como va/i.test(query)
 
     try {
-      const fetches = []
-      if (needsSales || needsKPIs) fetches.push(tools.query_sales_summary.execute({ period: undefined }))
-      else fetches.push(null)
-      if (needsInventory) fetches.push(tools.query_inventory.execute({ type: 'stock' }))
-      else fetches.push(null)
-      if (needsReceivables || needsKPIs) fetches.push(tools.query_receivables.execute({}))
-      else fetches.push(null)
-      if (needsPayroll || needsKPIs) fetches.push(tools.query_payroll.execute({}))
-      else fetches.push(null)
-      if (needsPurchases || needsKPIs) fetches.push(tools.query_purchases.execute({}))
-      else fetches.push(null)
-      if (needsTreasury || needsKPIs) fetches.push(tools.query_treasury.execute({}))
-      else fetches.push(null)
-      if (needsCRM || needsKPIs) fetches.push(tools.query_crm.execute({}))
-      else fetches.push(null)
-      if (needsKPIs) fetches.push(tools.query_kpis.execute({}))
-      else fetches.push(null)
-
-      // Also fetch expiring lots if inventory related
-      if (needsInventory) fetches.push(tools.query_inventory.execute({ type: 'expiring_lots' }))
-      else fetches.push(null)
-
-      const [sales, inventory, receivables, payroll, purchases, treasury, crm, kpis, expiringLots] = await Promise.all(fetches)
-
-      if (sales) dataBlocks.push(`DATOS DE VENTAS:\n${JSON.stringify(sales, null, 2)}`)
-      if (inventory) dataBlocks.push(`DATOS DE INVENTARIO:\n${JSON.stringify(inventory, null, 2)}`)
-      if (receivables) dataBlocks.push(`DATOS DE CARTERA:\n${JSON.stringify(receivables, null, 2)}`)
-      if (payroll) dataBlocks.push(`DATOS DE NÓMINA:\n${JSON.stringify(payroll, null, 2)}`)
-      if (purchases) dataBlocks.push(`DATOS DE COMPRAS:\n${JSON.stringify(purchases, null, 2)}`)
-      if (treasury) dataBlocks.push(`DATOS DE TESORERÍA:\n${JSON.stringify(treasury, null, 2)}`)
-      if (crm) dataBlocks.push(`DATOS DE CRM/PIPELINE:\n${JSON.stringify(crm, null, 2)}`)
-      if (kpis) dataBlocks.push(`KPIs EJECUTIVOS:\n${JSON.stringify(kpis, null, 2)}`)
-      if (expiringLots) dataBlocks.push(`LOTES POR VENCER:\n${JSON.stringify(expiringLots, null, 2)}`)
+      // For KPIs/resumen, only fetch the compact summary — not all modules
+      if (needsKPIs) {
+        const kpis = await tools.query_kpis.execute({})
+        dataBlocks.push(`RESUMEN EJECUTIVO DEL NEGOCIO:\n${JSON.stringify(kpis)}`)
+      } else {
+        // Fetch only what's specifically asked for (max 2 queries)
+        if (needsSales) {
+          const d = await tools.query_sales_summary.execute({ period: undefined })
+          dataBlocks.push(`VENTAS:\n${JSON.stringify(d)}`)
+        }
+        if (needsInventory) {
+          const d = await tools.query_inventory.execute({ type: 'stock' })
+          dataBlocks.push(`INVENTARIO:\n${JSON.stringify(d)}`)
+          const lots = await tools.query_inventory.execute({ type: 'expiring_lots' })
+          dataBlocks.push(`LOTES POR VENCER:\n${JSON.stringify(lots)}`)
+        }
+        if (needsReceivables) {
+          const d = await tools.query_receivables.execute({})
+          dataBlocks.push(`CARTERA:\n${JSON.stringify(d)}`)
+        }
+        if (needsPayroll) {
+          const d = await tools.query_payroll.execute({})
+          dataBlocks.push(`NÓMINA:\n${JSON.stringify(d)}`)
+        }
+        if (needsPurchases) {
+          const d = await tools.query_purchases.execute({})
+          dataBlocks.push(`COMPRAS:\n${JSON.stringify(d)}`)
+        }
+        if (needsTreasury) {
+          const d = await tools.query_treasury.execute({})
+          dataBlocks.push(`TESORERÍA:\n${JSON.stringify(d)}`)
+        }
+        if (needsCRM) {
+          const d = await tools.query_crm.execute({})
+          dataBlocks.push(`CRM/PIPELINE:\n${JSON.stringify(d)}`)
+        }
+      }
     } catch (e) {
       console.error('[ai/chat] Data fetch error:', e)
     }
