@@ -427,7 +427,7 @@ async function importTerceros(
   const propiedadesExpr = colPropiedades ? `t.[${colPropiedades}]` : `NULL`
   const plazoExpr = colPlazo ? `t.[${colPlazo}]` : `0`
   const cupoExpr = colCupo ? `t.[${colCupo}]` : `0`
-  const activoFilter = colActivo ? `WHERE t.[${colActivo}] = 1 OR t.[${colActivo}] IS NULL` : ``
+  const activoFilter = colActivo ? `WHERE t.[${colActivo}] <> 0 OR t.[${colActivo}] IS NULL` : ``
 
   // First try: simple query WITHOUT join (avoids type mismatch errors)
   const query = `
@@ -572,7 +572,7 @@ async function importInventarios(
   const ivaExpr = colIva ? `i.[${colIva}]` : `0`
   const tipoIvaExpr = colTipoIva ? `i.[${colTipoIva}]` : `i.[${colIva ?? 'Iva'}]`
   const descExpr = colDesc ? `i.[${colDesc}]` : `NULL`
-  const activoFilter = colActivo ? `WHERE i.[${colActivo}] = 1 OR i.[${colActivo}] IS NULL` : ``
+  const activoFilter = colActivo ? `WHERE i.[${colActivo}] <> 0 OR i.[${colActivo}] IS NULL` : ``
 
   let query: string
 
