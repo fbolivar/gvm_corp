@@ -205,10 +205,11 @@ export async function POST(req: NextRequest) {
     const { action } = body
 
     if (action === 'test') return handleTest(body)
-    if (action === 'preview') return handlePreview(body)
+    if (action === 'discover') return handleDiscover(body)
+    if (action === 'preview' || action === 'extract') return handlePreview(body)
     if (action === 'import') return handleImport(body)
 
-    return NextResponse.json({ error: 'Acción no válida. Use: test | preview | import' }, { status: 400 })
+    return NextResponse.json({ error: 'Acción no válida. Use: test | discover | preview | extract | import' }, { status: 400 })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error desconocido'
     if (message === 'Unauthorized') {
@@ -243,14 +244,54 @@ async function handleTest(body: Record<string, unknown>) {
 
     return NextResponse.json({
       success: true,
+      database: info.current_db,
+      version: String(info.version).split('\n')[0].trim(),
       server: config.server,
-      current_database: info.current_db,
-      sql_server_version: String(info.version).split('\n')[0].trim(),
       databases,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error de conexión'
     return NextResponse.json({ success: false, error: msg }, { status: 200 })
+  } finally {
+    if (pool) await pool.close().catch(() => null)
+  }
+}
+
+// ─── action: discover ─────────────────────────────────────────────────────────
+
+async function handleDiscover(body: Record<string, unknown>) {
+  const config = buildMssqlConfig((body.connection ?? body) as ConnectionParams)
+  let pool: sql.ConnectionPool | null = null
+
+  try {
+    pool = await sql.connect(config)
+
+    const tablesResult = await pool.request().query(`
+      SELECT t.name, SUM(p.rows) AS row_count
+      FROM sys.tables t
+      JOIN sys.partitions p ON t.object_id = p.object_id AND p.index_id IN (0,1)
+      GROUP BY t.name
+      ORDER BY t.name
+    `)
+
+    const tables: { name: string; row_count: number }[] = tablesResult.recordset.map(
+      (r: Record<string, unknown>) => ({
+        name: String(r.name),
+        row_count: Number(r.row_count),
+      }),
+    )
+
+    const tableNames = new Set(tables.map((t) => t.name))
+    const detected: string[] = []
+    if (tableNames.has('Terceros')) detected.push('terceros')
+    if (tableNames.has('Inventarios')) detected.push('productos')
+    if (tableNames.has('Terceros')) detected.push('empleados')
+    if (tableNames.has('CuentasContables')) detected.push('plan_cuentas')
+
+    return NextResponse.json({ tables, detected })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Error'
+    return NextResponse.json({ error: msg }, { status: 500 })
   } finally {
     if (pool) await pool.close().catch(() => null)
   }

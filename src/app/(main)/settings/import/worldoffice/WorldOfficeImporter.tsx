@@ -9,13 +9,12 @@ import {
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { cn } from '@/shared/lib/utils'
-import {
-  importClientsAction,
-  importProductsAction,
-  importEmployeesAction,
-  importOpeningEntryAction,
-  type ImportResult,
-} from '@/features/import/actions'
+// ─── Local Types ─────────────────────────────────────────────────────────────
+
+interface ImportResult {
+  inserted: number
+  errors: { row: number; message: string }[]
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,7 +65,7 @@ export function WorldOfficeImporter() {
   const [step, setStep] = useState<Step>('connect')
   const [config, setConfig] = useState<ConnectionConfig>({
     server: '192.168.0.50',
-    instance: 'WORLDOFFICI',
+    instance: 'WORLDOFFICE',
     database: 'GVM CORPORATION GLOBAL',
     user: '',
     password: '',
@@ -141,25 +140,21 @@ export function WorldOfficeImporter() {
     setError(null)
 
     try {
-      const typeConfig = EXTRACTABLE_TYPES.find(t => t.key === selectedType)
-      const action = typeConfig?.importAction
-      let result: ImportResult
+      const result = await callApi({ action: 'import', table_key: selectedType, ...config })
 
-      const rows = extractedRows as unknown[]
-
-      if (action === 'clients') {
-        result = await importClientsAction(rows as unknown as Parameters<typeof importClientsAction>[0])
-      } else if (action === 'products') {
-        result = await importProductsAction(rows as unknown as Parameters<typeof importProductsAction>[0])
-      } else if (action === 'employees') {
-        result = await importEmployeesAction(rows as unknown as Parameters<typeof importEmployeesAction>[0])
-      } else if (action === 'opening_entry') {
-        result = await importOpeningEntryAction(rows as unknown as Parameters<typeof importOpeningEntryAction>[0])
+      if (result.success) {
+        setImportResult({
+          inserted: result.total_imported ?? 0,
+          errors: (result.results ?? []).flatMap((r: { error_details?: string[] }) =>
+            (r.error_details ?? []).map((msg: string) => ({ row: 0, message: msg }))
+          ),
+        })
       } else {
-        result = { inserted: 0, errors: [{ row: 0, message: 'Tipo no soportado' }] }
+        setImportResult({
+          inserted: result.total_imported ?? 0,
+          errors: [{ row: 0, message: result.error || 'Error en la importación' }],
+        })
       }
-
-      setImportResult(result)
       setStep('result')
     } catch (err) {
       setImportResult({
@@ -300,7 +295,7 @@ export function WorldOfficeImporter() {
                   <Input
                     value={config.instance}
                     onChange={e => setConfig(c => ({ ...c, instance: e.target.value }))}
-                    placeholder="WORLDOFFICI"
+                    placeholder="WORLDOFFICE"
                     className="pl-11 h-12 rounded-xl font-bold"
                   />
                 </div>
