@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createOpenAI } from '@ai-sdk/openai'
-import { streamText, type UIMessage, convertToModelMessages } from 'ai'
+import { generateText, streamText, type UIMessage, convertToModelMessages } from 'ai'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -10,7 +10,8 @@ const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY ?? '',
 })
 
-const model = openrouter('meta-llama/llama-3.3-70b-instruct')
+// Use a model with strong tool-calling support
+const model = openrouter('anthropic/claude-3.5-haiku')
 
 export const maxDuration = 60
 
@@ -440,7 +441,8 @@ El usuario está en: ${context}`
 
     const tools = createBusinessTools(tenantId)
 
-    const result = streamText({
+    // Step 1: Use generateText to execute tool calls and get data
+    const toolResult = await generateText({
       model,
       system: systemPrompt,
       messages: modelMessages,
@@ -448,7 +450,35 @@ El usuario está en: ${context}`
       maxSteps: 3,
     })
 
-    return result.toTextStreamResponse()
+    // Step 2: If tools were called, stream a final response with the data context
+    const toolMessages = toolResult.response?.messages ?? []
+    const hasToolCalls = toolMessages.some(m => m.role === 'tool')
+
+    if (hasToolCalls && toolResult.text) {
+      // The model already generated a final text response with tool data
+      return new Response(toolResult.text, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      })
+    }
+
+    if (hasToolCalls) {
+      // Tools were called but no final text — stream a summary with all context
+      const allMessages = [...modelMessages, ...toolMessages]
+      const stream = streamText({
+        model,
+        system: systemPrompt + '\n\nYa ejecutaste las herramientas. Ahora presenta los resultados al usuario de forma clara y concisa.',
+        messages: allMessages,
+      })
+      return stream.toTextStreamResponse()
+    }
+
+    // No tools needed — stream directly
+    const stream = streamText({
+      model,
+      system: systemPrompt,
+      messages: modelMessages,
+    })
+    return stream.toTextStreamResponse()
   } catch (error: unknown) {
     console.error('[ai/chat] Error:', error)
     const msg = error instanceof Error ? error.message : 'Error del AI'
