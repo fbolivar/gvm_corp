@@ -517,7 +517,7 @@ async function importTerceros(
   }
 
   const { imported, updated, errors, error_details } = await batchUpsert(
-    supabase, 'parties', mapped, 'tenant_id,doc_number',
+    supabase, 'parties', mapped, 'tenant_id,doc_type,doc_number',
   )
 
   return { table: 'terceros', imported, updated, errors, total, error_details }
@@ -622,11 +622,10 @@ async function importInventarios(
       name: safeString(row.name),
       sku: safeString(row.sku),
       description: safeString(row.description),
-      unit_price: safeNumber(row.unit_price),
-      unit_cost: stockMap.get(Number(row.wo_id))?.cost ?? 0,
-      stock_quantity: stockMap.get(Number(row.wo_id))?.qty ?? 0,
+      selling_price: safeNumber(row.unit_price),
+      cost: stockMap.get(Number(row.wo_id))?.cost ?? 0,
       tax_category: mapTaxCategory(row.tipo_iva ?? row.iva),
-      unit: safeString(row.unit),
+      uom: safeString(row.unit) ?? 'UND',
     }))
 
   console.error('[WO-DEBUG] Productos mapped:', mapped.length, 'sample:', mapped.length > 0 ? JSON.stringify(mapped[0]).substring(0, 300) : 'NONE')
@@ -893,7 +892,7 @@ async function importEmpleados(
   })
 
   // Upsert parties
-  await batchUpsert(supabase, 'parties', partyRecords, 'tenant_id,doc_number')
+  await batchUpsert(supabase, 'parties', partyRecords, 'tenant_id,doc_type,doc_number')
 
   // Step 2: Fetch party IDs by doc_number
   const { data: allParties } = await supabase
