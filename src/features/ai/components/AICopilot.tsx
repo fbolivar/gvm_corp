@@ -210,9 +210,10 @@ export function AICopilot() {
             {messages.length === 0 && (
               <div className="text-center py-8">
                 <PigIcon className="h-14 w-14 mx-auto mb-3 opacity-30" />
-                <p className="text-xs font-bold text-slate-400">Soy AI GVM, en que puedo ayudarte?</p>
+                <p className="text-xs font-bold text-slate-400">Soy AI GVM, tu copiloto de negocio</p>
+                <p className="text-[10px] text-slate-300 mt-1">Preguntame por datos reales de la empresa</p>
                 <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                  {['Como crear factura?', 'Que es una nota credito?', 'Ayuda con nomina'].map((q) => (
+                  {['Como van las ventas este mes?', 'Que productos estan por agotarse?', 'Dame un resumen ejecutivo', 'Quien me debe mas de 30 dias?', 'Como va el pipeline de ventas?'].map((q) => (
                     <button
                       key={q}
                       onClick={() => handleSuggestion(q)}
