@@ -270,6 +270,40 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                 </Card>
             </div>
 
+            {/* Auto Backup Schedule Card */}
+            <Card className="border-none shadow-premium rounded-[2.5rem] bg-gradient-to-r from-emerald-50 to-teal-50 overflow-hidden">
+                <CardContent className="p-8">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center">
+                                <Clock className="h-7 w-7 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-slate-900">Backup Automático Semanal</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">Cada domingo a las 3:00 AM UTC se genera automáticamente una copia de seguridad completa.</p>
+                            </div>
+                        </div>
+                        <Badge className="bg-emerald-500 text-white border-none hover:bg-emerald-600 text-xs font-black px-4 py-1.5">
+                            ACTIVO
+                        </Badge>
+                    </div>
+                    <div className="mt-4 grid sm:grid-cols-3 gap-4">
+                        <div className="p-3 rounded-xl bg-white/60 border border-emerald-100">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Frecuencia</p>
+                            <p className="text-sm font-bold text-slate-800 mt-0.5">Semanal (Domingos)</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white/60 border border-emerald-100">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Retención</p>
+                            <p className="text-sm font-bold text-slate-800 mt-0.5">Últimas 8 copias</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white/60 border border-emerald-100">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Backups Auto</p>
+                            <p className="text-sm font-bold text-slate-800 mt-0.5">{history.filter(b => b.type === 'auto').length} realizados</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* History List */}
             <Card className="border-none shadow-premium rounded-[2.5rem] bg-white overflow-hidden">
                 <CardHeader className="p-8 pb-4 border-b border-slate-100">
@@ -350,7 +384,7 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                                                 variant="outline"
                                                 size="icon"
                                                 onClick={() => handleDownload(record)}
-                                                className="h-10 w-10 rounded-xl border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all opacity-0 group-hover:opacity-100"
+                                                className="h-10 w-10 rounded-xl border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all"
                                                 title="Descargar"
                                             >
                                                 <Download className="h-4 w-4" />
