@@ -10,6 +10,7 @@ const MobileNav = dynamic(() => import("@/shared/components/layout/MobileNav").t
 const Header = dynamic(() => import("@/shared/components/layout/Header").then(mod => mod.Header), { ssr: false })
 const CommandPalette = dynamic(() => import("@/features/search/components/CommandPalette").then(mod => mod.CommandPalette), { ssr: false })
 const BarcodeScanner = dynamic(() => import("@/shared/components/BarcodeScanner").then(mod => mod.BarcodeScanner), { ssr: false })
+const LicenseBanner = dynamic(() => import("@/features/settings/components/LicenseBanner").then(mod => mod.LicenseBanner), { ssr: false })
 
 export default function MainLayout({
   children,
@@ -21,6 +22,8 @@ export default function MainLayout({
       <Sidebar />
       <MobileNav />
       <main className="md:pl-72 min-h-screen transition-all relative">
+        {/* License expiry banner */}
+        <LicenseBanner />
         {/* Top Header (Desktop & Global Actions) */}
         <div className="sticky top-0 z-40 px-8 py-4 bg-[#F3F4F6]/80 backdrop-blur-md hidden md:block">
           <Header />

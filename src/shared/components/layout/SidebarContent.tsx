@@ -289,6 +289,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: 'Monedas', href: "/settings/currencies", icon: Coins, moduleKey: 'settings' },
                 { title: 'Listas de Precios', href: "/settings/pricing", icon: Tag, moduleKey: 'settings' },
                 { title: 'API Keys', href: "/settings/api-keys", icon: Key, moduleKey: 'settings' },
+                { title: 'Licencia', href: "/settings/license", icon: ShieldCheck, moduleKey: 'settings' },
                 {
                     title: t.sidebar.help,
                     href: '/help',
