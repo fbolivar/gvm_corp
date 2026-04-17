@@ -1,0 +1,4 @@
+party_type,legal_name,trade_name,doc_type,doc_number,nit,dv,email,phone,is_customer,is_vendor,address,city,department
+COMPANY,NOMBRE COMPLETO EMPRESA S.A.S,NOMBRE COMERCIAL,NIT,900123456,900123456,1,contacto@empresa.co,+573001234567,true,false,Calle 123 # 45-67,Bogota,Cundinamarca
+COMPANY,EJEMPLO PROVEEDOR LTDA,ProveEjemplo,NIT,800123456,800123456,3,ventas@proveedor.co,+573012345678,false,true,Carrera 50 # 12-34,Medellin,Antioquia
+PERSON,JUAN PEREZ GOMEZ,,CC,79876543,,,juan.perez@email.com,+573023456789,true,false,Av Siempre Viva 742,Cali,Valle del Cauca

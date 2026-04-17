@@ -1,0 +1,5 @@
+asset_number,name,category,acquisition_date,acquisition_cost,useful_life_months,salvage_value,depreciation_method,accumulated_depreciation,status,location
+AF-001,Ecografo Veterinario Mindray,1520,2023-06-15,45000000,120,4500000,STRAIGHT_LINE,12375000,ACTIVE,Sede Principal Bogota
+AF-002,Vehiculo Renault Kangoo,1540,2022-03-10,65000000,60,6500000,STRAIGHT_LINE,32500000,ACTIVE,Sede Principal Bogota
+AF-003,Computador Dell Optiplex,1528,2024-01-20,4500000,60,450000,STRAIGHT_LINE,1500000,ACTIVE,Oficina Administrativa
+AF-004,Mobiliario Oficina Completo,1524,2020-12-01,25000000,120,2500000,STRAIGHT_LINE,11250000,ACTIVE,Sede Principal Bogota

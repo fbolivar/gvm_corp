@@ -1,0 +1,7 @@
+sku,name,type,uom,status,is_fixed_asset,track_serials,category,cost,price
+MED-001,Ivermectina 1% Inyectable 50ml,GOOD,UNIT,active,false,false,Medicamentos,45000,85000
+MED-002,Amoxicilina 500mg Tabletas x100,GOOD,BOX,active,false,false,Medicamentos,120000,220000
+VAC-001,Vacuna Triple Canina x10 dosis,GOOD,BOX,active,false,false,Vacunas,85000,150000
+EQP-001,Ecografo Veterinario Portatil,GOOD,UNIT,active,true,true,Equipos,12000000,18000000
+INS-001,Jeringas Desechables 5ml x100,GOOD,BOX,active,false,false,Insumos,35000,65000
+SRV-001,Consulta Veterinaria General,SERVICE,UNIT,active,false,false,Servicios,0,80000

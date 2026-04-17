@@ -1,0 +1,6 @@
+sku,product_name,warehouse_code,qty,unit_cost,lot_number,expiration_date
+MED-001,Ivermectina 1% Inyectable 50ml,BOG-01,150,45000,LOT-2026-001,2027-08-15
+MED-002,Amoxicilina 500mg Tabletas x100,BOG-01,80,120000,LOT-2026-002,2027-06-30
+VAC-001,Vacuna Triple Canina x10 dosis,FRI-01,45,85000,LOT-2026-010,2026-12-31
+INS-001,Jeringas Desechables 5ml x100,BOG-01,200,35000,,
+EQP-001,Ecografo Veterinario Portatil,BOG-01,2,12000000,,

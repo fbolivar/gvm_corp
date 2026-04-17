@@ -1,0 +1,4 @@
+legal_name,doc_type,doc_number,email,phone,hire_date,salary,base_salary,status,position,department,contract_type
+Carlos Eduardo Martinez Lopez,CC,79845632,carlos.martinez@gvm.co,+573201234567,2022-03-15,8500000,8500000,ACTIVE,Gerente General,Administracion,INDEFINITE
+Maria Fernanda Rodriguez Pena,CC,52987654,maria.rodriguez@gvm.co,+573202345678,2022-06-01,7200000,7200000,ACTIVE,Directora Comercial,Ventas,INDEFINITE
+Andres Felipe Gomez Torres,CC,80123456,andres.gomez@gvm.co,+573203456789,2023-01-10,4500000,4500000,ACTIVE,Asistente Logistica,Logistica,INDEFINITE

@@ -1,0 +1,4 @@
+full_name,email,role,zone,notes
+Nombre Apellido,correo@empresa.co,SUPER ADMINISTRADOR,,Usuario administrador principal
+Otro Usuario,usuario@empresa.co,CONTADOR,,Acceso contabilidad y reportes
+Vendedor Ejemplo,vendedor@empresa.co,REPRESENTANTE COMERCIAL,Zona Bogota,Acceso ventas y CRM

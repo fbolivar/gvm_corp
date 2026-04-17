@@ -1,0 +1,8 @@
+account_code,account_name,debit_balance,credit_balance,description
+1105.01,Caja General Bogota,5000000,0,Saldo inicial caja al 2026-04-20
+1110.01,Bancolombia Cuenta Ahorros,150000000,0,Saldo inicial bancos al 2026-04-20
+1305.01,Clientes Nacionales,85000000,0,Cartera por cobrar al 2026-04-20
+1435.01,Medicamentos Veterinarios,120000000,0,Inventario inicial al 2026-04-20
+1520,Maquinaria y Equipo,45000000,0,Equipos propiedad empresa
+2205,Proveedores Nacionales,0,35000000,Cartera por pagar al 2026-04-20
+3105,Capital Suscrito y Pagado,0,370000000,Capital inicial
