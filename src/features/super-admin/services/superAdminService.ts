@@ -121,12 +121,15 @@ export async function createTenantAction(input: NewTenantInput): Promise<CreateT
     const tenantId = tenant.id
 
     // 3. Create auth user (or use existing if email already registered)
+    // Uses RPC to find user by email (fast, avoids listUsers which is slow)
     let userId: string | undefined
-    const { data: existingUsers } = await admin.auth.admin.listUsers()
-    const existing = existingUsers?.users.find(u => u.email === input.admin_email)
+    const supabaseRpc = await createClient()
+    const { data: existingUserId } = await supabaseRpc.rpc('admin_find_user_by_email', {
+      p_email: input.admin_email,
+    })
 
-    if (existing) {
-      userId = existing.id
+    if (existingUserId) {
+      userId = existingUserId as string
     } else {
       const { data: newUser, error: userErr } = await admin.auth.admin.createUser({
         email: input.admin_email,
@@ -195,7 +198,7 @@ export async function createTenantAction(input: NewTenantInput): Promise<CreateT
       tenant_id: tenantId,
       license_key: licenseKey,
       admin_user_id: userId,
-      admin_temp_password: existing ? undefined : tempPassword,
+      admin_temp_password: existingUserId ? undefined : tempPassword,
     }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
