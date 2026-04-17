@@ -308,6 +308,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<string>("Miembro");
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+    const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
     const [unreadCount, setUnreadCount] = useState(0);
@@ -342,6 +343,11 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 setUser(user);
 
                 if (user) {
+                    // Check platform admin status
+                    supabase.rpc('is_platform_admin').then((res: { data: boolean | null }) => {
+                        setIsPlatformAdmin(Boolean(res.data))
+                    })
+
                     // Traer role, role_id Y tenant_id del usuario
                     const { data: userTenant } = await supabase
                         .from('user_tenants')
@@ -441,6 +447,21 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
             </div>
 
             <nav className="flex-1 overflow-y-auto pt-2 px-6 space-y-8 custom-scrollbar relative z-10">
+                {isPlatformAdmin && (
+                    <div className="mb-4">
+                        <Link
+                            href="/super-admin"
+                            onClick={onNavigate}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                        >
+                            <ShieldCheck className="w-5 h-5" />
+                            <div className="flex-1">
+                                <div className="text-sm">Super Admin</div>
+                                <div className="text-[10px] opacity-80 font-medium">BC Fabric SAS</div>
+                            </div>
+                        </Link>
+                    </div>
+                )}
                 {sidebarLinks.map((group, groupIndex) => {
                     const visibleLinks = group.links.filter(link => isAuthorized(link.moduleKey));
                     if (visibleLinks.length === 0) return null;
