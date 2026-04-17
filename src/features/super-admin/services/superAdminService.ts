@@ -234,6 +234,235 @@ export async function reactivateTenantAction(tenantId: string): Promise<{ succes
   return updateTenantLicenseAction(tenantId, { status: 'ACTIVE' })
 }
 
+// ─── Tenant Detail ───────────────────────────────────────────────────────────
+
+export interface TenantDetail {
+  tenant: {
+    id: string
+    name: string
+    nit: string
+    dv: string | null
+    created_at: string
+  }
+  license: {
+    id: string
+    license_key: string
+    plan: string
+    status: string
+    modules_enabled: string[]
+    max_users: number
+    valid_from: string
+    valid_until: string
+    activated_at: string | null
+    issued_by: string
+  } | null
+  users: Array<{
+    id: string
+    email: string
+    full_name: string | null
+    role: string
+    status: string
+    joined_at: string
+  }>
+  stats: {
+    total_documents: number
+    total_parties: number
+    total_products: number
+    total_employees: number
+  }
+}
+
+export async function getTenantDetailAction(tenantId: string): Promise<TenantDetail | null> {
+  await requirePlatformAdmin()
+  const admin = createAdminClient()
+
+  // Tenant info
+  const { data: tenant, error: tenantErr } = await admin
+    .from('tenants')
+    .select('id, name, nit, dv, created_at')
+    .eq('id', tenantId)
+    .single()
+
+  if (tenantErr || !tenant) return null
+
+  // License
+  const { data: license } = await admin
+    .from('tenant_licenses')
+    .select('id, license_key, plan, status, modules_enabled, max_users, valid_from, valid_until, activated_at, issued_by')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  // Users in this tenant (join with profiles and auth.users via user_tenants)
+  const { data: userTenants } = await admin
+    .from('user_tenants')
+    .select('user_id, role, status, created_at')
+    .eq('tenant_id', tenantId)
+
+  const users: TenantDetail['users'] = []
+  if (userTenants && userTenants.length > 0) {
+    for (const ut of userTenants) {
+      // Get profile
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', ut.user_id)
+        .maybeSingle()
+
+      // Get auth user for email
+      const { data: authUser } = await admin.auth.admin.getUserById(ut.user_id)
+
+      users.push({
+        id: ut.user_id,
+        email: authUser?.user?.email || '—',
+        full_name: profile?.full_name || null,
+        role: ut.role,
+        status: ut.status,
+        joined_at: ut.created_at,
+      })
+    }
+  }
+
+  // Stats — count rows per tenant
+  const [docsResult, partiesResult, productsResult, employeesResult] = await Promise.all([
+    admin.from('documents').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    admin.from('parties').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    admin.from('products').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    admin.from('employees').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+  ])
+
+  return {
+    tenant: {
+      id: tenant.id,
+      name: tenant.name,
+      nit: tenant.nit ?? '',
+      dv: tenant.dv ?? null,
+      created_at: tenant.created_at,
+    },
+    license: license
+      ? {
+          id: license.id,
+          license_key: license.license_key,
+          plan: license.plan,
+          status: license.status,
+          modules_enabled: license.modules_enabled ?? [],
+          max_users: license.max_users,
+          valid_from: license.valid_from,
+          valid_until: license.valid_until,
+          activated_at: license.activated_at ?? null,
+          issued_by: license.issued_by ?? '',
+        }
+      : null,
+    users,
+    stats: {
+      total_documents: docsResult.count ?? 0,
+      total_parties: partiesResult.count ?? 0,
+      total_products: productsResult.count ?? 0,
+      total_employees: employeesResult.count ?? 0,
+    },
+  }
+}
+
+export async function updateTenantAction(
+  tenantId: string,
+  data: { name?: string; nit?: string; dv?: string }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    const { error } = await admin
+      .from('tenants')
+      .update(data)
+      .eq('id', tenantId)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/super-admin')
+    revalidatePath(`/super-admin/tenants/${tenantId}`)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
+export async function deleteTenantAction(
+  tenantId: string,
+  confirmNit: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    // Verify NIT matches
+    const { data: tenant } = await admin
+      .from('tenants')
+      .select('nit')
+      .eq('id', tenantId)
+      .single()
+
+    if (!tenant) return { success: false, error: 'Tenant no encontrado' }
+    if (tenant.nit !== confirmNit) {
+      return { success: false, error: 'El NIT ingresado no coincide. Eliminación cancelada.' }
+    }
+
+    const { error } = await admin.from('tenants').delete().eq('id', tenantId)
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/super-admin')
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
+export async function resetUserPasswordAction(
+  userId: string,
+  _tenantId: string
+): Promise<{ success: boolean; tempPassword?: string; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    const tempPassword = generateTempPassword()
+
+    const { error } = await admin.auth.admin.updateUserById(userId, {
+      password: tempPassword,
+    })
+
+    if (error) return { success: false, error: error.message }
+
+    return { success: true, tempPassword }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
+export async function removeUserFromTenantAction(
+  userId: string,
+  tenantId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    const { error } = await admin
+      .from('user_tenants')
+      .delete()
+      .eq('user_id', userId)
+      .eq('tenant_id', tenantId)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/super-admin')
+    revalidatePath(`/super-admin/tenants/${tenantId}`)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function generateLicenseKey(): string {

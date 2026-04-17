@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Building2,
   Users,
@@ -12,6 +13,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Search,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -164,9 +166,22 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
                   : false
                 const isSuspended = t.license_status === 'SUSPENDED'
                 return (
-                  <tr key={t.tenant_id} className="hover:bg-slate-50">
+                  <tr
+                    key={t.tenant_id}
+                    className="hover:bg-slate-50 cursor-pointer"
+                    onClick={() => router.push(`/super-admin/tenants/${t.tenant_id}`)}
+                  >
                     <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900">{t.tenant_name}</div>
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5 group">
+                        <Link
+                          href={`/super-admin/tenants/${t.tenant_id}`}
+                          onClick={e => e.stopPropagation()}
+                          className="hover:text-purple-700 transition-colors"
+                        >
+                          {t.tenant_name}
+                        </Link>
+                        <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-purple-500 transition-colors" />
+                      </div>
                       <div className="text-xs text-slate-500">
                         Creado: {new Date(t.created_at).toLocaleDateString('es-CO')}
                       </div>
@@ -190,24 +205,32 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
                       {t.users_count} / {t.max_users}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-700">{t.documents_count}</td>
-                    <td className="px-6 py-4">
-                      {isSuspended ? (
-                        <button
-                          type="button"
-                          onClick={() => handleReactivate(t.tenant_id, t.tenant_name)}
-                          className="text-xs font-bold text-emerald-700 hover:text-emerald-900"
+                    <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/super-admin/tenants/${t.tenant_id}`}
+                          className="text-xs font-bold text-purple-700 hover:text-purple-900 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
                         >
-                          Reactivar
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSuspend(t.tenant_id, t.tenant_name)}
-                          className="text-xs font-bold text-red-700 hover:text-red-900"
-                        >
-                          Suspender
-                        </button>
-                      )}
+                          Ver
+                        </Link>
+                        {isSuspended ? (
+                          <button
+                            type="button"
+                            onClick={() => handleReactivate(t.tenant_id, t.tenant_name)}
+                            className="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                          >
+                            Reactivar
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSuspend(t.tenant_id, t.tenant_name)}
+                            className="text-xs font-bold text-red-700 hover:text-red-900 px-2.5 py-1 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                          >
+                            Suspender
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
