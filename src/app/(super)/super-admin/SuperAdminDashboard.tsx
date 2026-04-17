@@ -10,7 +10,6 @@ import {
   Plus,
   Calendar,
   TrendingUp,
-  Shield,
   AlertTriangle,
   Search,
 } from 'lucide-react'
@@ -62,20 +61,14 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 md:p-10">
+    <div className="p-6 md:p-10">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-10">
-        <div className="flex items-center gap-3 mb-1">
-          <Shield className="w-5 h-5 text-purple-700" />
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-purple-700">
-            BC Fabric SAS · Panel Super Admin
-          </p>
-        </div>
         <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
           Gestión de la Plataforma
         </h1>
         <p className="text-sm text-slate-500 mt-2 font-medium max-w-2xl">
-          Controla todos los tenants, licencias y métricas globales. Este panel solo es visible para administradores de la plataforma.
+          Controla todos los tenants, licencias y métricas globales de BC Fabric SAS.
         </p>
       </div>
 
@@ -227,7 +220,7 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
       {showNewModal && (
         <NewTenantModal onClose={() => setShowNewModal(false)} onSuccess={() => router.refresh()} />
       )}
-    </main>
+    </div>
   )
 }
 

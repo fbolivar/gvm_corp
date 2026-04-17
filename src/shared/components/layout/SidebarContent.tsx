@@ -449,17 +449,18 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
             <nav className="flex-1 overflow-y-auto pt-2 px-6 space-y-8 custom-scrollbar relative z-10">
                 {isPlatformAdmin && (
                     <div className="mb-4">
-                        <Link
-                            href="/super-admin"
-                            onClick={onNavigate}
+                        <a
+                            href="https://admin.bc-security.com/super-admin"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                         >
                             <ShieldCheck className="w-5 h-5" />
                             <div className="flex-1">
                                 <div className="text-sm">Super Admin</div>
-                                <div className="text-[10px] opacity-80 font-medium">BC Fabric SAS</div>
+                                <div className="text-[10px] opacity-80 font-medium">Abrir en nueva pestaña</div>
                             </div>
-                        </Link>
+                        </a>
                     </div>
                 )}
                 {sidebarLinks.map((group, groupIndex) => {
