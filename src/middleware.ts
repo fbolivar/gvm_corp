@@ -2,17 +2,20 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Middleware V3: Session Refresh + Security Gate
- * 
- * Purpose for 100+ connections:
- * 1. Automatically refreshes Supabase JWT tokens before they expire
- *    → Prevents 401 storms when multiple users have stale tokens
- * 2. Protects /main routes without requiring each page to check auth
- *    → Reduces 1 DB call (getUser) per page load
- * 3. Runs at the Edge (Vercel) → sub-5ms latency, no cold starts
+ * Middleware V4: Subdomain routing + Session Refresh + Security Gate
+ *
+ * Subdomain behavior:
+ * - admin.bc-security.com  → only super admin panel accessible
+ * - app.bc-security.com    → main app (all tenants)
+ * - *.gvm.com.co           → tenant-specific (e.g. gvmcorp.gvm.com.co)
+ * - any other host         → standard app
  */
 export async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request })
+
+    const hostname = request.headers.get('host') || ''
+    const pathname = request.nextUrl.pathname
+    const isAdminHost = hostname.startsWith('admin.bc-security.com')
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,49 +38,66 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    // IMPORTANT: Do NOT call supabase.auth.getSession() — it doesn't refresh the token.
-    // Always use getUser() which validates the JWT and refreshes if needed.
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Protect all /main routes — redirect to login if no session
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/')
-        && !request.nextUrl.pathname.startsWith('/login')
-        && !request.nextUrl.pathname.startsWith('/signup')
-        && !request.nextUrl.pathname.startsWith('/portal')
-        && !request.nextUrl.pathname.startsWith('/api')
-        && !request.nextUrl.pathname.startsWith('/_next')
-        && !request.nextUrl.pathname.startsWith('/pay/')
-        && !request.nextUrl.pathname.startsWith('/offline')
-        && request.nextUrl.pathname !== '/favicon.ico'
-        && request.nextUrl.pathname !== '/logo-gvm.png'
-        && request.nextUrl.pathname !== '/manifest.webmanifest'
-        && request.nextUrl.pathname !== '/sw.js'
+    // ─── Public routes (no auth required) ────────────────────────────────
+    const isPublic = pathname.startsWith('/login')
+        || pathname.startsWith('/signup')
+        || pathname.startsWith('/portal')
+        || pathname.startsWith('/api')
+        || pathname.startsWith('/_next')
+        || pathname.startsWith('/pay/')
+        || pathname.startsWith('/offline')
+        || pathname.startsWith('/terminal/')
+        || pathname === '/favicon.ico'
+        || pathname === '/logo-gvm.png'
+        || pathname === '/manifest.webmanifest'
+        || pathname === '/sw.js'
 
-    if (!user && isProtectedRoute) {
+    if (!user && !isPublic) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
-    // If logged in user tries to access /login, redirect to dashboard
-    if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+    if (user && (pathname === '/login' || pathname === '/signup')) {
         const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
+        url.pathname = isAdminHost ? '/super-admin' : '/dashboard'
         return NextResponse.redirect(url)
     }
+
+    // ─── admin.bc-security.com: restrict to super admin routes only ──────
+    if (isAdminHost && user) {
+        // Allow /super-admin, /login, /logout, API routes, static
+        const allowedOnAdmin =
+            pathname.startsWith('/super-admin')
+            || pathname.startsWith('/login')
+            || pathname.startsWith('/api')
+            || pathname.startsWith('/_next')
+            || pathname === '/favicon.ico'
+
+        // Root of admin host → redirect to /super-admin
+        if (pathname === '/' || pathname === '/dashboard') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/super-admin'
+            return NextResponse.redirect(url)
+        }
+
+        // Any other path on admin host → redirect to main app
+        if (!allowedOnAdmin) {
+            const url = new URL('https://app.bc-security.com' + pathname)
+            return NextResponse.redirect(url)
+        }
+    }
+
+    // ─── app.bc-security.com / other hosts: block /super-admin visible access ──
+    // Note: the page itself already has auth check via is_platform_admin()
 
     return supabaseResponse
 }
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except:
-         * - _next/static (static files)
-         * - _next/image (image optimization)
-         * - favicon.ico
-         * - public folder files
-         */
         '/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest)$).*)',
     ],
 }
