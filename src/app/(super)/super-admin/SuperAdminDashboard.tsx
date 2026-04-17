@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   Search,
   ExternalLink,
+  Download,
+  FileText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -62,16 +64,148 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
     }
   }
 
+  const handleExportCSV = () => {
+    const rows = tenants.map(t => ({
+      Tenant: t.tenant_name,
+      NIT: t.nit || '',
+      Plan: t.license_plan,
+      Estado: t.license_status,
+      Vigencia: t.license_valid_until || '',
+      MaxUsuarios: t.max_users,
+      Usuarios: t.users_count,
+      Documentos: t.documents_count,
+      Creado: new Date(t.created_at).toLocaleDateString('es-CO'),
+    }))
+    const headers = Object.keys(rows[0] || {}).join(',')
+    const csv =
+      headers +
+      '\n' +
+      rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `bc-fabric-tenants-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Reporte CSV descargado')
+  }
+
+  const handleExportPDF = async () => {
+    toast.loading('Generando PDF...', { id: 'pdf' })
+    const jsPDF = (await import('jspdf')).default
+    const doc = new jsPDF()
+
+    // Header
+    doc.setFillColor(79, 70, 229)
+    doc.rect(0, 0, 210, 40, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(20)
+    doc.text('BC FABRIC SAS', 20, 18)
+    doc.setFontSize(12)
+    doc.text('Reporte de Plataforma', 20, 28)
+    doc.setFontSize(9)
+    doc.text(new Date().toLocaleDateString('es-CO', { dateStyle: 'full' }), 20, 35)
+
+    // Metrics
+    doc.setTextColor(30, 41, 59)
+    doc.setFontSize(10)
+    let y = 55
+    doc.setFont('helvetica', 'bold')
+    doc.text('MÉTRICAS GLOBALES', 20, y)
+    y += 6
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.text(`Total Tenants: ${metrics.total_tenants}`, 20, y); y += 5
+    doc.text(`Licencias Activas: ${metrics.active_licenses}`, 20, y); y += 5
+    doc.text(`Licencias Expiradas: ${metrics.expired_licenses}`, 20, y); y += 5
+    doc.text(`Usuarios Totales: ${metrics.total_users}`, 20, y); y += 5
+    doc.text(`Nuevos este mes: ${metrics.tenants_created_this_month}`, 20, y); y += 10
+
+    doc.setFont('helvetica', 'bold')
+    doc.text('DISTRIBUCIÓN POR PLAN', 20, y); y += 6
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Enterprise: ${metrics.plans.enterprise}  |  Professional: ${metrics.plans.professional}  |  Starter: ${metrics.plans.starter}  |  Trial: ${metrics.plans.trial}`, 20, y)
+    y += 10
+
+    // Table
+    doc.setFont('helvetica', 'bold')
+    doc.text('LISTADO DE TENANTS', 20, y); y += 6
+    doc.setFillColor(241, 245, 249)
+    doc.rect(20, y - 3, 170, 7, 'F')
+    doc.setFontSize(8)
+    doc.text('Empresa', 22, y + 2)
+    doc.text('NIT', 80, y + 2)
+    doc.text('Plan', 110, y + 2)
+    doc.text('Vence', 135, y + 2)
+    doc.text('Users', 165, y + 2)
+    doc.text('Docs', 180, y + 2)
+    y += 8
+
+    doc.setFont('helvetica', 'normal')
+    for (const t of tenants) {
+      if (y > 270) {
+        doc.addPage()
+        y = 20
+      }
+      doc.text(t.tenant_name.substring(0, 35), 22, y)
+      doc.text(t.nit || '—', 80, y)
+      doc.text(t.license_plan.substring(0, 12), 110, y)
+      doc.text(t.license_valid_until || '—', 135, y)
+      doc.text(`${t.users_count}/${t.max_users}`, 165, y)
+      doc.text(String(t.documents_count), 180, y)
+      y += 5
+    }
+
+    // Footer
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(7)
+      doc.setTextColor(148, 163, 184)
+      doc.text(
+        `BC Fabric SAS · Confidencial · Página ${i} de ${pageCount}`,
+        105,
+        290,
+        { align: 'center' },
+      )
+    }
+
+    doc.save(`bc-fabric-reporte-${new Date().toISOString().split('T')[0]}.pdf`)
+    toast.success('Reporte PDF generado', { id: 'pdf' })
+  }
+
   return (
     <div className="p-6 md:p-10">
       {/* Header */}
-      <div className="max-w-7xl mx-auto mb-10">
-        <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
-          Gestión de la Plataforma
-        </h1>
-        <p className="text-sm text-slate-500 mt-2 font-medium max-w-2xl">
-          Controla todos los tenants, licencias y métricas globales de BC Fabric SAS.
-        </p>
+      <div className="max-w-7xl mx-auto mb-10 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
+            Gestión de la Plataforma
+          </h1>
+          <p className="text-sm text-slate-500 mt-2 font-medium max-w-2xl">
+            Controla todos los tenants, licencias y métricas globales de BC Fabric SAS.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="px-3 py-2 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+          >
+            <Download className="w-4 h-4" />
+            Excel
+          </button>
+          <button
+            type="button"
+            onClick={handleExportPDF}
+            className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold flex items-center gap-1.5"
+          >
+            <FileText className="w-4 h-4" />
+            PDF
+          </button>
+        </div>
       </div>
 
       {/* Metrics */}

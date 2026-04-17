@@ -502,6 +502,69 @@ function generateTempPassword(): string {
   return pwd.split('').sort(() => Math.random() - 0.5).join('')
 }
 
+// ─── Platform Config (BC Fabric master branding) ────────────────────────────
+
+export interface PlatformConfig {
+  id: string
+  master_logo_url: string | null
+  master_favicon_url: string | null
+  company_name: string
+  legal_name: string
+  tax_id: string | null
+  support_email: string
+  support_phone: string | null
+  website: string
+}
+
+export async function getPlatformConfigAction(): Promise<PlatformConfig | null> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc('get_platform_config').maybeSingle<PlatformConfig>()
+  return data
+}
+
+export async function updatePlatformConfigAction(
+  updates: Partial<PlatformConfig>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+    const { error } = await admin.from('platform_config').update(updates).neq('id', '0')
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/super-admin')
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
+export async function uploadPlatformLogoAction(
+  fileBase64: string,
+  fileName: string
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    const buffer = Buffer.from(fileBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64')
+    const ext = fileName.split('.').pop()?.toLowerCase() || 'png'
+    const path = `platform/logo-${Date.now()}.${ext}`
+
+    const { error: uploadErr } = await admin.storage
+      .from('tenant-branding')
+      .upload(path, buffer, { contentType: `image/${ext}`, upsert: true })
+
+    if (uploadErr) return { success: false, error: uploadErr.message }
+
+    const { data: publicUrl } = admin.storage.from('tenant-branding').getPublicUrl(path)
+    await admin.from('platform_config').update({ master_logo_url: publicUrl.publicUrl }).neq('id', '0')
+
+    revalidatePath('/super-admin')
+    return { success: true, url: publicUrl.publicUrl }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
 // ─── Branding & Custom Domain ────────────────────────────────────────────────
 
 export interface TenantBranding {

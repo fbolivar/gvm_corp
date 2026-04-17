@@ -3,10 +3,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Shield, LogOut, ExternalLink } from 'lucide-react'
+import { Shield, LogOut, ExternalLink, Settings } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+
+interface PlatformConfig {
+  master_logo_url: string | null
+  company_name: string
+}
 
 export default function SuperAdminLayout({
   children,
@@ -15,10 +20,15 @@ export default function SuperAdminLayout({
 }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [platformConfig, setPlatformConfig] = useState<PlatformConfig | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
     supabase.auth.getUser().then((res: { data: { user: User | null } }) => setUser(res.data.user))
+    supabase.rpc('get_platform_config').then((res: { data: PlatformConfig | PlatformConfig[] | null }) => {
+      const data = Array.isArray(res.data) ? res.data[0] : res.data
+      if (data) setPlatformConfig(data)
+    })
   }, [supabase])
 
   const handleLogout = async () => {
@@ -32,12 +42,21 @@ export default function SuperAdminLayout({
       <header className="sticky top-0 z-40 bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center">
-              <Shield className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center overflow-hidden">
+              {platformConfig?.master_logo_url ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={platformConfig.master_logo_url}
+                  alt="logo"
+                  className="w-8 h-8 object-contain"
+                />
+              ) : (
+                <Shield className="w-5 h-5" />
+              )}
             </div>
             <div>
               <div className="font-black text-lg leading-none tracking-tight">
-                BC FABRIC SAS
+                {platformConfig?.company_name?.toUpperCase() || 'BC FABRIC SAS'}
               </div>
               <div className="text-xs font-medium text-purple-200 uppercase tracking-widest mt-0.5">
                 Consola Super Admin
@@ -51,6 +70,13 @@ export default function SuperAdminLayout({
               className="px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-colors"
             >
               Tenants
+            </Link>
+            <Link
+              href="/super-admin/settings"
+              className="px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-1.5"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Configuración
             </Link>
             <a
               href="https://app.bc-security.com"
