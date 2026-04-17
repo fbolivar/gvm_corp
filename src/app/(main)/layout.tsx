@@ -11,6 +11,7 @@ const Header = dynamic(() => import("@/shared/components/layout/Header").then(mo
 const CommandPalette = dynamic(() => import("@/features/search/components/CommandPalette").then(mod => mod.CommandPalette), { ssr: false })
 const BarcodeScanner = dynamic(() => import("@/shared/components/BarcodeScanner").then(mod => mod.BarcodeScanner), { ssr: false })
 const LicenseBanner = dynamic(() => import("@/features/settings/components/LicenseBanner").then(mod => mod.LicenseBanner), { ssr: false })
+const TenantBrandingProvider = dynamic(() => import("@/shared/components/TenantBrandingProvider").then(mod => mod.TenantBrandingProvider), { ssr: false })
 
 export default function MainLayout({
   children,
@@ -18,6 +19,7 @@ export default function MainLayout({
   children: React.ReactNode
 }) {
   return (
+    <TenantBrandingProvider>
     <div className="min-h-screen bg-[#F3F4F6]">
       <Sidebar />
       <MobileNav />
@@ -47,5 +49,6 @@ export default function MainLayout({
       <Toaster richColors position="top-center" closeButton />
 
     </div>
+    </TenantBrandingProvider>
   )
 }

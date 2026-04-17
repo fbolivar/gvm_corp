@@ -23,6 +23,7 @@ import {
   Package,
   FileText,
   UserCircle2,
+  Palette,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -33,6 +34,7 @@ import {
   updateTenantLicenseAction,
   type TenantDetail,
 } from '@/features/super-admin/services/superAdminService'
+import { BrandingSection } from './BrandingSection'
 
 const ALL_MODULES = [
   'dashboard',
@@ -53,7 +55,7 @@ interface Props {
   detail: TenantDetail
 }
 
-type ActiveTab = 'info' | 'license' | 'users' | 'stats'
+type ActiveTab = 'info' | 'license' | 'users' | 'stats' | 'branding'
 
 export function TenantDetailClient({ detail: initialDetail }: Props) {
   const router = useRouter()
@@ -128,6 +130,7 @@ export function TenantDetailClient({ detail: initialDetail }: Props) {
               [
                 { key: 'info', label: 'Informacion', icon: Building2 },
                 { key: 'license', label: 'Licencia', icon: Key },
+                { key: 'branding', label: 'Marca & Dominio', icon: Palette },
                 { key: 'users', label: `Usuarios (${detail.users.length})`, icon: Users },
                 { key: 'stats', label: 'Estadisticas', icon: BarChart3 },
               ] as const
@@ -169,6 +172,7 @@ export function TenantDetailClient({ detail: initialDetail }: Props) {
           />
         )}
         {activeTab === 'stats' && <StatsSection detail={detail} />}
+        {activeTab === 'branding' && <BrandingSection tenantId={detail.tenant.id} />}
       </div>
 
       {/* Modals */}

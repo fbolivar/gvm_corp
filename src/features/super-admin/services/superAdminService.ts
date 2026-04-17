@@ -23,6 +23,10 @@ export interface TenantRow {
   tenant_id: string
   tenant_name: string
   nit: string | null
+  slug: string | null
+  custom_domain: string | null
+  logo_url: string | null
+  primary_color: string | null
   created_at: string
   license_plan: string
   license_status: string
@@ -493,4 +497,99 @@ function generateTempPassword(): string {
   }
   // Shuffle
   return pwd.split('').sort(() => Math.random() - 0.5).join('')
+}
+
+// ─── Branding & Custom Domain ────────────────────────────────────────────────
+
+export interface TenantBranding {
+  slug: string | null
+  custom_domain: string | null
+  logo_url: string | null
+  favicon_url: string | null
+  primary_color: string
+  accent_color: string
+  app_name: string | null
+}
+
+export async function getTenantBrandingAction(tenantId: string): Promise<TenantBranding | null> {
+  await requirePlatformAdmin()
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('tenants')
+    .select('slug, custom_domain, logo_url, favicon_url, primary_color, accent_color, app_name')
+    .eq('id', tenantId)
+    .single()
+  if (error || !data) return null
+  return data as TenantBranding
+}
+
+export async function updateTenantBrandingAction(
+  tenantId: string,
+  data: Partial<TenantBranding>
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    // Validate slug format (only lowercase alphanumeric + dash)
+    if (data.slug !== undefined && data.slug !== null && data.slug !== '') {
+      if (!/^[a-z0-9-]{2,30}$/.test(data.slug)) {
+        return { success: false, error: 'El slug debe ser minúsculas, números y guiones (2-30 caracteres)' }
+      }
+    }
+
+    // Normalize custom_domain (remove protocol, trailing slashes, www)
+    if (data.custom_domain !== undefined && data.custom_domain !== null && data.custom_domain !== '') {
+      const normalized = data.custom_domain
+        .replace(/^https?:\/\//, '')
+        .replace(/\/$/, '')
+        .replace(/^www\./, '')
+        .toLowerCase()
+        .trim()
+      data.custom_domain = normalized
+    }
+
+    const { error } = await admin.from('tenants').update(data).eq('id', tenantId)
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/super-admin')
+    revalidatePath(`/super-admin/tenants/${tenantId}`)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
+export async function uploadTenantLogoAction(
+  tenantId: string,
+  fileBase64: string,
+  fileName: string
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    // Decode base64
+    const buffer = Buffer.from(fileBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64')
+    const ext = fileName.split('.').pop()?.toLowerCase() || 'png'
+    const path = `${tenantId}/logo-${Date.now()}.${ext}`
+
+    const { error: uploadErr } = await admin.storage
+      .from('tenant-branding')
+      .upload(path, buffer, {
+        contentType: `image/${ext}`,
+        upsert: true,
+      })
+
+    if (uploadErr) return { success: false, error: uploadErr.message }
+
+    const { data: publicUrl } = admin.storage.from('tenant-branding').getPublicUrl(path)
+
+    await admin.from('tenants').update({ logo_url: publicUrl.publicUrl }).eq('id', tenantId)
+
+    revalidatePath(`/super-admin/tenants/${tenantId}`)
+    return { success: true, url: publicUrl.publicUrl }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
 }
