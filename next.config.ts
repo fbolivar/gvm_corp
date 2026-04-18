@@ -128,6 +128,11 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-tabs',
       '@radix-ui/react-tooltip',
     ],
+    // Server Actions body size limit — default 1MB no alcanza para imports
+    // masivos (Dolibarr puede enviar 5000+ filas en una sola llamada)
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
 }
 
