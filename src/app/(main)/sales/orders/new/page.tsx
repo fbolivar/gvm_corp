@@ -11,8 +11,8 @@ export default async function NewOrderPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const { data: parties } = await partyService.getParties(supabase, { page: 1, per_page: 500, role: 'customer' });
-    const { data: products } = await productService.getProducts(supabase, { page: 1, per_page: 500 });
+    const { data: parties } = await partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'customer' });
+    const { data: products } = await productService.getProducts(supabase, { page: 1, per_page: 5000 });
 
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 max-w-5xl mx-auto">

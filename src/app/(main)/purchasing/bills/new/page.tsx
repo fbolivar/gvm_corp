@@ -16,8 +16,8 @@ export default async function NewBillPage(props: { searchParams: Promise<{ order
     if (!user) redirect('/login');
 
     const [partiesRes, productsRes, orderRes, tenant] = await Promise.all([
-        partyService.getParties(supabase, { page: 1, per_page: 500, role: 'vendor', search: '' } as any),
-        productService.getProducts(supabase, { page: 1, per_page: 500 }),
+        partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'vendor', search: '' } as any),
+        productService.getProducts(supabase, { page: 1, per_page: 5000 }),
         orderId ? documentService.getDocumentById(supabase, orderId) : Promise.resolve(null),
         settingsService.getTenantInfo(supabase)
     ]);

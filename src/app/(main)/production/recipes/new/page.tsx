@@ -17,7 +17,7 @@ export default async function NewRecipePage() {
     // Fetch products for selection (all active products)
     const { data: products } = await productService.getProducts(supabase, {
         page: 1,
-        per_page: 500,
+        per_page: 5000,
         status: 'ACTIVE'
     })
 

@@ -18,7 +18,7 @@ export default async function NewTransferPage() {
 
     const [warehouses, { data: products }, tenant] = await Promise.all([
         inventoryService.getWarehouses(supabase),
-        productService.getProducts(supabase, { page: 1, per_page: 500 }),
+        productService.getProducts(supabase, { page: 1, per_page: 5000 }),
         settingsService.getTenantInfo(supabase),
     ]);
 

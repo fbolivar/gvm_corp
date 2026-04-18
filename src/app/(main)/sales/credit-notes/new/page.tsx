@@ -26,7 +26,7 @@ export default async function NewCreditNotePage() {
     // Fetch products for line items
     const { data: products } = await productService.getProducts(supabase, {
         page: 1,
-        per_page: 500,
+        per_page: 5000,
     });
 
     return (

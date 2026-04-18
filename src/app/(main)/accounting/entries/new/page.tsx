@@ -13,7 +13,7 @@ export default async function NewEntryPage() {
 
     const [accounts, partiesRes, dimensionOptions] = await Promise.all([
         accountingService.getAccounts(supabase),
-        partyService.getParties(supabase, { page: 1, per_page: 500, role: 'all' }),
+        partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'all' }),
         dimensionService.getDimensionOptions(supabase),
     ]);
 

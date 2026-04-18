@@ -19,8 +19,8 @@ export default async function NewQuotationPage({ searchParams }: PageProps) {
     const preSelectedProductId = (params?.productId as string) || undefined;
 
     const [{ data: parties }, { data: products }] = await Promise.all([
-        partyService.getParties(supabase, { page: 1, per_page: 500, role: 'customer' }),
-        productService.getProducts(supabase, { page: 1, per_page: 500 }),
+        partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'customer' }),
+        productService.getProducts(supabase, { page: 1, per_page: 5000 }),
     ]);
 
     return (

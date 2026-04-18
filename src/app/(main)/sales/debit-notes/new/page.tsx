@@ -23,7 +23,7 @@ export default async function NewDebitNotePage() {
 
     const { data: products } = await productService.getProducts(supabase, {
         page: 1,
-        per_page: 500,
+        per_page: 5000,
     });
 
     return (
