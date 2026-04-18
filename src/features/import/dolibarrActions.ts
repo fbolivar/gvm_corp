@@ -622,6 +622,11 @@ export async function importDolibarrProductsAction(
 
       const minStock = parseNumber(row.stock_alert)
 
+      // NOTA: el stock real vive en la tabla product_stock (no en products).
+      // La columna products.stock_quantity no existe en este schema.
+      // stockResult.value se usa solo para el conteo informativo de saneamiento.
+      void stockResult.value
+
       validRows.push({
         tenant_id: tenantId,
         sku,
@@ -635,9 +640,6 @@ export async function importDolibarrProductsAction(
         tax_category: vatRate > 0 ? 'IVA_19' : 'EXENTO',
         min_stock: minStock,
         barcode: row.barcode?.trim() || null,
-        // stock_quantity NO se pobla aquí — el stock real va en product_stock
-        // (se genera con el dataset de inventario inicial)
-        stock_quantity: stockResult.value,
       })
     })
 
@@ -730,7 +732,6 @@ export async function importDolibarrProductsAction(
           tax_category: row.tax_category,
           min_stock: row.min_stock,
           barcode: row.barcode,
-          stock_quantity: row.stock_quantity,
         })
         .eq('id', id)
 
