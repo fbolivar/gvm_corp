@@ -199,15 +199,16 @@ export function DolibarrImporter() {
 
     try {
       const result = await def.action(ds.rows)
+      const realErrors = result.errors.filter(e => !e.message.startsWith('INFO:'))
       setDatasets(prev => ({
         ...prev,
-        [key]: { ...prev[key], status: result.errors.length > 0 ? 'error' : 'success', result },
+        [key]: { ...prev[key], status: realErrors.length > 0 ? 'error' : 'success', result },
       }))
 
-      if (result.errors.length === 0) {
+      if (realErrors.length === 0) {
         toast.success(`${def.title}: ${result.inserted} registros importados`)
       } else {
-        toast.warning(`${def.title}: ${result.inserted} OK, ${result.errors.length} errores`)
+        toast.warning(`${def.title}: ${result.inserted} OK, ${realErrors.length} errores`)
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido'
