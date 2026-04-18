@@ -195,6 +195,12 @@ export interface DolibarrUserRow {
   office_phone?: string
 }
 
+export interface DolibarrPriceRow {
+  sku?: string
+  selling_price?: string
+  min_selling_price?: string
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseNumber(value: string | undefined): number {
@@ -1158,4 +1164,151 @@ export async function importDolibarrBookkeepingAction(
   }
 
   return { inserted: insertedEntries, errors }
+}
+
+// ─── IMPORT: PRICES (selling_price per SKU) ──────────────────────────────────
+
+// Normaliza headers españoles del export de precios multi-nivel de Dolibarr.
+// Acepta variaciones: "SKU" / "Ref." / "Ref" / "sku"
+//                     "Precio" / "Precio venta" / "Precio de venta" / "selling_price"
+//                     "Precio mínimo" / "min_selling_price"
+function normalizeDolibarrPriceRow(raw: Record<string, string>): DolibarrPriceRow {
+  const row = raw as Record<string, string | undefined>
+  const get = (key: string) => (row[key] ?? '').trim()
+
+  return {
+    sku: get('Ref.') || get('Ref') || get('SKU') || get('sku'),
+    selling_price:
+      get('Precio de venta') ||
+      get('Precio venta') ||
+      get('Precio') ||
+      get('price') ||
+      get('selling_price'),
+    min_selling_price:
+      get('Precio mínimo') ||
+      get('Precio minimo') ||
+      get('Min. precio de venta') ||
+      get('min_selling_price'),
+  }
+}
+
+export async function importDolibarrPricesAction(
+  rows: DolibarrPriceRow[] | Record<string, string>[]
+): Promise<ImportResult> {
+  try {
+    const supabase = await createClient()
+    const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id')
+    if (tenantErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error tenant: ${tenantErr.message}` }] }
+    }
+    if (!tenantId) {
+      return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
+    }
+
+    const errors: ImportError[] = []
+    const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+    const isSpanishExport =
+      'Ref.' in sample ||
+      'Precio de venta' in sample ||
+      'Precio venta' in sample ||
+      'Precio' in sample
+
+    // Normalizar y deduplicar por SKU (último precio gana)
+    const priceMap = new Map<string, { price: number; minPrice: number }>()
+    let skippedNoSku = 0
+    let skippedZero = 0
+
+    rows.forEach((raw) => {
+      const row: DolibarrPriceRow = isSpanishExport
+        ? normalizeDolibarrPriceRow(raw as Record<string, string>)
+        : (raw as DolibarrPriceRow)
+
+      const sku = row.sku?.trim() || ''
+      if (!sku) {
+        skippedNoSku++
+        return
+      }
+      const price = parseNumber(row.selling_price)
+      const minPrice = parseNumber(row.min_selling_price)
+
+      // Ignora precios en 0 (probablemente nivel multi-precio no utilizado)
+      if (price <= 0) {
+        skippedZero++
+        return
+      }
+
+      priceMap.set(sku, { price, minPrice })
+    })
+
+    if (priceMap.size === 0) {
+      return {
+        inserted: 0,
+        errors: [{ row: 0, message: 'No hay precios válidos para importar (todos en 0 o sin SKU)' }],
+      }
+    }
+
+    // Cargar productos existentes (paginado — evita URL length limit)
+    const existingMap = new Map<string, string>()
+    const pageSize = 1000
+    let page = 0
+    while (true) {
+      const { data, error: selErr } = await supabase
+        .from('products')
+        .select('id, sku')
+        .eq('tenant_id', tenantId)
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+
+      if (selErr) {
+        return {
+          inserted: 0,
+          errors: [{ row: 0, message: `Error leyendo productos: ${selErr.message}` }],
+        }
+      }
+      if (!data || data.length === 0) break
+      data.forEach((p) => {
+        if (p.sku) existingMap.set(p.sku as string, p.id as string)
+      })
+      if (data.length < pageSize) break
+      page++
+    }
+
+    let updatedCount = 0
+    let notFoundCount = 0
+
+    for (const [sku, { price }] of priceMap) {
+      const id = existingMap.get(sku)
+      if (!id) {
+        notFoundCount++
+        continue
+      }
+      const { error: updErr } = await supabase
+        .from('products')
+        .update({ selling_price: price })
+        .eq('id', id)
+
+      if (updErr) {
+        errors.push({ row: 0, message: `Error actualizando ${sku}: ${updErr.message}` })
+      } else {
+        updatedCount++
+      }
+    }
+
+    if (skippedNoSku > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedNoSku} filas sin SKU ignoradas` })
+    }
+    if (skippedZero > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedZero} precios en 0 ignorados` })
+    }
+    if (notFoundCount > 0) {
+      errors.push({
+        row: 0,
+        message: `INFO: ${notFoundCount} SKUs del CSV no existen en productos (importa productos primero)`,
+      })
+    }
+
+    return { inserted: updatedCount, errors }
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
+    return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }
+  }
 }

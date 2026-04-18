@@ -7,6 +7,7 @@ import {
   importDolibarrTercerosAction,
   importDolibarrWarehousesAction,
   importDolibarrProductsAction,
+  importDolibarrPricesAction,
   importDolibarrStockAction,
   importDolibarrAccountsAction,
   importDolibarrInvoicesAction,
@@ -21,6 +22,7 @@ type DatasetKey =
   | 'bodegas'
   | 'terceros'
   | 'productos'
+  | 'precios'
   | 'puc'
   | 'stock'
   | 'facturas'
@@ -69,6 +71,15 @@ const DATASETS: Dataset[] = [
     requiredColumns: ['sku', 'name'],
     suggestedFileName: '03_productos.csv',
     action: async (rows) => importDolibarrProductsAction(rows as never),
+  },
+  {
+    key: 'precios',
+    title: '4b. Precios de Venta (nivel 1)',
+    description: 'Actualiza selling_price de productos (multi-precio nivel 1)',
+    requiredColumns: ['sku', 'selling_price'],
+    dependsOn: ['productos'],
+    suggestedFileName: '03b_precios_segmento.csv',
+    action: async (rows) => importDolibarrPricesAction(rows as never),
   },
   {
     key: 'stock',
