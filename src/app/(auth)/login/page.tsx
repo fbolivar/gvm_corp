@@ -43,11 +43,25 @@ async function getTenantByHost(): Promise<TenantBranding | null> {
   return data || null
 }
 
+interface PlatformConfig {
+  master_logo_url: string | null
+  company_name: string
+  legal_name: string
+}
+
+async function getPlatformConfig(): Promise<PlatformConfig | null> {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc('get_platform_config').maybeSingle<PlatformConfig>()
+  return data
+}
+
 export default async function LoginPage() {
   const branding = await getTenantByHost()
   const h = await headers()
   const hostname = (h.get('host') || '').toLowerCase().split(':')[0]
   const isAdminHost = hostname.startsWith('admin.bc-security.com')
+  const isAppHost = hostname.startsWith('app.bc-security.com')
+  const platformConfig = isAppHost || !branding ? await getPlatformConfig() : null
 
   // Super Admin (BC Fabric) login
   if (isAdminHost) {
@@ -85,12 +99,17 @@ export default async function LoginPage() {
     )
   }
 
-  // Tenant-specific login (with branding)
+  // Tenant-specific login (with branding) OR generic app login (using platform config)
   const isTenantBranded = branding !== null
   const primary = branding?.primary_color || '#4f46e5'
   const accent = branding?.accent_color || '#10b981'
-  const appName = branding?.app_name || branding?.tenant_name || 'GVM S.A.S'
-  const logoUrl = branding?.logo_url
+  const appName =
+    branding?.app_name ||
+    branding?.tenant_name ||
+    platformConfig?.company_name ||
+    'BC Fabric SAS'
+  const logoUrl = branding?.logo_url || platformConfig?.master_logo_url || null
+  const isGeneric = !isTenantBranded && isAppHost
 
   return (
     <div className="relative min-h-screen flex">
@@ -130,7 +149,7 @@ export default async function LoginPage() {
           <div>
             <p className="text-slate-900 font-black italic text-xl tracking-tighter">{appName}</p>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">
-              Enterprise ERP · Powered by BC Fabric
+              {isGeneric ? 'Plataforma ERP Multi-Tenant' : 'Enterprise ERP · Powered by BC Fabric'}
             </p>
           </div>
         </div>
@@ -187,7 +206,9 @@ export default async function LoginPage() {
             </div>
             <div>
               <p className="text-slate-900 font-black italic text-lg tracking-tighter">{appName}</p>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Centro de Acceso</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                {isGeneric ? 'Plataforma Multi-Tenant' : 'Centro de Acceso'}
+              </p>
             </div>
           </div>
 
