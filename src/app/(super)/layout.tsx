@@ -10,6 +10,7 @@ import type { User } from '@supabase/supabase-js'
 
 interface PlatformConfig {
   master_logo_url: string | null
+  master_favicon_url?: string | null
   company_name: string
 }
 
@@ -27,7 +28,20 @@ export default function SuperAdminLayout({
     supabase.auth.getUser().then((res: { data: { user: User | null } }) => setUser(res.data.user))
     supabase.rpc('get_platform_config').then((res: { data: PlatformConfig | PlatformConfig[] | null }) => {
       const data = Array.isArray(res.data) ? res.data[0] : res.data
-      if (data) setPlatformConfig(data)
+      if (data) {
+        setPlatformConfig(data)
+        // Update favicon
+        if (data.master_logo_url) {
+          let favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']")
+          if (!favicon) {
+            favicon = document.createElement('link')
+            favicon.rel = 'icon'
+            document.head.appendChild(favicon)
+          }
+          favicon.href = data.master_logo_url
+        }
+        document.title = `${data.company_name} · Super Admin`
+      }
     })
   }, [supabase])
 

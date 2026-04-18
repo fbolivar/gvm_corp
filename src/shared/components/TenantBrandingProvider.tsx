@@ -24,11 +24,36 @@ export function TenantBrandingProvider({ children }: { children: React.ReactNode
         const b = res.data[0]
         setBranding(b)
         applyBranding(b)
+
+        // If tenant has no logo/favicon, fallback to platform master logo as favicon
+        if (!b.favicon_url && !b.logo_url) {
+          supabase.rpc('get_platform_config').then((pc: { data: { master_logo_url: string | null } | null }) => {
+            if (pc.data?.master_logo_url) {
+              applyFavicon(pc.data.master_logo_url)
+            }
+          })
+        }
+      } else {
+        // No tenant branding at all — use platform master logo as favicon
+        supabase.rpc('get_platform_config').then((pc: { data: { master_logo_url: string | null; company_name: string } | null }) => {
+          if (pc.data?.master_logo_url) applyFavicon(pc.data.master_logo_url)
+          if (pc.data?.company_name) document.title = pc.data.company_name
+        })
       }
     })
   }, [])
 
   return <>{children}</>
+}
+
+function applyFavicon(url: string) {
+  let favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']")
+  if (!favicon) {
+    favicon = document.createElement('link')
+    favicon.rel = 'icon'
+    document.head.appendChild(favicon)
+  }
+  favicon.href = url
 }
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } {
@@ -140,14 +165,7 @@ function applyBranding(b: TenantBranding) {
     document.title = b.app_name
   }
 
-  // Update favicon if custom one exists
-  if (b.favicon_url) {
-    let favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']")
-    if (!favicon) {
-      favicon = document.createElement('link')
-      favicon.rel = 'icon'
-      document.head.appendChild(favicon)
-    }
-    favicon.href = b.favicon_url
-  }
+  // Update favicon: prefer favicon_url, else logo_url
+  const iconUrl = b.favicon_url || b.logo_url
+  if (iconUrl) applyFavicon(iconUrl)
 }

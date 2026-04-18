@@ -1,8 +1,22 @@
 import { headers } from 'next/headers'
+import type { Metadata } from 'next'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 import { Fingerprint, Cpu, Radio, Shield } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getTenantByHost()
+  const platformConfig = await getPlatformConfig()
+
+  const appName = branding?.app_name || branding?.tenant_name || platformConfig?.company_name || 'BC Fabric SAS'
+  const iconUrl = branding?.favicon_url || branding?.logo_url || platformConfig?.master_logo_url
+
+  return {
+    title: `${appName} · Login`,
+    icons: iconUrl ? { icon: iconUrl } : undefined,
+  }
+}
 
 interface TenantBranding {
   tenant_id: string
