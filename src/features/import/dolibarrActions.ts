@@ -66,10 +66,17 @@ export interface DolibarrProductRow {
   status?: string
   sale_price?: string
   cost?: string
+  pmp?: string
   vat_rate?: string
   barcode?: string
   stock_qty?: string
   stock_alert?: string
+  track_lots?: string
+  default_warehouse?: string
+  weight?: string
+  note_private?: string
+  note_public?: string
+  created_at?: string
 }
 
 export interface DolibarrWarehouseRow {
@@ -493,8 +500,73 @@ export async function importDolibarrWarehousesAction(
 
 // ─── IMPORT: PRODUCTS ────────────────────────────────────────────────────────
 
+// Normaliza headers españoles del export Dolibarr 22.0.3 → DolibarrProductRow
+// Este cliente (GVM) tiene quirks específicos:
+//   - Precio de venta en $0 (usan listas de precios por segmento)
+//   - CostPrice vacío pero "Precio promedio ponderado" sí trae valor
+//   - Descripciones con " \ Und." al final (residuo del export)
+//   - Stock con valores imposibles tipo "5e20" (notación científica/corrupción)
+//   - IVA 0% default (productos veterinarios exentos)
+//   - "Use número de lote/serie" crítico (trazabilidad veterinaria)
+//   - Tipo: 0=producto, 1=servicio (Dolibarr)
+//   - En venta: 1=activo, 0=obsoleto
+function normalizeDolibarrProductRow(raw: Record<string, string>): DolibarrProductRow {
+  const row = raw as Record<string, string | undefined>
+  const get = (key: string) => (row[key] ?? '').trim()
+
+  // Descripción limpia: remover sufijos tipo " \ Und." o " \ Kg." del export
+  const descRaw = get('Descripción') || get('description')
+  const description = descRaw.replace(/\s*\\\s*[A-Za-záéíóúñ.]+\.?\s*$/i, '').trim()
+
+  // Status: "En venta" (1/0)
+  const enVenta = get('En venta') || get('status')
+  const status = enVenta === '0' ? 'inactive' : 'active'
+
+  // Tipo: Dolibarr usa 0=producto, 1=servicio
+  const tipo = get('Tipo') || get('type')
+  const typeMapped = tipo === '1' ? 'SERVICE' : 'GOOD'
+
+  // Fecha: truncar datetime
+  const fechaRaw = get('Fecha de creación') || get('created_at')
+  const fecha = fechaRaw ? fechaRaw.substring(0, 10) : ''
+
+  return {
+    dolibarr_id: get('Id') || get('dolibarr_id'),
+    sku: get('Ref.') || get('Ref') || get('sku'),
+    name: get('Etiqueta') || get('name'),
+    description,
+    type: typeMapped,
+    status,
+    barcode: get('Código de barras') || get('barcode'),
+    sale_price: get('Precio unitario (excl.)') || get('sale_price'),
+    cost: get('CostPrice') || get('cost'),
+    pmp: get('Precio promedio ponderado') || get('pmp'),
+    vat_rate: get('Tasa IVA') || get('vat_rate'),
+    stock_qty: get('Stock') || get('stock_qty'),
+    stock_alert: get('Límite de stock para alerta') || get('stock_alert'),
+    track_lots: get('Use número de lote/serie') || get('track_lots'),
+    weight: get('Peso') || get('weight'),
+    default_warehouse: get('Almacén predeterminado') || get('default_warehouse'),
+    note_private: get('Nota (privada)') || get('note_private'),
+    note_public: get('Nota (pública)') || get('note_public'),
+    created_at: fecha,
+  }
+}
+
+// Sanea valores de stock que vienen corruptos de Dolibarr.
+// Casos: "5e20" (notación científica = 5×10^20), vacío, negativos.
+// Retorna { value, wasSanitized } para poder logear warnings.
+function sanitizeStockValue(raw: string | undefined): { value: number; wasSanitized: boolean } {
+  if (!raw || raw.trim() === '') return { value: 0, wasSanitized: false }
+  const n = parseFloat(String(raw).replace(/,/g, '.').trim())
+  if (isNaN(n)) return { value: 0, wasSanitized: true }
+  // Imposible físicamente: más de 10 millones de unidades en una bodega veterinaria
+  if (Math.abs(n) > 10_000_000) return { value: 0, wasSanitized: true }
+  return { value: n, wasSanitized: false }
+}
+
 export async function importDolibarrProductsAction(
-  rows: DolibarrProductRow[]
+  rows: DolibarrProductRow[] | Record<string, string>[]
 ): Promise<ImportResult> {
   const supabase = await createClient()
   const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
@@ -503,42 +575,115 @@ export async function importDolibarrProductsAction(
   const errors: ImportError[] = []
   const validRows: Record<string, unknown>[] = []
 
-  rows.forEach((row, idx) => {
-    const rowNum = idx + 2
+  // Detecta si viene con headers españoles del export Dolibarr 22.0.3
+  const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+  const isSpanishExport =
+    'Ref.' in sample || 'Ref' in sample || 'Etiqueta' in sample || 'CostPrice' in sample
 
-    if (!row.name?.trim()) {
-      errors.push({ row: rowNum, message: 'El campo name es obligatorio' })
+  let stockSanitized = 0
+  let skippedServices = 0
+
+  rows.forEach((raw, idx) => {
+    const rowNum = idx + 2
+    const row: DolibarrProductRow = isSpanishExport
+      ? normalizeDolibarrProductRow(raw as Record<string, string>)
+      : (raw as DolibarrProductRow)
+
+    const name = row.name?.trim() || ''
+    const sku = row.sku?.trim() || ''
+
+    if (!name || !sku) {
+      // Sin nombre o SKU → saltamos silencioso (Dolibarr permite productos vacíos)
       return
     }
-    if (!row.sku?.trim()) {
-      errors.push({ row: rowNum, message: 'El campo sku es obligatorio' })
+    if (/^anulad/i.test(name)) {
       return
+    }
+
+    // Cost: preferir CostPrice, caer a PMP si vacío
+    const costPrice = parseNumber(row.cost)
+    const pmp = parseNumber(row.pmp)
+    const unitCost = costPrice > 0 ? costPrice : pmp
+
+    // Sale price: si es 0 queda 0 (se poblará con lista de precios después)
+    const salePrice = parseNumber(row.sale_price)
+
+    // Stock: saneamiento de valores imposibles (ej "5e20")
+    const stockResult = sanitizeStockValue(row.stock_qty)
+    if (stockResult.wasSanitized) {
+      stockSanitized++
+    }
+
+    // IVA: default 0% si vacío (mayoría veterinaria exenta)
+    const vatRate = parseNumber(row.vat_rate)
+
+    // Lote/serie tracking (crítico para veterinaria)
+    const trackLots = parseBool(row.track_lots)
+
+    // Skip servicios por ahora (normalmente no tienen stock)
+    const productType = mapProductType(row.type)
+    if (productType === 'SERVICE') {
+      skippedServices++
     }
 
     validRows.push({
       tenant_id: tenantId,
-      sku: row.sku.trim(),
-      name: row.name.trim(),
-      type: mapProductType(row.type),
-      uom: row.uom?.trim() || 'UNIT',
-      status: row.status === 'inactive' ? 'inactive' : 'active',
-      is_fixed_asset: false,
-      track_serials: false,
+      sku,
+      name,
+      description: row.description?.trim() || null,
+      unit_price: salePrice,
+      unit_cost: unitCost,
+      stock_quantity: stockResult.value,
+      tax_category: vatRate > 0 ? 'IVA_19' : 'EXENTO',
     })
   })
 
   if (validRows.length === 0) return { inserted: 0, errors }
 
+  // Dedup por (tenant_id, sku) — Dolibarr puede tener SKUs duplicados
+  const dedupedMap = new Map<string, Record<string, unknown>>()
+  let duplicates = 0
+  for (const row of validRows) {
+    const key = row.sku as string
+    if (dedupedMap.has(key)) {
+      duplicates++
+      // conservamos el último (suele ser el más actualizado)
+      dedupedMap.set(key, row)
+    } else {
+      dedupedMap.set(key, row)
+    }
+  }
+  const dedupedRows = Array.from(dedupedMap.values())
+
+  if (duplicates > 0) {
+    errors.push({
+      row: 0,
+      message: `INFO: ${duplicates} SKUs duplicados fusionados (último registro ganó)`,
+    })
+  }
+  if (stockSanitized > 0) {
+    errors.push({
+      row: 0,
+      message: `INFO: ${stockSanitized} productos con stock corrupto (ej: 5e20) fueron ajustados a 0. Se recomienda hacer conteo físico.`,
+    })
+  }
+  if (skippedServices > 0) {
+    errors.push({
+      row: 0,
+      message: `INFO: ${skippedServices} servicios detectados (sin stock asociado)`,
+    })
+  }
+
   const { error } = await supabase
     .from('products')
-    .upsert(validRows, { onConflict: 'tenant_id,sku', ignoreDuplicates: false })
+    .upsert(dedupedRows, { onConflict: 'tenant_id,sku', ignoreDuplicates: false })
 
   if (error) {
     errors.push({ row: 0, message: `Error BD productos: ${error.message}` })
     return { inserted: 0, errors }
   }
 
-  return { inserted: validRows.length, errors }
+  return { inserted: dedupedRows.length, errors }
 }
 
 // ─── IMPORT: INVENTORY/STOCK (generates IN movements) ────────────────────────
