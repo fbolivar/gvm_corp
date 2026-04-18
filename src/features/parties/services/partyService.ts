@@ -3,6 +3,39 @@ import { Party, PartyFilters } from '../types';
 
 export const partyService = {
     /**
+     * Retorna todos los terceros del rol indicado paginando internamente
+     * en lotes de 1000 (Supabase PostgREST tope default ~1000 filas).
+     * Pensado para poblar comboboxes con búsqueda en formularios.
+     */
+    async getAllPartiesLight(
+        client: SupabaseClient,
+        role: 'customer' | 'vendor' | 'all' = 'all'
+    ): Promise<Party[]> {
+        const pageSize = 1000;
+        let offset = 0;
+        const all: Record<string, unknown>[] = [];
+        while (true) {
+            let q = client
+                .from('parties')
+                .select('id, legal_name, trade_name, doc_number, nit, email, phone, is_customer, is_vendor, party_type');
+            if (role === 'customer') q = q.eq('is_customer', true);
+            else if (role === 'vendor') q = q.eq('is_vendor', true);
+            const { data, error } = await q
+                .order('legal_name')
+                .range(offset, offset + pageSize - 1);
+            if (error) {
+                console.error('[parties] getAllPartiesLight:', error.message);
+                break;
+            }
+            if (!data || data.length === 0) break;
+            all.push(...data);
+            if (data.length < pageSize) break;
+            offset += pageSize;
+        }
+        return all as unknown as Party[];
+    },
+
+    /**
      * Obtiene una lista paginada de terceros con filtros.
      */
     async getParties(client: SupabaseClient, filters: PartyFilters) {

@@ -15,14 +15,13 @@ export default async function NewBillPage(props: { searchParams: Promise<{ order
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [partiesRes, products, orderRes, tenant] = await Promise.all([
-        partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'vendor', search: '' } as any),
+    const [parties, products, orderRes, tenant] = await Promise.all([
+        partyService.getAllPartiesLight(supabase, 'vendor'),
         productService.getAllActiveProductsLight(supabase),
         orderId ? documentService.getDocumentById(supabase, orderId) : Promise.resolve(null),
         settingsService.getTenantInfo(supabase)
     ]);
 
-    const parties = partiesRes.data;
     const initialOrder = orderRes;
 
     let initialData = {

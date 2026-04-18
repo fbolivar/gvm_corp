@@ -11,8 +11,10 @@ export default async function NewInvoicePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const { data: parties } = await partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'customer' });
-    const products = await productService.getAllActiveProductsLight(supabase);
+    const [parties, products] = await Promise.all([
+        partyService.getAllPartiesLight(supabase, 'customer'),
+        productService.getAllActiveProductsLight(supabase),
+    ]);
 
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 max-w-5xl mx-auto">

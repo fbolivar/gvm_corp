@@ -11,7 +11,7 @@ export default async function NewRecurringInvoicePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const { data: parties } = await partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'customer' });
+    const parties = await partyService.getAllPartiesLight(supabase, 'customer');
 
     return (
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-1000">

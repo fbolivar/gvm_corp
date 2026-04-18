@@ -27,10 +27,13 @@ import {
     ArrowUpRight,
     Link2,
     Copy,
-    Check
+    Check,
+    Trash2
 } from "lucide-react"
 import { emitDianAction } from '@/features/dian/actions'
 import { createPaymentLinkAction } from '@/features/payments/actions'
+import { deleteDocumentAction } from '../actions'
+import { toast } from 'sonner'
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { useRouter } from "next/navigation"
@@ -71,6 +74,28 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
         } else {
             router.refresh();
         }
+    };
+
+    const handleDelete = async () => {
+        if (!document.id) return;
+        const ok = await confirmFn({
+            title: "Eliminar documento",
+            description: `Se borrará permanentemente el borrador #${document.number}. Esta acción no se puede deshacer.`,
+            variant: "danger",
+            confirmLabel: "Eliminar",
+        });
+        if (!ok) return;
+
+        setProcessing(true);
+        const result = await deleteDocumentAction(document.id);
+        setProcessing(false);
+
+        if (result.error) {
+            toast.error(result.error);
+            return;
+        }
+        toast.success('Documento eliminado');
+        router.push('/sales/invoices');
     };
 
     const handleCreatePaymentLink = async () => {
@@ -205,6 +230,18 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                     >
                         <Printer className="mr-3 h-4 w-4" /> Descargar PDF
                     </Button>
+
+                    {isDraft && (
+                        <Button
+                            variant="outline"
+                            onClick={handleDelete}
+                            disabled={processing}
+                            className="h-14 rounded-[1.25rem] border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-black px-8 shadow-sm transition-all hover:scale-105 active:scale-95 text-[10px] uppercase tracking-widest"
+                        >
+                            {processing ? <Loader2 className="mr-3 h-4 w-4 animate-spin" /> : <Trash2 className="mr-3 h-4 w-4" />}
+                            Eliminar
+                        </Button>
+                    )}
 
                     {isDraft && (
                         <Button

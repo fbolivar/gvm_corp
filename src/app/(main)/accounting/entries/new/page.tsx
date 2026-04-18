@@ -11,13 +11,11 @@ export default async function NewEntryPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [accounts, partiesRes, dimensionOptions] = await Promise.all([
+    const [accounts, parties, dimensionOptions] = await Promise.all([
         accountingService.getAccounts(supabase),
-        partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'all' }),
+        partyService.getAllPartiesLight(supabase, 'all'),
         dimensionService.getDimensionOptions(supabase),
     ]);
-
-    const parties = partiesRes.data;
 
     const dimensions = dimensionOptions.map(d => ({
         dimension: { id: d.dimension.id, code: d.dimension.code, name: d.dimension.name },

@@ -13,8 +13,10 @@ export default async function NewOrderPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const { data: parties } = await partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'vendor', search: '' } as any);
-    const products = await productService.getAllActiveProductsLight(supabase);
+    const [parties, products] = await Promise.all([
+        partyService.getAllPartiesLight(supabase, 'vendor'),
+        productService.getAllActiveProductsLight(supabase),
+    ]);
     const warehouses = await inventoryService.getWarehouses(supabase);
     const tenant = await settingsService.getTenantInfo(supabase);
 
