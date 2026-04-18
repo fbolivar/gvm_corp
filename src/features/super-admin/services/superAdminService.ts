@@ -528,7 +528,7 @@ export async function updatePlatformConfigAction(
   try {
     await requirePlatformAdmin()
     const admin = createAdminClient()
-    const { error } = await admin.from('platform_config').update(updates).neq('id', '0')
+    const { error } = await admin.from('platform_config').update(updates).not('id', 'is', null)
     if (error) return { success: false, error: error.message }
     revalidatePath('/super-admin')
     return { success: true }
@@ -556,7 +556,7 @@ export async function uploadPlatformLogoAction(
     if (uploadErr) return { success: false, error: uploadErr.message }
 
     const { data: publicUrl } = admin.storage.from('tenant-branding').getPublicUrl(path)
-    await admin.from('platform_config').update({ master_logo_url: publicUrl.publicUrl }).neq('id', '0')
+    await admin.from('platform_config').update({ master_logo_url: publicUrl.publicUrl }).not('id', 'is', null)
 
     revalidatePath('/super-admin')
     return { success: true, url: publicUrl.publicUrl }
