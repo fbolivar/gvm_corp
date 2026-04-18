@@ -649,23 +649,33 @@ export async function importDolibarrProductsAction(
     }
     const dedupedRows = Array.from(dedupedMap.values())
 
-    // Buscar SKUs ya existentes para hacer update manual (evita depender de unique constraint)
-    const skus = dedupedRows.map((r) => r.sku as string)
-    const { data: existing, error: selErr } = await supabase
-      .from('products')
-      .select('id, sku')
-      .eq('tenant_id', tenantId)
-      .in('sku', skus)
-
-    if (selErr) {
-      return {
-        inserted: 0,
-        errors: [{ row: 0, message: `Error leyendo productos existentes: ${selErr.message}` }],
-      }
-    }
-
+    // Cargar todos los productos del tenant y filtrar en memoria.
+    // No usamos .in('sku', [...]) porque PostgREST falla con "Bad Request"
+    // si la URL excede ~4KB (2700+ SKUs la rebasan con creces).
+    // Paginamos en chunks de 1000 para respetar el límite default de Supabase.
     const existingMap = new Map<string, string>()
-    existing?.forEach((p) => existingMap.set(p.sku as string, p.id as string))
+    const pageSize = 1000
+    let page = 0
+    while (true) {
+      const { data, error: selErr } = await supabase
+        .from('products')
+        .select('id, sku')
+        .eq('tenant_id', tenantId)
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+
+      if (selErr) {
+        return {
+          inserted: 0,
+          errors: [{ row: 0, message: `Error leyendo productos existentes: ${selErr.message}` }],
+        }
+      }
+      if (!data || data.length === 0) break
+      data.forEach((p) => {
+        if (p.sku) existingMap.set(p.sku as string, p.id as string)
+      })
+      if (data.length < pageSize) break
+      page++
+    }
 
     const toInsert = dedupedRows.filter((r) => !existingMap.has(r.sku as string))
     const toUpdate = dedupedRows.filter((r) => existingMap.has(r.sku as string))
