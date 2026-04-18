@@ -9,6 +9,7 @@ import { Label } from "@/shared/components/ui/label"
 import { Badge } from "@/shared/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
+import { SearchableSelect } from "@/shared/components/ui/searchable-select"
 import { Party } from "@/features/parties/types"
 import { Product } from "@/features/products/types"
 import {
@@ -240,19 +241,22 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
 
                     <div className="md:col-span-6 space-y-3">
                         <Label className="text-slate-400 font-black uppercase text-[9px] tracking-[0.3em] pl-2">Entidad Vinculada (Socio Comercial)</Label>
-                        <div className="relative group/select">
-                            <select
-                                {...form.register('party_id')}
-                                className={cn(
-                                    "w-full h-16 bg-slate-50 border-2 border-transparent focus:border-indigo-500/10 rounded-[1.5rem] px-8 text-slate-900 text-[11px] font-black appearance-none transition-all shadow-inner focus:bg-white",
-                                    !!form.formState.errors.party_id && "border-rose-500/20"
-                                )}
-                            >
-                                <option value="">IDENTIFICAR TERCERO EN BASE DE DATOS...</option>
-                                {parties.map(p => <option key={p.id} value={p.id}>{p.legal_name.toUpperCase()} — {p.doc_number}</option>)}
-                            </select>
-                            <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none group-focus-within/select:rotate-180 transition-transform" />
-                        </div>
+                        <SearchableSelect
+                            items={parties
+                                .filter(p => !!p.id)
+                                .map(p => ({
+                                    value: p.id!,
+                                    label: p.legal_name.toUpperCase(),
+                                    subLabel: p.doc_number,
+                                    keywords: `${p.doc_number} ${p.legal_name}`,
+                                }))}
+                            value={form.watch('party_id') || ''}
+                            onChange={(v) => form.setValue('party_id', v, { shouldValidate: true, shouldDirty: true })}
+                            placeholder="IDENTIFICAR TERCERO — BUSCAR POR NOMBRE O NIT..."
+                            emptyMessage="No se encontró tercero con ese nombre/NIT"
+                            className="h-16 bg-slate-50 border-2 border-transparent rounded-[1.5rem] px-8 text-slate-900 text-[11px] font-black shadow-inner uppercase tracking-widest hover:bg-white transition-all"
+                            error={!!form.formState.errors.party_id}
+                        />
                         {form.formState.errors.party_id && (
                             <div className="flex items-center gap-2 pl-2 text-rose-500 animate-in fade-in slide-in-from-left-2 transition-all">
                                 <AlertCircle className="h-3 w-3" />
@@ -336,21 +340,24 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                                         <TableRow key={field.id} className="border-slate-50 hover:bg-slate-50/30 transition-all group/row">
                                             <TableCell className="py-10 pl-14">
                                                 <div className="space-y-4">
-                                                    <div className="relative group/select">
-                                                        <select
-                                                            {...form.register(`lines.${index}.product_id`)}
-                                                            onChange={(e) => { form.register(`lines.${index}.product_id`).onChange(e); handleProductChange(index, e.target.value); }}
-                                                            className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-slate-900 text-[10px] font-black appearance-none focus:ring-2 focus:ring-slate-100 outline-none transition-all shadow-inner uppercase tracking-wider"
-                                                        >
-                                                            <option value="">(BÚSQUEDA EN CATÁLOGO MAESTRO)</option>
-                                                            {products.map(p => (
-                                                                <option key={p.id} value={p.id}>
-                                                                    {p.sku ? `[${p.sku}] ` : ''}{p.name.toUpperCase()}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                        <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300" />
-                                                    </div>
+                                                    <SearchableSelect
+                                                        items={products
+                                                            .filter(p => !!p.id)
+                                                            .map(p => ({
+                                                                value: p.id!,
+                                                                label: `${p.sku ? `[${p.sku}] ` : ''}${p.name.toUpperCase()}`,
+                                                                subLabel: p.sku && p.name ? `SKU: ${p.sku}` : undefined,
+                                                                keywords: `${p.sku ?? ''} ${p.name}`,
+                                                            }))}
+                                                        value={form.watch(`lines.${index}.product_id`) || ''}
+                                                        onChange={(v) => {
+                                                            form.setValue(`lines.${index}.product_id`, v, { shouldValidate: true, shouldDirty: true })
+                                                            handleProductChange(index, v)
+                                                        }}
+                                                        placeholder="BUSCAR EN CATÁLOGO MAESTRO (SKU O NOMBRE)..."
+                                                        emptyMessage="Sin productos que coincidan"
+                                                        className="h-14 bg-slate-50 border-none rounded-2xl px-6 text-slate-900 text-[10px] font-black shadow-inner uppercase tracking-wider hover:bg-white transition-all"
+                                                    />
                                                     <div className="relative">
                                                         <Input
                                                             {...form.register(`lines.${index}.description`)}
