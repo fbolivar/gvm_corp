@@ -15,11 +15,7 @@ export default async function NewRecipePage() {
     if (!user) redirect('/login')
 
     // Fetch products for selection (all active products)
-    const { data: products } = await productService.getProducts(supabase, {
-        page: 1,
-        per_page: 5000,
-        status: 'ACTIVE'
-    })
+    const products = await productService.getAllActiveProductsLight(supabase)
 
     async function handleCreateRecipe(data: any) {
         "use server"

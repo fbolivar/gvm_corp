@@ -14,7 +14,7 @@ export default async function NewOrderPage() {
     if (!user) redirect('/login');
 
     const { data: parties } = await partyService.getParties(supabase, { page: 1, per_page: 5000, role: 'vendor', search: '' } as any);
-    const { data: products } = await productService.getProducts(supabase, { page: 1, per_page: 5000 });
+    const products = await productService.getAllActiveProductsLight(supabase);
     const warehouses = await inventoryService.getWarehouses(supabase);
     const tenant = await settingsService.getTenantInfo(supabase);
 

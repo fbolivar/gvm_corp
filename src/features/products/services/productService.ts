@@ -2,6 +2,34 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Product, ProductFilters } from '../types';
 
 export const productService = {
+    // Retorna todos los productos activos paginando internamente en lotes de 1000
+    // (Supabase PostgREST limita a ~1000 filas por request por defecto).
+    // Pensado para poblar comboboxes con búsqueda en formularios de facturas,
+    // cotizaciones, OC, etc. Trae solo campos livianos — sin stock agregado.
+    async getAllActiveProductsLight(client: SupabaseClient): Promise<Product[]> {
+        const pageSize = 1000
+        let offset = 0
+        const all: Record<string, unknown>[] = []
+        while (true) {
+            const { data, error } = await client
+                .from('products')
+                .select('id, sku, name, selling_price, cost, tax_category, status, type, uom, min_stock')
+                .eq('status', 'ACTIVE')
+                .order('name')
+                .range(offset, offset + pageSize - 1)
+
+            if (error) {
+                console.error('[products] getAllActiveProductsLight error:', error.message)
+                break
+            }
+            if (!data || data.length === 0) break
+            all.push(...data)
+            if (data.length < pageSize) break
+            offset += pageSize
+        }
+        return all.map((p) => ({ ...p, stock_qty: 0, total_qty: 0 })) as unknown as Product[]
+    },
+
     async getProducts(client: SupabaseClient, filters: ProductFilters) {
         let query = client.from('products').select('*', { count: 'exact' });
 

@@ -21,10 +21,7 @@ export default async function NewDebitNotePage() {
         ['ACCEPTED', 'SIGNED', 'SENT', 'DRAFT'].includes(inv.status)
     );
 
-    const { data: products } = await productService.getProducts(supabase, {
-        page: 1,
-        per_page: 5000,
-    });
+    const products = await productService.getAllActiveProductsLight(supabase);
 
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 max-w-5xl mx-auto">

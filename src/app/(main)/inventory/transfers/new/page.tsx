@@ -16,9 +16,9 @@ export default async function NewTransferPage() {
     } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [warehouses, { data: products }, tenant] = await Promise.all([
+    const [warehouses, products, tenant] = await Promise.all([
         inventoryService.getWarehouses(supabase),
-        productService.getProducts(supabase, { page: 1, per_page: 5000 }),
+        productService.getAllActiveProductsLight(supabase),
         settingsService.getTenantInfo(supabase),
     ]);
 
