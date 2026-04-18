@@ -381,10 +381,40 @@ export async function importDolibarrTercerosAction(
 
   if (validRows.length === 0) return { inserted: 0, errors }
 
+  // Deduplicar por (doc_type, doc_number) — Dolibarr suele tener el mismo NIT
+  // registrado en varias filas (cliente + proveedor, o duplicados históricos).
+  // Postgres rechaza upsert si hay duplicados en el mismo batch.
+  // Conservamos el último y mergemos is_customer/is_vendor de todos.
+  const dedupedMap = new Map<string, Record<string, unknown>>()
+  let duplicates = 0
+  for (const row of validRows) {
+    const key = `${row.doc_type}|${row.doc_number}`
+    const prev = dedupedMap.get(key)
+    if (prev) {
+      duplicates++
+      dedupedMap.set(key, {
+        ...prev,
+        ...row,
+        is_customer: Boolean(prev.is_customer) || Boolean(row.is_customer),
+        is_vendor: Boolean(prev.is_vendor) || Boolean(row.is_vendor),
+      })
+    } else {
+      dedupedMap.set(key, row)
+    }
+  }
+  const dedupedRows = Array.from(dedupedMap.values())
+
+  if (duplicates > 0) {
+    errors.push({
+      row: 0,
+      message: `INFO: ${duplicates} duplicados por NIT fueron fusionados (mismo tercero registrado varias veces en Dolibarr)`,
+    })
+  }
+
   // Upsert parties (by tenant_id + doc_type + doc_number)
   const { data: inserted, error: insertErr } = await supabase
     .from('parties')
-    .upsert(validRows, { onConflict: 'tenant_id,doc_type,doc_number', ignoreDuplicates: false })
+    .upsert(dedupedRows, { onConflict: 'tenant_id,doc_type,doc_number', ignoreDuplicates: false })
     .select('id, doc_number')
 
   if (insertErr) {
