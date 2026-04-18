@@ -270,8 +270,61 @@ function deriveAccountNature(code: string): 'DEBIT' | 'CREDIT' {
 
 // ─── IMPORT: TERCEROS (PARTIES) ──────────────────────────────────────────────
 
+// Normaliza una fila con headers en español de Dolibarr 22.0.3 → DolibarrPartyRow
+// Este cliente (GVM) guarda:
+//   - NIT en "RUT" (no en "ID profesional 1")
+//   - Móvil en "Teléfono" (campo "Móvil" vacío)
+//   - Fechas como "2022-08-31 00:00:00" (hay que truncar a YYYY-MM-DD)
+//   - "Alias" usado como nota operativa ("BLOQUEADO POR CARTERA") — ignorar si contiene esas keywords
+function normalizeDolibarrPartyRow(raw: Record<string, string>): DolibarrPartyRow {
+  const row = raw as Record<string, string | undefined>
+  const get = (key: string) => (row[key] ?? '').trim()
+
+  // Alias solo se usa si NO es una nota operativa
+  const aliasRaw = get('Alias') || get('trade_name')
+  const aliasLooksLikeNote = /BLOQUEAD|CARTERA|ANULAD|SUSPEND|PENDIENTE/i.test(aliasRaw)
+  const tradeName = aliasLooksLikeNote ? '' : aliasRaw
+
+  // NIT: prioridad RUT > ID profesional 1 > ID profesional 2
+  const nit =
+    get('RUT') ||
+    get('ID profesional 1') ||
+    get('ID profesional 2') ||
+    get('nit') ||
+    ''
+
+  // Teléfono y móvil: el cliente los intercambió — si Móvil está vacío, usa Teléfono
+  const telefono = get('Teléfono') || get('phone')
+  const movil = get('Móvil')
+  const phone = movil || telefono
+
+  // Fecha: truncar datetime a date
+  const fechaRaw = get('Fecha de creación') || get('created_at')
+  const fecha = fechaRaw ? fechaRaw.substring(0, 10) : ''
+
+  return {
+    dolibarr_id: get('Id') || get('dolibarr_id'),
+    legal_name: get('Nombre') || get('legal_name'),
+    trade_name: tradeName,
+    doc_number: nit || get('Código de cliente') || get('Código de proveedor'),
+    nit,
+    email: get('Correo') || get('email'),
+    phone,
+    address: get('Dirección') || get('address'),
+    zip: get('Código postal') || get('zip'),
+    city: get('Población') || get('city'),
+    department: get('Departamento') || get('department'),
+    code_client: get('Código de cliente') || get('code_client'),
+    code_fournisseur: get('Código de proveedor') || get('code_fournisseur'),
+    is_customer: get('Cliente') || get('is_customer'),
+    is_vendor: get('Proveedor') || get('is_vendor'),
+    created_at: fecha,
+    party_type: get('Tipo de entidad comercial') || get('party_type'),
+  }
+}
+
 export async function importDolibarrTercerosAction(
-  rows: DolibarrPartyRow[]
+  rows: DolibarrPartyRow[] | Record<string, string>[]
 ): Promise<ImportResult> {
   const supabase = await createClient()
   const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
@@ -281,12 +334,20 @@ export async function importDolibarrTercerosAction(
   const validRows: Record<string, unknown>[] = []
   const externalIds: Record<string, unknown>[] = []
 
-  rows.forEach((row, idx) => {
-    const rowNum = idx + 2
+  // Detecta si viene con headers españoles del export Dolibarr 22.0.3
+  const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+  const isSpanishExport = 'Nombre' in sample || 'Id' in sample || 'RUT' in sample
 
-    if (!row.legal_name?.trim()) {
-      errors.push({ row: rowNum, message: 'El campo legal_name es obligatorio' })
-      return
+  rows.forEach((raw, idx) => {
+    const rowNum = idx + 2
+    const row: DolibarrPartyRow = isSpanishExport
+      ? normalizeDolibarrPartyRow(raw as Record<string, string>)
+      : (raw as DolibarrPartyRow)
+
+    // Saltar registros marcados como "anulado" o sin nombre
+    const name = row.legal_name?.trim() || ''
+    if (!name || /^anulad/i.test(name)) {
+      return // silencioso, no es error
     }
 
     const { nit, dv } = extractNIT(row.nit, row.doc_number)
@@ -295,7 +356,7 @@ export async function importDolibarrTercerosAction(
     validRows.push({
       tenant_id: tenantId,
       party_type: mapPartyType(row.party_type),
-      legal_name: row.legal_name.trim(),
+      legal_name: name,
       trade_name: row.trade_name?.trim() || null,
       doc_type: 'NIT',
       doc_number: docNumber,

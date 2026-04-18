@@ -2,9 +2,16 @@
 
 **Proyecto**: Implementación GVM Corp ERP
 **Cliente**: GVM Corporation Global Veterinary Medicine S.A.S
-**Sistema origen**: Dolibarr
+**Sistema origen**: Dolibarr 22.0.3 (comercial + inventario) + WorldOffice (contable)
 **Sistema destino**: GVM Corp ERP
 **Fecha go-live**: 20 de abril de 2026
+
+> ⚠️ **Nota importante — División de orígenes para GVM**:
+>
+> - **Dolibarr** aporta solo datos **operativos**: terceros, productos, bodegas, stock, lotes, pedidos, movimientos de inventario, envíos.
+> - **WorldOffice** aporta todo lo **financiero y contable**: facturas venta/compra, cartera por cobrar/pagar, PUC, asientos contables, activos fijos.
+>
+> **NO** se exportan facturas desde Dolibarr para GVM. Esto reduce el scope de Dolibarr a 13 datasets operativos.
 
 ---
 

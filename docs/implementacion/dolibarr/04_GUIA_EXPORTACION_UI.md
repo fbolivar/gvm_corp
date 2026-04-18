@@ -198,7 +198,11 @@ Similar al anterior pero para compras.
 
 ---
 
-### 11. Plan Contable (solo si módulo Contabilidad activo)
+### 11. Plan Contable (OMITIR para GVM — usa WorldOffice para contabilidad)
+
+> ❌ **Skip este paso**: El cliente GVM no usa el módulo de Contabilidad de Dolibarr. El PUC se migra desde WorldOffice, no desde Dolibarr.
+
+Solo aplica si el cliente usa contabilidad en Dolibarr:
 
 **Menú**: `Contabilidad > Configuración > Cuentas contables > Lista`
 

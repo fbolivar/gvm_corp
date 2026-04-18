@@ -2,9 +2,11 @@
 
 Este documento contiene las consultas SQL exactas para exportar los datos de Dolibarr en el formato compatible con GVM Corp ERP.
 
-**Base de datos**: MySQL o MariaDB
+**Probado con**: Dolibarr **22.0.3** (MySQL / MariaDB)
 **Prefijo asumido**: `llx_` (cambiar si el cliente usa otro)
 **Formato salida**: CSV con separador coma, encabezados, UTF-8
+
+> ⚠️ **Nota v22.0.3**: La columna `llx_facture.facnumber` fue eliminada en versiones recientes. Las consultas de facturas usan `f.ref` como número de factura (que es el comportamiento correcto en v22).
 
 ---
 
@@ -18,6 +20,31 @@ mysql -u USUARIO -p -h HOST BASE_DATOS -B -e "QUERY" \
 ```
 
 O desde phpMyAdmin: Seleccionar query → Exportar → CSV → Descargar
+
+---
+
+## 0. Verificación previa de schema (ejecutar PRIMERO)
+
+Antes de correr las exportaciones, valida que el schema del cliente coincide con Dolibarr 22.0.3:
+
+```sql
+-- Verifica versión instalada
+SELECT value FROM llx_const WHERE name = 'MAIN_VERSION_LAST_UPGRADE';
+
+-- Verifica que facnumber NO exista (debe retornar 0 en v22)
+SELECT COUNT(*) AS facnumber_existe
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'llx_facture' AND COLUMN_NAME = 'facnumber';
+
+-- Verifica columnas clave que usamos
+SELECT COLUMN_NAME
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'llx_facture'
+  AND COLUMN_NAME IN ('ref', 'ref_ext', 'fk_statut', 'paye', 'total_ht', 'total_tva', 'total_ttc')
+ORDER BY COLUMN_NAME;
+```
+
+Si `facnumber_existe = 0` y las 7 columnas clave aparecen, el cliente está en v22 y las queries funcionarán tal cual.
 
 ---
 
@@ -137,10 +164,11 @@ WHERE statut = 1;
 **Archivo destino**: `dolibarr_facturas_venta.csv`
 
 ```sql
+-- v22.0.3: llx_facture.facnumber ya no existe; usar f.ref como doc_number
 SELECT
   f.rowid AS dolibarr_id,
-  f.facnumber AS doc_number,
-  f.ref AS reference,
+  f.ref AS doc_number,
+  f.ref_ext AS reference,
   s.nom AS client_name,
   s.tva_intra AS client_nit,
   f.datef AS issue_date,
@@ -227,8 +255,9 @@ ORDER BY ff.datef DESC;
 **Archivo destino**: `dolibarr_cartera_cobrar.csv`
 
 ```sql
+-- v22.0.3: facnumber removido, usar f.ref
 SELECT
-  f.facnumber AS doc_number,
+  f.ref AS doc_number,
   s.tva_intra AS party_nit,
   s.nom AS party_name,
   f.datef AS issue_date,
@@ -390,7 +419,8 @@ ORDER BY lastname, firstname;
 Ejecutar estas queries de conteo para validar la integridad:
 
 ```sql
--- Resumen de registros
+-- Resumen de registros (Dolibarr 22.0.3)
+-- Nota: llx_societe usa `status` (entero); llx_user y llx_entrepot usan `statut`
 SELECT 'Terceros' AS entidad, COUNT(*) AS total FROM llx_societe WHERE status = 1
 UNION ALL
 SELECT 'Productos', COUNT(*) FROM llx_product WHERE tosell = 1 OR tobuy = 1
