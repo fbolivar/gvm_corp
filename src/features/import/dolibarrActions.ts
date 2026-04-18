@@ -199,6 +199,7 @@ export interface DolibarrPriceRow {
   sku?: string
   selling_price?: string
   min_selling_price?: string
+  price_level?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1168,10 +1169,11 @@ export async function importDolibarrBookkeepingAction(
 
 // ─── IMPORT: PRICES (selling_price per SKU) ──────────────────────────────────
 
-// Normaliza headers españoles del export de precios multi-nivel de Dolibarr.
-// Acepta variaciones: "SKU" / "Ref." / "Ref" / "sku"
-//                     "Precio" / "Precio venta" / "Precio de venta" / "selling_price"
-//                     "Precio mínimo" / "min_selling_price"
+// Normaliza headers del export de precios multi-nivel de Dolibarr 22.0.3.
+// Los headers reales del dataset "Productos y precios para cada segmento de
+// precios" son: Ref., Nivel de precios, PriceLevelUnitPriceHT,
+// MinPriceLevelUnitPriceHT (HT = Hors Taxe = sin IVA, lo que usamos en Colombia).
+// También acepta aliases en español y formatos manuales.
 function normalizeDolibarrPriceRow(raw: Record<string, string>): DolibarrPriceRow {
   const row = raw as Record<string, string | undefined>
   const get = (key: string) => (row[key] ?? '').trim()
@@ -1179,16 +1181,24 @@ function normalizeDolibarrPriceRow(raw: Record<string, string>): DolibarrPriceRo
   return {
     sku: get('Ref.') || get('Ref') || get('SKU') || get('sku'),
     selling_price:
+      // Nombres reales del export multi-nivel (HT = sin IVA)
+      get('PriceLevelUnitPriceHT') ||
+      get('PriceLevelUnitPrice') ||
+      // Aliases en español / manuales
       get('Precio de venta') ||
       get('Precio venta') ||
       get('Precio') ||
       get('price') ||
       get('selling_price'),
     min_selling_price:
+      get('MinPriceLevelUnitPriceHT') ||
+      get('MinPriceLevelUnitPrice') ||
       get('Precio mínimo') ||
       get('Precio minimo') ||
       get('Min. precio de venta') ||
       get('min_selling_price'),
+    price_level:
+      get('Nivel de precios') || get('Nivel de precio') || get('price_level') || get('level'),
   }
 }
 
@@ -1209,6 +1219,8 @@ export async function importDolibarrPricesAction(
     const sample = (rows[0] ?? {}) as Record<string, string | undefined>
     const isSpanishExport =
       'Ref.' in sample ||
+      'PriceLevelUnitPriceHT' in sample ||
+      'Nivel de precios' in sample ||
       'Precio de venta' in sample ||
       'Precio venta' in sample ||
       'Precio' in sample
@@ -1217,6 +1229,7 @@ export async function importDolibarrPricesAction(
     const priceMap = new Map<string, { price: number; minPrice: number }>()
     let skippedNoSku = 0
     let skippedZero = 0
+    let skippedWrongLevel = 0
 
     rows.forEach((raw) => {
       const row: DolibarrPriceRow = isSpanishExport
@@ -1228,10 +1241,19 @@ export async function importDolibarrPricesAction(
         skippedNoSku++
         return
       }
+
+      // Si viene columna "Nivel de precios", solo procesamos nivel 1
+      // (protege contra que Ana olvide filtrar y exporte los 5 niveles)
+      const level = row.price_level?.trim() || ''
+      if (level && level !== '1') {
+        skippedWrongLevel++
+        return
+      }
+
       const price = parseNumber(row.selling_price)
       const minPrice = parseNumber(row.min_selling_price)
 
-      // Ignora precios en 0 (probablemente nivel multi-precio no utilizado)
+      // Ignora precios en 0 (producto sin precio configurado en este nivel)
       if (price <= 0) {
         skippedZero++
         return
@@ -1298,6 +1320,12 @@ export async function importDolibarrPricesAction(
     }
     if (skippedZero > 0) {
       errors.push({ row: 0, message: `INFO: ${skippedZero} precios en 0 ignorados` })
+    }
+    if (skippedWrongLevel > 0) {
+      errors.push({
+        row: 0,
+        message: `INFO: ${skippedWrongLevel} filas de niveles 2-5 ignoradas (solo procesamos nivel 1)`,
+      })
     }
     if (notFoundCount > 0) {
       errors.push({
