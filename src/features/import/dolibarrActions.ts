@@ -568,122 +568,179 @@ function sanitizeStockValue(raw: string | undefined): { value: number; wasSaniti
 export async function importDolibarrProductsAction(
   rows: DolibarrProductRow[] | Record<string, string>[]
 ): Promise<ImportResult> {
-  const supabase = await createClient()
-  const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
-  if (!tenantId) return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
-
-  const errors: ImportError[] = []
-  const validRows: Record<string, unknown>[] = []
-
-  // Detecta si viene con headers españoles del export Dolibarr 22.0.3
-  const sample = (rows[0] ?? {}) as Record<string, string | undefined>
-  const isSpanishExport =
-    'Ref.' in sample || 'Ref' in sample || 'Etiqueta' in sample || 'CostPrice' in sample
-
-  let stockSanitized = 0
-  let skippedServices = 0
-
-  rows.forEach((raw, idx) => {
-    const rowNum = idx + 2
-    const row: DolibarrProductRow = isSpanishExport
-      ? normalizeDolibarrProductRow(raw as Record<string, string>)
-      : (raw as DolibarrProductRow)
-
-    const name = row.name?.trim() || ''
-    const sku = row.sku?.trim() || ''
-
-    if (!name || !sku) {
-      // Sin nombre o SKU → saltamos silencioso (Dolibarr permite productos vacíos)
-      return
+  try {
+    const supabase = await createClient()
+    const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id')
+    if (tenantErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error tenant: ${tenantErr.message}` }] }
     }
-    if (/^anulad/i.test(name)) {
-      return
+    if (!tenantId) {
+      return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
     }
 
-    // Cost: preferir CostPrice, caer a PMP si vacío
-    const costPrice = parseNumber(row.cost)
-    const pmp = parseNumber(row.pmp)
-    const unitCost = costPrice > 0 ? costPrice : pmp
+    const errors: ImportError[] = []
+    const validRows: Record<string, unknown>[] = []
 
-    // Sale price: si es 0 queda 0 (se poblará con lista de precios después)
-    const salePrice = parseNumber(row.sale_price)
+    const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+    const isSpanishExport =
+      'Ref.' in sample || 'Ref' in sample || 'Etiqueta' in sample || 'CostPrice' in sample
 
-    // Stock: saneamiento de valores imposibles (ej "5e20")
-    const stockResult = sanitizeStockValue(row.stock_qty)
-    if (stockResult.wasSanitized) {
-      stockSanitized++
-    }
+    let stockSanitized = 0
+    let skippedServices = 0
+    let skippedEmpty = 0
 
-    // IVA: default 0% si vacío (mayoría veterinaria exenta)
-    const vatRate = parseNumber(row.vat_rate)
+    rows.forEach((raw) => {
+      const row: DolibarrProductRow = isSpanishExport
+        ? normalizeDolibarrProductRow(raw as Record<string, string>)
+        : (raw as DolibarrProductRow)
 
-    // Lote/serie tracking (crítico para veterinaria)
-    const trackLots = parseBool(row.track_lots)
+      const name = row.name?.trim() || ''
+      const sku = row.sku?.trim() || ''
 
-    // Skip servicios por ahora (normalmente no tienen stock)
-    const productType = mapProductType(row.type)
-    if (productType === 'SERVICE') {
-      skippedServices++
-    }
+      if (!name || !sku) {
+        skippedEmpty++
+        return
+      }
+      if (/^anulad/i.test(name)) {
+        skippedEmpty++
+        return
+      }
 
-    validRows.push({
-      tenant_id: tenantId,
-      sku,
-      name,
-      description: row.description?.trim() || null,
-      unit_price: salePrice,
-      unit_cost: unitCost,
-      stock_quantity: stockResult.value,
-      tax_category: vatRate > 0 ? 'IVA_19' : 'EXENTO',
+      const costPrice = parseNumber(row.cost)
+      const pmp = parseNumber(row.pmp)
+      const unitCost = costPrice > 0 ? costPrice : pmp
+
+      const salePrice = parseNumber(row.sale_price)
+
+      const stockResult = sanitizeStockValue(row.stock_qty)
+      if (stockResult.wasSanitized) stockSanitized++
+
+      const vatRate = parseNumber(row.vat_rate)
+
+      const productType = mapProductType(row.type)
+      if (productType === 'SERVICE') skippedServices++
+
+      validRows.push({
+        tenant_id: tenantId,
+        sku,
+        name: name.slice(0, 255),
+        description: row.description?.trim()?.slice(0, 2000) || null,
+        unit_price: salePrice,
+        unit_cost: unitCost,
+        stock_quantity: stockResult.value,
+        tax_category: vatRate > 0 ? 'IVA_19' : 'EXENTO',
+      })
     })
-  })
 
-  if (validRows.length === 0) return { inserted: 0, errors }
+    if (validRows.length === 0) {
+      return {
+        inserted: 0,
+        errors: [{ row: 0, message: `No hay filas válidas. Vacías: ${skippedEmpty}` }],
+      }
+    }
 
-  // Dedup por (tenant_id, sku) — Dolibarr puede tener SKUs duplicados
-  const dedupedMap = new Map<string, Record<string, unknown>>()
-  let duplicates = 0
-  for (const row of validRows) {
-    const key = row.sku as string
-    if (dedupedMap.has(key)) {
-      duplicates++
-      // conservamos el último (suele ser el más actualizado)
-      dedupedMap.set(key, row)
-    } else {
+    // Dedup por SKU — último gana
+    const dedupedMap = new Map<string, Record<string, unknown>>()
+    let duplicates = 0
+    for (const row of validRows) {
+      const key = row.sku as string
+      if (dedupedMap.has(key)) duplicates++
       dedupedMap.set(key, row)
     }
-  }
-  const dedupedRows = Array.from(dedupedMap.values())
+    const dedupedRows = Array.from(dedupedMap.values())
 
-  if (duplicates > 0) {
-    errors.push({
-      row: 0,
-      message: `INFO: ${duplicates} SKUs duplicados fusionados (último registro ganó)`,
-    })
-  }
-  if (stockSanitized > 0) {
-    errors.push({
-      row: 0,
-      message: `INFO: ${stockSanitized} productos con stock corrupto (ej: 5e20) fueron ajustados a 0. Se recomienda hacer conteo físico.`,
-    })
-  }
-  if (skippedServices > 0) {
-    errors.push({
-      row: 0,
-      message: `INFO: ${skippedServices} servicios detectados (sin stock asociado)`,
-    })
-  }
+    // Buscar SKUs ya existentes para hacer update manual (evita depender de unique constraint)
+    const skus = dedupedRows.map((r) => r.sku as string)
+    const { data: existing, error: selErr } = await supabase
+      .from('products')
+      .select('id, sku')
+      .eq('tenant_id', tenantId)
+      .in('sku', skus)
 
-  const { error } = await supabase
-    .from('products')
-    .upsert(dedupedRows, { onConflict: 'tenant_id,sku', ignoreDuplicates: false })
+    if (selErr) {
+      return {
+        inserted: 0,
+        errors: [{ row: 0, message: `Error leyendo productos existentes: ${selErr.message}` }],
+      }
+    }
 
-  if (error) {
-    errors.push({ row: 0, message: `Error BD productos: ${error.message}` })
-    return { inserted: 0, errors }
+    const existingMap = new Map<string, string>()
+    existing?.forEach((p) => existingMap.set(p.sku as string, p.id as string))
+
+    const toInsert = dedupedRows.filter((r) => !existingMap.has(r.sku as string))
+    const toUpdate = dedupedRows.filter((r) => existingMap.has(r.sku as string))
+
+    let insertedCount = 0
+    let updatedCount = 0
+
+    // INSERT en chunks de 500 (Supabase PostgREST limit)
+    if (toInsert.length > 0) {
+      const chunkSize = 500
+      for (let i = 0; i < toInsert.length; i += chunkSize) {
+        const chunk = toInsert.slice(i, i + chunkSize)
+        const { error: insErr, data: insData } = await supabase
+          .from('products')
+          .insert(chunk)
+          .select('id')
+
+        if (insErr) {
+          errors.push({
+            row: 0,
+            message: `Error insertando productos (chunk ${i}-${i + chunk.length}): ${insErr.message}`,
+          })
+        } else {
+          insertedCount += insData?.length || 0
+        }
+      }
+    }
+
+    // UPDATE individual por SKU
+    for (const row of toUpdate) {
+      const id = existingMap.get(row.sku as string)
+      if (!id) continue
+      const { error: updErr } = await supabase
+        .from('products')
+        .update({
+          name: row.name,
+          description: row.description,
+          unit_price: row.unit_price,
+          unit_cost: row.unit_cost,
+          stock_quantity: row.stock_quantity,
+          tax_category: row.tax_category,
+        })
+        .eq('id', id)
+
+      if (updErr) {
+        errors.push({ row: 0, message: `Error actualizando ${row.sku}: ${updErr.message}` })
+      } else {
+        updatedCount++
+      }
+    }
+
+    if (duplicates > 0) {
+      errors.push({ row: 0, message: `INFO: ${duplicates} SKUs duplicados fusionados` })
+    }
+    if (stockSanitized > 0) {
+      errors.push({
+        row: 0,
+        message: `INFO: ${stockSanitized} productos con stock corrupto ajustados a 0. Se recomienda conteo físico.`,
+      })
+    }
+    if (skippedServices > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedServices} servicios detectados` })
+    }
+    if (skippedEmpty > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedEmpty} filas vacías ignoradas` })
+    }
+    if (updatedCount > 0) {
+      errors.push({ row: 0, message: `INFO: ${updatedCount} productos actualizados (ya existían)` })
+    }
+
+    return { inserted: insertedCount + updatedCount, errors }
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
+    return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }
   }
-
-  return { inserted: dedupedRows.length, errors }
 }
 
 // ─── IMPORT: INVENTORY/STOCK (generates IN movements) ────────────────────────
