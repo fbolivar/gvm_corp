@@ -620,15 +620,24 @@ export async function importDolibarrProductsAction(
       const productType = mapProductType(row.type)
       if (productType === 'SERVICE') skippedServices++
 
+      const minStock = parseNumber(row.stock_alert)
+
       validRows.push({
         tenant_id: tenantId,
         sku,
         name: name.slice(0, 255),
         description: row.description?.trim()?.slice(0, 2000) || null,
-        unit_price: salePrice,
-        unit_cost: unitCost,
-        stock_quantity: stockResult.value,
+        type: productType,
+        uom: 'UNIT',
+        status: 'ACTIVE',
+        cost: unitCost,
+        selling_price: salePrice,
         tax_category: vatRate > 0 ? 'IVA_19' : 'EXENTO',
+        min_stock: minStock,
+        barcode: row.barcode?.trim() || null,
+        // stock_quantity NO se pobla aquí — el stock real va en product_stock
+        // (se genera con el dataset de inventario inicial)
+        stock_quantity: stockResult.value,
       })
     })
 
@@ -704,7 +713,7 @@ export async function importDolibarrProductsAction(
       }
     }
 
-    // UPDATE individual por SKU
+    // UPDATE individual por SKU — usa columnas canónicas que la UI reconoce
     for (const row of toUpdate) {
       const id = existingMap.get(row.sku as string)
       if (!id) continue
@@ -713,10 +722,15 @@ export async function importDolibarrProductsAction(
         .update({
           name: row.name,
           description: row.description,
-          unit_price: row.unit_price,
-          unit_cost: row.unit_cost,
-          stock_quantity: row.stock_quantity,
+          type: row.type,
+          uom: row.uom,
+          status: row.status,
+          cost: row.cost,
+          selling_price: row.selling_price,
           tax_category: row.tax_category,
+          min_stock: row.min_stock,
+          barcode: row.barcode,
+          stock_quantity: row.stock_quantity,
         })
         .eq('id', id)
 
