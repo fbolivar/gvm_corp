@@ -115,11 +115,7 @@ BEGIN
       v_movements_created := v_movements_created + 1;
     END IF;
 
-    -- Mantener product_stock sincronizado (no hay trigger que lo haga)
-    UPDATE product_stock
-      SET qty = qty - v_line.qty
-      WHERE product_id = v_line.product_id
-        AND warehouse_id = v_line.warehouse_id;
+    -- product_stock es VIEW agregada sobre inventory_movements: se recalcula sola
   END LOOP;
 
   RETURN jsonb_build_object(
