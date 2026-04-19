@@ -29,17 +29,16 @@ export async function createPurchasingDocumentAction(data: Document, redirectPat
 export async function convertPurchasingDocumentAction(sourceId: string, targetType: DocumentType) {
     const supabase = await createClient();
 
+    let newDocId: string;
     try {
-        const newDocId = await purchasingService.convertDocument(supabase, sourceId, targetType);
-
-        let path = '/purchasing/bills';
-        if (targetType === 'PURCHASE_ORDER') path = '/purchasing/orders';
-
-        revalidatePath(path);
-        redirect(`${path}/${newDocId}/edit`);
+        newDocId = await purchasingService.convertDocument(supabase, sourceId, targetType);
     } catch (error: any) {
         return { error: error.message };
     }
+
+    const listPath = targetType === 'PURCHASE_ORDER' ? '/purchasing/orders' : '/purchasing/bills';
+    revalidatePath(listPath);
+    redirect(`/documents/${newDocId}`);
 }
 export async function markAsReceivedAction(docId: string) {
     const supabase = await createClient();
