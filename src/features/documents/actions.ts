@@ -35,12 +35,16 @@ export async function createDocumentAction(data: Document) {
  * Elimina un documento (factura, cotización, pedido, etc.) junto con sus líneas.
  * Solo permite borrar si el status es DRAFT — documentos firmados/enviados/aceptados
  * no se eliminan, se anulan con nota crédito o similar.
+ *
+ * Pre-chequea dependencias:
+ *  - Documentos hijos (parent_id FK) — no borra si existen
+ *  - Electronic documents (DIAN) — no borra si ya hay firma
  */
 export async function deleteDocumentAction(id: string): Promise<{ error?: string }> {
     const supabase = await createClient();
 
     try {
-        // Verificar status antes de borrar
+        // 1. Verificar existencia + status
         const { data: doc, error: selErr } = await supabase
             .from('documents')
             .select('id, status, doc_type, number')
@@ -57,9 +61,40 @@ export async function deleteDocumentAction(id: string): Promise<{ error?: string
             };
         }
 
-        // Borrar líneas primero (FK cascade debería hacerlo, pero explícito por seguridad)
+        // 2. Pre-check: documentos vinculados (parent_id)
+        const { data: children } = await supabase
+            .from('documents')
+            .select('number, doc_type')
+            .eq('parent_id', id)
+            .limit(5);
+
+        if (children && children.length > 0) {
+            const list = children.map(c => `${c.doc_type} #${c.number || 's/n'}`).join(', ');
+            return {
+                error: `No se puede borrar: hay ${children.length} documento(s) vinculado(s) (${list}). Elimina o desvincula primero esos documentos.`,
+            };
+        }
+
+        // 3. Pre-check: firma DIAN emitida
+        const { data: edocs } = await supabase
+            .from('electronic_documents')
+            .select('id, cufe')
+            .eq('document_id', id)
+            .limit(1);
+
+        if (edocs && edocs.length > 0 && edocs[0].cufe) {
+            return {
+                error: 'No se puede borrar: el documento tiene firma electrónica DIAN. Debe anularse con nota crédito.',
+            };
+        }
+
+        // 4. Borrar electronic_documents (borradores sin CUFE)
+        await supabase.from('electronic_documents').delete().eq('document_id', id);
+
+        // 5. Borrar líneas (FK cascade debería hacerlo, pero explícito por seguridad)
         await supabase.from('document_lines').delete().eq('document_id', id);
 
+        // 6. Borrar el documento
         const { error: delErr } = await supabase.from('documents').delete().eq('id', id);
         if (delErr) {
             return { error: `Error eliminando documento: ${delErr.message}` };
