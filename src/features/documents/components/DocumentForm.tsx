@@ -19,7 +19,7 @@ import {
     Link2,
     Loader
 } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { format } from "date-fns"
 import { cn } from "@/shared/lib/utils"
 import { toast } from "sonner"
@@ -164,23 +164,23 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
         { value: 'DOC_SUPPORT', label: 'Documento Soporte' },
     ];
 
-    const partyItems = parties
+    const partyItems = useMemo(() => parties
         .filter(p => !!p.id)
         .map(p => ({
             value: p.id!,
-            label: p.legal_name,
-            subLabel: `NIT ${p.doc_number}`,
-            keywords: `${p.doc_number} ${p.legal_name} ${p.trade_name ?? ''}`,
-        }));
+            label: p.legal_name ?? '',
+            subLabel: p.doc_number ? `NIT ${p.doc_number}` : undefined,
+            keywords: `${p.doc_number ?? ''} ${p.legal_name ?? ''} ${p.trade_name ?? ''}`,
+        })), [parties]);
 
-    const productItems = products
-        .filter(p => !!p.id)
+    const productItems = useMemo(() => products
+        .filter(p => !!p.id && !!p.name)
         .map(p => ({
             value: p.id!,
             label: p.name,
             subLabel: p.sku ? `SKU · ${p.sku}` : undefined,
             keywords: `${p.sku ?? ''} ${p.name}`,
-        }));
+        })), [products]);
 
     const lines = form.watch('lines');
     const hasStockIssues = isSale && lines?.some((line: any) => {

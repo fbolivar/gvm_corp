@@ -44,7 +44,7 @@ export function SearchableSelect({
     const q = query.toLowerCase()
     return items
       .filter((item) => {
-        const haystack = `${item.label} ${item.subLabel ?? ''} ${item.keywords ?? ''}`.toLowerCase()
+        const haystack = `${item.label ?? ''} ${item.subLabel ?? ''} ${item.keywords ?? ''}`.toLowerCase()
         return haystack.includes(q)
       })
       .slice(0, 200)
@@ -105,6 +105,8 @@ export function SearchableSelect({
           {selectedItem && !disabled && (
             <span
               role="button"
+              aria-label="Limpiar selección"
+              title="Limpiar selección"
               onClick={handleClear}
               className="h-5 w-5 rounded-full hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600"
             >
