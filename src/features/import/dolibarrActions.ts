@@ -25,6 +25,7 @@ export interface DolibarrImportBatch {
   bodegas?: DolibarrWarehouseRow[]
   stock?: DolibarrStockRow[]
   lotes?: DolibarrLotRow[]
+  contactos?: DolibarrContactRow[]
   facturasVenta?: DolibarrInvoiceRow[]
   facturasCompra?: DolibarrPurchaseInvoiceRow[]
   cartera?: DolibarrReceivableRow[]
@@ -210,6 +211,19 @@ export interface DolibarrLotRow {
   qty?: string
   expiry_date?: string
   sellby_date?: string
+}
+
+export interface DolibarrContactRow {
+  dolibarr_id?: string
+  parent_dolibarr_id?: string
+  parent_name?: string
+  first_name?: string
+  last_name?: string
+  job_title?: string
+  email?: string
+  phone?: string
+  mobile?: string
+  is_active?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1330,6 +1344,239 @@ export async function importDolibarrLotsAction(
     }
 
     return { inserted: insertedCount, errors }
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
+    return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }
+  }
+}
+
+// ─── IMPORT: CONTACTS (Opción A: consolidar correo en parties.email) ─────────
+// Headers Dolibarr 22.0.3 export "Contactos/direcciones":
+//   - Id contacto → dolibarr_id (del contacto)
+//   - Id empresa → parent_dolibarr_id (match con party_external_ids)
+//   - Razón social → parent_name (fallback)
+//   - Nombre / Apellidos / Puesto de trabajo
+//   - Correo / Teléfono / Mobile
+//   - Estado (1=activo, 0=inactivo)
+//
+// Estrategia: solo actualiza parties.email/phone si la empresa NO tiene ya.
+// Primera aparición de contacto activo con email gana.
+function normalizeDolibarrContactRow(raw: Record<string, string>): DolibarrContactRow {
+  const row = raw as Record<string, string | undefined>
+  const get = (key: string) => (row[key] ?? '').trim()
+
+  return {
+    dolibarr_id: get('Id contacto') || get('dolibarr_id'),
+    parent_dolibarr_id: get('Id empresa') || get('parent_dolibarr_id'),
+    parent_name: get('Razón social') || get('parent_name'),
+    first_name: get('Nombre') || get('first_name'),
+    last_name: get('Apellidos') || get('last_name'),
+    job_title: get('Puesto de trabajo') || get('job_title'),
+    email: get('Correo') || get('email'),
+    phone: get('Teléfono') || get('phone'),
+    mobile: get('Mobile') || get('Móvil') || get('mobile'),
+    is_active: get('Estado') || get('is_active'),
+  }
+}
+
+export async function importDolibarrContactsAction(
+  rows: DolibarrContactRow[] | Record<string, string>[]
+): Promise<ImportResult> {
+  try {
+    const supabase = await createClient()
+    const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id')
+    if (tenantErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error tenant: ${tenantErr.message}` }] }
+    }
+    if (!tenantId) {
+      return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
+    }
+
+    const errors: ImportError[] = []
+
+    const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+    const isSpanishExport =
+      'Id contacto' in sample ||
+      'Razón social' in sample ||
+      'Id empresa' in sample ||
+      'Puesto de trabajo' in sample
+
+    // Lookup dolibarr_societe_id → party_id (importado en terceros)
+    const externalIdMap = new Map<string, string>()
+    {
+      const pageSize = 1000
+      let offset = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from('party_external_ids')
+          .select('party_id, source_id')
+          .eq('tenant_id', tenantId)
+          .eq('source_system', 'DOLIBARR')
+          .eq('source_table', 'llx_societe')
+          .range(offset, offset + pageSize - 1)
+        if (error) {
+          return { inserted: 0, errors: [{ row: 0, message: `Error leyendo party_external_ids: ${error.message}` }] }
+        }
+        if (!data || data.length === 0) break
+        data.forEach((e) => externalIdMap.set(String(e.source_id), e.party_id as string))
+        if (data.length < pageSize) break
+        offset += pageSize
+      }
+    }
+
+    // Cargar email/phone actuales de todas las parties (para saber cuáles NO tienen)
+    const partyInfoMap = new Map<string, { email: string | null; phone: string | null }>()
+    {
+      const pageSize = 1000
+      let offset = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from('parties')
+          .select('id, email, phone')
+          .eq('tenant_id', tenantId)
+          .range(offset, offset + pageSize - 1)
+        if (error) {
+          return { inserted: 0, errors: [{ row: 0, message: `Error leyendo parties: ${error.message}` }] }
+        }
+        if (!data || data.length === 0) break
+        data.forEach((p) =>
+          partyInfoMap.set(p.id as string, {
+            email: (p.email as string) || null,
+            phone: (p.phone as string) || null,
+          })
+        )
+        if (data.length < pageSize) break
+        offset += pageSize
+      }
+    }
+
+    // Agrupar: primer contacto activo con email gana por empresa
+    const emailByParty = new Map<string, string>()
+    const phoneByParty = new Map<string, string>()
+    let skippedNoParentId = 0
+    let skippedInactive = 0
+    let skippedNoEmail = 0
+    let skippedPartyNotFound = 0
+
+    rows.forEach((raw) => {
+      const row: DolibarrContactRow = isSpanishExport
+        ? normalizeDolibarrContactRow(raw as Record<string, string>)
+        : (raw as DolibarrContactRow)
+
+      const parentId = row.parent_dolibarr_id?.trim() || ''
+      if (!parentId) {
+        skippedNoParentId++
+        return
+      }
+
+      const stateRaw = (row.is_active || '').trim()
+      if (stateRaw === '0' || stateRaw.toLowerCase() === 'false') {
+        skippedInactive++
+        return
+      }
+
+      const partyId = externalIdMap.get(parentId)
+      if (!partyId) {
+        skippedPartyNotFound++
+        return
+      }
+
+      const email = row.email?.trim().toLowerCase() || ''
+      const phone = normalizePhone(row.mobile) || normalizePhone(row.phone) || ''
+
+      if (!email && !phone) {
+        skippedNoEmail++
+        return
+      }
+
+      if (email && !emailByParty.has(partyId)) {
+        emailByParty.set(partyId, email)
+      }
+      if (phone && !phoneByParty.has(partyId)) {
+        phoneByParty.set(partyId, phone)
+      }
+    })
+
+    // Aplicar actualizaciones — SOLO si la party no tiene email/phone ya
+    let emailsAdded = 0
+    let phonesAdded = 0
+    let alreadyHadEmail = 0
+    let alreadyHadPhone = 0
+    let updatedCount = 0
+
+    const partyIdsToUpdate = new Set<string>([
+      ...emailByParty.keys(),
+      ...phoneByParty.keys(),
+    ])
+
+    for (const partyId of partyIdsToUpdate) {
+      const info = partyInfoMap.get(partyId)
+      if (!info) continue
+
+      const payload: Record<string, unknown> = {}
+
+      const email = emailByParty.get(partyId)
+      if (email) {
+        if (info.email) {
+          alreadyHadEmail++
+        } else {
+          payload.email = email
+          emailsAdded++
+        }
+      }
+
+      const phone = phoneByParty.get(partyId)
+      if (phone) {
+        if (info.phone) {
+          alreadyHadPhone++
+        } else {
+          payload.phone = phone
+          phonesAdded++
+        }
+      }
+
+      if (Object.keys(payload).length === 0) continue
+
+      const { error: updErr } = await supabase
+        .from('parties')
+        .update(payload)
+        .eq('id', partyId)
+        .eq('tenant_id', tenantId)
+      if (updErr) {
+        if (errors.length < 5) {
+          errors.push({ row: 0, message: `Error actualizando party ${partyId}: ${updErr.message}` })
+        }
+      } else {
+        updatedCount++
+      }
+    }
+
+    if (emailsAdded > 0) {
+      errors.push({ row: 0, message: `INFO: ${emailsAdded} correos agregados a empresas sin contacto previo` })
+    }
+    if (phonesAdded > 0) {
+      errors.push({ row: 0, message: `INFO: ${phonesAdded} teléfonos agregados a empresas sin contacto previo` })
+    }
+    if (alreadyHadEmail > 0) {
+      errors.push({ row: 0, message: `INFO: ${alreadyHadEmail} empresas ya tenían correo — contactos ignorados` })
+    }
+    if (alreadyHadPhone > 0) {
+      errors.push({ row: 0, message: `INFO: ${alreadyHadPhone} empresas ya tenían teléfono — contactos ignorados` })
+    }
+    if (skippedInactive > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedInactive} contactos inactivos ignorados` })
+    }
+    if (skippedNoParentId > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedNoParentId} contactos sin empresa padre ignorados` })
+    }
+    if (skippedNoEmail > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedNoEmail} contactos sin correo ni teléfono ignorados` })
+    }
+    if (skippedPartyNotFound > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedPartyNotFound} contactos con empresa no encontrada (¿importaste terceros primero?)` })
+    }
+
+    return { inserted: updatedCount, errors }
   } catch (e) {
     const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
     return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }

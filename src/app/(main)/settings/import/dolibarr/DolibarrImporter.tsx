@@ -10,6 +10,7 @@ import {
   importDolibarrPricesAction,
   importDolibarrStockAction,
   importDolibarrLotsAction,
+  importDolibarrContactsAction,
   importDolibarrAccountsAction,
   importDolibarrInvoicesAction,
   importDolibarrReceivablesAction,
@@ -27,6 +28,7 @@ type DatasetKey =
   | 'puc'
   | 'stock'
   | 'lotes'
+  | 'contactos'
   | 'facturas'
   | 'cartera'
   | 'asientos'
@@ -100,6 +102,15 @@ const DATASETS: Dataset[] = [
     dependsOn: ['bodegas', 'productos'],
     suggestedFileName: '05b_lotes.csv',
     action: async (rows) => importDolibarrLotsAction(rows as never),
+  },
+  {
+    key: 'contactos',
+    title: '3b. Contactos (consolidar correo DIAN)',
+    description: 'Rellena parties.email/phone con el primer contacto activo (solo si empresa no tiene)',
+    requiredColumns: ['Id empresa', 'Correo'],
+    dependsOn: ['terceros'],
+    suggestedFileName: '02_contactos.csv',
+    action: async (rows) => importDolibarrContactsAction(rows as never),
   },
   {
     key: 'facturas',
