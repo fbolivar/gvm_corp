@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { documentService } from '@/features/documents/services/documentService';
 import { DocumentDetail } from '@/features/documents/components/DocumentDetail';
+import { DocumentAuditTrail } from '@/features/documents/components/DocumentAuditTrail';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { notFound } from 'next/navigation';
 
@@ -44,13 +45,14 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         }
 
         return (
-            <div className="container mx-auto py-6">
+            <div className="container mx-auto py-6 space-y-6">
                 <DocumentDetail
                     document={document}
                     relatedDocuments={relatedDocs}
                     tenantInfo={tenantInfo}
                     dianResolution={dianResolution}
                 />
+                <DocumentAuditTrail client={supabase} documentId={id} />
             </div>
         );
     } catch {
