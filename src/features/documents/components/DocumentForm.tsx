@@ -2,11 +2,11 @@
 
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { documentSchema, Document, DocumentLine } from "../types"
+import { documentSchema, Document } from "../types"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
-import { Label } from "@/shared/components/ui/label"
 import { SearchableSelect } from "@/shared/components/ui/searchable-select"
+import { FormLayout, FormSection, FormField } from "@/shared/components/ui/form-layout"
 import { Party } from "@/features/parties/types"
 import { Product } from "@/features/products/types"
 import { Warehouse } from "@/features/inventory/types"
@@ -20,7 +20,7 @@ import {
     Link2,
     Loader
 } from "lucide-react"
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import { format } from "date-fns"
 import { cn } from "@/shared/lib/utils"
 import { toast } from "sonner"
@@ -63,7 +63,8 @@ const DocumentTotals = ({ control, products }: { control: any; products: Product
     const total = subtotal + taxes;
 
     return (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+        <div className="surface-card p-5 space-y-3">
+            <h3 className="text-h3">Resumen</h3>
             <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-500">Subtotal</span>
                 <span className="text-sm font-semibold text-slate-900 tabular-nums">
@@ -77,7 +78,7 @@ const DocumentTotals = ({ control, products }: { control: any; products: Product
                 </span>
             </div>
             <div className="h-px bg-slate-100" />
-            <div className="flex justify-between items-baseline">
+            <div className="flex justify-between items-baseline pt-1">
                 <span className="text-sm font-semibold text-slate-900">Total</span>
                 <span className="text-2xl font-bold text-slate-900 tabular-nums">
                     ${total.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
@@ -124,7 +125,6 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
 
     const handleFormSubmit = async (data: Document) => {
         // Validación temprana: en ventas, toda línea con producto requiere bodega.
-        // Evita que el usuario cree el documento y reciba el error recién al emitir.
         if (isSale && warehouseItems.length > 0) {
             const missing = (data.lines || []).some(
                 (l: any) => l.product_id && !l.warehouse_id
@@ -140,7 +140,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
             const qty = Number(line.qty) || 0;
             const price = Number(line.unit_price) || 0;
             const lineTotal = qty * price;
-            line.line_total = lineTotal; // Persistir en la línea (antes quedaba en 0)
+            line.line_total = lineTotal;
             subtotal += lineTotal;
             if (line.product_id) {
                 const prod = products.find(p => p.id === line.product_id);
@@ -153,7 +153,6 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
         data.total = subtotal + taxes;
         try {
             await onSubmit(data);
-            // Success toast is now handled by the parent component
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : 'Error al guardar el documento');
         }
@@ -184,12 +183,12 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
         .map(p => ({
             value: p.id!,
             label: p.legal_name ?? '',
-            subLabel: p.doc_number ? `NIT ${p.doc_number}` : undefined,
-            keywords: `${p.doc_number ?? ''} ${p.legal_name ?? ''} ${p.trade_name ?? ''}`,
+            subLabel: p.doc_number ? `${p.doc_type ?? 'ID'} · ${p.doc_number}` : undefined,
+            keywords: `${p.doc_number ?? ''} ${p.legal_name ?? ''}`,
         })), [parties]);
 
     const productItems = useMemo(() => products
-        .filter(p => !!p.id && !!p.name)
+        .filter(p => !!p.id)
         .map(p => ({
             value: p.id!,
             label: p.name,
@@ -212,40 +211,67 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
         return prod && (Number(line.qty) || 0) > (prod.stock_qty || 0);
     });
 
+    const submitButton = (
+        <Button
+            type="button"
+            onClick={form.handleSubmit(handleFormSubmit, handleValidationError)}
+            disabled={isLoading}
+            className={cn(isSale ? "" : "bg-emerald-600 hover:bg-emerald-700")}
+        >
+            {isLoading ? (
+                <><Loader className="h-4 w-4 animate-spin mr-2" /> Guardando...</>
+            ) : (
+                <><CheckCircle2 className="h-4 w-4 mr-2" /> Guardar borrador</>
+            )}
+        </Button>
+    );
+
+    const cancelButton = (
+        <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.history.back()}
+        >
+            Cancelar
+        </Button>
+    );
+
     return (
         <div className="max-w-6xl mx-auto space-y-6 pb-24 animate-in fade-in duration-300">
-            {/* Header */}
+            {/* Header compacto con contexto */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+                    <h1 className="text-h1">
                         {initialData?.id ? 'Editar documento' : 'Nuevo documento'}
                     </h1>
-                    <p className="text-sm text-slate-500 mt-1">
-                        {isSale ? 'Venta · Ingreso' : 'Compra · Gasto'}
+                    <p className="text-caption mt-1">
+                        {isSale ? 'Venta · ingreso' : 'Compra · gasto'}
                     </p>
                 </div>
                 {initialData?.parent_id && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-100">
+                    <span className="badge-info">
                         <Link2 className="h-3 w-3" />
                         Vinculado a documento origen
-                    </div>
+                    </span>
                 )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: form content */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Encabezado */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                        <h2 className="text-sm font-semibold text-slate-900">Encabezado</h2>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Tipo de documento</Label>
+                    {/* Encabezado unificado con FormLayout */}
+                    <FormLayout>
+                        <FormSection
+                            title="Encabezado"
+                            description="Tipo, fecha, contraparte y notas visibles en el PDF"
+                            columns={2}
+                        >
+                            <FormField label="Tipo de documento" htmlFor="df-doc-type" required>
                                 <div className="relative">
                                     <select
+                                        id="df-doc-type"
                                         {...form.register('doc_type')}
-                                        className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 pr-9 text-sm text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40 transition"
+                                        className="w-full h-10 bg-white border border-slate-200 rounded-lg px-3 pr-9 text-sm text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition"
                                     >
                                         {docTypeOptions.map(o => (
                                             <option key={o.value} value={o.value}>{o.label}</option>
@@ -253,70 +279,68 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     </select>
                                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                                 </div>
-                            </div>
+                            </FormField>
 
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Fecha de emisión</Label>
+                            <FormField label="Fecha de emisión" htmlFor="df-issue-date" required>
                                 <Input
+                                    id="df-issue-date"
                                     type="date"
                                     {...form.register('issue_date')}
-                                    className="h-10 bg-white border border-slate-200 rounded-lg text-sm text-slate-900"
+                                    className="h-10"
                                 />
-                            </div>
-                        </div>
+                            </FormField>
 
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-medium text-slate-600">
-                                {isSale ? 'Cliente' : 'Proveedor'}
-                            </Label>
-                            <SearchableSelect
-                                items={partyItems}
-                                value={form.watch('party_id') || ''}
-                                onChange={(v) => form.setValue('party_id', v, { shouldValidate: true, shouldDirty: true })}
-                                placeholder={`Buscar ${isSale ? 'cliente' : 'proveedor'} por nombre o NIT...`}
-                                emptyMessage="Sin coincidencias"
-                                className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-900 hover:border-slate-300 transition"
-                                error={!!form.formState.errors.party_id}
-                            />
-                            {form.formState.errors.party_id && (
-                                <p className="text-xs text-rose-600 flex items-center gap-1.5">
-                                    <AlertCircle className="h-3 w-3" />
-                                    {form.formState.errors.party_id.message}
-                                </p>
-                            )}
-                        </div>
+                            <FormField
+                                label={isSale ? 'Cliente' : 'Proveedor'}
+                                htmlFor="df-party"
+                                required
+                                colSpan={2}
+                                error={form.formState.errors.party_id?.message}
+                            >
+                                <SearchableSelect
+                                    items={partyItems}
+                                    value={form.watch('party_id') || ''}
+                                    onChange={(v) => form.setValue('party_id', v, { shouldValidate: true, shouldDirty: true })}
+                                    placeholder={`Buscar ${isSale ? 'cliente' : 'proveedor'} por nombre o NIT...`}
+                                    emptyMessage="Sin coincidencias"
+                                    className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-900 hover:border-slate-300 transition"
+                                    error={!!form.formState.errors.party_id}
+                                />
+                            </FormField>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Observaciones (aparecen en PDF)</Label>
+                            <FormField label="Observaciones (aparecen en PDF)" htmlFor="df-notes-public">
                                 <Input
+                                    id="df-notes-public"
                                     {...form.register('notes_public')}
                                     placeholder="Validez, garantía, observaciones..."
-                                    className="h-10 bg-white border border-slate-200 rounded-lg text-sm"
+                                    className="h-10"
                                 />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Nota interna (no se imprime)</Label>
+                            </FormField>
+
+                            <FormField label="Nota interna (no se imprime)" htmlFor="df-notes-internal">
                                 <Input
+                                    id="df-notes-internal"
                                     {...form.register('notes_internal')}
                                     placeholder="Solo uso interno..."
-                                    className="h-10 bg-white border border-slate-200 rounded-lg text-sm"
+                                    className="h-10"
                                 />
-                            </div>
-                        </div>
-                    </div>
+                            </FormField>
+                        </FormSection>
+                    </FormLayout>
 
-                    {/* Items */}
-                    <div className="bg-white border border-slate-200 rounded-xl">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                    {/* Items — tabla dinámica con useFieldArray, estructura propia */}
+                    <div className="surface-card">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                             <div>
-                                <h2 className="text-sm font-semibold text-slate-900">Productos / Servicios</h2>
-                                <p className="text-xs text-slate-500 mt-0.5">{fields.length} {fields.length === 1 ? 'ítem' : 'ítems'}</p>
+                                <h2 className="text-h3">Productos / servicios</h2>
+                                <p className="text-caption mt-0.5">
+                                    {fields.length} {fields.length === 1 ? 'ítem' : 'ítems'}
+                                </p>
                             </div>
                             <Button
                                 type="button"
                                 onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null })}
-                                className="h-9 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-lg transition"
+                                size="sm"
                             >
                                 <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar línea
                             </Button>
@@ -329,8 +353,8 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                 <Button
                                     type="button"
                                     variant="outline"
+                                    size="sm"
                                     onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null })}
-                                    className="h-9 px-4 text-xs"
                                 >
                                     <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar primera línea
                                 </Button>
@@ -395,7 +419,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
 
                                                 {/* Cantidad */}
                                                 <div className="col-span-4 md:col-span-2 space-y-1">
-                                                    <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Cantidad</Label>
+                                                    <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Cantidad</label>
                                                     <Input
                                                         type="number"
                                                         step="0.01"
@@ -407,7 +431,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                     />
                                                     {isSale && prod && (
                                                         <p className={cn(
-                                                            "text-[10px] font-medium",
+                                                            "text-[11px] font-medium",
                                                             stockExceeded ? "text-amber-600" : "text-slate-400"
                                                         )}>
                                                             Disponible: {prod.stock_qty || 0}
@@ -417,7 +441,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
 
                                                 {/* Precio */}
                                                 <div className="col-span-4 md:col-span-2 space-y-1">
-                                                    <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Precio</Label>
+                                                    <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Precio</label>
                                                     <div className="relative">
                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
                                                         <Input
@@ -431,7 +455,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
 
                                                 {/* Total + Delete */}
                                                 <div className="col-span-4 md:col-span-2 space-y-1">
-                                                    <Label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total</Label>
+                                                    <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Total</label>
                                                     <div className="flex items-center justify-end gap-2 h-10">
                                                         <LineTotal control={form.control} index={index} />
                                                         <Button
@@ -454,55 +478,38 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                     </div>
 
                     {hasStockIssues && (
-                        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                             <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                             <div className="text-sm">
                                 <p className="font-medium text-amber-900">Alguna cantidad excede el stock disponible</p>
-                                <p className="text-amber-700 text-xs mt-0.5">Puedes continuar, pero el inventario quedará en negativo tras facturar.</p>
+                                <p className="text-amber-700 text-xs mt-0.5">
+                                    Puedes continuar, pero el inventario quedará en negativo tras facturar.
+                                </p>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Right: sticky totals */}
-                <div className="lg:col-span-1">
+                {/* Right: sticky totals + actions */}
+                <aside className="lg:col-span-1">
                     <div className="lg:sticky lg:top-6 space-y-4">
                         <DocumentTotals control={form.control} products={products} />
 
                         <div className="space-y-2">
-                            <Button
-                                type="button"
-                                onClick={form.handleSubmit(handleFormSubmit, handleValidationError)}
-                                disabled={isLoading}
-                                className={cn(
-                                    "w-full h-11 rounded-lg text-sm font-medium transition",
-                                    isSale
-                                        ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                                        : "bg-emerald-600 text-white hover:bg-emerald-700"
-                                )}
-                            >
-                                {isLoading ? (
-                                    <><Loader className="h-4 w-4 animate-spin mr-2" /> Guardando...</>
-                                ) : (
-                                    <><CheckCircle2 className="h-4 w-4 mr-2" /> Guardar como borrador</>
-                                )}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => window.history.back()}
-                                className="w-full h-10 rounded-lg border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50"
-                            >
-                                Cancelar
-                            </Button>
+                            <div className="w-full [&>button]:w-full [&>button]:h-11">
+                                {submitButton}
+                            </div>
+                            <div className="w-full [&>button]:w-full [&>button]:h-10">
+                                {cancelButton}
+                            </div>
                         </div>
 
-                        <p className="text-xs text-slate-400 leading-relaxed">
+                        <p className="text-caption leading-relaxed">
                             El documento se guarda como borrador. Podrás emitirlo a la DIAN desde la vista de detalle.
                         </p>
                     </div>
-                </div>
+                </aside>
             </div>
         </div>
-    )
+    );
 }
