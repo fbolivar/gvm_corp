@@ -9,6 +9,7 @@ import { Label } from "@/shared/components/ui/label"
 import { SearchableSelect } from "@/shared/components/ui/searchable-select"
 import { Party } from "@/features/parties/types"
 import { Product } from "@/features/products/types"
+import { Warehouse } from "@/features/inventory/types"
 import {
     Plus,
     Trash2,
@@ -27,6 +28,7 @@ import { toast } from "sonner"
 interface DocumentFormProps {
     parties: Party[]
     products: Product[]
+    warehouses?: Warehouse[]
     initialData?: Document
     onSubmit: (data: Document) => Promise<void>
     isLoading?: boolean
@@ -86,7 +88,7 @@ const DocumentTotals = ({ control, products }: { control: any; products: Product
     );
 };
 
-export function DocumentForm({ parties, products, initialData, onSubmit, isLoading }: DocumentFormProps) {
+export function DocumentForm({ parties, products, warehouses = [], initialData, onSubmit, isLoading }: DocumentFormProps) {
     const defaults = {
         doc_type: 'INVOICE' as const,
         status: 'DRAFT' as const,
@@ -181,6 +183,15 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
             subLabel: p.sku ? `SKU · ${p.sku}` : undefined,
             keywords: `${p.sku ?? ''} ${p.name}`,
         })), [products]);
+
+    const warehouseItems = useMemo(() => warehouses
+        .filter(w => !!w.id && !!w.name)
+        .map(w => ({
+            value: w.id!,
+            label: w.name,
+            subLabel: w.code ?? undefined,
+            keywords: `${w.code ?? ''} ${w.name}`,
+        })), [warehouses]);
 
     const lines = form.watch('lines');
     const hasStockIssues = isSale && lines?.some((line: any) => {
@@ -291,7 +302,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                             </div>
                             <Button
                                 type="button"
-                                onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0 })}
+                                onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null })}
                                 className="h-9 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-lg transition"
                             >
                                 <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar línea
@@ -305,7 +316,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0 })}
+                                    onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null })}
                                     className="h-9 px-4 text-xs"
                                 >
                                     <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar primera línea
@@ -340,6 +351,18 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                                                         placeholder="Descripción adicional (opcional)"
                                                         className="h-8 bg-transparent border-slate-100 rounded-md text-xs text-slate-600 placeholder:text-slate-300"
                                                     />
+                                                    {isSale && warehouseItems.length > 0 && (
+                                                        <SearchableSelect
+                                                            items={warehouseItems}
+                                                            value={form.watch(`lines.${index}.warehouse_id`) || ''}
+                                                            onChange={(v) =>
+                                                                form.setValue(`lines.${index}.warehouse_id`, v || null, { shouldDirty: true })
+                                                            }
+                                                            placeholder="Bodega de despacho (requerido para emitir)"
+                                                            emptyMessage="Sin bodegas"
+                                                            className="h-9 bg-white border border-slate-200 rounded-lg px-3 text-xs text-slate-700 hover:border-slate-300 transition"
+                                                        />
+                                                    )}
                                                 </div>
 
                                                 {/* Cantidad */}

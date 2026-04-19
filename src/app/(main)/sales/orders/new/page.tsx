@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { partyService } from '@/features/parties/services/partyService';
 import { productService } from '@/features/products/services/productService';
+import { inventoryService } from '@/features/inventory/services/inventoryService';
 import NewOrderClient from './client';
 import { ShoppingCart } from 'lucide-react';
 import { redirect } from 'next/navigation';
@@ -11,9 +12,10 @@ export default async function NewOrderPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [parties, products] = await Promise.all([
+    const [parties, products, warehouses] = await Promise.all([
         partyService.getAllPartiesLight(supabase, 'customer'),
         productService.getAllActiveProductsLight(supabase),
+        inventoryService.getWarehouses(supabase),
     ]);
 
     return (
@@ -30,7 +32,7 @@ export default async function NewOrderPage() {
                     </div>
                 </div>
             </div>
-            <NewOrderClient parties={parties || []} products={products || []} />
+            <NewOrderClient parties={parties || []} products={products || []} warehouses={warehouses || []} />
         </div>
     );
 }

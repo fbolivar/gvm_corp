@@ -110,10 +110,32 @@ export const providerIntegrationService = {
 
         if (error || !doc) throw new Error("Documento no encontrado");
 
-        // 2. Construir Payload
+        // 2. CONSUMIR STOCK FEFO (solo facturas/doc soporte con inventario)
+        // Si el RPC falla (stock insuficiente, línea sin bodega, etc.), aborta la emisión.
+        const consumesStock = ['INVOICE', 'DOC_SUPPORT'].includes(doc.doc_type);
+        if (consumesStock) {
+            const { data: consumeResult, error: consumeErr } = await client.rpc(
+                'consume_stock_for_document',
+                { p_doc_id: documentId }
+            );
+            if (consumeErr) {
+                // Mensajes VALIDATION_ERROR del RPC vienen como string JSON
+                const msg = consumeErr.message || 'Error al descontar stock';
+                if (msg.includes('VALIDATION_ERROR')) {
+                    // Extraer el JSON del mensaje: "VALIDATION_ERROR: [...]"
+                    const match = msg.match(/VALIDATION_ERROR:\s*(\[.*\])/);
+                    const details = match ? match[1] : msg;
+                    throw new Error(`No se puede emitir: ${details}`);
+                }
+                throw new Error(`Error al descontar stock: ${msg}`);
+            }
+            console.log('[DIAN] Stock consumido:', consumeResult);
+        }
+
+        // 3. Construir Payload
         const apiPayload = this.buildProviderPayload(doc);
 
-        // 3. Simular latencia de red (1.5s)
+        // 4. Simular latencia de red (1.5s)
         await new Promise(res => setTimeout(res, 1500));
 
         // 4. Generar Respuesta Mock del Proveedor Tecnológico

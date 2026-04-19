@@ -5,6 +5,7 @@ import { createSalesDocumentAction } from '@/features/sales/actions';
 import { Document } from "@/features/documents/types";
 import { Party } from "@/features/parties/types";
 import { Product } from "@/features/products/types";
+import { Warehouse } from "@/features/inventory/types";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -35,10 +36,11 @@ const DocumentForm = dynamic(
 interface Props {
     parties: Party[];
     products: Product[];
+    warehouses?: Warehouse[];
     preSelectedProductId?: string;
 }
 
-export default function NewQuotationClient({ parties, products, preSelectedProductId }: Props) {
+export default function NewQuotationClient({ parties, products, warehouses = [], preSelectedProductId }: Props) {
     const router = useRouter();
 
     const handleSubmit = async (data: Document) => {
@@ -76,6 +78,7 @@ export default function NewQuotationClient({ parties, products, preSelectedProdu
         <DocumentForm
             parties={parties}
             products={products}
+            warehouses={warehouses}
             onSubmit={handleSubmit}
             initialData={{
                 doc_type: 'QUOTATION',

@@ -5,15 +5,17 @@ import { createSalesDocumentAction } from '@/features/sales/actions';
 import { Document } from "@/features/documents/types";
 import { Party } from "@/features/parties/types";
 import { Product } from "@/features/products/types";
+import { Warehouse } from "@/features/inventory/types";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 interface Props {
     parties: Party[];
     products: Product[];
+    warehouses?: Warehouse[];
 }
 
-export default function NewOrderClient({ parties, products }: Props) {
+export default function NewOrderClient({ parties, products, warehouses = [] }: Props) {
     const router = useRouter();
 
     const handleSubmit = async (data: Document) => {
@@ -38,6 +40,7 @@ export default function NewOrderClient({ parties, products }: Props) {
         <DocumentForm
             parties={parties}
             products={products}
+            warehouses={warehouses}
             onSubmit={handleSubmit}
             initialData={{ doc_type: 'SALES_ORDER' } as any}
         />

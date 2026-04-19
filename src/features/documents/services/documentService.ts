@@ -110,55 +110,11 @@ export const documentService = {
             }
         }
 
-        // INTEGRATION: Inventory
-        // Move stock based on document type
-        // INVOICE -> OUT
-        // VENDOR_BILL -> IN
-        try {
-            if (['INVOICE', 'VENDOR_BILL', 'RECEIPT'].includes(headerData.doc_type) && lines && lines.length > 0) {
-                const { inventoryService } = await import('@/features/inventory/services/inventoryService');
-
-                // Get Default Warehouse (MVP: Pick first one)
-                // In future, Document should have warehouse_id or Line should have it.
-                const warehouses = await inventoryService.getWarehouses(client);
-                const defaultWarehouseId = warehouses.length > 0 ? warehouses[0].id : null;
-
-                if (defaultWarehouseId) {
-                    const movementType = (headerData.doc_type === 'INVOICE') ? 'OUT' : 'IN'; // VENDOR_BILL/RECEIPT -> IN
-
-                    for (const line of lines) {
-                        if (line.product_id) {
-                            let movementCost = line.unit_price;
-
-                            if (movementType === 'OUT') {
-                                // For sales, use current average cost to record COGS
-                                try {
-                                    movementCost = await inventoryService.getAvgCost(client, line.product_id, defaultWarehouseId);
-                                } catch (costErr) {
-                                    console.error("Error fetching avg cost, fallback to unit_price", costErr);
-                                }
-                            }
-
-                            await inventoryService.createMovement(client, {
-                                warehouse_id: defaultWarehouseId,
-                                product_id: line.product_id,
-                                type: movementType, // 'IN' | 'OUT'
-                                qty: line.qty,
-                                cost: movementCost,
-                                ref_doc_type: headerData.doc_type,
-                                ref_doc_id: newDoc.id,
-                                occurred_at: newDoc.issue_date || new Date().toISOString()
-                            });
-                        }
-                    }
-                } else {
-                    console.warn("Inventory Integration Skipped: No default warehouse found.");
-                }
-            }
-        } catch (invError) {
-            console.error("Failed to process inventory movement", invError);
-            // Non-blocking
-        }
+        // INTEGRATION: Inventory — MOVIDO al flujo de emisión
+        // DRAFT no consume stock. El descuento FEFO ocurre al emitir vía
+        // providerIntegrationService.sendToProvider → RPC consume_stock_for_document.
+        // VENDOR_BILL sigue el flujo de recepción OC (purchase order receive), no este.
+        // Si necesitas registrar stock directamente, usa /inventory/movements.
 
         // INTEGRATION: Accounting
         // Fire and forget? or await? Ideally within the same transaction but Supabase client doesn't support easy transactions across calls.

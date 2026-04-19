@@ -3,6 +3,7 @@
 import { Document } from "@/features/documents/types"
 import { Party } from "@/features/parties/types"
 import { Product } from "@/features/products/types"
+import { Warehouse } from "@/features/inventory/types"
 import { DocumentForm } from "@/features/documents/components/DocumentForm"
 import { createSalesDocumentAction } from "@/features/sales/actions"
 import { useState } from "react"
@@ -12,9 +13,10 @@ import { useRouter } from "next/navigation"
 interface Props {
     parties: Party[]
     products: Product[]
+    warehouses?: Warehouse[]
 }
 
-export default function NewInvoiceClient({ parties, products }: Props) {
+export default function NewInvoiceClient({ parties, products, warehouses = [] }: Props) {
     const [loading, setLoading] = useState(false)
     const router = useRouter()
 
@@ -42,6 +44,7 @@ export default function NewInvoiceClient({ parties, products }: Props) {
         <DocumentForm
             parties={parties}
             products={products}
+            warehouses={warehouses}
             onSubmit={handleSubmit}
             isLoading={loading}
             initialData={{
