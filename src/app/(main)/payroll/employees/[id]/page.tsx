@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { EditEmployeeFormWrapper } from "@/features/payroll/components/EditEmployeeFormWrapper"
+import { AuditTrail } from "@/shared/components/ui/audit-trail"
 import { Button } from "@/shared/components/ui/button"
 import { ChevronLeft, UserCog, Sparkles } from "lucide-react"
 import Link from "next/link"
@@ -54,6 +55,15 @@ export default async function EditEmployeePage({ params }: PageProps) {
             </div>
 
             <EditEmployeeFormWrapper employeeId={id} />
+
+            {/* Historial de auditoría */}
+            <div className="mt-8">
+                <AuditTrail
+                    client={supabase}
+                    entity="employees"
+                    entityId={id}
+                />
+            </div>
         </div>
     )
 }

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { budgetService } from '@/features/accounting/services/budgetService';
 import { BudgetSpreadsheet } from '@/features/accounting/components/BudgetSpreadsheet';
+import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { Button } from '@/shared/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -37,6 +38,16 @@ export default async function BudgetDetailPage({ params }: Props) {
             </div>
 
             <BudgetSpreadsheet budget={budget} lines={lines} actuals={actuals} />
+
+            {/* Historial de auditoría */}
+            <div className="mt-4">
+                <AuditTrail
+                    client={supabase}
+                    entity="budgets"
+                    entityId={id}
+                    childEntities={[{ table: 'budget_lines', fk: 'budget_id' }]}
+                />
+            </div>
         </div>
     );
 }

@@ -103,7 +103,9 @@ export function FixedAssetList({ initialAssets }: Props) {
                                     </div>
                                     <div className="space-y-1.5 min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-sm font-bold text-slate-900">{asset.name}</h3>
+                                            <Link href={`/accounting/fixed-assets/${asset.id}`} className="text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors">
+                                                {asset.name}
+                                            </Link>
                                             {asset.code && <span className="text-[10px] font-mono text-slate-400">{asset.code}</span>}
                                             <Badge className={cn(
                                                 "border-none text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5",

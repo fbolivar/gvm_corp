@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { budgetService } from '@/features/budget/services/budgetService';
 import { BudgetLineForm } from '@/features/budget/components/BudgetLineForm';
 import { deleteBudgetLine, updateBudgetStatus } from '@/features/budget/actions';
+import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { Card } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
 import {
@@ -307,6 +308,16 @@ export default async function BudgetDetailPage({
                         </div>
                     </Card>
                 </div>
+            </div>
+
+            {/* Historial de auditoría */}
+            <div className="mt-4">
+                <AuditTrail
+                    client={supabase}
+                    entity="budgets"
+                    entityId={id}
+                    childEntities={[{ table: 'budget_lines', fk: 'budget_id' }]}
+                />
             </div>
         </div>
     );
