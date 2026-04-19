@@ -5,13 +5,12 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
-import { Plus, Building2, ChevronRight } from 'lucide-react';
+import { Plus, Building2, ChevronRight, Warehouse } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 import { Badge } from "@/shared/components/ui/badge";
 import { redirect } from 'next/navigation';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
-import { settingsService } from '@/features/settings/services/settingsService';
+import { PageHeader } from '@/shared/components/ui/page-header';
 
 export default async function WarehousesPage() {
     const supabase = await createClient();
@@ -19,10 +18,7 @@ export default async function WarehousesPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [warehouses, tenant] = await Promise.all([
-        inventoryService.getWarehouses(supabase),
-        settingsService.getTenantInfo(supabase)
-    ]);
+    const warehouses = await inventoryService.getWarehouses(supabase);
 
     async function addWarehouse(formData: FormData) {
         'use server';
@@ -35,11 +31,16 @@ export default async function WarehousesPage() {
     }
 
     return (
-        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
-            <VisualReportHeader
+        <div className="page-container space-y-6 pb-16 animate-in fade-in duration-500">
+            <PageHeader
                 title="Bodegas"
-                subtitle="Inventario — Puntos de Almacenamiento"
-                tenant={tenant}
+                description="Ubicaciones físicas de almacenamiento."
+                icon={Warehouse}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/dashboard' },
+                    { label: 'Inventario', href: '/inventory/warehouses' },
+                    { label: 'Bodegas' },
+                ]}
             />
 
             <div className="grid gap-6 md:grid-cols-12 items-start">

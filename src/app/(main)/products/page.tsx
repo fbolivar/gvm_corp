@@ -2,12 +2,13 @@ import { createClient } from '@/lib/supabase/server';
 import { productService } from '@/features/products/services/productService';
 import { ProductList } from '@/features/products/components/ProductList';
 import { ProductFilters, ProductTypeEnum, ProductStatusEnum } from '@/features/products/types';
-import { TrendingUp, AlertTriangle, Layers, Zap } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Layers, Zap, Package, Plus } from 'lucide-react';
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
+import { Button } from "@/shared/components/ui/button";
+import Link from "next/link";
 import { redirect } from 'next/navigation';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
-import { settingsService } from '@/features/settings/services/settingsService';
+import { PageHeader } from '@/shared/components/ui/page-header';
 
 interface PageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -35,10 +36,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
         per_page
     };
 
-    const [{ data, count }, tenant] = await Promise.all([
-        productService.getProducts(supabase, filters),
-        settingsService.getTenantInfo(supabase)
-    ]);
+    const { data, count } = await productService.getProducts(supabase, filters);
 
     const totalActive = data.filter(p => p.status === 'ACTIVE').length;
     const lowStock = data.filter(p => (p.stock_qty ?? 0) <= (p.min_stock ?? 0) && p.type === 'GOOD').length;
@@ -88,11 +86,24 @@ export default async function ProductsPage({ searchParams }: PageProps) {
     ];
 
     return (
-        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
-            <VisualReportHeader
+        <div className="page-container space-y-6 pb-16 animate-in fade-in duration-500">
+            <PageHeader
                 title="Productos"
-                subtitle="Inventario — Catalogo Maestro"
-                tenant={tenant}
+                description="Catálogo de productos y servicios."
+                icon={Package}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/dashboard' },
+                    { label: 'Inventario', href: '/inventory' },
+                    { label: 'Productos' },
+                ]}
+                actions={
+                    <Button asChild size="sm" className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs gap-2">
+                        <Link href="/products/new">
+                            <Plus className="h-3.5 w-3.5" />
+                            Nuevo producto
+                        </Link>
+                    </Button>
+                }
             />
 
             {/* KPIs */}

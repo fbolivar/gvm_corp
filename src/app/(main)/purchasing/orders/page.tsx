@@ -21,8 +21,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
-import { settingsService } from '@/features/settings/services/settingsService';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { PageHeader } from '@/shared/components/ui/page-header';
 
 export const metadata = { title: 'Ordenes de Compra — GVM Corp' };
 
@@ -71,10 +70,9 @@ export default async function PurchaseOrdersPage() {
 
     const defaultStats = { total: 0, pendingApproval: 0, inTransit: 0, totalCommitted: 0 };
 
-    const [orders, stats, tenant] = await Promise.all([
+    const [orders, stats] = await Promise.all([
         purchaseOrderService.getOrders(supabase).catch((): PurchaseOrderWithDetails[] => []),
         purchaseOrderService.getStats(supabase).catch(() => defaultStats),
-        settingsService.getTenantInfo(supabase),
     ]);
 
     const kpis = [
@@ -86,19 +84,23 @@ export default async function PurchaseOrdersPage() {
 
     return (
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <VisualReportHeader
-                    title="Ordenes de Compra"
-                    subtitle="Gestion, aprobacion y trazabilidad de adquisiciones"
-                    tenant={tenant}
-                />
-                <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
-                    <Link href="/purchasing/orders/new">
-                        <Plus className="h-3.5 w-3.5" /> Nueva OC
-                    </Link>
-                </Button>
-            </div>
+            <PageHeader
+                title="Órdenes de compra"
+                description="Pedidos formales a proveedores."
+                icon={ShoppingBag}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/dashboard' },
+                    { label: 'Compras', href: '/purchasing/orders' },
+                    { label: 'Órdenes' },
+                ]}
+                actions={
+                    <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
+                        <Link href="/purchasing/orders/new">
+                            <Plus className="h-3.5 w-3.5" /> Nueva OC
+                        </Link>
+                    </Button>
+                }
+            />
 
             {/* KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

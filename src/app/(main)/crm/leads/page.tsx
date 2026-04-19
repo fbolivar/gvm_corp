@@ -4,11 +4,10 @@ import { LeadViewManager } from '@/features/crm/components/LeadViewManager';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { Plus, Users, Sparkles, Activity } from 'lucide-react';
+import { Plus, Users, Sparkles, Activity, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
-import { settingsService } from '@/features/settings/services/settingsService';
+import { PageHeader } from '@/shared/components/ui/page-header';
 
 export default async function LeadsPage() {
     const supabase = await createClient();
@@ -16,31 +15,31 @@ export default async function LeadsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [leads, tenant] = await Promise.all([
-        crmService.getLeads(supabase),
-        settingsService.getTenantInfo(supabase)
-    ]);
+    const leads = await crmService.getLeads(supabase);
 
     const newLeadsCount = leads.filter(l => l.status === 'NEW').length;
     const conversionRate = leads.length > 0 ? Math.round((leads.filter(l => l.status === 'CONVERTED').length / leads.length) * 100) : 0;
 
     return (
-        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
-            <VisualReportHeader
-                title="Directorio de Prospectos"
-                subtitle="CRM — Gestión de Leads & Calificación"
-                tenant={tenant}
+        <div className="page-container space-y-6 pb-16 animate-in fade-in duration-500">
+            <PageHeader
+                title="Prospectos"
+                description="Pipeline de oportunidades comerciales."
+                icon={UserPlus}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/dashboard' },
+                    { label: 'CRM', href: '/crm' },
+                    { label: 'Prospectos' },
+                ]}
+                actions={
+                    <Button asChild className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold text-xs gap-2">
+                        <Link href="/crm/leads/new">
+                            <Plus className="h-4 w-4" />
+                            Nuevo prospecto
+                        </Link>
+                    </Button>
+                }
             />
-
-            {/* Action button */}
-            <div className="flex flex-wrap gap-3">
-                <Button asChild className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold text-xs">
-                    <Link href="/crm/leads/new" className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nuevo Prospecto
-                    </Link>
-                </Button>
-            </div>
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

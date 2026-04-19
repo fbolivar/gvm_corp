@@ -3,11 +3,10 @@ import { documentService } from '@/features/documents/services/documentService';
 import { VendorBillList } from '@/features/purchasing/components/VendorBillList';
 import { Button } from "@/shared/components/ui/button"
 import { Card, CardContent } from "@/shared/components/ui/card"
-import { Plus, FileCheck, Banknote, TrendingDown } from "lucide-react"
+import { Plus, FileCheck, Banknote, TrendingDown, Receipt } from "lucide-react"
 import Link from "next/link"
 import { redirect } from 'next/navigation';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
-import { settingsService } from '@/features/settings/services/settingsService';
+import { PageHeader } from '@/shared/components/ui/page-header';
 import { cn } from "@/shared/lib/utils"
 
 export default async function VendorBillsPage() {
@@ -16,13 +15,12 @@ export default async function VendorBillsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [billsResult, tenant] = await Promise.all([
+    const [billsResult] = await Promise.all([
         documentService.getDocuments(supabase, {
             page: 1,
             per_page: 50,
             type: 'VENDOR_BILL'
         }),
-        settingsService.getTenantInfo(supabase)
     ]);
 
     const bills = billsResult.data || [];
@@ -37,19 +35,23 @@ export default async function VendorBillsPage() {
 
     return (
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <VisualReportHeader
-                    title="Cuentas por Pagar"
-                    subtitle="Registro y auditoria de obligaciones con proveedores"
-                    tenant={tenant}
-                />
-                <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
-                    <Link href="/purchasing/bills/new">
-                        <Plus className="h-3.5 w-3.5" /> Cargar Factura
-                    </Link>
-                </Button>
-            </div>
+            <PageHeader
+                title="Facturas de compra"
+                description="Cuentas por pagar a proveedores."
+                icon={Receipt}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/dashboard' },
+                    { label: 'Compras', href: '/purchasing/bills' },
+                    { label: 'Facturas' },
+                ]}
+                actions={
+                    <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
+                        <Link href="/purchasing/bills/new">
+                            <Plus className="h-3.5 w-3.5" /> Nueva factura
+                        </Link>
+                    </Button>
+                }
+            />
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

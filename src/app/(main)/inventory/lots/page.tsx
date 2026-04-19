@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { lotService } from '@/features/inventory/services/lotService';
-import { settingsService } from '@/features/settings/services/settingsService';
 import { LotForm } from '@/features/inventory/components/LotForm';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { PageHeader } from '@/shared/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import {
@@ -80,9 +79,6 @@ export default async function LotsPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
-
-    const tenant = await settingsService.getTenantInfo(supabase);
-    if (!tenant) redirect('/login');
 
     const [summary, expiringLots, allLots] = await Promise.all([
         lotService.getSummary(supabase).catch(() => ({
@@ -161,11 +157,16 @@ export default async function LotsPage() {
     ];
 
     return (
-        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
-            <VisualReportHeader
-                title="Lotes y Vencimientos"
-                subtitle="Inventario — Trazabilidad y Control"
-                tenant={tenant}
+        <div className="page-container space-y-6 pb-16 animate-in fade-in duration-500">
+            <PageHeader
+                title="Lotes y vencimientos"
+                description="Control FEFO para productos veterinarios."
+                icon={FlaskConical}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/dashboard' },
+                    { label: 'Inventario', href: '/inventory/lots' },
+                    { label: 'Lotes' },
+                ]}
             />
 
             {/* KPIs */}

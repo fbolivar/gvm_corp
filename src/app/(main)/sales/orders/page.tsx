@@ -8,11 +8,11 @@ import {
     Clock,
     PackageCheck,
     DollarSign,
+    FileBarChart,
 } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { settingsService } from '@/features/settings/services/settingsService';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { PageHeader } from '@/shared/components/ui/page-header';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { cn } from '@/shared/lib/utils';
 
@@ -23,15 +23,12 @@ export default async function OrdersPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [{ data }, tenant] = await Promise.all([
-        documentService.getDocuments(supabase, {
-            page: 1,
-            per_page: 50,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            type: 'SALES_ORDER' as any
-        }),
-        settingsService.getTenantInfo(supabase)
-    ]);
+    const { data } = await documentService.getDocuments(supabase, {
+        page: 1,
+        per_page: 50,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        type: 'SALES_ORDER' as any
+    });
 
     const orders = data || [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,52 +47,59 @@ export default async function OrdersPage() {
     ];
 
     return (
-        <div className="space-y-6 pb-16 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <VisualReportHeader
-                    title="Pedidos de Venta"
-                    subtitle="Compromisos de entrega, despacho y facturación"
-                    tenant={tenant}
+        <div className="page-container">
+            <div className="space-y-6 pb-16 animate-in fade-in duration-500">
+                <PageHeader
+                    title="Pedidos de venta"
+                    description="Compromisos de entrega con clientes."
+                    icon={FileBarChart}
+                    breadcrumbs={[
+                        { label: 'Inicio', href: '/dashboard' },
+                        { label: 'Ventas', href: '/sales' },
+                        { label: 'Pedidos' },
+                    ]}
+                    actions={
+                        <>
+                            <Button asChild className="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold gap-2">
+                                <Link href="/sales/orders/new">
+                                    <Plus className="h-3.5 w-3.5" /> Nuevo pedido
+                                </Link>
+                            </Button>
+                            <Button variant="outline" asChild className="h-9 rounded-xl text-xs font-semibold gap-2">
+                                <Link href="/sales">Dashboard Ventas</Link>
+                            </Button>
+                        </>
+                    }
                 />
-                <div className="flex gap-2">
-                    <Button asChild className="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold gap-2">
-                        <Link href="/sales/orders/new">
-                            <Plus className="h-3.5 w-3.5" /> Nuevo Pedido
-                        </Link>
-                    </Button>
-                    <Button variant="outline" asChild className="h-9 rounded-xl text-xs font-semibold gap-2">
-                        <Link href="/sales">Dashboard Ventas</Link>
-                    </Button>
-                </div>
-            </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                {kpis.map((kpi) => (
-                    <div key={kpi.label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-3">
-                        <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", kpi.bg, kpi.color)}>
-                            <kpi.icon className="h-4 w-4" />
+                {/* KPIs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {kpis.map((kpi) => (
+                        <div key={kpi.label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-3">
+                            <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", kpi.bg, kpi.color)}>
+                                <kpi.icon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{kpi.label}</p>
+                                <p className="text-sm font-bold text-slate-900 font-mono tabular-nums truncate">{kpi.value}</p>
+                            </div>
                         </div>
-                        <div className="min-w-0">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{kpi.label}</p>
-                            <p className="text-sm font-bold text-slate-900 font-mono tabular-nums truncate">{kpi.value}</p>
-                        </div>
+                    ))}
+                </div>
+
+                {/* Listing */}
+                <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="border-b border-slate-100 px-5 py-3 flex items-center gap-3">
+                        <ShoppingCart className="h-4 w-4 text-slate-400" />
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                            Listado de Pedidos ({orders.length})
+                        </span>
                     </div>
-                ))}
+                    <CardContent className="p-0">
+                        <SalesOrderList orders={orders} />
+                    </CardContent>
+                </Card>
             </div>
-
-            {/* Listing */}
-            <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="border-b border-slate-100 px-5 py-3 flex items-center gap-3">
-                    <ShoppingCart className="h-4 w-4 text-slate-400" />
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Listado de Pedidos ({orders.length})
-                    </span>
-                </div>
-                <CardContent className="p-0">
-                    <SalesOrderList orders={orders} />
-                </CardContent>
-            </Card>
         </div>
     );
 }
