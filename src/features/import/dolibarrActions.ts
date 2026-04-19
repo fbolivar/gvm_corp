@@ -890,80 +890,189 @@ export async function importDolibarrProductsAction(
 
 // ─── IMPORT: INVENTORY/STOCK (generates IN movements) ────────────────────────
 
-export async function importDolibarrStockAction(
-  rows: DolibarrStockRow[]
-): Promise<ImportResult> {
-  const supabase = await createClient()
-  const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
-  if (!tenantId) return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
+// Normaliza headers del export "Stock y ubicación (almacén) de productos".
+// Headers reales:
+//   - Ref. → sku
+//   - Nombre corto de la ubicación → warehouse_code (B01 BOGOTA)
+//   - Stock → qty
+//   - Precio promedio ponderado → unit_cost
+function normalizeDolibarrStockRow(raw: Record<string, string>): DolibarrStockRow {
+  const row = raw as Record<string, string | undefined>
+  const get = (key: string) => (row[key] ?? '').trim()
 
-  const errors: ImportError[] = []
-
-  // Fetch product SKU → id map
-  const { data: productsList } = await supabase
-    .from('products')
-    .select('id, sku')
-    .eq('tenant_id', tenantId)
-
-  const productMap = new Map<string, string>()
-  productsList?.forEach(p => productMap.set(p.sku, p.id))
-
-  // Fetch warehouse code → id map
-  const { data: warehousesList } = await supabase
-    .from('warehouses')
-    .select('id, code')
-    .eq('tenant_id', tenantId)
-
-  const warehouseMap = new Map<string, string>()
-  warehousesList?.forEach(w => warehouseMap.set(w.code, w.id))
-
-  const movements: Record<string, unknown>[] = []
-
-  rows.forEach((row, idx) => {
-    const rowNum = idx + 2
-
-    if (!row.sku?.trim()) {
-      errors.push({ row: rowNum, message: 'El campo sku es obligatorio' })
-      return
-    }
-
-    const productId = productMap.get(row.sku.trim())
-    if (!productId) {
-      errors.push({ row: rowNum, message: `Producto no encontrado: ${row.sku}. Importa productos primero.` })
-      return
-    }
-
-    const warehouseId = warehouseMap.get(row.warehouse_code?.trim() || '')
-    if (!warehouseId) {
-      errors.push({ row: rowNum, message: `Bodega no encontrada: ${row.warehouse_code}. Importa bodegas primero.` })
-      return
-    }
-
-    const qty = parseNumber(row.qty)
-    if (qty <= 0) return
-
-    movements.push({
-      tenant_id: tenantId,
-      product_id: productId,
-      warehouse_id: warehouseId,
-      type: 'IN',
-      qty,
-      cost: parseNumber(row.unit_cost),
-      ref_doc_type: 'OPENING_BALANCE',
-      occurred_at: new Date().toISOString(),
-    })
-  })
-
-  if (movements.length === 0) return { inserted: 0, errors }
-
-  const { error } = await supabase.from('inventory_movements').insert(movements)
-
-  if (error) {
-    errors.push({ row: 0, message: `Error BD inventario: ${error.message}` })
-    return { inserted: 0, errors }
+  return {
+    sku: get('Ref.') || get('Ref') || get('sku'),
+    product_name: get('Etiqueta') || get('product_name'),
+    warehouse_code:
+      get('Nombre corto de la ubicación') ||
+      get('Nombre corto de la ubicacion') ||
+      get('warehouse_code'),
+    warehouse_name: get('Almacén de localización') || get('warehouse_name'),
+    qty: get('Stock') || get('qty') || get('Cantidad'),
+    unit_cost:
+      get('Precio promedio ponderado') ||
+      get('PMP') ||
+      get('unit_cost') ||
+      get('CostPrice'),
   }
+}
 
-  return { inserted: movements.length, errors }
+export async function importDolibarrStockAction(
+  rows: DolibarrStockRow[] | Record<string, string>[]
+): Promise<ImportResult> {
+  try {
+    const supabase = await createClient()
+    const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id')
+    if (tenantErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error tenant: ${tenantErr.message}` }] }
+    }
+    if (!tenantId) {
+      return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
+    }
+
+    const errors: ImportError[] = []
+
+    const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+    const isSpanishExport =
+      'Ref.' in sample ||
+      'Nombre corto de la ubicación' in sample ||
+      'Nombre corto de la ubicacion' in sample ||
+      'Stock' in sample ||
+      'Precio promedio ponderado' in sample
+
+    // Paginated fetch of products — bypass 1000-row default
+    const productMap = new Map<string, string>()
+    {
+      const pageSize = 1000
+      let offset = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, sku')
+          .eq('tenant_id', tenantId)
+          .range(offset, offset + pageSize - 1)
+        if (error) {
+          return { inserted: 0, errors: [{ row: 0, message: `Error leyendo productos: ${error.message}` }] }
+        }
+        if (!data || data.length === 0) break
+        data.forEach((p) => { if (p.sku) productMap.set(p.sku as string, p.id as string) })
+        if (data.length < pageSize) break
+        offset += pageSize
+      }
+    }
+
+    const { data: warehousesList, error: whErr } = await supabase
+      .from('warehouses')
+      .select('id, code')
+      .eq('tenant_id', tenantId)
+    if (whErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error leyendo bodegas: ${whErr.message}` }] }
+    }
+    const warehouseMap = new Map<string, string>()
+    warehousesList?.forEach((w) => warehouseMap.set(w.code as string, w.id as string))
+
+    const movements: Record<string, unknown>[] = []
+    let sanitized = 0
+    let skippedZero = 0
+    let skippedNegative = 0
+    let productNotFound = 0
+    let warehouseNotFound = 0
+
+    const nowIso = new Date().toISOString()
+
+    rows.forEach((raw, idx) => {
+      const row: DolibarrStockRow = isSpanishExport
+        ? normalizeDolibarrStockRow(raw as Record<string, string>)
+        : (raw as DolibarrStockRow)
+
+      const sku = row.sku?.trim() || ''
+      if (!sku) return
+
+      const productId = productMap.get(sku)
+      if (!productId) {
+        productNotFound++
+        return
+      }
+
+      const whCode = row.warehouse_code?.trim() || ''
+      const warehouseId = warehouseMap.get(whCode)
+      if (!warehouseId) {
+        warehouseNotFound++
+        if (warehouseNotFound <= 3) {
+          errors.push({ row: idx + 2, message: `Bodega no encontrada: "${whCode}"` })
+        }
+        return
+      }
+
+      // Saneamiento de stock (reutiliza la lógica de productos)
+      const stockResult = sanitizeStockValue(row.qty)
+      if (stockResult.wasSanitized) {
+        sanitized++
+        return // no generamos movimiento si el valor era imposible
+      }
+      const qty = stockResult.value
+      if (qty === 0) {
+        skippedZero++
+        return
+      }
+      if (qty < 0) {
+        skippedNegative++
+        return
+      }
+
+      movements.push({
+        tenant_id: tenantId,
+        product_id: productId,
+        warehouse_id: warehouseId,
+        type: 'IN',
+        qty,
+        cost: parseNumber(row.unit_cost),
+        ref_doc_type: 'OPENING_BALANCE',
+        occurred_at: nowIso,
+      })
+    })
+
+    if (movements.length === 0) {
+      if (productNotFound > 0) {
+        errors.push({ row: 0, message: `${productNotFound} SKUs no encontrados (importa productos primero)` })
+      }
+      return { inserted: 0, errors }
+    }
+
+    // Insert en chunks para evitar límite de payload
+    const chunkSize = 500
+    let insertedCount = 0
+    for (let i = 0; i < movements.length; i += chunkSize) {
+      const chunk = movements.slice(i, i + chunkSize)
+      const { error: insErr } = await supabase.from('inventory_movements').insert(chunk)
+      if (insErr) {
+        errors.push({ row: 0, message: `Error insertando movimientos (chunk ${i}-${i + chunk.length}): ${insErr.message}` })
+      } else {
+        insertedCount += chunk.length
+      }
+    }
+
+    if (sanitized > 0) {
+      errors.push({ row: 0, message: `INFO: ${sanitized} stocks corruptos (ej: 5e20) ignorados. Requieren conteo físico.` })
+    }
+    if (skippedZero > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedZero} productos con stock 0 ignorados` })
+    }
+    if (skippedNegative > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedNegative} productos con stock negativo ignorados (requieren ajuste)` })
+    }
+    if (productNotFound > 0) {
+      errors.push({ row: 0, message: `INFO: ${productNotFound} SKUs del CSV no existen en productos` })
+    }
+    if (warehouseNotFound > 3) {
+      errors.push({ row: 0, message: `INFO: ${warehouseNotFound} filas con bodega no encontrada en total` })
+    }
+
+    return { inserted: insertedCount, errors }
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
+    return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }
+  }
 }
 
 // ─── IMPORT: CHART OF ACCOUNTS (PUC) ─────────────────────────────────────────
