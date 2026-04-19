@@ -113,8 +113,13 @@ interface SidebarContentProps {
     onNavigate?: () => void
 }
 
-// Módulos que aún no están maduros para go-live. Mantenemos el código,
-// solo los ocultamos del sidebar. Flip a `false` para volver a mostrarlos.
+// Módulos aún no maduros para el go-live. Mantenemos el código,
+// solo los ocultamos del sidebar. Para devolver uno: retíralo del Set.
+// Para revelarlos todos (dev): poner HIDE_IMMATURE = false.
+//
+// Notificaciones: REVELADO (2026-04-20) — útil para ver alertas críticas.
+// Academy, Vendor Portal, Analytics BI, Cash-flow: ocultos hasta que
+// se enriquezcan con datos reales y UX específicos (fase 2 post-launch).
 const HIDE_IMMATURE = true;
 const IMMATURE_HREFS = new Set<string>([
     '/academy',
@@ -123,7 +128,6 @@ const IMMATURE_HREFS = new Set<string>([
     '/analytics/sales',
     '/analytics/financial',
     '/treasury/cash-flow',
-    '/notifications',
 ]);
 
 export function SidebarContent({ onNavigate }: SidebarContentProps) {

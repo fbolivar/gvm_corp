@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { purchaseOrderService } from '@/features/purchasing/services/purchaseOrderService';
 import { POActionButtons } from '@/features/purchasing/components/POActionButtons';
 import { POStatus, POCurrency, formatPOCurrency } from '@/features/purchasing/types';
@@ -917,6 +918,15 @@ export default async function PurchaseOrderDetailPage({
                     )}
                 </div>
             </div>
+
+            {/* ── Audit Trail ─────────────────────────────────────────────────── */}
+            <AuditTrail
+                client={supabase}
+                entity="purchase_orders"
+                entityId={id}
+                childEntities={[{ table: 'purchase_order_lines', fk: 'order_id' }]}
+            />
+
         </div>
     );
 }

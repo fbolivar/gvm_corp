@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { partyService } from '@/features/parties/services/partyService';
 import EditPartyClient from './client';
 import { notFound } from 'next/navigation';
@@ -34,6 +35,13 @@ export default async function EditPartyPage({ params }: PageProps) {
                     priceLists={priceLists || []}
                     salespeople={salespeople || []}
                 />
+                <div className="mt-8">
+                    <AuditTrail
+                        client={supabase}
+                        entity="parties"
+                        entityId={id}
+                    />
+                </div>
             </div>
         );
     } catch (e) {

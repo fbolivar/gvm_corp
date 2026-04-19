@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { productService } from '@/features/products/services/productService';
 import EditProductClient from './client';
 import { notFound } from 'next/navigation';
@@ -25,6 +26,14 @@ export default async function EditProductPage({ params }: PageProps) {
         return (
             <div className="pb-20">
                 <EditProductClient product={product} movements={movements || []} />
+                <div className="mt-8">
+                    <AuditTrail
+                        client={supabase}
+                        entity="products"
+                        entityId={id}
+                        childEntities={[{ table: 'product_lots', fk: 'product_id' }]}
+                    />
+                </div>
             </div>
         );
     } catch (e) {
