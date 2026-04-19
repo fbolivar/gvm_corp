@@ -506,51 +506,116 @@ function normalizeDolibarrWarehouseRow(raw: Record<string, string>): DolibarrWar
 export async function importDolibarrWarehousesAction(
   rows: DolibarrWarehouseRow[] | Record<string, string>[]
 ): Promise<ImportResult> {
-  const supabase = await createClient()
-  const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
-  if (!tenantId) return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
-
-  const errors: ImportError[] = []
-  const validRows: Record<string, unknown>[] = []
-
-  // Detecta si viene con headers españoles del export Dolibarr 22.0.3
-  const sample = (rows[0] ?? {}) as Record<string, string | undefined>
-  const isSpanishExport =
-    'Nombre corto de la ubicación' in sample ||
-    'Nombre corto de la ubicacion' in sample ||
-    'ID de almacén' in sample ||
-    'Almacén de localización' in sample
-
-  rows.forEach((raw, idx) => {
-    const rowNum = idx + 2
-    const row: DolibarrWarehouseRow = isSpanishExport
-      ? normalizeDolibarrWarehouseRow(raw as Record<string, string>)
-      : (raw as DolibarrWarehouseRow)
-
-    if (!row.name?.trim()) {
-      errors.push({ row: rowNum, message: 'El campo "name" (Nombre corto de la ubicación) es obligatorio' })
-      return
+  try {
+    const supabase = await createClient()
+    const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id')
+    if (tenantErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error tenant: ${tenantErr.message}` }] }
+    }
+    if (!tenantId) {
+      return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
     }
 
-    validRows.push({
-      tenant_id: tenantId,
-      code: row.code?.trim() || `WH-${String(idx + 1).padStart(3, '0')}`,
-      name: row.name.trim(),
+    const errors: ImportError[] = []
+    const validRows: Record<string, unknown>[] = []
+
+    const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+    const isSpanishExport =
+      'Nombre corto de la ubicación' in sample ||
+      'Nombre corto de la ubicacion' in sample ||
+      'ID de almacén' in sample ||
+      'Almacén de localización' in sample
+
+    rows.forEach((raw, idx) => {
+      const rowNum = idx + 2
+      const row: DolibarrWarehouseRow = isSpanishExport
+        ? normalizeDolibarrWarehouseRow(raw as Record<string, string>)
+        : (raw as DolibarrWarehouseRow)
+
+      if (!row.name?.trim()) {
+        errors.push({ row: rowNum, message: 'El campo "name" (Nombre corto de la ubicación) es obligatorio' })
+        return
+      }
+
+      validRows.push({
+        tenant_id: tenantId,
+        code: row.code?.trim() || `WH-${String(idx + 1).padStart(3, '0')}`,
+        name: row.name.trim(),
+      })
     })
-  })
 
-  if (validRows.length === 0) return { inserted: 0, errors }
+    if (validRows.length === 0) return { inserted: 0, errors }
 
-  const { error } = await supabase
-    .from('warehouses')
-    .upsert(validRows, { onConflict: 'tenant_id,code', ignoreDuplicates: false })
+    // Dedup por code — si Dolibarr duplica, el último gana
+    const dedupedMap = new Map<string, Record<string, unknown>>()
+    let duplicates = 0
+    for (const row of validRows) {
+      const key = row.code as string
+      if (dedupedMap.has(key)) duplicates++
+      dedupedMap.set(key, row)
+    }
+    const dedupedRows = Array.from(dedupedMap.values())
 
-  if (error) {
-    errors.push({ row: 0, message: `Error BD bodegas: ${error.message}` })
-    return { inserted: 0, errors }
+    // Cargar bodegas existentes (suelen ser pocas, no necesita paginación grande)
+    const { data: existing, error: selErr } = await supabase
+      .from('warehouses')
+      .select('id, code')
+      .eq('tenant_id', tenantId)
+
+    if (selErr) {
+      return {
+        inserted: 0,
+        errors: [{ row: 0, message: `Error leyendo bodegas existentes: ${selErr.message}` }],
+      }
+    }
+
+    const existingMap = new Map<string, string>()
+    existing?.forEach((w) => existingMap.set(w.code as string, w.id as string))
+
+    const toInsert = dedupedRows.filter((r) => !existingMap.has(r.code as string))
+    const toUpdate = dedupedRows.filter((r) => existingMap.has(r.code as string))
+
+    let insertedCount = 0
+    let updatedCount = 0
+
+    if (toInsert.length > 0) {
+      const { error: insErr, data: insData } = await supabase
+        .from('warehouses')
+        .insert(toInsert)
+        .select('id')
+      if (insErr) {
+        errors.push({ row: 0, message: `Error insertando bodegas: ${insErr.message}` })
+      } else {
+        insertedCount = insData?.length || 0
+      }
+    }
+
+    for (const row of toUpdate) {
+      const id = existingMap.get(row.code as string)
+      if (!id) continue
+      const { error: updErr } = await supabase
+        .from('warehouses')
+        .update({ name: row.name })
+        .eq('id', id)
+      if (updErr) {
+        errors.push({ row: 0, message: `Error actualizando ${row.code}: ${updErr.message}` })
+      } else {
+        updatedCount++
+      }
+    }
+
+    if (duplicates > 0) {
+      errors.push({ row: 0, message: `INFO: ${duplicates} bodegas con código duplicado fusionadas` })
+    }
+    if (updatedCount > 0) {
+      errors.push({ row: 0, message: `INFO: ${updatedCount} bodegas ya existían y fueron actualizadas` })
+    }
+
+    return { inserted: insertedCount + updatedCount, errors }
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
+    return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }
   }
-
-  return { inserted: validRows.length, errors }
 }
 
 // ─── IMPORT: PRODUCTS ────────────────────────────────────────────────────────
