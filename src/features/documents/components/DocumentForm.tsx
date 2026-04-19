@@ -123,6 +123,18 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
     };
 
     const handleFormSubmit = async (data: Document) => {
+        // Validación temprana: en ventas, toda línea con producto requiere bodega.
+        // Evita que el usuario cree el documento y reciba el error recién al emitir.
+        if (isSale && warehouseItems.length > 0) {
+            const missing = (data.lines || []).some(
+                (l: any) => l.product_id && !l.warehouse_id
+            );
+            if (missing) {
+                toast.error('Cada línea con producto requiere bodega de despacho.');
+                return;
+            }
+        }
+
         let subtotal = 0; let taxes = 0;
         data.lines?.forEach((line: any) => {
             const qty = Number(line.qty) || 0;
@@ -352,18 +364,33 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                         placeholder="Descripción adicional (opcional)"
                                                         className="h-8 bg-transparent border-slate-100 rounded-md text-xs text-slate-600 placeholder:text-slate-300"
                                                     />
-                                                    {isSale && warehouseItems.length > 0 && (
-                                                        <SearchableSelect
-                                                            items={warehouseItems}
-                                                            value={form.watch(`lines.${index}.warehouse_id`) || ''}
-                                                            onChange={(v) =>
-                                                                form.setValue(`lines.${index}.warehouse_id`, v || null, { shouldDirty: true })
-                                                            }
-                                                            placeholder="Bodega de despacho (requerido para emitir)"
-                                                            emptyMessage="Sin bodegas"
-                                                            className="h-9 bg-white border border-slate-200 rounded-lg px-3 text-xs text-slate-700 hover:border-slate-300 transition"
-                                                        />
-                                                    )}
+                                                    {isSale && warehouseItems.length > 0 && (() => {
+                                                        const whValue = form.watch(`lines.${index}.warehouse_id`) || '';
+                                                        const pidSel = form.watch(`lines.${index}.product_id`);
+                                                        const showError = !!pidSel && !whValue;
+                                                        return (
+                                                            <div className="space-y-1">
+                                                                <SearchableSelect
+                                                                    items={warehouseItems}
+                                                                    value={whValue}
+                                                                    onChange={(v) =>
+                                                                        form.setValue(`lines.${index}.warehouse_id`, v || null, { shouldDirty: true })
+                                                                    }
+                                                                    placeholder="Bodega de despacho (requerido)"
+                                                                    emptyMessage="Sin bodegas"
+                                                                    className={cn(
+                                                                        "h-9 bg-white border rounded-lg px-3 text-xs text-slate-700 hover:border-slate-300 transition",
+                                                                        showError ? "border-rose-300 bg-rose-50/30" : "border-slate-200"
+                                                                    )}
+                                                                />
+                                                                {showError && (
+                                                                    <p className="text-[10px] text-rose-600 font-medium">
+                                                                        Requerido para guardar
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
 
                                                 {/* Cantidad */}

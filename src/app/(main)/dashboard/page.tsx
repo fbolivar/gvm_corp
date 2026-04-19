@@ -15,12 +15,11 @@ import {
     UserCheck,
     FlaskConical,
     ArrowRight,
+    LayoutDashboard,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
-import { Card, CardContent } from '@/shared/components/ui/card';
-import { settingsService } from '@/features/settings/services/settingsService';
-import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { PageHeader } from '@/shared/components/ui/page-header';
+import { StatusBadge } from '@/shared/components/ui/status-badge';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
@@ -29,7 +28,6 @@ import { smartAlertService } from '@/features/notifications/services/smartAlertS
 import { CriticalAlertsPanel } from '@/features/dashboard/components/CriticalAlertsPanel';
 import { ActiveUsersWidget } from '@/features/dashboard/components/ActiveUsersWidget';
 
-/** Deterministic number formatter — avoids server/client locale mismatch (hydration errors) */
 function fmtNum(n: number): string {
     const abs = Math.abs(Math.round(n));
     const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -45,10 +43,9 @@ export default async function DashboardPage() {
     try {
         smartAlertService.evaluateAndTriggerAlerts(supabase).catch(console.error);
 
-        const [kpis, recentActivity, tenant, prevKpis, monthCount, { data: profile }, { data: userTenant }] = await Promise.all([
+        const [kpis, recentActivity, prevKpis, monthCount, { data: profile }, { data: userTenant }] = await Promise.all([
             dashboardService.getKPIs(supabase),
             dashboardService.getRecentActivity(supabase),
-            settingsService.getTenantInfo(supabase),
             dashboardService.getPreviousMonthKPIs(supabase),
             dashboardService.getMonthInvoiceCount(supabase),
             supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
@@ -69,30 +66,27 @@ export default async function DashboardPage() {
 
         const miniCards = [
             {
-                label: 'Gasto Operativo',
+                label: 'Gasto operativo',
                 value: `$${fmtNum(kpis.totalExpenses)}`,
                 icon: TrendingDown,
-                bg: 'bg-rose-50',
-                color: 'text-rose-500',
+                tint: 'bg-rose-50 text-rose-600',
                 trend: prevKpis.totalExpenses > 0 ? calcTrend(kpis.totalExpenses, prevKpis.totalExpenses) : null,
                 trendGood: false,
             },
             {
-                label: 'Nuevos Clientes',
+                label: 'Nuevos clientes',
                 value: String(kpis.newCustomers),
                 icon: UserCheck,
-                bg: 'bg-indigo-50',
-                color: 'text-indigo-500',
+                tint: 'bg-sky-50 text-sky-600',
                 trend: null,
                 trendGood: true,
                 badge: 'este mes',
             },
             {
-                label: 'Lotes por Vencer',
+                label: 'Lotes por vencer',
                 value: String(kpis.expiringLots30d),
                 icon: FlaskConical,
-                bg: kpis.expiringLots30d > 0 ? 'bg-amber-50' : 'bg-emerald-50',
-                color: kpis.expiringLots30d > 0 ? 'text-amber-500' : 'text-emerald-500',
+                tint: kpis.expiringLots30d > 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600',
                 trend: null,
                 trendGood: true,
                 badge: kpis.expiringLots30d > 0 ? 'próx 30d' : 'sin alertas',
@@ -101,40 +95,42 @@ export default async function DashboardPage() {
             },
         ];
 
+        const now = new Date();
+        const monthLabel = now.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+
         return (
-            <div className="space-y-6 pb-16 animate-in fade-in duration-500">
-                <VisualReportHeader
-                    title="Dashboard"
-                    subtitle="Reporte Gerencial — Vista Consolidada"
-                    tenant={tenant}
+            <div className="page-container">
+                <PageHeader
+                    title={`Bienvenido, ${userFullName}`}
+                    description={`Panel gerencial · ${monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}`}
+                    icon={LayoutDashboard}
                 />
 
-                {/* Smart Alerts */}
                 <CriticalAlertsPanel />
 
                 {/* KPI Grid */}
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mt-6">
                     <KPICard
                         variant="primary"
-                        title="Facturación Bruta"
+                        title="Facturación bruta"
                         value={`$${fmtNum(kpis.totalIncome)}`}
                         icon={TrendingUp}
                         trend={{ value: Math.abs(trendIncome), label: 'vs mes anterior', isPositive: trendIncome >= 0 }}
                     />
                     <KPICard
-                        title="Volumen Órdenes"
+                        title="Volumen órdenes"
                         value={monthCount}
                         icon={Briefcase}
                         trend={{ value: Math.abs(trendOrders), label: 'vs mes anterior', isPositive: trendOrders >= 0 }}
                     />
                     <KPICard
-                        title="Activos en Stock"
+                        title="Activos en stock"
                         value={`$${fmtNum(kpis.inventoryValue)}`}
                         icon={Package}
                         trend={{ value: 0, label: 'valoración actual', isPositive: true }}
                     />
                     <KPICard
-                        title="Margen Neto"
+                        title="Margen neto"
                         value={`$${fmtNum(kpis.netProfit)}`}
                         icon={DollarSign}
                         trend={{ value: Math.abs(trendNetProfit), label: 'vs mes anterior', isPositive: trendNetProfit >= 0 }}
@@ -142,39 +138,34 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Operational Analytics */}
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-12 items-start">
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-12 items-start mt-6">
                     <div className="lg:col-span-8 space-y-4">
-                        {/* Mini metric cards */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {miniCards.map((card) => {
                                 const inner = (
-                                    <Card className={cn(
-                                        'rounded-2xl border border-slate-100 bg-white shadow-sm',
-                                        card.ring && 'ring-1 ring-amber-200',
+                                    <div className={cn(
+                                        'surface-card p-5 flex items-center gap-4 h-full transition-all',
+                                        card.ring && 'ring-1 ring-amber-300',
+                                        card.href && 'hover:shadow-md hover:border-slate-300'
                                     )}>
-                                        <CardContent className="p-5 flex items-center gap-4">
-                                            <div className={cn('h-10 w-10 rounded-xl flex items-center justify-center', card.bg)}>
-                                                <card.icon className={cn('h-5 w-5', card.color)} />
+                                        <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center shrink-0', card.tint)}>
+                                            <card.icon className="h-5 w-5" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="kpi-label">{card.label}</p>
+                                            <div className="flex items-baseline gap-2 flex-wrap mt-0.5">
+                                                <span className="text-xl font-bold text-slate-900 tabular-nums">{card.value}</span>
+                                                {card.trend !== null && (
+                                                    <StatusBadge tone={(card.trendGood ? card.trend <= 0 : card.trend >= 0) ? 'success' : 'danger'}>
+                                                        {card.trend > 0 ? '+' : ''}{card.trend}%
+                                                    </StatusBadge>
+                                                )}
+                                                {card.badge && (
+                                                    <span className="text-[11px] text-slate-500">{card.badge}</span>
+                                                )}
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{card.label}</p>
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className="text-xl font-bold text-slate-900 tabular-nums">{card.value}</span>
-                                                    {card.trend !== null && (
-                                                        <Badge className={cn(
-                                                            'border-none font-semibold text-[9px] px-1.5 py-0.5 rounded-full',
-                                                            (card.trendGood ? card.trend <= 0 : card.trend >= 0) ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600',
-                                                        )}>
-                                                            {card.trend > 0 ? '+' : ''}{card.trend}%
-                                                        </Badge>
-                                                    )}
-                                                    {card.badge && (
-                                                        <Badge variant="secondary" className="text-[9px] font-semibold">{card.badge}</Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 );
                                 return card.href ? (
                                     <Link key={card.label} href={card.href} className="block">{inner}</Link>
@@ -184,7 +175,6 @@ export default async function DashboardPage() {
                             })}
                         </div>
 
-                        {/* AR Aging + Top Products */}
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                             <div className="lg:col-span-7">
                                 <ARAgingWidget aging={kpis.arAging} />
@@ -211,46 +201,42 @@ export default async function DashboardPage() {
 
                 {/* Low Stock Alert */}
                 {kpis.lowStockProducts > 0 && (
-                    <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm overflow-hidden">
-                        <CardContent className="p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
-                                    <AlertCircle className="h-5 w-5 text-amber-600" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-amber-900">Stock Crítico Detectado</h4>
-                                    <p className="text-[10px] text-amber-700 mt-0.5">
-                                        <span className="font-bold">{kpis.lowStockProducts} SKUs</span> operando bajo el nivel de seguridad.
-                                    </p>
-                                </div>
+                    <div className="mt-6 surface-card bg-amber-50/60 border-amber-200 p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                                <AlertCircle className="h-5 w-5" />
                             </div>
-                            <Button asChild className="h-9 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs font-semibold gap-2 shrink-0">
-                                <Link href="/inventory?filter=low_stock">
-                                    Gestionar <ArrowRight className="h-3.5 w-3.5" />
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
+                            <div>
+                                <h4 className="text-h3 text-amber-900">Stock crítico detectado</h4>
+                                <p className="text-sm text-amber-800 mt-0.5">
+                                    <span className="font-semibold">{kpis.lowStockProducts} SKUs</span> bajo nivel de seguridad.
+                                </p>
+                            </div>
+                        </div>
+                        <Button asChild variant="outline" className="border-amber-300 text-amber-900 hover:bg-amber-100">
+                            <Link href="/inventory?filter=low_stock">
+                                Gestionar <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                            </Link>
+                        </Button>
+                    </div>
                 )}
             </div>
         );
     } catch (error: unknown) {
         const err = error as Error;
         return (
-            <div className="min-h-[400px] flex items-center justify-center p-8">
-                <Card className="max-w-md w-full rounded-2xl border border-slate-100 bg-white shadow-sm">
-                    <CardContent className="p-8 text-center space-y-4">
-                        <div className="inline-flex h-12 w-12 rounded-xl bg-rose-50 items-center justify-center text-rose-500">
-                            <AlertCircle className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-slate-900">Error de Sistema</h1>
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Falla en Sincronización de Datos</p>
-                        </div>
-                        <p className="text-sm text-slate-500 bg-slate-50 p-3 rounded-xl">{err.message}</p>
-                        <Button className="w-full h-9 rounded-xl bg-slate-900 text-xs font-semibold">Reintentar</Button>
-                    </CardContent>
-                </Card>
+            <div className="page-container">
+                <div className="surface-card p-8 text-center max-w-md mx-auto mt-8">
+                    <div className="inline-flex h-12 w-12 rounded-xl bg-rose-50 items-center justify-center text-rose-600 mb-4">
+                        <AlertCircle className="h-6 w-6" />
+                    </div>
+                    <h1 className="text-h2 mb-1">Error cargando el dashboard</h1>
+                    <p className="text-caption mb-4">Falla en sincronización de datos</p>
+                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4">{err.message}</p>
+                    <Button asChild variant="outline">
+                        <Link href="/dashboard">Reintentar</Link>
+                    </Button>
+                </div>
             </div>
         );
     }

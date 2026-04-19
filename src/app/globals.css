@@ -111,13 +111,31 @@
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 
-/* ──── DESIGN SYSTEM: PAGE HERO STANDARDS ──── */
-/* Max title size:   text-4xl md:text-5xl  (NEVER text-7xl/8xl/9xl)   */
-/* Hero padding:     p-10                  (NEVER p-16)                */
-/* Hero radius:      rounded-[2.5rem]      (NEVER rounded-[4rem])      */
-/* BG deco icons:    h-24 w-24 max         (NEVER h-64 w-64)           */
-/* Line height:      leading-tight/snug    (NEVER leading-none on h1)  */
-/* Italic rule:      only accent numbers   (NEVER on h1 uppercase)     */
+/* ========================================================================
+   GVM DESIGN SYSTEM v1 — Tokens estrictos
+   ------------------------------------------------------------------------
+   Regla de oro: usar SOLO las clases .surface-*, .page-*, .text-h*, .btn-*
+   declaradas abajo. Cualquier rounded-[2.5rem] / text-7xl / p-16 hardcoded
+   se considera deuda técnica y debe refactorizarse.
+   ======================================================================== */
+
+/* === Escala de radios (SOLO 3 valores) === */
+/* sm: inputs, badges, pills          → 0.5rem (8px)   */
+/* md: botones, chips, tabs          → 0.75rem (12px)  */
+/* lg: cards, modales, hero          → 1.25rem (20px)  */
+
+/* === Escala tipográfica (SOLO 5 tamaños de heading) === */
+/* h1: títulos de página             → text-2xl md:text-3xl font-bold  */
+/* h2: títulos de sección            → text-lg md:text-xl font-semibold */
+/* h3: títulos de card               → text-base font-semibold          */
+/* body: texto corrido               → text-sm                          */
+/* caption: etiquetas, metadata      → text-xs text-slate-500           */
+
+/* === Paleta de acción (SOLO 4 intenciones) === */
+/* primary:  acción principal        → slate-900 / white text            */
+/* secondary: acción neutra          → white / slate-900 text + border   */
+/* success:  confirmar, emitir       → emerald-600                       */
+/* danger:   eliminar, cancelar      → rose-600                          */
 
 /* ──── RESPONSIVE UTILITIES ──── */
 
@@ -146,18 +164,97 @@
   }
 }
 
-/* Responsive page titles */
+/* ========================================================================
+   DESIGN SYSTEM COMPONENTS — clases reutilizables
+   ======================================================================== */
 @layer components {
+  /* Títulos (legacy: mantener compatibilidad; nuevas páginas usan PageHeader) */
   .page-title {
-    @apply text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900;
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-slate-900;
   }
 
   .page-subtitle {
-    @apply text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest;
+    @apply text-sm text-slate-500 font-normal;
   }
 
   .page-container {
-    @apply px-4 sm:px-6 md:px-8 lg:px-10 py-4 md:py-6 lg:py-8;
+    @apply px-4 sm:px-6 md:px-8 py-6 md:py-8;
+  }
+
+  /* Escala tipográfica semántica */
+  .text-h1 { @apply text-2xl md:text-3xl font-bold tracking-tight text-slate-900; }
+  .text-h2 { @apply text-lg md:text-xl font-semibold text-slate-900; }
+  .text-h3 { @apply text-base font-semibold text-slate-900; }
+  .text-body { @apply text-sm text-slate-700; }
+  .text-caption { @apply text-xs text-slate-500; }
+  .text-metric { @apply text-3xl md:text-4xl font-bold tracking-tight tabular-nums text-slate-900; }
+
+  /* Surfaces (cards) */
+  .surface-card {
+    @apply bg-white border border-slate-200/70 rounded-2xl shadow-sm;
+  }
+  .surface-elevated {
+    @apply bg-white border border-slate-200/70 rounded-2xl shadow-md;
+  }
+  .surface-muted {
+    @apply bg-slate-50 border border-slate-100 rounded-2xl;
+  }
+
+  /* Status badges (intenciones estándar) */
+  .badge-base { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium; }
+  .badge-neutral { @apply badge-base bg-slate-100 text-slate-700; }
+  .badge-success { @apply badge-base bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60; }
+  .badge-warning { @apply badge-base bg-amber-50 text-amber-700 ring-1 ring-amber-200/60; }
+  .badge-danger { @apply badge-base bg-rose-50 text-rose-700 ring-1 ring-rose-200/60; }
+  .badge-info { @apply badge-base bg-sky-50 text-sky-700 ring-1 ring-sky-200/60; }
+  .badge-draft { @apply badge-base bg-slate-50 text-slate-600 ring-1 ring-slate-200; }
+
+  /* Data table skin estándar */
+  .data-table-wrap {
+    @apply surface-card overflow-hidden;
+  }
+  .data-table {
+    @apply w-full text-sm;
+  }
+  .data-table thead {
+    @apply bg-slate-50/50 border-b border-slate-200;
+  }
+  .data-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide;
+  }
+  .data-table td {
+    @apply px-4 py-3 text-sm text-slate-700 border-b border-slate-100 last:border-b-0;
+  }
+  .data-table tbody tr:hover {
+    @apply bg-slate-50/50;
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 px-6 text-center;
+  }
+  .empty-state-icon {
+    @apply h-12 w-12 text-slate-300 mb-4;
+  }
+  .empty-state-title {
+    @apply text-h3 text-slate-700 mb-1;
+  }
+  .empty-state-desc {
+    @apply text-sm text-slate-500 max-w-sm;
+  }
+
+  /* KPI card */
+  .kpi-card {
+    @apply surface-card p-5 flex flex-col gap-2;
+  }
+  .kpi-label {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wide;
+  }
+  .kpi-value {
+    @apply text-metric;
+  }
+  .kpi-trend {
+    @apply text-xs font-medium flex items-center gap-1;
   }
 }
 

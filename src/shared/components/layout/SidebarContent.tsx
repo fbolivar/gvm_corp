@@ -113,6 +113,19 @@ interface SidebarContentProps {
     onNavigate?: () => void
 }
 
+// Módulos que aún no están maduros para go-live. Mantenemos el código,
+// solo los ocultamos del sidebar. Flip a `false` para volver a mostrarlos.
+const HIDE_IMMATURE = true;
+const IMMATURE_HREFS = new Set<string>([
+    '/academy',
+    '/vendor-portal',
+    '/analytics',
+    '/analytics/sales',
+    '/analytics/financial',
+    '/treasury/cash-flow',
+    '/notifications',
+]);
+
 export function SidebarContent({ onNavigate }: SidebarContentProps) {
     const { t } = useI18n();
     const pathname = usePathname();
@@ -464,7 +477,17 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     </div>
                 )}
                 {sidebarLinks.map((group, groupIndex) => {
-                    const visibleLinks = group.links.filter(link => isAuthorized(link.moduleKey));
+                    const visibleLinks = group.links
+                        .filter(link => isAuthorized(link.moduleKey))
+                        .filter(link => !(HIDE_IMMATURE && IMMATURE_HREFS.has(link.href)))
+                        .map(link => {
+                            if (!link.children || !HIDE_IMMATURE) return link;
+                            const filteredChildren = link.children.filter(c => !IMMATURE_HREFS.has(c.href));
+                            return filteredChildren.length === 0 && IMMATURE_HREFS.has(link.href)
+                                ? null
+                                : { ...link, children: filteredChildren };
+                        })
+                        .filter((l): l is SidebarLink => l !== null);
                     if (visibleLinks.length === 0) return null;
 
                     return (

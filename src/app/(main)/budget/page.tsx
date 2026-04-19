@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { budgetService } from '@/features/budget/services/budgetService';
 import { createBudget } from '@/features/budget/actions';
-import { Card } from "@/shared/components/ui/card"
-import { Badge } from "@/shared/components/ui/badge"
+import { PageHeader } from '@/shared/components/ui/page-header';
+import { EmptyState } from '@/shared/components/ui/empty-state';
+import { StatusBadge, StatusTone } from '@/shared/components/ui/status-badge';
+import { Button } from '@/shared/components/ui/button';
 import {
     BarChart3,
     Plus,
@@ -11,18 +13,15 @@ import {
     TrendingDown,
     Target,
     Calendar,
-    CheckCircle2,
-    Clock,
-    Lock,
-} from "lucide-react"
+} from "lucide-react";
 import { redirect } from 'next/navigation';
-import { cn } from "@/shared/lib/utils"
+import { cn } from "@/shared/lib/utils";
 import Link from 'next/link';
 
-const STATUS_CONFIG = {
-    DRAFT:    { label: 'Borrador',  cls: 'bg-slate-100 text-slate-500',   icon: Clock },
-    APPROVED: { label: 'Aprobado', cls: 'bg-emerald-50 text-emerald-700', icon: CheckCircle2 },
-    CLOSED:   { label: 'Cerrado',  cls: 'bg-rose-50 text-rose-600',       icon: Lock },
+const STATUS_LABEL: Record<string, { label: string; tone: StatusTone }> = {
+    DRAFT: { label: 'Borrador', tone: 'draft' },
+    APPROVED: { label: 'Aprobado', tone: 'success' },
+    CLOSED: { label: 'Cerrado', tone: 'danger' },
 };
 
 export default async function BudgetPage() {
@@ -42,157 +41,165 @@ export default async function BudgetPage() {
     const activeBudget = budgets.find(b => b.year === currentYear && b.status === 'APPROVED');
 
     return (
-        <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-
-            {/* Header */}
-            <div className="bg-slate-900 rounded-[3.5rem] p-12 md:p-20 text-white shadow-active relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-16 opacity-[0.03] pointer-events-none">
-                    <Target className="h-80 w-80" />
-                </div>
-                <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-10">
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-2 w-12 bg-indigo-500 rounded-full" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-indigo-400">Control Financiero</span>
+        <div className="page-container">
+            <PageHeader
+                title="Presupuesto"
+                description="Planeación financiera anual, trimestral y mensual con control de ejecución."
+                icon={Target}
+                breadcrumbs={[
+                    { label: 'Inicio', href: '/dashboard' },
+                    { label: 'Contabilidad' },
+                    { label: 'Presupuesto' },
+                ]}
+                meta={
+                    activeBudget && (
+                        <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-50 border border-emerald-200/60 rounded-lg">
+                            <span className="text-xs font-medium text-emerald-700">Activo {currentYear}:</span>
+                            <span className="text-sm font-semibold text-slate-900">{activeBudget.name}</span>
+                            <span className="text-xs text-slate-500">·</span>
+                            <span className="text-xs text-slate-600">{fmt(activeBudget.total_income - activeBudget.total_expense)} utilidad planeada</span>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black tracking-tighter italic uppercase leading-[0.85]">
-                            Módulo de <br /><span className="text-slate-500">Presupuesto</span>
-                        </h1>
-                    </div>
-                    {activeBudget && (
-                        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 min-w-[240px]">
-                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Activo {currentYear}</p>
-                            <p className="text-2xl font-black italic text-white">{activeBudget.name}</p>
-                            <div className="mt-4 space-y-1">
-                                <div className="flex justify-between text-[9px] font-bold">
-                                    <span className="text-emerald-400">Ingresos</span>
-                                    <span className="text-white">{fmt(activeBudget.total_income)}</span>
-                                </div>
-                                <div className="flex justify-between text-[9px] font-bold">
-                                    <span className="text-rose-400">Gastos</span>
-                                    <span className="text-white">{fmt(activeBudget.total_expense)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+                    )
+                }
+            />
 
-            {/* New budget form + list */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-
-                {/* Create Form */}
-                <div className="lg:col-span-4">
-                    <Card className="border-none shadow-premium bg-white rounded-[3rem] p-10 sticky top-10">
-                        <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase mb-8">
-                            Nuevo Presupuesto
-                        </h3>
-                        <form action={createBudget} className="space-y-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Create form */}
+                <aside className="lg:col-span-4">
+                    <div className="surface-card p-6 lg:sticky lg:top-6">
+                        <h2 className="text-h3 mb-4">Nuevo presupuesto</h2>
+                        <form action={createBudget} className="space-y-4">
                             <div>
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Nombre</label>
-                                <input type="text" name="name" required placeholder={`Presupuesto ${currentYear + 1}`}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                <label htmlFor="budget-name" className="block text-xs font-medium text-slate-700 mb-1.5">Nombre</label>
+                                <input
+                                    id="budget-name"
+                                    type="text"
+                                    name="name"
+                                    required
+                                    placeholder={`Presupuesto ${currentYear + 1}`}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="budget-year" className="block text-xs font-medium text-slate-700 mb-1.5">Año</label>
+                                    <input
+                                        id="budget-year"
+                                        type="number"
+                                        name="year"
+                                        required
+                                        defaultValue={currentYear + 1}
+                                        min={2024}
+                                        max={2030}
+                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="budget-period" className="block text-xs font-medium text-slate-700 mb-1.5">Periodo</label>
+                                    <select
+                                        id="budget-period"
+                                        name="period_type"
+                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                                    >
+                                        <option value="ANNUAL">Anual</option>
+                                        <option value="QUARTERLY">Trimestral</option>
+                                        <option value="MONTHLY">Mensual</option>
+                                    </select>
+                                </div>
                             </div>
                             <div>
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Año</label>
-                                <input type="number" name="year" required defaultValue={currentYear + 1} min={2024} max={2030}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                <label htmlFor="budget-desc" className="block text-xs font-medium text-slate-700 mb-1.5">Descripción (opcional)</label>
+                                <textarea
+                                    id="budget-desc"
+                                    name="description"
+                                    rows={2}
+                                    placeholder="Proyecciones para..."
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none"
+                                />
                             </div>
-                            <div>
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Periodo</label>
-                                <select name="period_type"
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                    <option value="ANNUAL">Anual</option>
-                                    <option value="QUARTERLY">Trimestral</option>
-                                    <option value="MONTHLY">Mensual</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Descripción (opcional)</label>
-                                <textarea name="description" rows={2} placeholder="Proyecciones para..."
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
-                            </div>
-                            <button type="submit"
-                                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all">
-                                <Plus className="h-4 w-4" /> Crear Presupuesto
-                            </button>
+                            <Button type="submit" className="w-full">
+                                <Plus className="h-4 w-4 mr-1.5" />
+                                Crear presupuesto
+                            </Button>
                         </form>
-                    </Card>
-                </div>
+                    </div>
+                </aside>
 
-                {/* Budget List */}
-                <div className="lg:col-span-8 space-y-5">
-                    {budgets.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-                            <BarChart3 className="h-16 w-16 text-slate-200" />
-                            <p className="text-lg font-black text-slate-400 uppercase tracking-widest">Sin presupuestos</p>
-                            <p className="text-sm text-slate-300 font-medium">Crea tu primer presupuesto usando el formulario</p>
+                {/* List */}
+                <div className="lg:col-span-8 space-y-4">
+                    {budgets.length === 0 ? (
+                        <div className="surface-card">
+                            <EmptyState
+                                icon={BarChart3}
+                                title="Sin presupuestos"
+                                description="Crea tu primer presupuesto usando el formulario a la izquierda."
+                            />
                         </div>
-                    )}
+                    ) : (
+                        budgets.map(budget => {
+                            const cfg = STATUS_LABEL[budget.status] ?? STATUS_LABEL.DRAFT;
+                            const netPlan = budget.total_income - budget.total_expense;
+                            const margin = budget.total_income > 0 ? ((netPlan / budget.total_income) * 100).toFixed(1) : '0';
 
-                    {budgets.map(budget => {
-                        const cfg      = STATUS_CONFIG[budget.status] ?? STATUS_CONFIG.DRAFT;
-                        const netPlan  = budget.total_income - budget.total_expense;
-                        const margin   = budget.total_income > 0 ? ((netPlan / budget.total_income) * 100).toFixed(1) : '0';
-
-                        return (
-                            <Link key={budget.id} href={`/budget/${budget.id}`}>
-                                <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-8 group hover:translate-y-[-4px] hover:shadow-active transition-all">
-                                    <div className="flex items-start justify-between gap-6">
-                                        <div className="flex items-start gap-5">
-                                            <div className="h-14 w-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white group-hover:bg-indigo-600 transition-colors shrink-0">
-                                                <Calendar className="h-7 w-7" />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <div className="flex items-center gap-3">
-                                                    <h3 className="text-base font-black text-slate-900 italic tracking-tight">{budget.name}</h3>
-                                                    <Badge className={cn("border-none text-[8px] font-black uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-lg", cfg.cls)}>
-                                                        {cfg.label}
-                                                    </Badge>
+                            return (
+                                <Link key={budget.id} href={`/budget/${budget.id}`} className="block group">
+                                    <div className="surface-card p-5 hover:border-slate-300 hover:shadow-md transition-all">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-start gap-3 min-w-0">
+                                                <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                                                    <Calendar className="h-5 w-5" />
                                                 </div>
-                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                    {budget.year} · {budget.period_type}
-                                                </p>
-                                                {budget.description && (
-                                                    <p className="text-[10px] text-slate-400 font-medium">{budget.description}</p>
-                                                )}
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h3 className="text-h3 truncate">{budget.name}</h3>
+                                                        <StatusBadge tone={cfg.tone} dot>
+                                                            {cfg.label}
+                                                        </StatusBadge>
+                                                    </div>
+                                                    <p className="text-caption mt-0.5">
+                                                        {budget.year} · {budget.period_type}
+                                                    </p>
+                                                    {budget.description && (
+                                                        <p className="text-sm text-slate-600 mt-1 line-clamp-1">{budget.description}</p>
+                                                    )}
+                                                </div>
                                             </div>
+                                            <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0" />
                                         </div>
-                                        <ChevronRight className="h-5 w-5 text-slate-200 group-hover:text-slate-900 group-hover:translate-x-1 transition-all mt-1 shrink-0" />
-                                    </div>
 
-                                    <div className="mt-6 grid grid-cols-3 gap-4">
-                                        <div className="bg-emerald-50 rounded-2xl p-4">
-                                            <div className="flex items-center gap-1.5 mb-1">
-                                                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Ingresos</span>
+                                        <div className="mt-4 grid grid-cols-3 gap-3">
+                                            <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 p-3">
+                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <TrendingUp className="h-3 w-3 text-emerald-600" />
+                                                    <span className="text-[11px] font-medium text-emerald-700">Ingresos</span>
+                                                </div>
+                                                <p className="text-sm font-semibold text-slate-900 tabular-nums">{fmt(budget.total_income)}</p>
                                             </div>
-                                            <p className="text-sm font-black text-emerald-700 italic">{fmt(budget.total_income)}</p>
-                                        </div>
-                                        <div className="bg-rose-50 rounded-2xl p-4">
-                                            <div className="flex items-center gap-1.5 mb-1">
-                                                <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
-                                                <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest">Gastos</span>
+                                            <div className="rounded-lg bg-rose-50/60 border border-rose-100 p-3">
+                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <TrendingDown className="h-3 w-3 text-rose-600" />
+                                                    <span className="text-[11px] font-medium text-rose-700">Gastos</span>
+                                                </div>
+                                                <p className="text-sm font-semibold text-slate-900 tabular-nums">{fmt(budget.total_expense)}</p>
                                             </div>
-                                            <p className="text-sm font-black text-rose-700 italic">{fmt(budget.total_expense)}</p>
-                                        </div>
-                                        <div className={cn(
-                                            "rounded-2xl p-4",
-                                            netPlan >= 0 ? "bg-indigo-50" : "bg-amber-50"
-                                        )}>
-                                            <div className="flex items-center gap-1.5 mb-1">
-                                                <Target className={cn("h-3.5 w-3.5", netPlan >= 0 ? "text-indigo-500" : "text-amber-500")} />
-                                                <span className={cn("text-[9px] font-black uppercase tracking-widest", netPlan >= 0 ? "text-indigo-600" : "text-amber-600")}>Utilidad</span>
+                                            <div className={cn(
+                                                "rounded-lg p-3 border",
+                                                netPlan >= 0 ? "bg-sky-50/60 border-sky-100" : "bg-amber-50/60 border-amber-100"
+                                            )}>
+                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <Target className={cn("h-3 w-3", netPlan >= 0 ? "text-sky-600" : "text-amber-600")} />
+                                                    <span className={cn("text-[11px] font-medium", netPlan >= 0 ? "text-sky-700" : "text-amber-700")}>Utilidad</span>
+                                                </div>
+                                                <p className="text-sm font-semibold text-slate-900 tabular-nums">
+                                                    {fmt(netPlan)} <span className="text-[11px] text-slate-500 font-normal">({margin}%)</span>
+                                                </p>
                                             </div>
-                                            <p className={cn("text-sm font-black italic", netPlan >= 0 ? "text-indigo-700" : "text-amber-700")}>
-                                                {fmt(netPlan)} <span className="text-[9px]">({margin}%)</span>
-                                            </p>
                                         </div>
                                     </div>
-                                </Card>
-                            </Link>
-                        );
-                    })}
+                                </Link>
+                            );
+                        })
+                    )}
                 </div>
             </div>
         </div>
