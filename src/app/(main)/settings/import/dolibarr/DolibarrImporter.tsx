@@ -9,6 +9,7 @@ import {
   importDolibarrProductsAction,
   importDolibarrPricesAction,
   importDolibarrStockAction,
+  importDolibarrLotsAction,
   importDolibarrAccountsAction,
   importDolibarrInvoicesAction,
   importDolibarrReceivablesAction,
@@ -25,6 +26,7 @@ type DatasetKey =
   | 'precios'
   | 'puc'
   | 'stock'
+  | 'lotes'
   | 'facturas'
   | 'cartera'
   | 'asientos'
@@ -89,6 +91,15 @@ const DATASETS: Dataset[] = [
     dependsOn: ['bodegas', 'productos'],
     suggestedFileName: '05_stock.csv',
     action: async (rows) => importDolibarrStockAction(rows as never),
+  },
+  {
+    key: 'lotes',
+    title: '5b. Lotes y Vencimientos',
+    description: 'Lotes con fechas de vencimiento (crítico veterinario)',
+    requiredColumns: ['sku', 'warehouse_code', 'lot_number', 'qty', 'expiry_date'],
+    dependsOn: ['bodegas', 'productos'],
+    suggestedFileName: '05b_lotes.csv',
+    action: async (rows) => importDolibarrLotsAction(rows as never),
   },
   {
     key: 'facturas',

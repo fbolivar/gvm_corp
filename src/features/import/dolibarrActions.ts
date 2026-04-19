@@ -24,6 +24,7 @@ export interface DolibarrImportBatch {
   productos?: DolibarrProductRow[]
   bodegas?: DolibarrWarehouseRow[]
   stock?: DolibarrStockRow[]
+  lotes?: DolibarrLotRow[]
   facturasVenta?: DolibarrInvoiceRow[]
   facturasCompra?: DolibarrPurchaseInvoiceRow[]
   cartera?: DolibarrReceivableRow[]
@@ -200,6 +201,15 @@ export interface DolibarrPriceRow {
   selling_price?: string
   min_selling_price?: string
   price_level?: string
+}
+
+export interface DolibarrLotRow {
+  sku?: string
+  warehouse_code?: string
+  lot_number?: string
+  qty?: string
+  expiry_date?: string
+  sellby_date?: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1066,6 +1076,235 @@ export async function importDolibarrStockAction(
     }
     if (warehouseNotFound > 3) {
       errors.push({ row: 0, message: `INFO: ${warehouseNotFound} filas con bodega no encontrada en total` })
+    }
+
+    return { inserted: insertedCount, errors }
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
+    return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }
+  }
+}
+
+// ─── IMPORT: PRODUCT LOTS (Lotes/Series) ─────────────────────────────────────
+// Headers Dolibarr 22.0.3 export "Existencias y ubicación con número de lote/serie":
+//   - Nombre corto de la ubicación → warehouse_code (B01 BOGOTA)
+//   - Ref. → sku
+//   - Lote/Serie → lot_number
+//   - Cant. → qty
+//   - Fecha de consumo → expiry_date (eatby)
+//   - Fecha de venta → sellby_date
+function normalizeDolibarrLotRow(raw: Record<string, string>): DolibarrLotRow {
+  const row = raw as Record<string, string | undefined>
+  const get = (key: string) => (row[key] ?? '').trim()
+
+  return {
+    warehouse_code:
+      get('Nombre corto de la ubicación') ||
+      get('Nombre corto de la ubicacion') ||
+      get('warehouse_code'),
+    sku: get('Ref.') || get('Ref') || get('sku'),
+    lot_number: get('Lote/Serie') || get('lot_number') || get('batch'),
+    qty: get('Cant.') || get('Cant') || get('qty') || get('Cantidad'),
+    expiry_date:
+      get('Fecha de consumo') ||
+      get('expiry_date') ||
+      get('eatby'),
+    sellby_date: get('Fecha de venta') || get('sellby_date') || get('sellby'),
+  }
+}
+
+export async function importDolibarrLotsAction(
+  rows: DolibarrLotRow[] | Record<string, string>[]
+): Promise<ImportResult> {
+  try {
+    const supabase = await createClient()
+    const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id')
+    if (tenantErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error tenant: ${tenantErr.message}` }] }
+    }
+    if (!tenantId) {
+      return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
+    }
+
+    const errors: ImportError[] = []
+
+    const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+    const isSpanishExport =
+      'Ref.' in sample ||
+      'Lote/Serie' in sample ||
+      'Fecha de consumo' in sample ||
+      'Cant.' in sample
+
+    // Paginated fetch of products — bypass 1000-row default
+    const productMap = new Map<string, string>()
+    {
+      const pageSize = 1000
+      let offset = 0
+      while (true) {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, sku')
+          .eq('tenant_id', tenantId)
+          .range(offset, offset + pageSize - 1)
+        if (error) {
+          return { inserted: 0, errors: [{ row: 0, message: `Error leyendo productos: ${error.message}` }] }
+        }
+        if (!data || data.length === 0) break
+        data.forEach((p) => { if (p.sku) productMap.set(p.sku as string, p.id as string) })
+        if (data.length < pageSize) break
+        offset += pageSize
+      }
+    }
+
+    const { data: warehousesList, error: whErr } = await supabase
+      .from('warehouses')
+      .select('id, code')
+      .eq('tenant_id', tenantId)
+    if (whErr) {
+      return { inserted: 0, errors: [{ row: 0, message: `Error leyendo bodegas: ${whErr.message}` }] }
+    }
+    const warehouseMap = new Map<string, string>()
+    warehousesList?.forEach((w) => warehouseMap.set(w.code as string, w.id as string))
+
+    // Dedup por (product_id + warehouse_id + lot_number) — mantiene primero
+    const lotMap = new Map<string, Record<string, unknown>>()
+    let sanitized = 0
+    let skippedZero = 0
+    let skippedNegative = 0
+    let skippedNoExpiry = 0
+    let skippedNoLot = 0
+    let productNotFound = 0
+    let warehouseNotFound = 0
+    let duplicates = 0
+    let expiredCount = 0
+
+    const today = new Date().toISOString().substring(0, 10)
+
+    rows.forEach((raw) => {
+      const row: DolibarrLotRow = isSpanishExport
+        ? normalizeDolibarrLotRow(raw as Record<string, string>)
+        : (raw as DolibarrLotRow)
+
+      const sku = row.sku?.trim() || ''
+      if (!sku) return
+
+      const productId = productMap.get(sku)
+      if (!productId) {
+        productNotFound++
+        return
+      }
+
+      const whCode = row.warehouse_code?.trim() || ''
+      const warehouseId = warehouseMap.get(whCode)
+      if (!warehouseId) {
+        warehouseNotFound++
+        return
+      }
+
+      const lotNumber = row.lot_number?.trim() || ''
+      if (!lotNumber) {
+        skippedNoLot++
+        return
+      }
+
+      // Saneamiento de qty (reutiliza lógica de stock)
+      const qtyResult = sanitizeStockValue(row.qty)
+      if (qtyResult.wasSanitized) {
+        sanitized++
+        return
+      }
+      const qty = qtyResult.value
+      if (qty === 0) {
+        skippedZero++
+        return
+      }
+      if (qty < 0) {
+        skippedNegative++
+        return
+      }
+
+      // expiration_date es NOT NULL en DB — skip si vacío
+      const expiryDate = normalizeDate(row.expiry_date)
+      if (!expiryDate) {
+        skippedNoExpiry++
+        return
+      }
+
+      const sellbyDate = normalizeDate(row.sellby_date)
+      const status = expiryDate < today ? 'EXPIRED' : 'ACTIVE'
+      if (status === 'EXPIRED') expiredCount++
+
+      const key = `${productId}|${warehouseId}|${lotNumber}`
+      if (lotMap.has(key)) {
+        duplicates++
+        return
+      }
+
+      lotMap.set(key, {
+        tenant_id: tenantId,
+        product_id: productId,
+        warehouse_id: warehouseId,
+        lot_number: lotNumber,
+        qty,
+        cost: 0,
+        expiration_date: expiryDate,
+        manufacture_date: sellbyDate, // Dolibarr "Fecha de venta" ≈ aprox manufactura/recomendación
+        status,
+      })
+    })
+
+    const lots = Array.from(lotMap.values())
+    if (lots.length === 0) {
+      if (productNotFound > 0) {
+        errors.push({ row: 0, message: `${productNotFound} SKUs no encontrados (importa productos primero)` })
+      }
+      if (skippedNoExpiry > 0) {
+        errors.push({ row: 0, message: `${skippedNoExpiry} lotes sin fecha de vencimiento (campo obligatorio)` })
+      }
+      return { inserted: 0, errors }
+    }
+
+    // Upsert en chunks (unique index por tenant_id,product_id,warehouse_id,lot_number)
+    const chunkSize = 500
+    let insertedCount = 0
+    for (let i = 0; i < lots.length; i += chunkSize) {
+      const chunk = lots.slice(i, i + chunkSize)
+      const { error: insErr } = await supabase
+        .from('product_lots')
+        .upsert(chunk, { onConflict: 'tenant_id,product_id,warehouse_id,lot_number', ignoreDuplicates: false })
+      if (insErr) {
+        errors.push({ row: 0, message: `Error insertando lotes (chunk ${i}-${i + chunk.length}): ${insErr.message}` })
+      } else {
+        insertedCount += chunk.length
+      }
+    }
+
+    if (sanitized > 0) {
+      errors.push({ row: 0, message: `INFO: ${sanitized} lotes con cantidad corrupta (ej: 5e20) ignorados` })
+    }
+    if (skippedZero > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedZero} lotes con cantidad 0 ignorados` })
+    }
+    if (skippedNegative > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedNegative} lotes con cantidad negativa ignorados (requieren ajuste)` })
+    }
+    if (skippedNoExpiry > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedNoExpiry} lotes sin fecha de vencimiento ignorados (obligatorio)` })
+    }
+    if (skippedNoLot > 0) {
+      errors.push({ row: 0, message: `INFO: ${skippedNoLot} filas sin número de lote ignoradas` })
+    }
+    if (duplicates > 0) {
+      errors.push({ row: 0, message: `INFO: ${duplicates} lotes duplicados consolidados` })
+    }
+    if (expiredCount > 0) {
+      errors.push({ row: 0, message: `INFO: ${expiredCount} lotes ya vencidos importados con status EXPIRED` })
+    }
+    if (productNotFound > 0) {
+      errors.push({ row: 0, message: `INFO: ${productNotFound} SKUs del CSV no existen en productos` })
+    }
+    if (warehouseNotFound > 0) {
+      errors.push({ row: 0, message: `INFO: ${warehouseNotFound} filas con bodega no encontrada` })
     }
 
     return { inserted: insertedCount, errors }
