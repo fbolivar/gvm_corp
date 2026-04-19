@@ -467,31 +467,31 @@ export async function importDolibarrTercerosAction(
 // ─── IMPORT: WAREHOUSES ──────────────────────────────────────────────────────
 
 // Normaliza headers españoles del export Dolibarr 22.0.3 para almacenes.
-// Headers del dataset "Almacenes":
-//   - ID de almacén → dolibarr_id
-//   - Nombre corto de la ubicación → name
-//   - Almacén de localización → code (la referencia tipo "B01")
-//   - Descripción almacén → description
-//   - Dirección → address
-//   - Población → city
-//   - Estado → status (1=activo, 0=inactivo)
+// Convención GVM (confirmada con productos de muestra):
+//   "Nombre corto de la ubicación" → code (ej. "B01 BOGOTA") — lo que
+//       los productos referencian en "Almacén predeterminado".
+//   "Almacén de localización" → name (ej. "BODEGA CENTRO (Bogotá)") —
+//       descripción más legible.
+//   "ID de almacén" → dolibarr_id
+//   "Descripción almacén" → description
+//   "Dirección" → address, "Población" → city
 function normalizeDolibarrWarehouseRow(raw: Record<string, string>): DolibarrWarehouseRow {
   const row = raw as Record<string, string | undefined>
   const get = (key: string) => (row[key] ?? '').trim()
 
-  // El código corto (ej. "B01") puede estar en "Almacén de localización" o en "Ref."
   const code =
-    get('Almacén de localización') ||
-    get('Almacen de localizacion') ||
+    get('Nombre corto de la ubicación') ||
+    get('Nombre corto de la ubicacion') ||
     get('Ref.') ||
     get('Ref') ||
     get('code')
 
   const name =
-    get('Nombre corto de la ubicación') ||
-    get('Nombre corto de la ubicacion') ||
+    get('Almacén de localización') ||
+    get('Almacen de localizacion') ||
     get('Etiqueta') ||
-    get('name')
+    get('name') ||
+    code // fallback: si no hay nombre largo, usar el code como nombre
 
   return {
     dolibarr_id: get('ID de almacén') || get('ID de almacen') || get('Id') || get('dolibarr_id'),
