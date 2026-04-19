@@ -466,8 +466,45 @@ export async function importDolibarrTercerosAction(
 
 // ─── IMPORT: WAREHOUSES ──────────────────────────────────────────────────────
 
+// Normaliza headers españoles del export Dolibarr 22.0.3 para almacenes.
+// Headers del dataset "Almacenes":
+//   - ID de almacén → dolibarr_id
+//   - Nombre corto de la ubicación → name
+//   - Almacén de localización → code (la referencia tipo "B01")
+//   - Descripción almacén → description
+//   - Dirección → address
+//   - Población → city
+//   - Estado → status (1=activo, 0=inactivo)
+function normalizeDolibarrWarehouseRow(raw: Record<string, string>): DolibarrWarehouseRow {
+  const row = raw as Record<string, string | undefined>
+  const get = (key: string) => (row[key] ?? '').trim()
+
+  // El código corto (ej. "B01") puede estar en "Almacén de localización" o en "Ref."
+  const code =
+    get('Almacén de localización') ||
+    get('Almacen de localizacion') ||
+    get('Ref.') ||
+    get('Ref') ||
+    get('code')
+
+  const name =
+    get('Nombre corto de la ubicación') ||
+    get('Nombre corto de la ubicacion') ||
+    get('Etiqueta') ||
+    get('name')
+
+  return {
+    dolibarr_id: get('ID de almacén') || get('ID de almacen') || get('Id') || get('dolibarr_id'),
+    code,
+    name,
+    description: get('Descripción almacén') || get('Descripcion almacen') || get('description'),
+    address: get('Dirección') || get('Direccion') || get('address'),
+    city: get('Población') || get('Poblacion') || get('city'),
+  }
+}
+
 export async function importDolibarrWarehousesAction(
-  rows: DolibarrWarehouseRow[]
+  rows: DolibarrWarehouseRow[] | Record<string, string>[]
 ): Promise<ImportResult> {
   const supabase = await createClient()
   const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
@@ -476,11 +513,22 @@ export async function importDolibarrWarehousesAction(
   const errors: ImportError[] = []
   const validRows: Record<string, unknown>[] = []
 
-  rows.forEach((row, idx) => {
+  // Detecta si viene con headers españoles del export Dolibarr 22.0.3
+  const sample = (rows[0] ?? {}) as Record<string, string | undefined>
+  const isSpanishExport =
+    'Nombre corto de la ubicación' in sample ||
+    'Nombre corto de la ubicacion' in sample ||
+    'ID de almacén' in sample ||
+    'Almacén de localización' in sample
+
+  rows.forEach((raw, idx) => {
     const rowNum = idx + 2
+    const row: DolibarrWarehouseRow = isSpanishExport
+      ? normalizeDolibarrWarehouseRow(raw as Record<string, string>)
+      : (raw as DolibarrWarehouseRow)
 
     if (!row.name?.trim()) {
-      errors.push({ row: rowNum, message: 'El campo name es obligatorio' })
+      errors.push({ row: rowNum, message: 'El campo "name" (Nombre corto de la ubicación) es obligatorio' })
       return
     }
 
