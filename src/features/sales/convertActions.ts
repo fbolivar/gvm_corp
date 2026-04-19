@@ -17,12 +17,14 @@ export async function convertDocumentAction(sourceId: string, targetType: Docume
         return { error: msg };
     }
 
-    let path = '/documents';
-    if (targetType === 'QUOTATION')   path = '/sales/quotations';
-    if (targetType === 'SALES_ORDER') path = '/sales/orders';
-    if (targetType === 'INVOICE')     path = '/sales/invoices';
+    const listPath =
+        targetType === 'QUOTATION'   ? '/sales/quotations' :
+        targetType === 'SALES_ORDER' ? '/sales/orders' :
+        targetType === 'INVOICE'     ? '/sales/invoices' :
+        '/documents';
 
-    revalidatePath(path);
+    revalidatePath(listPath);
     revalidatePath('/sales/quotations');
-    redirect(`${path}/${newDocId}/edit`); // Fuera del try/catch — redirect() lanza NEXT_REDIRECT que debe propagarse
+    // Vista genérica de detalle — no existe /sales/invoices/[id] en las rutas
+    redirect(`/documents/${newDocId}`);
 }
