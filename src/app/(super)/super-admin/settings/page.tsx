@@ -7,6 +7,8 @@ export const metadata = {
   title: 'Configuración · BC Fabric Super Admin',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function PlatformSettingsPage() {
   const supabase = await createClient()
   const { data: isAdmin } = await supabase.rpc('is_platform_admin')
