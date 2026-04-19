@@ -283,7 +283,7 @@ export function DocumentForm({ parties, products, initialData, onSubmit, isLoadi
                     </div>
 
                     {/* Items */}
-                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-white border border-slate-200 rounded-xl">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                             <div>
                                 <h2 className="text-sm font-semibold text-slate-900">Productos / Servicios</h2>
