@@ -128,6 +128,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
             const qty = Number(line.qty) || 0;
             const price = Number(line.unit_price) || 0;
             const lineTotal = qty * price;
+            line.line_total = lineTotal; // Persistir en la línea (antes quedaba en 0)
             subtotal += lineTotal;
             if (line.product_id) {
                 const prod = products.find(p => p.id === line.product_id);

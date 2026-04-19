@@ -413,7 +413,12 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                                     <span>{formatCurrency(document.subtotal)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm font-bold text-slate-400">
-                                    <span>IVA 19%</span>
+                                    <span>
+                                        IVA
+                                        {document.subtotal && Number(document.subtotal) > 0
+                                            ? ` ${Math.round((Number(document.taxes ?? 0) / Number(document.subtotal)) * 100)}%`
+                                            : ''}
+                                    </span>
                                     <span>{formatCurrency(document.taxes)}</span>
                                 </div>
                                 <div className="h-px bg-slate-100 my-4" />

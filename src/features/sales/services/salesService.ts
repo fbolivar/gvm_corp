@@ -43,17 +43,22 @@ export const salesService = {
         if (insertError) throw insertError;
 
         // 3. Preparar y clonar líneas (incluye warehouse_id para FEFO al emitir)
-        const newLines = sourceDoc.lines.map((line: any) => ({
-            tenant_id: sourceDoc.tenant_id,
-            document_id: createdDoc.id,
-            product_id: line.product_id,
-            warehouse_id: line.warehouse_id,
-            description: line.description,
-            qty: line.qty,
-            unit_price: line.unit_price,
-            line_total: line.line_total,
-            tax_config: line.tax_config
-        }));
+        const newLines = sourceDoc.lines.map((line: any) => {
+            const qty = Number(line.qty) || 0;
+            const price = Number(line.unit_price) || 0;
+            return {
+                tenant_id: sourceDoc.tenant_id,
+                document_id: createdDoc.id,
+                product_id: line.product_id,
+                warehouse_id: line.warehouse_id,
+                description: line.description,
+                qty: line.qty,
+                unit_price: line.unit_price,
+                // Recalcula line_total por si la línea origen tenía 0
+                line_total: line.line_total && Number(line.line_total) > 0 ? line.line_total : qty * price,
+                tax_config: line.tax_config
+            };
+        });
 
         const { error: linesError } = await client
             .from('document_lines')
