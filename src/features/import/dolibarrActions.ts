@@ -265,8 +265,20 @@ function extractNIT(nit: string | undefined, docNumber: string | undefined): { n
 
 function mapPartyType(value: string | undefined): 'PERSON' | 'COMPANY' {
   const v = (value || '').toUpperCase().trim()
-  if (v === 'PERSON' || v === 'PERSONA' || v === 'NATURAL') return 'PERSON'
+  // Dolibarr "Tipo de terceros": TE_PRIVATE = individuo, TE_SMALL/MEDIUM/LARGE = empresa
+  if (v === 'PERSON' || v === 'PERSONA' || v === 'NATURAL' || v === 'TE_PRIVATE') return 'PERSON'
   return 'COMPANY'
+}
+
+// Limpia direcciones Dolibarr: convierte '\n' literal en espacio y colapsa espacios
+function cleanAddress(raw: string | undefined): string | null {
+  if (!raw) return null
+  const cleaned = String(raw)
+    .replace(/\\n/g, ' ')      // literal \n
+    .replace(/[\r\n]+/g, ' ')  // real newlines
+    .replace(/\s+/g, ' ')
+    .trim()
+  return cleaned || null
 }
 
 function mapDocumentStatus(value: string | undefined): string {
@@ -326,6 +338,12 @@ function normalizeDolibarrPartyRow(raw: Record<string, string>): DolibarrPartyRo
   const fechaRaw = get('Fecha de creación') || get('created_at')
   const fecha = fechaRaw ? fechaRaw.substring(0, 10) : ''
 
+  // Party type: prioridad "Tipo de entidad comercial" > "Tipo de terceros" (GVM usa este último)
+  const partyType =
+    get('Tipo de entidad comercial') ||
+    get('Tipo de terceros') ||
+    get('party_type')
+
   return {
     dolibarr_id: get('Id') || get('dolibarr_id'),
     legal_name: get('Nombre') || get('legal_name'),
@@ -343,7 +361,7 @@ function normalizeDolibarrPartyRow(raw: Record<string, string>): DolibarrPartyRo
     is_customer: get('Cliente') || get('is_customer'),
     is_vendor: get('Proveedor') || get('is_vendor'),
     created_at: fecha,
-    party_type: get('Tipo de entidad comercial') || get('party_type'),
+    party_type: partyType,
   }
 }
 
@@ -388,6 +406,10 @@ export async function importDolibarrTercerosAction(
       dv: dv,
       email: row.email?.trim() || null,
       phone: normalizePhone(row.phone),
+      address: cleanAddress(row.address),
+      city: row.city?.trim() || null,
+      department: row.department?.trim() || null,
+      country: 'CO',
       is_customer: parseBool(row.is_customer),
       is_vendor: parseBool(row.is_vendor),
     })
