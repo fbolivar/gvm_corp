@@ -133,17 +133,24 @@ export default async function DeliveryNotePage({
         <>
             <style>{`
                 @media screen {
-                    .rm-doc { padding: 32px 40px; }
+                    .rm-doc { padding: 28px 36px; }
                 }
                 @media print {
-                    @page { size: A4; margin: 12mm; }
+                    @page { size: A4; margin: 10mm; }
                     html, body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     .no-print { display: none !important; }
-                    .rm-doc { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+                    .rm-doc { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; font-size: 10px !important; }
+                    .rm-table th, .rm-table td { padding: 3px 6px !important; }
+                    .rm-table tbody tr.rm-empty td { height: 14px !important; }
+                    .rm-logo { height: 60px !important; }
+                    .rm-h1 { font-size: 15px !important; }
+                    .rm-box { min-height: 90px !important; padding: 8px 12px !important; }
+                    /* Impresión de 1 sola página siempre */
+                    html, body, .rm-doc { page-break-after: avoid; }
                 }
                 .rm-table { border-collapse: collapse; width: 100%; }
-                .rm-table th, .rm-table td { border: 1px solid #94a3b8; padding: 6px 8px; }
-                .rm-table tbody tr.rm-empty td { height: 22px; }
+                .rm-table th, .rm-table td { border: 1px solid #94a3b8; padding: 4px 8px; }
+                .rm-table tbody tr.rm-empty td { height: 18px; }
                 .rm-box-gray { background: #f1f5f9; }
             `}</style>
 
@@ -154,20 +161,20 @@ export default async function DeliveryNotePage({
             <div className="rm-doc max-w-[780px] mx-auto bg-white text-slate-900 font-sans text-[11px] leading-[1.45]">
 
                 {/* HEADER: logo a la izquierda, "Hoja de envío" + datos a la derecha */}
-                <div className="flex items-start justify-between mb-8">
+                <div className="flex items-start justify-between mb-5">
                     {/* Logo */}
-                    <div className="w-[180px]">
+                    <div className="w-[170px]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={logoSrc}
                             alt={tenant?.name ?? 'GVM'}
-                            className="h-20 object-contain"
+                            className="rm-logo h-20 object-contain"
                         />
                     </div>
 
                     {/* Título + datos alineados a la derecha */}
                     <div className="text-right">
-                        <h1 className="text-[18px] font-bold leading-tight mb-2">Hoja de envío</h1>
+                        <h1 className="rm-h1 text-[18px] font-bold leading-tight mb-1">Hoja de envío</h1>
                         <div className="text-[11px] space-y-0">
                             <p><span>Ref. envío : </span><span className="font-semibold">REMISIÓN No.-{displayNumber}</span></p>
                             <p><span>Fecha prevista de entrega : </span><span className="font-semibold">{fmtDate(doc.due_date || doc.issue_date)}</span></p>
@@ -189,39 +196,34 @@ export default async function DeliveryNotePage({
                 </div>
 
                 {/* CAJAS Remitente / Recipiente */}
-                <div className="grid grid-cols-2 gap-4 mb-5">
+                <div className="grid grid-cols-2 gap-3 mb-3">
                     {/* Remitente (gris) */}
-                    <div className="rm-box-gray border border-slate-300 rounded-sm px-4 py-3 min-h-[150px] text-[11px] leading-[1.55]">
+                    <div className="rm-box rm-box-gray border border-slate-300 rounded-sm px-3 py-2 min-h-[110px] text-[10.5px] leading-[1.5]">
                         <p className="font-bold">{tenant?.name ?? 'GVM VETERINARY MEDICINE S A S'}</p>
                         {tenant?.address && <p>{tenant.address}</p>}
                         {tenant?.city && <p>{tenant.city}</p>}
-                        <div className="h-3" />
+                        <div className="h-2" />
                         {tenant?.phone && <p>Teléfono: {tenant.phone} - Fax: {tenant.phone}</p>}
                         {tenant?.email && <p>Correo: {tenant.email}</p>}
                         {tenant?.website && <p>Web: {tenant.website}</p>}
                     </div>
 
                     {/* Recipiente (blanco con borde) */}
-                    <div className="bg-white border border-slate-400 rounded-sm px-4 py-3 min-h-[150px] text-[11px] leading-[1.55]">
+                    <div className="rm-box bg-white border border-slate-400 rounded-sm px-3 py-2 min-h-[110px] text-[10.5px] leading-[1.5]">
                         <p className="font-bold">{(party?.legal_name || 'Cliente').toUpperCase()}</p>
                         {party?.address && <p>{party.address}</p>}
                         {party?.city && <p>{party.city}</p>}
-                        <div className="h-3" />
+                        <div className="h-2" />
                         {party?.phone && <p>Teléfono: {party.phone}</p>}
                         {party?.email && <p>Correo: {party.email}</p>}
                         {party?.doc_number && <p>RUT: {party.doc_number}</p>}
                     </div>
                 </div>
 
-                {/* NOTA (span completo, con borde) */}
+                {/* NOTA (span completo, con borde) — solo si hay contenido real */}
                 {(doc.notes_public || doc.notes_internal) && (
-                    <div className="border border-slate-300 rounded-sm px-4 py-2 mb-5 text-[11px]">
+                    <div className="border border-slate-300 rounded-sm px-3 py-1.5 mb-3 text-[10.5px]">
                         {doc.notes_public || doc.notes_internal}
-                    </div>
-                )}
-                {!(doc.notes_public || doc.notes_internal) && (
-                    <div className="border border-slate-300 rounded-sm px-4 py-2 mb-5 text-[11px] min-h-[28px]">
-                        &nbsp;
                     </div>
                 )}
 
@@ -253,8 +255,8 @@ export default async function DeliveryNotePage({
                                 </tr>
                             );
                         })}
-                        {/* Filas vacías para completar el espacio visual (como Dolibarr: hoja llena) */}
-                        {Array.from({ length: Math.max(0, 18 - lines.length) }).map((_, i) => (
+                        {/* Filas vacías — dinámicas para llenar pero CABER en 1 página A4 */}
+                        {Array.from({ length: Math.max(0, 12 - lines.length) }).map((_, i) => (
                             <tr key={`empty-${i}`} className="rm-empty">
                                 <td></td>
                                 <td></td>
@@ -274,27 +276,27 @@ export default async function DeliveryNotePage({
                 </table>
 
                 {/* FIRMA */}
-                <div className="mt-3 text-[11px] leading-[1.9]">
+                <div className="mt-2 text-[10.5px] leading-[1.55]">
                     <p>Haber recibido los productos anteriores en buenas condiciones,</p>
                     <p>
                         Para
-                        <span className="inline-block w-[220px] border-b border-slate-500 mx-1"></span>
+                        <span className="inline-block w-[200px] border-b border-slate-500 mx-1"></span>
                         el
-                        <span className="inline-block w-[30px] border-b border-slate-500 mx-1"></span>
+                        <span className="inline-block w-[28px] border-b border-slate-500 mx-1"></span>
                         /
-                        <span className="inline-block w-[40px] border-b border-slate-500 mx-1"></span>
+                        <span className="inline-block w-[36px] border-b border-slate-500 mx-1"></span>
                         /
-                        <span className="inline-block w-[30px] border-b border-slate-500 mx-1"></span>
+                        <span className="inline-block w-[28px] border-b border-slate-500 mx-1"></span>
                     </p>
                     <p>Nombre y firma :</p>
                 </div>
 
                 {/* FOOTER */}
-                <div className="mt-8 text-center text-[10px] text-slate-700 leading-[1.5]">
+                <div className="mt-3 text-center text-[9.5px] text-slate-700 leading-[1.4]">
                     <p>R.U.T.: {tenant?.nit || '—'} - ID profesional 2: {tenant?.nit || '—'}</p>
                     <p>ID profesional 3: 4645 - RUT: {tenant?.nit || '—'}</p>
                 </div>
-                <div className="text-right text-[10px] text-slate-600 mt-3">1 / 1</div>
+                <div className="text-right text-[9.5px] text-slate-600 mt-1">1 / 1</div>
             </div>
         </>
     );

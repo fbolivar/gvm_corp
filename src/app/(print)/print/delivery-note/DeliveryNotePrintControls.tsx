@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Printer } from "lucide-react";
 
 /**
  * Barra de controles para la vista de impresión de remisión.
- * - Setea document.title = filename antes de imprimir, para que el browser
- *   use ese nombre al "Guardar como PDF". Restaura el título al desmontar.
- * - Auto-abre el diálogo de impresión al cargar (400 ms para esperar imágenes).
- * - Botón manual para reimprimir; link para volver al detalle.
- * - Se oculta al imprimir (clase no-print).
+ * - Fija document.title = filename antes de imprimir, para que el browser
+ *   use ese nombre al "Guardar como PDF". Se fija temprano (useLayoutEffect)
+ *   y también justo antes de window.print() por si algo lo sobrescribió.
+ * - Auto-abre el diálogo de impresión al cargar (500 ms para que el logo cargue).
  */
+
+// useLayoutEffect en cliente, useEffect en SSR (evita warning)
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function DeliveryNotePrintControls({
     docId,
     filename,
@@ -20,32 +23,31 @@ export function DeliveryNotePrintControls({
     filename: string;
 }) {
     const printed = useRef(false);
+    const [titleSet, setTitleSet] = useState(false);
 
-    useEffect(() => {
-        // Guardar título original y setear el nombre de archivo deseado
-        const originalTitle = document.title;
+    // Set title lo antes posible (pre-paint en cliente)
+    useIsoLayoutEffect(() => {
         document.title = filename;
+        setTitleSet(true);
+    }, [filename]);
 
-        if (!printed.current) {
-            printed.current = true;
-            const timer = setTimeout(() => {
-                window.print();
-            }, 400);
-            return () => {
-                clearTimeout(timer);
-                document.title = originalTitle;
-            };
-        }
+    // Auto-abrir diálogo de impresión (una sola vez), asegurando el title antes
+    useEffect(() => {
+        if (printed.current) return;
+        printed.current = true;
 
-        return () => {
-            document.title = originalTitle;
-        };
+        const timer = setTimeout(() => {
+            document.title = filename;
+            window.print();
+        }, 500);
+
+        return () => clearTimeout(timer);
     }, [filename]);
 
     const handleReprint = () => {
-        // Asegurar que el título esté seteado antes de reimprimir
         document.title = filename;
-        window.print();
+        // pequeño tick para que el nuevo título se aplique antes del print
+        setTimeout(() => window.print(), 50);
     };
 
     return (
@@ -59,7 +61,7 @@ export function DeliveryNotePrintControls({
                 </Link>
                 <div className="flex items-center gap-3 min-w-0">
                     <span className="hidden sm:block text-xs text-slate-500 truncate">
-                        <span className="text-slate-400">Guardar como:</span> {filename}.pdf
+                        <span className="text-slate-400">Guardar como:</span> {titleSet ? `${filename}.pdf` : '...'}
                     </span>
                     <button
                         type="button"
