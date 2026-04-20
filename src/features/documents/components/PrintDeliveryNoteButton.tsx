@@ -1,92 +1,50 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
-import { Printer, Loader2 } from "lucide-react";
+import { Printer } from "lucide-react";
 
 /**
- * Botón que imprime una remisión abriendo el diálogo de impresión
- * directamente en la misma página.
+ * Botón que imprime una remisión.
  *
- * Estrategia: monta un iframe 1x1 oculto con la plantilla de la remisión.
- * La página dentro del iframe detecta que cargó y auto-llama window.print()
- * por su cuenta (ver DeliveryNotePrintControls). Chrome imprime el iframe.
+ * Estrategia: abre un popup pequeño (centrado, 900×1100) con la plantilla
+ * de remisión. La página popup auto-dispara window.print() al cargar y se
+ * cierra sola cuando termina (ver DeliveryNotePrintControls.onafterprint).
  *
- * Si falla (p.ej. bloqueo del navegador), fallback a window.open en nueva pestaña.
+ * Por qué popup y no iframe: iframes en Next.js + Vercel sufren bloqueos
+ * intermitentes al llamar window.print() por políticas del navegador.
+ * El popup funciona 100% consistente porque es una ventana top-level real.
  */
 export function PrintDeliveryNoteButton({ docId }: { docId: string }) {
-    const iframeRef = useRef<HTMLIFrameElement | null>(null);
-    const [printing, setPrinting] = useState(false);
-    const timeoutRef = useRef<number | null>(null);
-
     const handlePrint = () => {
-        setPrinting(true);
+        const url = `/print/delivery-note?id=${docId}`;
+        const width = 900;
+        const height = 1100;
+        const screenLeft = typeof window !== 'undefined' ? window.screenLeft ?? 0 : 0;
+        const screenTop = typeof window !== 'undefined' ? window.screenTop ?? 0 : 0;
+        const viewW = typeof window !== 'undefined' ? window.innerWidth : 1920;
+        const viewH = typeof window !== 'undefined' ? window.innerHeight : 1080;
+        const left = screenLeft + Math.max(0, (viewW - width) / 2);
+        const top = screenTop + Math.max(0, (viewH - height) / 2);
 
-        // Limpiar iframe anterior si existía
-        if (iframeRef.current) {
-            try { document.body.removeChild(iframeRef.current); } catch { /* noop */ }
-            iframeRef.current = null;
+        const popup = window.open(
+            url,
+            'gvm-print-remision',
+            `popup=yes,width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+        );
+
+        // Si el popup fue bloqueado, fallback a nueva pestaña
+        if (!popup || popup.closed) {
+            window.open(url, '_blank');
         }
-
-        const iframe = document.createElement("iframe");
-        // 1x1 en lugar de 0x0 (algunos navegadores ignoran iframes 0x0)
-        iframe.style.position = "fixed";
-        iframe.style.right = "0";
-        iframe.style.bottom = "0";
-        iframe.style.width = "1px";
-        iframe.style.height = "1px";
-        iframe.style.opacity = "0";
-        iframe.style.border = "0";
-        iframe.title = "Imprimir remisión";
-        document.body.appendChild(iframe);
-        iframeRef.current = iframe;
-
-        // Fallback: si en 5s el iframe no logró imprimir, abrir en pestaña nueva
-        timeoutRef.current = window.setTimeout(() => {
-            if (printing) {
-                console.warn('Iframe print timeout — abriendo en nueva pestaña');
-                window.open(`/print/delivery-note?id=${docId}`, '_blank');
-                setPrinting(false);
-                if (iframeRef.current) {
-                    try { document.body.removeChild(iframeRef.current); } catch { /* noop */ }
-                    iframeRef.current = null;
-                }
-            }
-        }, 5000);
-
-        iframe.onload = () => {
-            // La página dentro del iframe se auto-imprimirá (DeliveryNotePrintControls)
-            // Dejamos el botón en estado "printing" un momento y luego liberamos
-            window.setTimeout(() => {
-                setPrinting(false);
-                if (timeoutRef.current) {
-                    window.clearTimeout(timeoutRef.current);
-                    timeoutRef.current = null;
-                }
-            }, 1500);
-        };
-
-        iframe.onerror = () => {
-            console.error('Iframe no pudo cargar la remisión — fallback a nueva pestaña');
-            window.open(`/print/delivery-note?id=${docId}`, '_blank');
-            setPrinting(false);
-        };
-
-        // Setear el src DESPUÉS de montar los handlers
-        iframe.src = `/print/delivery-note?id=${docId}`;
     };
 
     return (
         <Button
             variant="outline"
             onClick={handlePrint}
-            disabled={printing}
             className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
         >
-            {printing
-                ? <Loader2 className="mr-3 h-4 w-4 animate-spin" />
-                : <Printer className="mr-3 h-4 w-4" />
-            }
+            <Printer className="mr-3 h-4 w-4" />
             Imprimir remisión
         </Button>
     );

@@ -27,7 +27,6 @@ export function DeliveryNotePrintControls({
     const [titleSet, setTitleSet] = useState(false);
     const searchParams = useSearchParams();
     // Solo respetamos autoprint=0 como override para preview sin imprimir.
-    // Auto-print funciona tanto en ventana principal como dentro de iframe.
     const autoprintDisabled = searchParams?.get('autoprint') === '0';
 
     // Set title lo antes posible (pre-paint en cliente)
@@ -42,6 +41,17 @@ export function DeliveryNotePrintControls({
         if (autoprintDisabled) return;
         printed.current = true;
 
+        // Si estamos en un popup (window.opener existe), cerrar al terminar de imprimir
+        const isPopup = typeof window !== 'undefined' && !!window.opener;
+        if (isPopup) {
+            window.onafterprint = () => {
+                // Pequeño delay para que el diálogo cierre limpio antes de close()
+                setTimeout(() => {
+                    try { window.close(); } catch { /* noop */ }
+                }, 300);
+            };
+        }
+
         const timer = setTimeout(() => {
             document.title = filename;
             try {
@@ -51,7 +61,10 @@ export function DeliveryNotePrintControls({
             }
         }, 600);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            if (typeof window !== 'undefined') window.onafterprint = null;
+        };
     }, [filename, autoprintDisabled]);
 
     const handleReprint = () => {
