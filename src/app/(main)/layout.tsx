@@ -11,6 +11,7 @@ const Header = dynamic(() => import("@/shared/components/layout/Header").then(mo
 const CommandPalette = dynamic(() => import("@/features/search/components/CommandPalette").then(mod => mod.CommandPalette), { ssr: false })
 const BarcodeScanner = dynamic(() => import("@/shared/components/BarcodeScanner").then(mod => mod.BarcodeScanner), { ssr: false })
 const LicenseBanner = dynamic(() => import("@/features/settings/components/LicenseBanner").then(mod => mod.LicenseBanner), { ssr: false })
+const AnnouncementsBanner = dynamic(() => import("@/features/super-admin/components/AnnouncementsBanner").then(mod => mod.AnnouncementsBanner), { ssr: false })
 const TenantBrandingProvider = dynamic(() => import("@/shared/components/TenantBrandingProvider").then(mod => mod.TenantBrandingProvider), { ssr: false })
 
 export default function MainLayout({
@@ -32,6 +33,8 @@ export default function MainLayout({
         </div>
 
         <div className="p-4 md:p-8">
+          {/* Platform-wide announcements (super admin) */}
+          <AnnouncementsBanner />
           {children}
         </div>
       </main>

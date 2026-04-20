@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Shield, LogOut, ExternalLink, Settings } from 'lucide-react'
+import { Shield, LogOut, ExternalLink, Settings, FileBarChart, Megaphone, Send } from 'lucide-react'
 import { Toaster } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
@@ -78,16 +78,37 @@ export default function SuperAdminLayout({
             </div>
           </div>
 
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-1">
             <Link
               href="/super-admin"
-              className="px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-colors"
+              className="px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors"
             >
-              Tenants
+              Panel
+            </Link>
+            <Link
+              href="/super-admin/reports"
+              className="px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors flex items-center gap-1.5"
+            >
+              <FileBarChart className="w-3.5 h-3.5" />
+              Reportes
+            </Link>
+            <Link
+              href="/super-admin/announcements"
+              className="px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors flex items-center gap-1.5"
+            >
+              <Megaphone className="w-3.5 h-3.5" />
+              Anuncios
+            </Link>
+            <Link
+              href="/super-admin/broadcast"
+              className="px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Comunicados
             </Link>
             <Link
               href="/super-admin/settings"
-              className="px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors flex items-center gap-1.5"
             >
               <Settings className="w-3.5 h-3.5" />
               Configuración
@@ -96,10 +117,9 @@ export default function SuperAdminLayout({
               href="https://app.bc-security.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors flex items-center gap-1.5"
             >
-              App Clientes
-              <ExternalLink className="w-3.5 h-3.5" />
+              App <ExternalLink className="w-3.5 h-3.5" />
             </a>
             <div className="w-px h-6 bg-white/20 mx-2" />
             <div className="text-sm font-medium text-purple-100 hidden md:block">

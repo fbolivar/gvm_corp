@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getTenantDetailAction } from '@/features/super-admin/services/superAdminService'
+import {
+  getTenantDetailAction,
+  getTenantHealthAction,
+  getLicenseHistoryAction,
+} from '@/features/super-admin/services/superAdminService'
 import { TenantDetailClient } from './TenantDetailClient'
 
 interface Props {
@@ -27,7 +31,11 @@ export default async function TenantDetailPage({ params }: Props) {
   const { data: isAdmin } = await supabase.rpc('is_platform_admin')
   if (!isAdmin) redirect('/dashboard')
 
-  const detail = await getTenantDetailAction(id)
+  const [detail, health, licenseHistory] = await Promise.all([
+    getTenantDetailAction(id),
+    getTenantHealthAction(id).catch(() => null),
+    getLicenseHistoryAction(id).catch(() => []),
+  ])
 
   if (!detail) {
     return (
@@ -49,5 +57,5 @@ export default async function TenantDetailPage({ params }: Props) {
     )
   }
 
-  return <TenantDetailClient detail={detail} />
+  return <TenantDetailClient detail={detail} health={health} licenseHistory={licenseHistory} />
 }

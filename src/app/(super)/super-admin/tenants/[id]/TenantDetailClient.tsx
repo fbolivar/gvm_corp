@@ -24,6 +24,12 @@ import {
   FileText,
   UserCircle2,
   Palette,
+  Activity,
+  History,
+  LogIn,
+  Pencil,
+  Plus,
+  Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -32,9 +38,14 @@ import {
   resetUserPasswordAction,
   removeUserFromTenantAction,
   updateTenantLicenseAction,
+  impersonateTenantAction,
   type TenantDetail,
+  type TenantHealth,
+  type LicenseHistoryRow,
 } from '@/features/super-admin/services/superAdminService'
 import { BrandingSection } from './BrandingSection'
+import { HealthSection } from './HealthSection'
+import { LicenseHistorySection } from './LicenseHistorySection'
 
 const ALL_MODULES = [
   'dashboard',
@@ -53,14 +64,30 @@ const ALL_MODULES = [
 
 interface Props {
   detail: TenantDetail
+  health: TenantHealth | null
+  licenseHistory: LicenseHistoryRow[]
 }
 
-type ActiveTab = 'info' | 'license' | 'users' | 'stats' | 'branding'
+type ActiveTab = 'info' | 'license' | 'users' | 'stats' | 'branding' | 'health' | 'history'
 
-export function TenantDetailClient({ detail: initialDetail }: Props) {
+export function TenantDetailClient({ detail: initialDetail, health, licenseHistory }: Props) {
   const router = useRouter()
   const [detail, setDetail] = useState(initialDetail)
   const [activeTab, setActiveTab] = useState<ActiveTab>('info')
+  const [impersonating, setImpersonating] = useState(false)
+
+  const handleImpersonate = async () => {
+    if (!confirm(`¿Entrar como admin del tenant "${detail.tenant.name}"?\n\nEsta acción queda registrada en el audit log.`)) return
+    setImpersonating(true)
+    const res = await impersonateTenantAction(detail.tenant.id)
+    setImpersonating(false)
+    if (!res.success || !res.url) {
+      toast.error(res.error || 'No se pudo generar el acceso')
+      return
+    }
+    window.open(res.url, '_blank', 'noopener,noreferrer')
+    toast.success('Acceso generado — abriendo en nueva pestaña')
+  }
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showLicenseModal, setShowLicenseModal] = useState(false)
@@ -103,6 +130,16 @@ export function TenantDetailClient({ detail: initialDetail }: Props) {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={handleImpersonate}
+                disabled={impersonating}
+                className="px-4 py-2 bg-emerald-500/90 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50"
+                title="Entrar como admin del tenant (quedará registrado)"
+              >
+                {impersonating ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                Impersonar
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowEditModal(true)}
                 className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-bold rounded-xl flex items-center gap-2 transition-colors"
               >
@@ -128,11 +165,13 @@ export function TenantDetailClient({ detail: initialDetail }: Props) {
           <div className="flex gap-0">
             {(
               [
-                { key: 'info', label: 'Informacion', icon: Building2 },
+                { key: 'info', label: 'Información', icon: Building2 },
+                { key: 'health', label: 'Salud', icon: Activity },
                 { key: 'license', label: 'Licencia', icon: Key },
+                { key: 'history', label: 'Historial', icon: History },
                 { key: 'branding', label: 'Marca & Dominio', icon: Palette },
                 { key: 'users', label: `Usuarios (${detail.users.length})`, icon: Users },
-                { key: 'stats', label: 'Estadisticas', icon: BarChart3 },
+                { key: 'stats', label: 'Estadísticas', icon: BarChart3 },
               ] as const
             ).map(({ key, label, icon: Icon }) => (
               <button
@@ -173,6 +212,8 @@ export function TenantDetailClient({ detail: initialDetail }: Props) {
         )}
         {activeTab === 'stats' && <StatsSection detail={detail} />}
         {activeTab === 'branding' && <BrandingSection tenantId={detail.tenant.id} />}
+        {activeTab === 'health' && <HealthSection health={health} />}
+        {activeTab === 'history' && <LicenseHistorySection history={licenseHistory} />}
       </div>
 
       {/* Modals */}
@@ -235,6 +276,8 @@ function InfoSection({ detail, onEdit }: { detail: TenantDetail; onEdit: () => v
           <button
             type="button"
             onClick={onEdit}
+            aria-label="Editar datos de la empresa"
+            title="Editar"
             className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-700 transition-colors"
           >
             <Edit2 className="w-4 h-4" />
@@ -757,8 +800,9 @@ function EditLicenseModal({
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1">Plan</label>
+            <label htmlFor="lic-plan" className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1">Plan</label>
             <select
+              id="lic-plan"
               value={form.plan}
               onChange={e => setForm(p => ({ ...p, plan: e.target.value }))}
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none"
@@ -769,8 +813,9 @@ function EditLicenseModal({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1">Estado</label>
+            <label htmlFor="lic-status" className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1">Estado</label>
             <select
+              id="lic-status"
               value={form.status}
               onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none"
@@ -909,6 +954,8 @@ function ModalWrapper({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Cerrar modal"
+            title="Cerrar"
             className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
           >
             <X className="w-5 h-5 text-slate-500" />

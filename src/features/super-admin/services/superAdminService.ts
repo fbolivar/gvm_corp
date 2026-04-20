@@ -227,6 +227,196 @@ export async function getPlatformReportAction(
   return data as PlatformReport
 }
 
+// ─── FASE 3: Health, Licencias, Impersonación, Anuncios, Broadcast ──────────
+
+export interface TenantHealthEvent {
+  log_id: string
+  action: string
+  entity: string
+  entity_id: string | null
+  actor_user_id: string | null
+  actor_name: string | null
+  created_at: string
+}
+
+export interface TenantHealth {
+  last_activity_at: string | null
+  active_users_30d: number
+  documents_7d: number
+  documents_30d: number
+  logins_30d: number
+  total_events_30d: number
+  timeline: TenantHealthEvent[]
+}
+
+export async function getTenantHealthAction(tenantId: string): Promise<TenantHealth> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_tenant_health', { p_tenant_id: tenantId })
+  if (error) throw new Error(error.message)
+  return data as TenantHealth
+}
+
+export interface LicenseHistoryRow {
+  log_id: string
+  action: string
+  actor_user_id: string | null
+  actor_name: string | null
+  created_at: string
+  payload: Record<string, unknown> | null
+}
+
+export async function getLicenseHistoryAction(tenantId: string): Promise<LicenseHistoryRow[]> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_license_history', { p_tenant_id: tenantId })
+  if (error) throw new Error(error.message)
+  return (data as LicenseHistoryRow[]) || []
+}
+
+/**
+ * Impersonación: genera un magic link para el primer admin del tenant.
+ * El super admin entra a la app del tenant con esa sesión.
+ * Registra el evento en audit_log para trazabilidad.
+ */
+export async function impersonateTenantAction(tenantId: string): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const actorId = await requirePlatformAdmin()
+    const admin = createAdminClient()
+
+    // Buscar primer admin activo del tenant
+    const { data: adminRow } = await admin
+      .from('user_tenants')
+      .select('user_id, role')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'active')
+      .ilike('role', '%admin%')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (!adminRow) {
+      return { success: false, error: 'El tenant no tiene administrador activo' }
+    }
+
+    // Email del admin
+    const { data: userData } = await admin.auth.admin.getUserById(adminRow.user_id)
+    if (!userData?.user?.email) {
+      return { success: false, error: 'No se pudo resolver el email del admin' }
+    }
+
+    // Registrar impersonación en audit_log (entity_id = tenant, actor = super admin)
+    await admin.from('audit_log').insert({
+      tenant_id: tenantId,
+      actor_user_id: actorId,
+      action: 'IMPERSONATE',
+      entity: 'tenants',
+      entity_id: tenantId,
+      payload: { target_user: adminRow.user_id, target_email: userData.user.email },
+    })
+
+    // Generar magic link
+    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: userData.user.email,
+    })
+
+    if (linkErr || !linkData?.properties?.action_link) {
+      return { success: false, error: linkErr?.message || 'Error generando link' }
+    }
+
+    return { success: true, url: linkData.properties.action_link }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error desconocido' }
+  }
+}
+
+// ─── Announcements ──────────────────────────────────────────────────────────
+
+export interface Announcement {
+  id: string
+  title: string
+  body: string
+  severity: 'info' | 'warning' | 'critical' | 'success'
+  target_plans: string[] | null
+  published_at: string
+  expires_at: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export async function listAllAnnouncementsAction(): Promise<Announcement[]> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('list_all_announcements')
+  if (error) throw new Error(error.message)
+  return (data as Announcement[]) || []
+}
+
+export async function createAnnouncementAction(input: {
+  title: string
+  body: string
+  severity: 'info' | 'warning' | 'critical' | 'success'
+  target_plans: string[] | null
+  expires_at: string | null
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const supabase = await createClient()
+    const { error } = await supabase.from('platform_announcements').insert({
+      title: input.title,
+      body: input.body,
+      severity: input.severity,
+      target_plans: input.target_plans,
+      expires_at: input.expires_at,
+    })
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/super-admin/announcements')
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error' }
+  }
+}
+
+export async function deleteAnnouncementAction(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const supabase = await createClient()
+    const { error } = await supabase.from('platform_announcements').delete().eq('id', id)
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/super-admin/announcements')
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error' }
+  }
+}
+
+// ─── Broadcast (admins destinatarios) ───────────────────────────────────────
+
+export interface BroadcastRecipient {
+  tenant_id: string
+  tenant_name: string
+  plan: string | null
+  status: string | null
+  admin_user_id: string
+  admin_email: string
+  admin_full_name: string | null
+}
+
+export async function getBroadcastRecipientsAction(
+  plans: string[] | null = null,
+  statuses: string[] | null = null,
+): Promise<BroadcastRecipient[]> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_tenant_admins_for_broadcast', {
+    p_plans: plans,
+    p_statuses: statuses,
+  })
+  if (error) throw new Error(error.message)
+  return (data as BroadcastRecipient[]) || []
+}
+
 /**
  * Create a new tenant with license and first admin user.
  * Uses admin client to bypass RLS during atomic setup.
