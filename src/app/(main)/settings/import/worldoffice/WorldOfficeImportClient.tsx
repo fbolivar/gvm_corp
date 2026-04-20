@@ -1020,6 +1020,7 @@ function BalanceImporter() {
 // ============================================================
 
 function ReceivablesImporter() {
+  const [carteraType, setCarteraType] = useState<'INVOICE' | 'VENDOR_BILL'>('INVOICE')
   const [fileName, setFileName] = useState<string | null>(null)
   const [preview, setPreview] = useState<{
     meta: { cutoff_date: string | null; company_name: string | null }
@@ -1071,7 +1072,7 @@ function ReceivablesImporter() {
     try {
       for (let i = 0; i < preview.rows.length; i += CHUNK) {
         const chunk = preview.rows.slice(i, i + CHUNK)
-        const res = await importReceivablesChunkAction(chunk)
+        const res = await importReceivablesChunkAction(chunk, carteraType)
         if (!res.success) {
           toast.error(`Lote ${Math.floor(i / CHUNK) + 1}: ${res.error}`)
           setProgress(null)
@@ -1125,6 +1126,37 @@ function ReceivablesImporter() {
 
   return (
     <div className="space-y-6">
+      {/* Toggle Cobrar / Pagar */}
+      <div className="surface-card p-4">
+        <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-3">Tipo de cartera</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => { setCarteraType('INVOICE'); reset() }}
+            disabled={importing || loading}
+            className={`px-4 py-3 rounded-lg border text-sm font-medium transition ${
+              carteraType === 'INVOICE'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900 shadow-sm'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            📥 Por Cobrar (Clientes)
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCarteraType('VENDOR_BILL'); reset() }}
+            disabled={importing || loading}
+            className={`px-4 py-3 rounded-lg border text-sm font-medium transition ${
+              carteraType === 'VENDOR_BILL'
+                ? 'bg-rose-50 border-rose-200 text-rose-900 shadow-sm'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            📤 Por Pagar (Proveedores)
+          </button>
+        </div>
+      </div>
+
       <div className="surface-card p-5 bg-sky-50/60 border-sky-200">
         <div className="flex items-start gap-3">
           <Wallet className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
@@ -1132,8 +1164,9 @@ function ReceivablesImporter() {
             <p className="font-semibold">Cómo exportar Edades de Cartera desde WorldOffice 9</p>
             <p className="text-xs">1. Tesorería → <strong>Cartera Morosa a 5 Columnas</strong> (o Edades de Cartera)</p>
             <p className="text-xs">2. <strong>Fecha de Corte</strong>: 31/03/2026 · <strong>Marcar Todo</strong> Vendedor y Cuenta Contable</p>
-            <p className="text-xs">3. Intervalos: 0-30, 31-60, 61-90, 91-120, +121 · Tipo Informe: Cliente</p>
-            <p className="text-xs">4. <strong>Ordenado por</strong>: Cliente · Click <strong>Exportar a Excel</strong></p>
+            <p className="text-xs">3. Intervalos: 0-30, 31-60, 61-90, 91-120, +121 · Tipo Informe: <strong>{carteraType === 'INVOICE' ? 'Cliente' : 'Proveedor'}</strong></p>
+            <p className="text-xs">4. Cuentas: <strong>{carteraType === 'INVOICE' ? '13 DEUDORES' : '22 PROVEEDORES o 23 CXP'}</strong></p>
+            <p className="text-xs">5. <strong>Ordenado por</strong>: Tercero · Click <strong>Exportar a Excel</strong></p>
           </div>
         </div>
       </div>
@@ -1249,7 +1282,7 @@ function ReceivablesImporter() {
                     {progress ? `Importando ${progress.done.toLocaleString()}/${progress.total.toLocaleString()}...` : 'Importando...'}
                   </>
                 ) : (
-                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} facturas</>
+                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} {carteraType === 'INVOICE' ? 'facturas' : 'cuentas por pagar'}</>
                 )}
               </Button>
             </div>

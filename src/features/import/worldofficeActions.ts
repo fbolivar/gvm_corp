@@ -1025,7 +1025,10 @@ export async function previewWorldOfficeReceivablesAction(csv: string, limit = 3
   }
 }
 
-export async function importReceivablesChunkAction(rows: ReceivableRow[]): Promise<
+export async function importReceivablesChunkAction(
+  rows: ReceivableRow[],
+  docType: 'INVOICE' | 'VENDOR_BILL' = 'INVOICE',
+): Promise<
   | { success: true; processed: number; skipped: number; unmatched_party: number; total_balance: number }
   | { success: false; error: string }
 > {
@@ -1041,6 +1044,7 @@ export async function importReceivablesChunkAction(rows: ReceivableRow[]): Promi
     const { data, error } = await supabase.rpc('import_receivables_wo', {
       p_tenant_id: ut.tenant_id,
       p_rows: rows,
+      p_doc_type: docType,
     })
     if (error) return { success: false, error: error.message }
     const r = data as { processed?: number; skipped?: number; unmatched_party?: number; total_balance?: number }
