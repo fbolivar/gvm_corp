@@ -539,14 +539,15 @@ function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: Bal
     if (accountMatch) {
       const code = accountMatch[1]
       const name = accountMatch[2].trim()
-      // Solo tomar auxiliares (8+ dígitos) como cuenta del contexto
-      // Los niveles superiores (1,2,4,6 dígitos) se ignoran como header
-      if (code.length >= 8) {
+      // Aceptamos como contexto cualquier código de 4+ dígitos.
+      // GVM usa tanto subcuentas de 6 dígitos (p.ej. 110510) como auxiliares de 8 (11050501)
+      // como nivel "leaf" con parties. Si después viene un header más profundo,
+      // éste lo sobrescribe; si viene una fila de tercero, se asocia al último código.
+      if (code.length >= 4) {
         currentAccountCode = code
         currentAccountName = name
       } else {
-        // Código de nivel superior — actualizamos "en expectativa"
-        // (hasta que llegue una cuenta auxiliar)
+        // Clase (1) o grupo (2) — no deberían tener parties directamente bajo
         currentAccountCode = null
         currentAccountName = null
       }
@@ -672,14 +673,20 @@ export async function previewWorldOfficeBalanceAction(
       .in('code', accCodes)
 
     const docs = Array.from(uniqueParties)
-    // Supabase IN limitado a ~1000 por query, pero manejable
-    const { data: existingParties } = docs.length > 0
-      ? await supabase
-          .from('parties')
-          .select('doc_number')
-          .eq('tenant_id', ut.tenant_id)
-          .in('doc_number', docs.slice(0, 2000))
-      : { data: [] as { doc_number: string }[] }
+    // Chunk por 500 y usar .range() para bypass del límite 1000 de PostgREST
+    const matchedDocs = new Set<string>()
+    const PARTY_CHUNK = 500
+    for (let i = 0; i < docs.length; i += PARTY_CHUNK) {
+      const chunk = docs.slice(i, i + PARTY_CHUNK)
+      if (chunk.length === 0) continue
+      const { data } = await supabase
+        .from('parties')
+        .select('doc_number')
+        .eq('tenant_id', ut.tenant_id)
+        .in('doc_number', chunk)
+        .range(0, 9999)
+      ;(data || []).forEach((p: { doc_number: string }) => matchedDocs.add(p.doc_number))
+    }
 
     return {
       success: true,
@@ -691,7 +698,7 @@ export async function previewWorldOfficeBalanceAction(
       total_debits: totalDebits,
       total_credits: totalCredits,
       accounts_matched: (existingAccounts || []).length,
-      parties_matched: (existingParties || []).length,
+      parties_matched: matchedDocs.size,
     }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
