@@ -111,3 +111,79 @@ export async function deleteDocumentAction(id: string): Promise<{ error?: string
     revalidatePath('/documents');
     return {};
 }
+
+/**
+ * Versión "fuerza" del delete: desvincula los documentos hijos (SET parent_id = NULL)
+ * antes de borrar. Útil cuando el usuario confirma que quiere eliminar el padre
+ * manteniendo los hijos (ej: borrar una cotización DRAFT y dejar la factura hija
+ * como documento independiente).
+ *
+ * Mantiene los demás pre-checks (status DRAFT, firma DIAN).
+ */
+export async function forceDeleteDocumentAction(id: string): Promise<{ error?: string; unlinked?: number }> {
+    const supabase = await createClient();
+
+    try {
+        const { data: doc, error: selErr } = await supabase
+            .from('documents')
+            .select('id, status, doc_type, number')
+            .eq('id', id)
+            .single();
+
+        if (selErr || !doc) {
+            return { error: 'Documento no encontrado' };
+        }
+
+        if (doc.status !== 'DRAFT') {
+            return {
+                error: `No se puede borrar un documento en estado ${doc.status}. Solo se pueden borrar borradores (DRAFT).`,
+            };
+        }
+
+        // Firma DIAN sigue bloqueando aunque sea "force"
+        const { data: edocs } = await supabase
+            .from('electronic_documents')
+            .select('id, cufe')
+            .eq('document_id', id)
+            .limit(1);
+
+        if (edocs && edocs.length > 0 && edocs[0].cufe) {
+            return {
+                error: 'No se puede borrar: el documento tiene firma electrónica DIAN. Debe anularse con nota crédito.',
+            };
+        }
+
+        // Desvincular hijos (dejarlos como documentos independientes)
+        const { data: unlinkedRows, error: unlinkErr } = await supabase
+            .from('documents')
+            .update({ parent_id: null })
+            .eq('parent_id', id)
+            .select('id');
+
+        if (unlinkErr) {
+            return { error: `Error desvinculando hijos: ${unlinkErr.message}` };
+        }
+        const unlinked = unlinkedRows?.length ?? 0;
+
+        // Limpiar electronic_documents borrador
+        await supabase.from('electronic_documents').delete().eq('document_id', id);
+
+        // Líneas + documento
+        await supabase.from('document_lines').delete().eq('document_id', id);
+        const { error: delErr } = await supabase.from('documents').delete().eq('id', id);
+        if (delErr) {
+            return { error: `Error eliminando documento: ${delErr.message}` };
+        }
+
+        revalidatePath('/sales/invoices');
+        revalidatePath('/sales/quotations');
+        revalidatePath('/sales/orders');
+        revalidatePath('/purchasing/orders');
+        revalidatePath('/purchasing/bills');
+        revalidatePath('/documents');
+
+        return { unlinked };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : 'Error desconocido' };
+    }
+}

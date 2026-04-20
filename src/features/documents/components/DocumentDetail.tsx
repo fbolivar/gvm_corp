@@ -32,7 +32,7 @@ import {
 } from "lucide-react"
 import { emitDianAction } from '@/features/dian/actions'
 import { createPaymentLinkAction } from '@/features/payments/actions'
-import { deleteDocumentAction } from '../actions'
+import { deleteDocumentAction, forceDeleteDocumentAction } from '../actions'
 import { toast } from 'sonner'
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -88,8 +88,36 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
 
         setProcessing(true);
         const result = await deleteDocumentAction(document.id);
-        setProcessing(false);
 
+        // Si el error es por documentos hijos vinculados, ofrecer desvincular y borrar
+        if (result.error && result.error.includes('documento(s) vinculado(s)')) {
+            setProcessing(false);
+            const forceOk = await confirmFn({
+                title: "Hay documentos vinculados",
+                description: `${result.error}\n\n¿Quieres desvincular esos documentos (quedarán independientes) y eliminar este documento igual?`,
+                variant: "danger",
+                confirmLabel: "Desvincular y eliminar",
+            });
+            if (!forceOk) return;
+
+            setProcessing(true);
+            const forceResult = await forceDeleteDocumentAction(document.id);
+            setProcessing(false);
+
+            if (forceResult.error) {
+                toast.error(forceResult.error);
+                return;
+            }
+            toast.success(
+                forceResult.unlinked && forceResult.unlinked > 0
+                    ? `Documento eliminado. ${forceResult.unlinked} vínculo(s) desvinculado(s).`
+                    : 'Documento eliminado'
+            );
+            router.push('/sales/invoices');
+            return;
+        }
+
+        setProcessing(false);
         if (result.error) {
             toast.error(result.error);
             return;
