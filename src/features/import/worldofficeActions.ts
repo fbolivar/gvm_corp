@@ -811,32 +811,43 @@ export async function importWorldOfficeBalanceAction(
     const finalPeriodEnd = meta.period_end || finalCutoff
     if (!finalCutoff) return { success: false, error: 'No se pudo determinar la fecha de corte' }
 
-    // Chunk grande para minimizar round-trips (Vercel timeout 60s default)
-    // 16k filas / 2000 = 8 chunks ~ 15-20s total
-    const CHUNK = 2000
+    // 16k filas / 500 = 34 chunks. Cada uno ~1-2s en Supabase. Total: 30-60s
+    const CHUNK = 500
     let processed = 0
     let skipped = 0
     let debits = 0
     let credits = 0
+    const t0 = Date.now()
+    console.log(`[wo-balance-import] start: ${rows.length} rows, ${Math.ceil(rows.length / CHUNK)} chunks`)
 
     for (let i = 0; i < rows.length; i += CHUNK) {
       const chunk = rows.slice(i, i + CHUNK)
-      const { data, error } = await supabase.rpc('import_opening_balances_wo', {
-        p_tenant_id: ut.tenant_id,
-        p_cutoff_date: finalCutoff,
-        p_period_start: finalPeriodStart,
-        p_period_end: finalPeriodEnd,
-        p_rows: chunk,
-      })
-      if (error) {
-        return { success: false, error: `Error lote ${Math.floor(i / CHUNK) + 1}: ${error.message}` }
+      const chunkN = Math.floor(i / CHUNK) + 1
+      const tChunk = Date.now()
+      try {
+        const { data, error } = await supabase.rpc('import_opening_balances_wo', {
+          p_tenant_id: ut.tenant_id,
+          p_cutoff_date: finalCutoff,
+          p_period_start: finalPeriodStart,
+          p_period_end: finalPeriodEnd,
+          p_rows: chunk,
+        })
+        if (error) {
+          console.error(`[wo-balance-import] chunk ${chunkN} error:`, error.message, error.code, error.details)
+          return { success: false, error: `Error lote ${chunkN}: ${error.message}` }
+        }
+        const r = data as { processed?: number; skipped?: number; total_debits?: number; total_credits?: number }
+        processed += r?.processed ?? 0
+        skipped += r?.skipped ?? 0
+        debits += r?.total_debits ?? 0
+        credits += r?.total_credits ?? 0
+        console.log(`[wo-balance-import] chunk ${chunkN}/${Math.ceil(rows.length / CHUNK)} ok in ${Date.now() - tChunk}ms (acc processed=${processed})`)
+      } catch (e) {
+        console.error(`[wo-balance-import] chunk ${chunkN} threw:`, e instanceof Error ? e.message : String(e))
+        return { success: false, error: `Excepción lote ${chunkN}: ${e instanceof Error ? e.message : 'desconocida'}` }
       }
-      const r = data as { processed?: number; skipped?: number; total_debits?: number; total_credits?: number }
-      processed += r?.processed ?? 0
-      skipped += r?.skipped ?? 0
-      debits += r?.total_debits ?? 0
-      credits += r?.total_credits ?? 0
     }
+    console.log(`[wo-balance-import] done in ${Date.now() - t0}ms. processed=${processed} skipped=${skipped}`)
 
     // No revalidamos /accounting aquí — el snapshot vive en su propia tabla
     // y revalidar puede triggerear render de páginas que aún no existen.
