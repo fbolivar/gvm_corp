@@ -703,6 +703,7 @@ export async function previewWorldOfficeBalanceAction(
       meta: BalanceMeta
       total: number
       sample: BalanceRow[]
+      rows: BalanceRow[]                  // todas las filas, para que el cliente las chunkee al importar
       accounts_count: number
       parties_count: number
       total_debits: number
@@ -770,25 +771,24 @@ export async function previewWorldOfficeBalanceAction(
       accounts_matched: (existingAccounts || []).length,
       parties_matched: matchedDocs.size,
       diagnostics,
+      rows,                                // cliente lo cachea para chunkear durante import
     }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
   }
 }
 
-export async function importWorldOfficeBalanceAction(
-  csv: string,
-  cutoffDate: string,  // YYYY-MM-DD (el usuario puede sobrescribir el del archivo)
+/**
+ * Inserta UN chunk de filas (típicamente 500). El cliente loop calls
+ * para evitar sobrecarga de payload o timeout en una sola llamada.
+ */
+export async function importBalanceChunkAction(
+  rows: BalanceRow[],
+  cutoffDate: string,
+  periodStart: string,
+  periodEnd: string,
 ): Promise<
-  | {
-      success: true
-      total: number
-      processed: number
-      skipped: number
-      total_debits: number
-      total_credits: number
-      difference: number
-    }
+  | { success: true; processed: number; skipped: number; total_debits: number; total_credits: number }
   | { success: false; error: string }
 > {
   try {
@@ -803,66 +803,28 @@ export async function importWorldOfficeBalanceAction(
       .maybeSingle()
     if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
 
-    const { meta, rows } = parseWorldOfficeBalanceCsv(csv)  // diagnostics no se usa en import
-    if (rows.length === 0) return { success: false, error: 'CSV sin movimientos' }
+    if (!rows || rows.length === 0) return { success: false, error: 'Chunk vacío' }
+    if (!cutoffDate) return { success: false, error: 'cutoffDate requerido' }
 
-    const finalCutoff = cutoffDate || meta.cutoff_date
-    const finalPeriodStart = meta.period_start || finalCutoff
-    const finalPeriodEnd = meta.period_end || finalCutoff
-    if (!finalCutoff) return { success: false, error: 'No se pudo determinar la fecha de corte' }
+    const { data, error } = await supabase.rpc('import_opening_balances_wo', {
+      p_tenant_id: ut.tenant_id,
+      p_cutoff_date: cutoffDate,
+      p_period_start: periodStart || cutoffDate,
+      p_period_end: periodEnd || cutoffDate,
+      p_rows: rows,
+    })
+    if (error) return { success: false, error: error.message }
 
-    // 16k filas / 500 = 34 chunks. Cada uno ~1-2s en Supabase. Total: 30-60s
-    const CHUNK = 500
-    let processed = 0
-    let skipped = 0
-    let debits = 0
-    let credits = 0
-    const t0 = Date.now()
-    console.log(`[wo-balance-import] start: ${rows.length} rows, ${Math.ceil(rows.length / CHUNK)} chunks`)
-
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const chunk = rows.slice(i, i + CHUNK)
-      const chunkN = Math.floor(i / CHUNK) + 1
-      const tChunk = Date.now()
-      try {
-        const { data, error } = await supabase.rpc('import_opening_balances_wo', {
-          p_tenant_id: ut.tenant_id,
-          p_cutoff_date: finalCutoff,
-          p_period_start: finalPeriodStart,
-          p_period_end: finalPeriodEnd,
-          p_rows: chunk,
-        })
-        if (error) {
-          console.error(`[wo-balance-import] chunk ${chunkN} error:`, error.message, error.code, error.details)
-          return { success: false, error: `Error lote ${chunkN}: ${error.message}` }
-        }
-        const r = data as { processed?: number; skipped?: number; total_debits?: number; total_credits?: number }
-        processed += r?.processed ?? 0
-        skipped += r?.skipped ?? 0
-        debits += r?.total_debits ?? 0
-        credits += r?.total_credits ?? 0
-        console.log(`[wo-balance-import] chunk ${chunkN}/${Math.ceil(rows.length / CHUNK)} ok in ${Date.now() - tChunk}ms (acc processed=${processed})`)
-      } catch (e) {
-        console.error(`[wo-balance-import] chunk ${chunkN} threw:`, e instanceof Error ? e.message : String(e))
-        return { success: false, error: `Excepción lote ${chunkN}: ${e instanceof Error ? e.message : 'desconocida'}` }
-      }
-    }
-    console.log(`[wo-balance-import] done in ${Date.now() - t0}ms. processed=${processed} skipped=${skipped}`)
-
-    // No revalidamos /accounting aquí — el snapshot vive en su propia tabla
-    // y revalidar puede triggerear render de páginas que aún no existen.
-
+    const r = data as { processed?: number; skipped?: number; total_debits?: number; total_credits?: number }
     return {
       success: true,
-      total: rows.length,
-      processed,
-      skipped,
-      total_debits: debits,
-      total_credits: credits,
-      difference: debits - credits,
+      processed: r?.processed ?? 0,
+      skipped: r?.skipped ?? 0,
+      total_debits: r?.total_debits ?? 0,
+      total_credits: r?.total_credits ?? 0,
     }
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Error' }
+    return { success: false, error: err instanceof Error ? err.message : 'Error en chunk' }
   }
 }
 

@@ -24,7 +24,7 @@ import {
   previewWorldOfficePartiesAction,
   importWorldOfficePartiesAction,
   previewWorldOfficeBalanceAction,
-  importWorldOfficeBalanceAction,
+  importBalanceChunkAction,
 } from '@/features/import/worldofficeActions'
 
 type Tab = 'puc' | 'parties' | 'balance' | 'entries'
@@ -665,6 +665,7 @@ interface BalanceRow {
   account_name: string | null
   party_doc_number: string
   party_name: string
+  party_doc_type: string | null
   saldo_inicial: number
   debitos: number
   creditos: number
@@ -679,12 +680,12 @@ interface BalanceMeta {
 }
 
 function BalanceImporter() {
-  const [csvContent, setCsvContent] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [preview, setPreview] = useState<{
     meta: BalanceMeta
     total: number
     sample: BalanceRow[]
+    rows: BalanceRow[]
     accounts_count: number
     parties_count: number
     total_debits: number
@@ -695,6 +696,7 @@ function BalanceImporter() {
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
   const [cutoffOverride, setCutoffOverride] = useState<string>('')
   const [importResult, setImportResult] = useState<{ processed: number; difference: number } | null>(null)
 
@@ -704,13 +706,11 @@ function BalanceImporter() {
     setImportResult(null)
     try {
       const text = await file.text()
-      setCsvContent(text)
       setFileName(file.name)
 
       const res = await previewWorldOfficeBalanceAction(text)
       if (!res.success) {
         toast.error(res.error)
-        setCsvContent(null)
         setFileName(null)
         return
       }
@@ -725,7 +725,7 @@ function BalanceImporter() {
   }
 
   const handleImport = async () => {
-    if (!csvContent || !preview) return
+    if (!preview || !preview.rows) return
     const diff = preview.total_debits - preview.total_credits
     const diffMsg = Math.abs(diff) > 1
       ? `\n\n⚠️ Advertencia: débitos - créditos = ${fmtMoney(diff)} (debería ser cercano a 0).`
@@ -733,23 +733,39 @@ function BalanceImporter() {
     if (!confirm(`¿Importar saldos iniciales al corte ${cutoffOverride}?\n\n· ${preview.total} movimientos\n· ${preview.accounts_count} cuentas\n· ${preview.parties_count} terceros${diffMsg}`)) return
 
     setImporting(true)
+    setImportProgress({ done: 0, total: preview.rows.length })
+    const periodStart = preview.meta.period_start || cutoffOverride
+    const periodEnd = preview.meta.period_end || cutoffOverride
+    const CHUNK = 500
+    let processed = 0
+    let totalDebits = 0
+    let totalCredits = 0
+
     try {
-      const res = await importWorldOfficeBalanceAction(csvContent, cutoffOverride)
-      if (!res.success) {
-        toast.error(res.error || 'Error')
-        return
+      for (let i = 0; i < preview.rows.length; i += CHUNK) {
+        const chunk = preview.rows.slice(i, i + CHUNK)
+        const res = await importBalanceChunkAction(chunk, cutoffOverride, periodStart, periodEnd)
+        if (!res.success) {
+          toast.error(`Lote ${Math.floor(i / CHUNK) + 1}: ${res.error}`)
+          setImportProgress(null)
+          return
+        }
+        processed += res.processed
+        totalDebits += res.total_debits
+        totalCredits += res.total_credits
+        setImportProgress({ done: i + chunk.length, total: preview.rows.length })
       }
-      toast.success(`${res.processed} saldos importados`)
-      setImportResult({ processed: res.processed, difference: res.difference })
+      toast.success(`${processed} saldos importados`)
+      setImportResult({ processed, difference: totalDebits - totalCredits })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error')
     } finally {
       setImporting(false)
+      setImportProgress(null)
     }
   }
 
   const reset = () => {
-    setCsvContent(null)
     setFileName(null)
     setPreview(null)
     setImportResult(null)
@@ -976,7 +992,11 @@ function BalanceImporter() {
               <Button variant="outline" onClick={reset} disabled={importing}>Cancelar</Button>
               <Button onClick={handleImport} disabled={importing || !cutoffOverride}>
                 {importing ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando...</>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {importProgress
+                      ? `Importando ${importProgress.done.toLocaleString()}/${importProgress.total.toLocaleString()}...`
+                      : 'Importando...'}
+                  </>
                 ) : (
                   <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} saldos</>
                 )}
