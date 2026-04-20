@@ -124,13 +124,22 @@ export default async function DeliveryNotePage({
     // Display number sin prefix REM- (como Dolibarr: REMISIÓN No.-05911)
     const displayNumber = (doc.number || '').replace(/^REM-/i, '') || '—';
 
+    // Nombre de archivo al guardar como PDF: REMISION No-00001 - Cliente - 20-04-2026
+    const clientName = (party?.legal_name || 'Cliente').replace(/[\\/:*?"<>|]/g, '').slice(0, 40).trim();
+    const fileDate = (doc.issue_date || '').replaceAll('-', '-');
+    const filename = `REMISION No-${displayNumber} - ${clientName} - ${fileDate}`;
+
     return (
         <>
             <style>{`
+                @media screen {
+                    .rm-doc { padding: 32px 40px; }
+                }
                 @media print {
-                    @page { size: A4; margin: 14mm; }
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+                    @page { size: A4; margin: 12mm; }
+                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     .no-print { display: none !important; }
+                    .rm-doc { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
                 }
                 .rm-table { border-collapse: collapse; width: 100%; }
                 .rm-table th, .rm-table td { border: 1px solid #94a3b8; padding: 6px 8px; }
@@ -139,10 +148,10 @@ export default async function DeliveryNotePage({
             `}</style>
 
             {/* Controles (solo pantalla) — auto-abre diálogo de impresión al cargar */}
-            <DeliveryNotePrintControls docId={doc.id} />
+            <DeliveryNotePrintControls docId={doc.id} filename={filename} />
 
             {/* ═══════════════════════ REMISIÓN (A4) ═══════════════════════ */}
-            <div className="max-w-[800px] mx-auto bg-white px-10 py-8 text-slate-900 font-sans text-[11px] leading-[1.45] print:px-0 print:py-0 print:max-w-full">
+            <div className="rm-doc max-w-[780px] mx-auto bg-white text-slate-900 font-sans text-[11px] leading-[1.45]">
 
                 {/* HEADER: logo a la izquierda, "Hoja de envío" + datos a la derecha */}
                 <div className="flex items-start justify-between mb-8">
