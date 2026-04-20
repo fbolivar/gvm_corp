@@ -50,6 +50,60 @@ export interface PlatformMetrics {
   }
 }
 
+export interface PlatformExecMetrics {
+  total_tenants: number
+  active_licenses: number
+  expired_licenses: number
+  suspended_tenants: number
+  total_users: number
+  tenants_created_this_month: number
+  tenants_created_last_month: number
+  mrr_estimated: number
+  arr_projected: number
+  trials_active: number
+  trials_expiring_7d: number
+  licenses_expiring_30d: number
+  licenses_expiring_7d: number
+  plans: {
+    enterprise: number
+    professional: number
+    starter: number
+    trial: number
+  }
+}
+
+export interface TenantsTrendRow {
+  month_label: string
+  month_start: string
+  tenants_created: number
+}
+
+export type RiskLevel = 'high' | 'medium' | 'low'
+
+export interface TenantRisk {
+  tenant_id: string
+  tenant_name: string
+  risk_level: RiskLevel
+  reasons: string[]
+  license_plan: string | null
+  valid_until: string | null
+  days_to_expire: number | null
+  users_count: number
+  max_users: number
+}
+
+export interface PlatformActivityRow {
+  log_id: string
+  tenant_id: string | null
+  tenant_name: string | null
+  actor_user_id: string | null
+  actor_name: string | null
+  action: string
+  entity: string
+  entity_id: string | null
+  created_at: string
+}
+
 export interface NewTenantInput {
   company_name: string
   nit: string
@@ -88,6 +142,38 @@ export async function getPlatformMetricsAction(): Promise<PlatformMetrics> {
   const { data, error } = await supabase.rpc('get_platform_metrics')
   if (error) throw new Error(error.message)
   return data as PlatformMetrics
+}
+
+export async function getPlatformExecMetricsAction(): Promise<PlatformExecMetrics> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_platform_exec_metrics')
+  if (error) throw new Error(error.message)
+  return data as PlatformExecMetrics
+}
+
+export async function getTenantsTrendAction(months = 6): Promise<TenantsTrendRow[]> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_tenants_trend', { p_months: months })
+  if (error) throw new Error(error.message)
+  return (data as TenantsTrendRow[]) || []
+}
+
+export async function getTenantsRiskAction(): Promise<TenantRisk[]> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_tenants_risk')
+  if (error) throw new Error(error.message)
+  return (data as TenantRisk[]) || []
+}
+
+export async function getPlatformActivityAction(limit = 20): Promise<PlatformActivityRow[]> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_platform_activity', { p_limit: limit })
+  if (error) throw new Error(error.message)
+  return (data as PlatformActivityRow[]) || []
 }
 
 /**

@@ -1,47 +1,95 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Building2,
   Users,
-  CheckCircle2,
-  XCircle,
   Plus,
-  Calendar,
   TrendingUp,
+  TrendingDown,
   AlertTriangle,
   Search,
-  ExternalLink,
   Download,
   FileText,
+  Activity,
+  DollarSign,
+  ShieldCheck,
+  Sparkles,
+  Clock,
+  ArrowRight,
+  BarChart3,
+  FileBarChart,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   suspendTenantAction,
   reactivateTenantAction,
   type TenantRow,
-  type PlatformMetrics,
+  type PlatformExecMetrics,
+  type TenantsTrendRow,
+  type TenantRisk,
+  type PlatformActivityRow,
+  type RiskLevel,
 } from '@/features/super-admin/services/superAdminService'
 import { NewTenantModal } from './NewTenantModal'
 
 interface Props {
   tenants: TenantRow[]
-  metrics: PlatformMetrics
+  execMetrics: PlatformExecMetrics
+  trend: TenantsTrendRow[]
+  risks: TenantRisk[]
+  activity: PlatformActivityRow[]
 }
 
-export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props) {
+function fmtUSD(n: number): string {
+  return `$${Math.round(n).toLocaleString('en-US')}`
+}
+
+function fmtRelative(iso: string): string {
+  const d = new Date(iso)
+  const diffMs = Date.now() - d.getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return 'ahora'
+  if (mins < 60) return `hace ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `hace ${hours} h`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `hace ${days} d`
+  return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+}
+
+export function SuperAdminDashboard({ tenants, execMetrics, trend, risks, activity }: Props) {
   const router = useRouter()
-  const [tenants] = useState(initialTenants)
   const [search, setSearch] = useState('')
   const [showNewModal, setShowNewModal] = useState(false)
 
-  const filtered = tenants.filter(
+  const riskMap = useMemo(() => {
+    const m = new Map<string, TenantRisk>()
+    risks.forEach(r => m.set(r.tenant_id, r))
+    return m
+  }, [risks])
+
+  const filtered = useMemo(() => tenants.filter(
     t =>
       t.tenant_name.toLowerCase().includes(search.toLowerCase()) ||
       t.nit?.toLowerCase().includes(search.toLowerCase())
-  )
+  ), [tenants, search])
+
+  const growth = useMemo(() => {
+    if (execMetrics.tenants_created_last_month === 0) {
+      return execMetrics.tenants_created_this_month > 0 ? 100 : 0
+    }
+    return Math.round(
+      ((execMetrics.tenants_created_this_month - execMetrics.tenants_created_last_month) /
+        execMetrics.tenants_created_last_month) *
+        100,
+    )
+  }, [execMetrics])
+
+  const highRiskCount = risks.filter(r => r.risk_level === 'high').length
+  const mediumRiskCount = risks.filter(r => r.risk_level === 'medium').length
 
   const handleSuspend = async (tenantId: string, tenantName: string) => {
     if (!confirm(`¿Suspender tenant "${tenantName}"? Perderán acceso al sistema.`)) return
@@ -71,15 +119,14 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
       Plan: t.license_plan,
       Estado: t.license_status,
       Vigencia: t.license_valid_until || '',
+      Riesgo: riskMap.get(t.tenant_id)?.risk_level || 'low',
       MaxUsuarios: t.max_users,
       Usuarios: t.users_count,
       Documentos: t.documents_count,
       Creado: new Date(t.created_at).toLocaleDateString('es-CO'),
     }))
     const headers = Object.keys(rows[0] || {}).join(',')
-    const csv =
-      headers +
-      '\n' +
+    const csv = headers + '\n' +
       rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -88,291 +135,282 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
     a.download = `bc-fabric-tenants-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success('Reporte CSV descargado')
-  }
-
-  const handleExportPDF = async () => {
-    toast.loading('Generando PDF...', { id: 'pdf' })
-    const jsPDF = (await import('jspdf')).default
-    const doc = new jsPDF()
-
-    // Header
-    doc.setFillColor(79, 70, 229)
-    doc.rect(0, 0, 210, 40, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(20)
-    doc.text('BC FABRIC SAS', 20, 18)
-    doc.setFontSize(12)
-    doc.text('Reporte de Plataforma', 20, 28)
-    doc.setFontSize(9)
-    doc.text(new Date().toLocaleDateString('es-CO', { dateStyle: 'full' }), 20, 35)
-
-    // Metrics
-    doc.setTextColor(30, 41, 59)
-    doc.setFontSize(10)
-    let y = 55
-    doc.setFont('helvetica', 'bold')
-    doc.text('MÉTRICAS GLOBALES', 20, y)
-    y += 6
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.text(`Total Tenants: ${metrics.total_tenants}`, 20, y); y += 5
-    doc.text(`Licencias Activas: ${metrics.active_licenses}`, 20, y); y += 5
-    doc.text(`Licencias Expiradas: ${metrics.expired_licenses}`, 20, y); y += 5
-    doc.text(`Usuarios Totales: ${metrics.total_users}`, 20, y); y += 5
-    doc.text(`Nuevos este mes: ${metrics.tenants_created_this_month}`, 20, y); y += 10
-
-    doc.setFont('helvetica', 'bold')
-    doc.text('DISTRIBUCIÓN POR PLAN', 20, y); y += 6
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Enterprise: ${metrics.plans.enterprise}  |  Professional: ${metrics.plans.professional}  |  Starter: ${metrics.plans.starter}  |  Trial: ${metrics.plans.trial}`, 20, y)
-    y += 10
-
-    // Table
-    doc.setFont('helvetica', 'bold')
-    doc.text('LISTADO DE TENANTS', 20, y); y += 6
-    doc.setFillColor(241, 245, 249)
-    doc.rect(20, y - 3, 170, 7, 'F')
-    doc.setFontSize(8)
-    doc.text('Empresa', 22, y + 2)
-    doc.text('NIT', 80, y + 2)
-    doc.text('Plan', 110, y + 2)
-    doc.text('Vence', 135, y + 2)
-    doc.text('Users', 165, y + 2)
-    doc.text('Docs', 180, y + 2)
-    y += 8
-
-    doc.setFont('helvetica', 'normal')
-    for (const t of tenants) {
-      if (y > 270) {
-        doc.addPage()
-        y = 20
-      }
-      doc.text(t.tenant_name.substring(0, 35), 22, y)
-      doc.text(t.nit || '—', 80, y)
-      doc.text(t.license_plan.substring(0, 12), 110, y)
-      doc.text(t.license_valid_until || '—', 135, y)
-      doc.text(`${t.users_count}/${t.max_users}`, 165, y)
-      doc.text(String(t.documents_count), 180, y)
-      y += 5
-    }
-
-    // Footer
-    const pageCount = doc.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i)
-      doc.setFontSize(7)
-      doc.setTextColor(148, 163, 184)
-      doc.text(
-        `BC Fabric SAS · Confidencial · Página ${i} de ${pageCount}`,
-        105,
-        290,
-        { align: 'center' },
-      )
-    }
-
-    doc.save(`bc-fabric-reporte-${new Date().toISOString().split('T')[0]}.pdf`)
-    toast.success('Reporte PDF generado', { id: 'pdf' })
+    toast.success('CSV descargado')
   }
 
   return (
-    <div className="p-6 md:p-10">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto mb-10 flex items-start justify-between gap-4">
+    <div className="px-6 md:px-10 py-8 max-w-[1400px] mx-auto">
+      {/* ═══════════ HEADER ═══════════ */}
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
-            Gestión de la Plataforma
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Panel de plataforma
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+            Observatorio ejecutivo
           </h1>
-          <p className="text-sm text-slate-500 mt-2 font-medium max-w-2xl">
-            Controla todos los tenants, licencias y métricas globales de BC Fabric SAS.
+          <p className="text-sm text-slate-500 mt-1 max-w-2xl">
+            Monitoreo en tiempo real de tenants, licencias y salud del negocio.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href="/super-admin/reports"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            <FileBarChart className="w-4 h-4" />
+            Reportes
+          </Link>
           <button
             type="button"
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
           >
             <Download className="w-4 h-4" />
-            Excel
+            CSV
           </button>
-          <button
-            type="button"
-            onClick={handleExportPDF}
-            className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold flex items-center gap-1.5"
-          >
-            <FileText className="w-4 h-4" />
-            PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
-        <MetricCard
-          icon={Building2}
-          label="Total Tenants"
-          value={metrics.total_tenants}
-          color="bg-blue-100 text-blue-700"
-        />
-        <MetricCard
-          icon={CheckCircle2}
-          label="Licencias Activas"
-          value={metrics.active_licenses}
-          color="bg-emerald-100 text-emerald-700"
-        />
-        <MetricCard
-          icon={XCircle}
-          label="Licencias Expiradas"
-          value={metrics.expired_licenses}
-          color="bg-red-100 text-red-700"
-        />
-        <MetricCard
-          icon={Users}
-          label="Usuarios Totales"
-          value={metrics.total_users}
-          color="bg-purple-100 text-purple-700"
-        />
-        <MetricCard
-          icon={TrendingUp}
-          label="Nuevos Este Mes"
-          value={metrics.tenants_created_this_month}
-          color="bg-amber-100 text-amber-700"
-        />
-      </div>
-
-      {/* Plan breakdown */}
-      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <PlanCard label="Enterprise" count={metrics.plans.enterprise} color="purple" />
-        <PlanCard label="Professional" count={metrics.plans.professional} color="blue" />
-        <PlanCard label="Starter" count={metrics.plans.starter} color="slate" />
-        <PlanCard label="Trial" count={metrics.plans.trial} color="amber" />
-      </div>
-
-      {/* Tenants table */}
-      <div className="max-w-7xl mx-auto bg-white border-2 border-slate-200 rounded-2xl overflow-hidden">
-        <div className="p-6 flex items-center justify-between gap-4 border-b-2 border-slate-100">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por nombre o NIT..."
-              className="w-full pl-10 pr-4 py-2 border-2 border-slate-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none"
-            />
-          </div>
           <button
             type="button"
             onClick={() => setShowNewModal(true)}
-            className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-sm flex items-center gap-2 whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Nuevo Tenant
+            Nuevo tenant
           </button>
         </div>
+      </header>
 
-        <table className="w-full">
-          <thead>
-            <tr className="bg-slate-50 text-left">
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">Tenant</th>
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">NIT</th>
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">Plan</th>
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">Licencia</th>
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">Vence</th>
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">Users</th>
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">Docs</th>
-              <th className="px-6 py-3 text-xs font-black uppercase tracking-wide text-slate-600">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-slate-400 text-sm">
-                  No hay tenants que coincidan
-                </td>
-              </tr>
-            ) : (
-              filtered.map(t => {
-                const isExpired = t.license_valid_until
-                  ? new Date(t.license_valid_until) < new Date()
-                  : false
-                const isSuspended = t.license_status === 'SUSPENDED'
-                return (
-                  <tr
-                    key={t.tenant_id}
-                    className="hover:bg-slate-50 cursor-pointer"
-                    onClick={() => router.push(`/super-admin/tenants/${t.tenant_id}`)}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900 flex items-center gap-1.5 group">
-                        <Link
-                          href={`/super-admin/tenants/${t.tenant_id}`}
-                          onClick={e => e.stopPropagation()}
-                          className="hover:text-purple-700 transition-colors"
-                        >
-                          {t.tenant_name}
-                        </Link>
-                        <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-purple-500 transition-colors" />
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        Creado: {new Date(t.created_at).toLocaleDateString('es-CO')}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-700 font-mono">{t.nit || '—'}</td>
-                    <td className="px-6 py-4">
-                      <PlanBadge plan={t.license_plan} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={t.license_status} isExpired={isExpired} />
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {t.license_valid_until ? (
-                        <span className={isExpired ? 'text-red-600 font-bold' : 'text-slate-700'}>
-                          <Calendar className="w-3 h-3 inline mr-1" />
-                          {new Date(t.license_valid_until).toLocaleDateString('es-CO')}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-700">
-                      {t.users_count} / {t.max_users}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-700">{t.documents_count}</td>
-                    <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/super-admin/tenants/${t.tenant_id}`}
-                          className="text-xs font-bold text-purple-700 hover:text-purple-900 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
-                        >
-                          Ver
-                        </Link>
-                        {isSuspended ? (
-                          <button
-                            type="button"
-                            onClick={() => handleReactivate(t.tenant_id, t.tenant_name)}
-                            className="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                          >
-                            Reactivar
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSuspend(t.tenant_id, t.tenant_name)}
-                            className="text-xs font-bold text-red-700 hover:text-red-900 px-2.5 py-1 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                          >
-                            Suspender
-                          </button>
-                        )}
-                      </div>
+      {/* ═══════════ ALERTA SI HAY RIESGO ═══════════ */}
+      {(highRiskCount > 0 || execMetrics.trials_expiring_7d > 0) && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50/60 p-4 flex items-start gap-3">
+          <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+            <AlertTriangle className="h-4 w-4 text-amber-700" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-900">Atención requerida</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              {highRiskCount > 0 && <>· {highRiskCount} tenant(s) en riesgo alto</>}
+              {mediumRiskCount > 0 && <> · {mediumRiskCount} en riesgo medio</>}
+              {execMetrics.trials_expiring_7d > 0 && <> · {execMetrics.trials_expiring_7d} trial(s) por vencer en 7d</>}
+              {execMetrics.licenses_expiring_7d > 0 && <> · {execMetrics.licenses_expiring_7d} licencia(s) vencen en 7d</>}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════ KPIs PRINCIPALES ═══════════ */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <KpiCard
+          icon={DollarSign}
+          label="MRR estimado"
+          value={fmtUSD(execMetrics.mrr_estimated)}
+          footnote={`ARR proyectado ${fmtUSD(execMetrics.arr_projected)}`}
+          tint="emerald"
+        />
+        <KpiCard
+          icon={Building2}
+          label="Tenants"
+          value={execMetrics.total_tenants.toString()}
+          footnote={`${execMetrics.tenants_created_this_month} nuevos este mes`}
+          trend={growth}
+          tint="sky"
+        />
+        <KpiCard
+          icon={ShieldCheck}
+          label="Licencias activas"
+          value={execMetrics.active_licenses.toString()}
+          footnote={`${execMetrics.expired_licenses} expiradas · ${execMetrics.suspended_tenants} suspendidas`}
+          tint="slate"
+        />
+        <KpiCard
+          icon={Sparkles}
+          label="Trials activos"
+          value={execMetrics.trials_active.toString()}
+          footnote={execMetrics.trials_expiring_7d > 0
+            ? `${execMetrics.trials_expiring_7d} por vencer en 7d`
+            : 'Todos estables'}
+          tint={execMetrics.trials_expiring_7d > 0 ? 'amber' : 'slate'}
+        />
+      </section>
+
+      {/* ═══════════ SPARKLINE + PLAN MIX ═══════════ */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">Nuevos tenants</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Últimos 6 meses</p>
+            </div>
+            <span className="text-2xl font-bold text-slate-900 tabular-nums">
+              {trend.reduce((s, t) => s + t.tenants_created, 0)}
+            </span>
+          </div>
+          <Sparkline data={trend} />
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 className="text-base font-semibold text-slate-900 mb-4">Distribución por plan</h2>
+          <PlanBar
+            label="Enterprise"
+            count={execMetrics.plans.enterprise}
+            total={execMetrics.total_tenants}
+            color="bg-violet-500"
+          />
+          <PlanBar
+            label="Professional"
+            count={execMetrics.plans.professional}
+            total={execMetrics.total_tenants}
+            color="bg-sky-500"
+          />
+          <PlanBar
+            label="Starter"
+            count={execMetrics.plans.starter}
+            total={execMetrics.total_tenants}
+            color="bg-slate-500"
+          />
+          <PlanBar
+            label="Trial"
+            count={execMetrics.plans.trial}
+            total={execMetrics.total_tenants}
+            color="bg-amber-500"
+            last
+          />
+        </div>
+      </section>
+
+      {/* ═══════════ TABLA TENANTS + ACTIVIDAD ═══════════ */}
+      <section className="grid grid-cols-1 xl:grid-cols-[2.2fr_1fr] gap-4">
+        {/* Tabla tenants */}
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="p-4 flex items-center justify-between gap-3 border-b border-slate-100">
+            <h2 className="text-base font-semibold text-slate-900">Tenants</h2>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar nombre o NIT..."
+                className="w-56 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-slate-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100 text-left">
+                  <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Tenant</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Plan</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Riesgo</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Usuarios</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Docs</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                    <span className="sr-only">Acciones</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">
+                      No hay tenants que coincidan
                     </td>
                   </tr>
-                )
-              })
+                ) : (
+                  filtered.map(t => {
+                    const risk = riskMap.get(t.tenant_id)
+                    const isSuspended = t.license_status === 'SUSPENDED'
+                    return (
+                      <tr
+                        key={t.tenant_id}
+                        className="hover:bg-slate-50/70 cursor-pointer"
+                        onClick={() => router.push(`/super-admin/tenants/${t.tenant_id}`)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-slate-900">{t.tenant_name}</div>
+                          <div className="text-xs text-slate-500 tabular-nums">{t.nit || '—'}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <PlanBadge plan={t.license_plan} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <RiskBadge risk={risk?.risk_level || 'low'} reasons={risk?.reasons || []} />
+                        </td>
+                        <td className="px-4 py-3 text-slate-700 tabular-nums">
+                          {t.users_count}<span className="text-slate-400">/{t.max_users}</span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-700 tabular-nums">{t.documents_count}</td>
+                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1.5 justify-end">
+                            {isSuspended ? (
+                              <button
+                                type="button"
+                                onClick={() => handleReactivate(t.tenant_id, t.tenant_name)}
+                                className="text-xs font-medium text-emerald-700 hover:text-emerald-900 px-2 py-1 rounded"
+                              >
+                                Reactivar
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleSuspend(t.tenant_id, t.tenant_name)}
+                                className="text-xs font-medium text-rose-600 hover:text-rose-800 px-2 py-1 rounded"
+                              >
+                                Suspender
+                              </button>
+                            )}
+                            <Link
+                              href={`/super-admin/tenants/${t.tenant_id}`}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-slate-900 hover:text-slate-700 px-2 py-1 rounded"
+                            >
+                              Ver <ArrowRight className="w-3 h-3" />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Actividad reciente */}
+        <aside className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-slate-500" />
+              <h2 className="text-base font-semibold text-slate-900">Actividad reciente</h2>
+            </div>
+            <span className="text-xs text-slate-500">{activity.length} eventos</span>
+          </div>
+          <div className="divide-y divide-slate-100 max-h-[560px] overflow-y-auto">
+            {activity.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-10">Sin actividad reciente</p>
+            ) : (
+              activity.map(a => (
+                <div key={a.log_id} className="px-4 py-3 hover:bg-slate-50/60">
+                  <div className="flex items-start gap-2">
+                    <ActionDot action={a.action} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-slate-900 font-medium truncate">
+                        <span className="text-slate-600">{a.actor_name || 'Sistema'}</span>
+                        <span className="text-slate-400"> · </span>
+                        <span className="text-slate-700">{actionLabel(a.action, a.entity)}</span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                        {a.tenant_name || '—'} · <span className="tabular-nums">{fmtRelative(a.created_at)}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </aside>
+      </section>
 
       {showNewModal && (
         <NewTenantModal onClose={() => setShowNewModal(false)} onSuccess={() => router.refresh()} />
@@ -381,43 +419,117 @@ export function SuperAdminDashboard({ tenants: initialTenants, metrics }: Props)
   )
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ═══════════ SUB-COMPONENTS ═══════════
 
-function MetricCard({
+function KpiCard({
   icon: Icon,
   label,
   value,
-  color,
+  footnote,
+  trend,
+  tint = 'slate',
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
-  value: number
-  color: string
+  value: string
+  footnote?: string
+  trend?: number
+  tint?: 'emerald' | 'sky' | 'slate' | 'amber'
 }) {
+  const tints = {
+    emerald: 'bg-emerald-50 text-emerald-700',
+    sky: 'bg-sky-50 text-sky-700',
+    slate: 'bg-slate-50 text-slate-700',
+    amber: 'bg-amber-50 text-amber-700',
+  }
   return (
-    <div className="bg-white border-2 border-slate-200 rounded-2xl p-5">
-      <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
-        <Icon className="w-5 h-5" />
+    <div className="bg-white border border-slate-200 rounded-xl p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${tints[tint]}`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        {trend !== undefined && trend !== 0 && (
+          <span
+            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              trend > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'
+            }`}
+          >
+            {trend > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+            {Math.abs(trend)}%
+          </span>
+        )}
       </div>
-      <div className="text-3xl font-black text-slate-900 leading-none">{value}</div>
-      <div className="text-xs font-bold uppercase tracking-wide text-slate-500 mt-1">{label}</div>
+      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+      <p className="text-2xl md:text-3xl font-bold text-slate-900 tabular-nums mt-1 truncate">{value}</p>
+      {footnote && <p className="text-[11px] text-slate-500 mt-1 truncate">{footnote}</p>}
     </div>
   )
 }
 
-function PlanCard({ label, count, color }: { label: string; count: number; color: string }) {
-  const colorMap: Record<string, string> = {
-    purple: 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white',
-    blue: 'bg-gradient-to-br from-blue-500 to-cyan-600 text-white',
-    slate: 'bg-gradient-to-br from-slate-600 to-slate-800 text-white',
-    amber: 'bg-gradient-to-br from-amber-500 to-orange-600 text-white',
-  }
+function Sparkline({ data }: { data: TenantsTrendRow[] }) {
+  const max = Math.max(1, ...data.map(d => d.tenants_created))
+  const padding = 4
+  const width = 100
+  const height = 40
+  const stepX = (width - padding * 2) / Math.max(1, data.length - 1)
+  const points = data.map((d, i) => {
+    const x = padding + i * stepX
+    const y = height - padding - (d.tenants_created / max) * (height - padding * 2)
+    return `${x},${y}`
+  }).join(' ')
+
   return (
-    <div className={`rounded-2xl p-5 ${colorMap[color]}`}>
-      <div className="text-xs font-black uppercase tracking-wider opacity-75">{label}</div>
-      <div className="text-4xl font-black leading-none mt-2">{count}</div>
-      <div className="text-xs font-medium opacity-75 mt-1">
-        {count === 1 ? 'tenant activo' : 'tenants activos'}
+    <div className="space-y-3">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-24" preserveAspectRatio="none">
+        <polyline
+          points={points}
+          fill="none"
+          stroke="#0f172a"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        {data.map((d, i) => {
+          const x = padding + i * stepX
+          const y = height - padding - (d.tenants_created / max) * (height - padding * 2)
+          return <circle key={i} cx={x} cy={y} r="1.2" fill="#0f172a" vectorEffect="non-scaling-stroke" />
+        })}
+      </svg>
+      <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
+        {data.map((d, i) => (
+          <span key={i} className="tabular-nums">
+            {d.month_label}: <strong className="text-slate-600">{d.tenants_created}</strong>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PlanBar({
+  label,
+  count,
+  total,
+  color,
+  last,
+}: {
+  label: string
+  count: number
+  total: number
+  color: string
+  last?: boolean
+}) {
+  const pct = total > 0 ? (count / total) * 100 : 0
+  return (
+    <div className={last ? '' : 'mb-3'}>
+      <div className="flex items-baseline justify-between mb-1">
+        <span className="text-xs text-slate-700">{label}</span>
+        <span className="text-xs font-semibold text-slate-900 tabular-nums">{count}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+        {/* eslint-disable-next-line react/forbid-dom-props */}
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -425,38 +537,62 @@ function PlanCard({ label, count, color }: { label: string; count: number; color
 
 function PlanBadge({ plan }: { plan: string }) {
   const map: Record<string, string> = {
-    ENTERPRISE: 'bg-purple-100 text-purple-800',
-    PROFESSIONAL: 'bg-blue-100 text-blue-800',
-    STARTER: 'bg-slate-100 text-slate-700',
-    TRIAL: 'bg-amber-100 text-amber-800',
-    NONE: 'bg-red-100 text-red-700',
+    ENTERPRISE: 'bg-violet-50 text-violet-700 ring-violet-200/60',
+    PROFESSIONAL: 'bg-sky-50 text-sky-700 ring-sky-200/60',
+    STARTER: 'bg-slate-50 text-slate-700 ring-slate-200/60',
+    TRIAL: 'bg-amber-50 text-amber-700 ring-amber-200/60',
+    NONE: 'bg-rose-50 text-rose-700 ring-rose-200/60',
   }
   return (
-    <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${map[plan] || 'bg-slate-100 text-slate-700'}`}>
+    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-medium ring-1 ${map[plan] || map.NONE}`}>
       {plan}
     </span>
   )
 }
 
-function StatusBadge({ status, isExpired }: { status: string; isExpired: boolean }) {
-  if (isExpired) {
-    return (
-      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-red-100 text-red-800 flex items-center gap-1 w-fit">
-        <AlertTriangle className="w-3 h-3" />
-        EXPIRADA
-      </span>
-    )
+function RiskBadge({ risk, reasons }: { risk: RiskLevel; reasons: string[] }) {
+  const cfg: Record<RiskLevel, { label: string; cls: string; dot: string }> = {
+    high: { label: 'Alto', cls: 'bg-rose-50 text-rose-700 ring-rose-200/60', dot: 'bg-rose-500' },
+    medium: { label: 'Medio', cls: 'bg-amber-50 text-amber-700 ring-amber-200/60', dot: 'bg-amber-500' },
+    low: { label: 'Bajo', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200/60', dot: 'bg-emerald-500' },
   }
-  const map: Record<string, string> = {
-    ACTIVE: 'bg-emerald-100 text-emerald-800',
-    EXPIRED: 'bg-red-100 text-red-800',
-    SUSPENDED: 'bg-amber-100 text-amber-800',
-    CANCELLED: 'bg-slate-100 text-slate-600',
-    NONE: 'bg-red-100 text-red-700',
-  }
+  const c = cfg[risk]
+  const tooltip = reasons.length > 0 ? reasons.join(' · ') : 'Saludable'
   return (
-    <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${map[status] || 'bg-slate-100'}`}>
-      {status}
+    <span
+      title={tooltip}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium ring-1 ${c.cls}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+      {c.label}
     </span>
   )
+}
+
+function ActionDot({ action }: { action: string }) {
+  const map: Record<string, string> = {
+    CREATE: 'bg-emerald-400',
+    INSERT: 'bg-emerald-400',
+    UPDATE: 'bg-sky-400',
+    DELETE: 'bg-rose-400',
+  }
+  return <span className={`mt-1 h-1.5 w-1.5 rounded-full shrink-0 ${map[action] || 'bg-slate-400'}`} />
+}
+
+function actionLabel(action: string, entity: string): string {
+  const aMap: Record<string, string> = {
+    CREATE: 'creó',
+    INSERT: 'creó',
+    UPDATE: 'actualizó',
+    DELETE: 'eliminó',
+  }
+  const eMap: Record<string, string> = {
+    tenants: 'tenant',
+    tenant_licenses: 'licencia',
+    documents: 'documento',
+    employees: 'empleado',
+    parties: 'tercero',
+    products: 'producto',
+  }
+  return `${aMap[action] || action.toLowerCase()} ${eMap[entity] || entity}`
 }

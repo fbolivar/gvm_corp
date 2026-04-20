@@ -2,7 +2,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
   listAllTenantsAction,
-  getPlatformMetricsAction,
+  getPlatformExecMetricsAction,
+  getTenantsTrendAction,
+  getTenantsRiskAction,
+  getPlatformActivityAction,
 } from '@/features/super-admin/services/superAdminService'
 import { SuperAdminDashboard } from './SuperAdminDashboard'
 
@@ -21,10 +24,21 @@ export default async function SuperAdminPage() {
   const { data: isAdmin } = await supabase.rpc('is_platform_admin')
   if (!isAdmin) redirect('/dashboard')
 
-  const [tenants, metrics] = await Promise.all([
+  const [tenants, execMetrics, trend, risks, activity] = await Promise.all([
     listAllTenantsAction(),
-    getPlatformMetricsAction(),
+    getPlatformExecMetricsAction(),
+    getTenantsTrendAction(6),
+    getTenantsRiskAction(),
+    getPlatformActivityAction(20),
   ])
 
-  return <SuperAdminDashboard tenants={tenants} metrics={metrics} />
+  return (
+    <SuperAdminDashboard
+      tenants={tenants}
+      execMetrics={execMetrics}
+      trend={trend}
+      risks={risks}
+      activity={activity}
+    />
+  )
 }
