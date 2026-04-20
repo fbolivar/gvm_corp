@@ -10,7 +10,7 @@ interface DocumentLine {
     description: string;
     qty: number;
     product_id?: string | null;
-    products?: { name?: string; sku?: string; weight?: number } | null;
+    products?: { name?: string; sku?: string } | null;
 }
 
 interface Party {
@@ -36,7 +36,6 @@ interface DocRow {
     notes_internal: string | null;
     party?: Party | null;
     document_lines: DocumentLine[];
-    parent?: { number: string | null; issue_date: string | null } | null;
 }
 
 function fmtDate(iso: string | null | undefined): string {
@@ -47,6 +46,12 @@ function fmtDate(iso: string | null | undefined): string {
         month: '2-digit',
         year: 'numeric',
     });
+}
+
+function computeAccountingCode(name?: string): string {
+    if (!name) return '411—';
+    const firstToken = name.trim().split(/\s+/)[0] ?? '';
+    return `411${firstToken.toUpperCase().slice(0, 10)}`;
 }
 
 export const dynamic = 'force-dynamic';
@@ -63,6 +68,8 @@ export default async function DeliveryNotePage({
     if (!user) redirect('/login');
 
     const tenant = await settingsService.getTenantInfo(supabase);
+    // Fallback local si no hay logo_url cargado en settings
+    const logoSrc = tenant?.logo_url || '/logo-gvm.png';
 
     if (!params.id) {
         return (
@@ -98,7 +105,7 @@ export default async function DeliveryNotePage({
         );
     }
 
-    // Resolver info del pedido origen (parent)
+    // Parent (pedido origen)
     let parent: { number: string | null; issue_date: string | null } | null = null;
     if (rawDoc.parent_id) {
         const { data: parentData } = await supabase
@@ -114,19 +121,24 @@ export default async function DeliveryNotePage({
     const lines = (doc.document_lines ?? []) as DocumentLine[];
     const totalQty = lines.reduce((s, l) => s + (Number(l.qty) || 0), 0);
 
+    // Display number sin prefix REM- (como Dolibarr: REMISIÓN No.-05911)
+    const displayNumber = (doc.number || '').replace(/^REM-/i, '') || '—';
+
     return (
         <>
-            {/* Estilos de impresión */}
             <style>{`
                 @media print {
-                    @page { size: A4; margin: 12mm; }
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    @page { size: A4; margin: 14mm; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
                     .no-print { display: none !important; }
-                    .print-card { box-shadow: none !important; border: none !important; }
                 }
+                .rm-table { border-collapse: collapse; width: 100%; }
+                .rm-table th, .rm-table td { border: 1px solid #94a3b8; padding: 6px 8px; }
+                .rm-table tbody tr.rm-empty td { height: 22px; }
+                .rm-box-gray { background: #f1f5f9; }
             `}</style>
 
-            {/* Controles (ocultos en impresión) */}
+            {/* Controles (pantalla) */}
             <div className="no-print page-container pb-0">
                 <div className="flex items-center justify-between mb-4">
                     <Link
@@ -139,86 +151,89 @@ export default async function DeliveryNotePage({
                 </div>
             </div>
 
-            {/* Documento imprimible */}
-            <div className="max-w-4xl mx-auto bg-white px-10 py-8 text-slate-900 text-[11px] leading-relaxed print:px-0 print:py-0">
-                {/* ══════════ Encabezado ══════════ */}
+            {/* ═══════════════════════ REMISIÓN (A4) ═══════════════════════ */}
+            <div className="max-w-[800px] mx-auto bg-white px-10 py-8 text-slate-900 font-sans text-[11px] leading-[1.45] print:px-0 print:py-0 print:max-w-full">
+
+                {/* HEADER: logo a la izquierda, "Hoja de envío" + datos a la derecha */}
                 <div className="flex items-start justify-between mb-8">
                     {/* Logo */}
-                    <div className="w-40">
-                        {tenant?.logo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={tenant.logo_url} alt={tenant.name} className="h-20 object-contain" />
-                        ) : (
-                            <div className="h-20 w-20 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 font-bold">
-                                LOGO
-                            </div>
-                        )}
+                    <div className="w-[180px]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={logoSrc}
+                            alt={tenant?.name ?? 'GVM'}
+                            className="h-20 object-contain"
+                        />
                     </div>
 
-                    {/* Hoja de envío (encabezado con datos clave) */}
-                    <div className="text-right space-y-0.5">
-                        <h1 className="text-lg font-bold mb-2">Hoja de envío</h1>
-                        <p><span className="text-slate-600">Ref. envío : </span><span className="font-semibold">REMISIÓN No.-{doc.number || '—'}</span></p>
-                        <p><span className="text-slate-600">Fecha prevista de entrega : </span><span className="font-semibold">{fmtDate(doc.due_date || doc.issue_date)}</span></p>
-                        {party?.doc_number && (
-                            <p><span className="text-slate-600">Código de cliente : </span><span className="font-semibold">{party.doc_number}</span></p>
-                        )}
-                        {party?.legal_name && (
-                            <p><span className="text-slate-600">Código de contabilidad del cliente : </span><span className="font-semibold">411{party.legal_name.split(' ')[0].toUpperCase()}</span></p>
-                        )}
+                    {/* Título + datos alineados a la derecha */}
+                    <div className="text-right">
+                        <h1 className="text-[18px] font-bold leading-tight mb-2">Hoja de envío</h1>
+                        <div className="text-[11px] space-y-0">
+                            <p><span>Ref. envío : </span><span className="font-semibold">REMISIÓN No.-{displayNumber}</span></p>
+                            <p><span>Fecha prevista de entrega : </span><span className="font-semibold">{fmtDate(doc.due_date || doc.issue_date)}</span></p>
+                            <p><span>Código de cliente : </span><span className="font-semibold">{party?.doc_number || '—'}</span></p>
+                            <p><span>Código de contabilidad del cliente : </span><span className="font-semibold">{computeAccountingCode(party?.legal_name)}</span></p>
+                        </div>
                         <div className="h-2" />
-                        <p><span className="text-slate-600">Ref. de orden : </span><span className="font-semibold">{parent?.number || '—'}</span></p>
-                        <p><span className="text-slate-600">Fecha de orden : </span><span className="font-semibold">{fmtDate(parent?.issue_date || doc.issue_date)}</span></p>
-                    </div>
-                </div>
-
-                {/* ══════════ Remitente / Recipiente ══════════ */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <p className="text-slate-500 mb-1">Remitente</p>
-                        <div className="bg-slate-100 p-3 rounded border border-slate-200 min-h-[130px] text-[10.5px]">
-                            <p className="font-bold mb-1">{tenant?.name ?? 'GVM VETERINARY MEDICINE S A S'}</p>
-                            {tenant?.address && <p>{tenant.address}</p>}
-                            {tenant?.city && <p>{tenant.city}</p>}
-                            <div className="h-2" />
-                            {tenant?.phone && <p>Teléfono: {tenant.phone}</p>}
-                            {tenant?.email && <p>Correo: {tenant.email}</p>}
-                            {tenant?.website && <p>Web: {tenant.website}</p>}
-                        </div>
-                    </div>
-
-                    <div>
-                        <p className="text-slate-500 mb-1">Recipiente</p>
-                        <div className="p-3 rounded border border-slate-300 min-h-[130px] text-[10.5px]">
-                            <p className="font-bold mb-1">{party?.legal_name || 'Cliente'}</p>
-                            {party?.address && <p>{party.address}</p>}
-                            {party?.city && <p>{party.city}</p>}
-                            <div className="h-2" />
-                            {party?.phone && <p>Teléfono: {party.phone}</p>}
-                            {party?.email && <p>Correo: {party.email}</p>}
-                            {party?.doc_number && (
-                                <p>RUT: {party.doc_number}</p>
-                            )}
+                        <div className="text-[11px] space-y-0">
+                            <p><span>Ref. de orden : </span><span className="font-semibold">{parent?.number || '—'}</span></p>
+                            <p><span>Fecha de orden : </span><span className="font-semibold">{fmtDate(parent?.issue_date || doc.issue_date)}</span></p>
                         </div>
                     </div>
                 </div>
 
-                {/* ══════════ Notas ══════════ */}
+                {/* LABELS Remitente / Recipiente */}
+                <div className="grid grid-cols-2 gap-4 mb-1">
+                    <p className="text-[11px] text-slate-500">Remitente</p>
+                    <p className="text-[11px] text-slate-500">Recipiente</p>
+                </div>
+
+                {/* CAJAS Remitente / Recipiente */}
+                <div className="grid grid-cols-2 gap-4 mb-5">
+                    {/* Remitente (gris) */}
+                    <div className="rm-box-gray border border-slate-300 rounded-sm px-4 py-3 min-h-[150px] text-[11px] leading-[1.55]">
+                        <p className="font-bold">{tenant?.name ?? 'GVM VETERINARY MEDICINE S A S'}</p>
+                        {tenant?.address && <p>{tenant.address}</p>}
+                        {tenant?.city && <p>{tenant.city}</p>}
+                        <div className="h-3" />
+                        {tenant?.phone && <p>Teléfono: {tenant.phone} - Fax: {tenant.phone}</p>}
+                        {tenant?.email && <p>Correo: {tenant.email}</p>}
+                        {tenant?.website && <p>Web: {tenant.website}</p>}
+                    </div>
+
+                    {/* Recipiente (blanco con borde) */}
+                    <div className="bg-white border border-slate-400 rounded-sm px-4 py-3 min-h-[150px] text-[11px] leading-[1.55]">
+                        <p className="font-bold">{(party?.legal_name || 'Cliente').toUpperCase()}</p>
+                        {party?.address && <p>{party.address}</p>}
+                        {party?.city && <p>{party.city}</p>}
+                        <div className="h-3" />
+                        {party?.phone && <p>Teléfono: {party.phone}</p>}
+                        {party?.email && <p>Correo: {party.email}</p>}
+                        {party?.doc_number && <p>RUT: {party.doc_number}</p>}
+                    </div>
+                </div>
+
+                {/* NOTA (span completo, con borde) */}
                 {(doc.notes_public || doc.notes_internal) && (
-                    <div className="border border-slate-300 p-3 mb-4 text-[10.5px]">
-                        {doc.notes_public && <p>{doc.notes_public}</p>}
-                        {doc.notes_internal && !doc.notes_public && <p>{doc.notes_internal}</p>}
+                    <div className="border border-slate-300 rounded-sm px-4 py-2 mb-5 text-[11px]">
+                        {doc.notes_public || doc.notes_internal}
+                    </div>
+                )}
+                {!(doc.notes_public || doc.notes_internal) && (
+                    <div className="border border-slate-300 rounded-sm px-4 py-2 mb-5 text-[11px] min-h-[28px]">
+                        &nbsp;
                     </div>
                 )}
 
-                {/* ══════════ Tabla de líneas ══════════ */}
-                <table className="w-full border-collapse mb-2">
+                {/* TABLA */}
+                <table className="rm-table mb-0 text-[11px]">
                     <thead>
-                        <tr className="border-y border-slate-400">
-                            <th className="text-left py-2 px-2 font-normal text-[11px]">Descripción</th>
-                            <th className="text-center py-2 px-2 font-normal text-[11px] w-[90px] border-l border-slate-400">Peso / Vol.</th>
-                            <th className="text-center py-2 px-2 font-normal text-[11px] w-[110px] border-l border-slate-400">Cantidad pedida</th>
-                            <th className="text-center py-2 px-2 font-normal text-[11px] w-[110px] border-l border-slate-400">Cantidad a enviar</th>
+                        <tr>
+                            <th className="text-left font-normal w-[48%]">Descripción</th>
+                            <th className="text-center font-normal w-[17%]">Peso / Vol.</th>
+                            <th className="text-center font-normal w-[17%]">Cantidad pedida</th>
+                            <th className="text-center font-normal w-[18%]">Cantidad a enviar</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -227,66 +242,60 @@ export default async function DeliveryNotePage({
                                 ? `${line.products.sku} - ${line.description || line.products.name || ''}`
                                 : (line.description || line.products?.name || '—');
                             return (
-                                <tr key={line.id || idx} className="border-b border-slate-200">
-                                    <td className="py-2 px-2 align-top text-[10.5px]">{prodLabel}</td>
-                                    <td className="py-2 px-2 align-top text-center text-[10.5px] border-l border-slate-200">
-                                        {line.products?.weight ? `${line.products.weight} kg` : ''}
-                                    </td>
-                                    <td className="py-2 px-2 align-top text-center text-[10.5px] border-l border-slate-200 tabular-nums">
+                                <tr key={line.id || idx}>
+                                    <td className="align-top">{prodLabel}</td>
+                                    <td className="text-center align-top"></td>
+                                    <td className="text-center align-top tabular-nums">
                                         {Number(line.qty).toLocaleString('es-CO')}
                                     </td>
-                                    <td className="py-2 px-2 align-top text-center text-[10.5px] border-l border-slate-200 tabular-nums">
+                                    <td className="text-center align-top tabular-nums">
                                         {Number(line.qty).toLocaleString('es-CO')}
                                     </td>
                                 </tr>
                             );
                         })}
-                        {/* Filas vacías para llenar espacio visual (como Dolibarr) */}
-                        {Array.from({ length: Math.max(0, 12 - lines.length) }).map((_, i) => (
-                            <tr key={`empty-${i}`} className="border-b border-slate-100 h-6">
-                                <td className="py-2 px-2"></td>
-                                <td className="py-2 px-2 border-l border-slate-100"></td>
-                                <td className="py-2 px-2 border-l border-slate-100"></td>
-                                <td className="py-2 px-2 border-l border-slate-100"></td>
+                        {/* Filas vacías para completar el espacio visual (como Dolibarr: hoja llena) */}
+                        {Array.from({ length: Math.max(0, 18 - lines.length) }).map((_, i) => (
+                            <tr key={`empty-${i}`} className="rm-empty">
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
                             </tr>
                         ))}
                     </tbody>
                     <tfoot>
-                        <tr className="border-t-2 border-slate-400">
-                            <td className="py-2 px-2 font-bold text-center text-[11px]">Total</td>
-                            <td className="py-2 px-2 border-l border-slate-400"></td>
-                            <td className="py-2 px-2 text-center font-bold text-[11px] border-l border-slate-400 tabular-nums">
-                                {totalQty.toLocaleString('es-CO')}
-                            </td>
-                            <td className="py-2 px-2 text-center font-bold text-[11px] border-l border-slate-400 tabular-nums">
-                                {totalQty.toLocaleString('es-CO')}
-                            </td>
+                        <tr>
+                            <td className="text-center font-bold">Total</td>
+                            <td></td>
+                            <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
+                            <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
                         </tr>
                     </tfoot>
                 </table>
 
-                {/* ══════════ Firma ══════════ */}
-                <div className="mt-6 text-[10.5px] leading-loose">
+                {/* FIRMA */}
+                <div className="mt-3 text-[11px] leading-[1.9]">
                     <p>Haber recibido los productos anteriores en buenas condiciones,</p>
                     <p>
-                        Para<span className="inline-block w-[200px] border-b border-slate-400 mx-1"></span>
-                        el <span className="inline-block w-[30px] border-b border-slate-400 mx-1"></span>
-                        / <span className="inline-block w-[30px] border-b border-slate-400 mx-1"></span>
-                        / <span className="inline-block w-[30px] border-b border-slate-400 mx-1"></span>
+                        Para
+                        <span className="inline-block w-[220px] border-b border-slate-500 mx-1"></span>
+                        el
+                        <span className="inline-block w-[30px] border-b border-slate-500 mx-1"></span>
+                        /
+                        <span className="inline-block w-[40px] border-b border-slate-500 mx-1"></span>
+                        /
+                        <span className="inline-block w-[30px] border-b border-slate-500 mx-1"></span>
                     </p>
-                    <p className="mt-1">Nombre y firma :</p>
+                    <p>Nombre y firma :</p>
                 </div>
 
-                {/* ══════════ Footer ══════════ */}
-                <div className="mt-10 text-center text-[9.5px] text-slate-600 space-y-0.5">
-                    <p>
-                        R.U.T.: {tenant?.nit || '—'} - ID profesional 2: {tenant?.nit || '—'}
-                    </p>
-                    <p>
-                        ID profesional 3: 4645 - RUT: {tenant?.nit || '—'}
-                    </p>
+                {/* FOOTER */}
+                <div className="mt-8 text-center text-[10px] text-slate-700 leading-[1.5]">
+                    <p>R.U.T.: {tenant?.nit || '—'} - ID profesional 2: {tenant?.nit || '—'}</p>
+                    <p>ID profesional 3: 4645 - RUT: {tenant?.nit || '—'}</p>
                 </div>
-                <div className="text-right text-[9.5px] text-slate-500 mt-2">1 / 1</div>
+                <div className="text-right text-[10px] text-slate-600 mt-3">1 / 1</div>
             </div>
         </>
     );
