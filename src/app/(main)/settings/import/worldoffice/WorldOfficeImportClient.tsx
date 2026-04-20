@@ -14,6 +14,7 @@ import {
   Users,
   Scale,
   FileBarChart,
+  Wallet,
 } from 'lucide-react'
 import { PageHeader } from '@/shared/components/ui/page-header'
 import { Button } from '@/shared/components/ui/button'
@@ -25,14 +26,18 @@ import {
   importWorldOfficePartiesAction,
   previewWorldOfficeBalanceAction,
   importBalanceChunkAction,
+  previewWorldOfficeReceivablesAction,
+  importReceivablesChunkAction,
+  type ReceivableRow,
 } from '@/features/import/worldofficeActions'
 
-type Tab = 'puc' | 'parties' | 'balance' | 'entries'
+type Tab = 'puc' | 'parties' | 'balance' | 'receivables' | 'entries'
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { key: 'puc', label: 'Plan de cuentas', icon: BookOpen },
   { key: 'parties', label: 'Terceros', icon: Users },
   { key: 'balance', label: 'Saldos iniciales', icon: Scale },
+  { key: 'receivables', label: 'Cartera detalle', icon: Wallet },
   { key: 'entries', label: 'Asientos contables', icon: FileBarChart, disabled: true },
 ]
 
@@ -112,6 +117,7 @@ export function WorldOfficeImportClient() {
       {activeTab === 'puc' && <PucImporter />}
       {activeTab === 'parties' && <PartiesImporter />}
       {activeTab === 'balance' && <BalanceImporter />}
+      {activeTab === 'receivables' && <ReceivablesImporter />}
     </div>
   )
 }
@@ -999,6 +1005,251 @@ function BalanceImporter() {
                   </>
                 ) : (
                   <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} saldos</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// CARTERA — Edades de Cartera por Cobrar (WO)
+// ============================================================
+
+function ReceivablesImporter() {
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{
+    meta: { cutoff_date: string | null; company_name: string | null }
+    total: number
+    sample: ReceivableRow[]
+    rows: ReceivableRow[]
+    parties_count: number
+    parties_matched: number
+    total_balance: number
+    buckets: { bucket: string; count: number; total: number }[]
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [importResult, setImportResult] = useState<{ processed: number; unmatched: number; total_balance: number } | null>(null)
+
+  const handleFile = async (file: File) => {
+    setLoading(true)
+    setPreview(null)
+    setImportResult(null)
+    try {
+      const text = await file.text()
+      setFileName(file.name)
+      const res = await previewWorldOfficeReceivablesAction(text)
+      if (!res.success) {
+        toast.error(res.error)
+        setFileName(null)
+        return
+      }
+      setPreview(res)
+      toast.success(`${res.total} facturas · ${res.parties_count} clientes · ${res.parties_matched} matched`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!preview?.rows) return
+    if (!confirm(`¿Importar ${preview.total} facturas pendientes (saldo $${preview.total_balance.toLocaleString('es-CO')})?`)) return
+
+    setImporting(true)
+    setProgress({ done: 0, total: preview.rows.length })
+    const CHUNK = 300
+    let processed = 0
+    let unmatched = 0
+    let totalBalance = 0
+    try {
+      for (let i = 0; i < preview.rows.length; i += CHUNK) {
+        const chunk = preview.rows.slice(i, i + CHUNK)
+        const res = await importReceivablesChunkAction(chunk)
+        if (!res.success) {
+          toast.error(`Lote ${Math.floor(i / CHUNK) + 1}: ${res.error}`)
+          setProgress(null)
+          return
+        }
+        processed += res.processed
+        unmatched += res.unmatched_party
+        totalBalance += res.total_balance
+        setProgress({ done: i + chunk.length, total: preview.rows.length })
+      }
+      toast.success(`${processed} facturas importadas`)
+      setImportResult({ processed, unmatched, total_balance: totalBalance })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setImporting(false)
+      setProgress(null)
+    }
+  }
+
+  const reset = () => {
+    setFileName(null)
+    setPreview(null)
+    setImportResult(null)
+  }
+
+  if (importResult) {
+    return (
+      <div className="surface-card p-8 text-center">
+        <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto mb-4">
+          <CheckCircle2 className="h-7 w-7" />
+        </div>
+        <h2 className="text-h2 mb-1">Cartera importada</h2>
+        <p className="text-sm text-slate-500 mb-1">
+          <strong>{importResult.processed}</strong> facturas · saldo total <strong>{fmtMoney(importResult.total_balance)}</strong>
+        </p>
+        {importResult.unmatched > 0 && (
+          <p className="text-xs text-amber-700 mb-4">
+            ⚠️ {importResult.unmatched} facturas sin tercero matched (party_id NULL)
+          </p>
+        )}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button variant="outline" onClick={reset}>Importar otro</Button>
+          <Button asChild>
+            <Link href="/treasury/cartera">Ver cartera</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="surface-card p-5 bg-sky-50/60 border-sky-200">
+        <div className="flex items-start gap-3">
+          <Wallet className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-sky-900 space-y-1">
+            <p className="font-semibold">Cómo exportar Edades de Cartera desde WorldOffice 9</p>
+            <p className="text-xs">1. Tesorería → <strong>Cartera Morosa a 5 Columnas</strong> (o Edades de Cartera)</p>
+            <p className="text-xs">2. <strong>Fecha de Corte</strong>: 31/03/2026 · <strong>Marcar Todo</strong> Vendedor y Cuenta Contable</p>
+            <p className="text-xs">3. Intervalos: 0-30, 31-60, 61-90, 91-120, +121 · Tipo Informe: Cliente</p>
+            <p className="text-xs">4. <strong>Ordenado por</strong>: Cliente · Click <strong>Exportar a Excel</strong></p>
+          </div>
+        </div>
+      </div>
+
+      {!preview && (
+        <div className="surface-card p-8 text-center">
+          <input
+            type="file"
+            accept=".csv,.txt"
+            id="receivables-upload"
+            className="hidden"
+            onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+            disabled={loading}
+          />
+          <label htmlFor="receivables-upload" className="cursor-pointer inline-flex flex-col items-center gap-3">
+            <div className="h-14 w-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+            </div>
+            <span className="text-sm font-medium">{loading ? 'Procesando...' : 'Subir CSV de Edades de Cartera'}</span>
+            <span className="text-xs text-slate-500">{fileName || 'cartera-clientes-wo.csv'}</span>
+          </label>
+        </div>
+      )}
+
+      {preview && (
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-slate-600" />
+                  {fileName}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">Corte: <strong>{preview.meta.cutoff_date || '—'}</strong></p>
+              </div>
+              <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Facturas</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Clientes</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">
+                  {preview.parties_count}
+                  <span className="text-xs text-emerald-600 ml-1">({preview.parties_matched} ✓)</span>
+                </p>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 col-span-2">
+                <p className="text-[11px] text-slate-600">Saldo total</p>
+                <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmtMoney(preview.total_balance)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-5 gap-2 text-[10px]">
+              {preview.buckets.map(b => (
+                <div key={b.bucket} className="bg-slate-50 rounded-md px-2 py-1.5">
+                  <p className="text-slate-500">{b.bucket}</p>
+                  <p className="font-bold text-slate-900">{b.count}</p>
+                  <p className="text-slate-600 tabular-nums">{fmtMoney(b.total)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h3 className="text-h3">Vista previa ({preview.sample.length} de {preview.total})</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100 text-left">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Cliente</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Doc</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Vence</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Saldo</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Días</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {preview.sample.map((r, i) => (
+                    <tr key={i} className="hover:bg-slate-50/60">
+                      <td className="px-3 py-2 text-xs text-slate-900 truncate max-w-[280px]">{r.party_name}</td>
+                      <td className="px-3 py-2 text-xs font-mono text-slate-700">{r.doc_code}-{r.number}</td>
+                      <td className="px-3 py-2 text-xs text-slate-600">{r.due_date}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums font-semibold">{fmtMoney(r.total)}</td>
+                      <td className={`px-3 py-2 text-xs text-right tabular-nums ${r.days_overdue > 30 ? 'text-rose-700 font-semibold' : 'text-slate-600'}`}>{r.days_overdue}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="surface-card p-5 bg-amber-50/60 border-amber-200">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-900">
+                <p className="font-semibold mb-1">Listo para importar</p>
+                <p className="text-xs">
+                  Se crearán {preview.total} documentos en estado ACCEPTED. Si ya existe el número, se actualizará el saldo.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={reset} disabled={importing}>Cancelar</Button>
+              <Button onClick={handleImport} disabled={importing}>
+                {importing ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {progress ? `Importando ${progress.done.toLocaleString()}/${progress.total.toLocaleString()}...` : 'Importando...'}
+                  </>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} facturas</>
                 )}
               </Button>
             </div>

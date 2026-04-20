@@ -829,6 +829,233 @@ export async function importBalanceChunkAction(
 }
 
 // ============================================================
+// CARTERA WO — Edades de Cartera (Detalle por documento)
+// ============================================================
+
+export interface ReceivableRow {
+  doc_code: string                 // FV, REM, etc.
+  number: string
+  party_name: string
+  branch: string                   // sucursal/granja/lote
+  seller: string                   // vendedor
+  due_date: string | null          // YYYY-MM-DD
+  total: number
+  days_overdue: number
+}
+
+interface ReceivableMeta {
+  cutoff_date: string | null
+  company_name: string | null
+}
+
+/**
+ * Parser CSV multi-line aware (respeta quotes con saltos de línea internos).
+ * WO emite líneas como:
+ *   PORCIGENES S.A.;"GRANJA LA CUMBRE -PARIDERAS\nPARIDERAS";FV;228;...
+ */
+function readCsvRecords(csv: string): string[][] {
+  const records: string[][] = []
+  let current: string[] = []
+  let cur = ''
+  let inQuotes = false
+  for (let i = 0; i < csv.length; i++) {
+    const c = csv[i]
+    if (c === '"') {
+      if (inQuotes && csv[i + 1] === '"') { cur += '"'; i++ }
+      else inQuotes = !inQuotes
+    } else if (c === ';' && !inQuotes) {
+      current.push(cur); cur = ''
+    } else if ((c === '\n' || c === '\r') && !inQuotes) {
+      if (c === '\r' && csv[i + 1] === '\n') i++
+      current.push(cur); cur = ''
+      if (current.some(f => f.trim() !== '')) records.push(current)
+      current = []
+    } else {
+      cur += c
+    }
+  }
+  if (cur || current.length > 0) {
+    current.push(cur)
+    if (current.some(f => f.trim() !== '')) records.push(current)
+  }
+  return records
+}
+
+function parseDdMmYyyy(s: string | undefined | null): string | null {
+  if (!s) return null
+  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!m) return null
+  return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+}
+
+function parseWorldOfficeReceivablesCsv(csv: string): { meta: ReceivableMeta; rows: ReceivableRow[] } {
+  const records = readCsvRecords(csv)
+  if (records.length < 4) throw new Error('Archivo muy corto. ¿Es un Edades de Cartera de WO?')
+
+  const meta: ReceivableMeta = { cutoff_date: null, company_name: null }
+  if (records[0]?.[0]) meta.company_name = records[0][0].trim()
+  // Linea 2: "Edades de Cartera con cierre al DD/MM/YYYY"
+  if (records[1]?.[0]) {
+    const m = records[1][0].match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/)
+    if (m) meta.cutoff_date = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+  }
+
+  // Buscar header: contiene "Cliente" y "Vence"
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(8, records.length); i++) {
+    const joined = records[i].join('|').toLowerCase()
+    if (joined.includes('cliente') && joined.includes('vence') && joined.includes('valor total')) {
+      headerIdx = i
+      break
+    }
+  }
+  if (headerIdx === -1) throw new Error('No se encontró el header con "Cliente;...;Vence;...;Valor Total"')
+
+  const headers = records[headerIdx].map(h => h.trim().toLowerCase())
+  const colIdx = (needle: string) => headers.findIndex(h => h === needle.toLowerCase())
+  const iCliente = colIdx('cliente')
+  const iSucursal = colIdx('sucursal')
+  const iDoc = colIdx('doc')
+  const iNum = colIdx('num')
+  const iVence = colIdx('vence')
+  const iVendedor = colIdx('vendedor')
+  const iValor = colIdx('valor total')
+  const iDias = colIdx('dias')
+
+  if (iCliente < 0 || iNum < 0 || iValor < 0) {
+    throw new Error('Faltan columnas Cliente, Num o Valor Total en el CSV')
+  }
+
+  const rows: ReceivableRow[] = []
+  for (let i = headerIdx + 1; i < records.length; i++) {
+    const f = records[i]
+    const cliente = (f[iCliente] || '').trim()
+    const num = (f[iNum] || '').trim()
+    const valorRaw = (f[iValor] || '').trim()
+    if (!cliente || !num || !valorRaw) continue
+
+    const total = parseWoMoney(valorRaw)
+    if (total === 0) continue
+
+    rows.push({
+      party_name: cliente.replace(/\s{2,}/g, ' ').replace(/\n/g, ' '),
+      branch: (f[iSucursal] || '').trim().replace(/\n/g, ' '),
+      doc_code: (f[iDoc] || 'FV').trim().toUpperCase(),
+      number: num,
+      due_date: parseDdMmYyyy(f[iVence]),
+      seller: (f[iVendedor] || '').trim(),
+      total,
+      days_overdue: parseInt((f[iDias] || '0').replace(/\D/g, ''), 10) || 0,
+    })
+  }
+
+  return { meta, rows }
+}
+
+export async function previewWorldOfficeReceivablesAction(csv: string, limit = 30): Promise<
+  | {
+      success: true
+      meta: ReceivableMeta
+      total: number
+      sample: ReceivableRow[]
+      rows: ReceivableRow[]
+      parties_count: number
+      parties_matched: number
+      total_balance: number
+      buckets: { bucket: string; count: number; total: number }[]
+    }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: ut } = await supabase
+      .from('user_tenants')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+
+    const { meta, rows } = parseWorldOfficeReceivablesCsv(csv)
+    if (rows.length === 0) return { success: false, error: 'No se detectaron filas. Verifica el formato.' }
+
+    const uniqueNames = Array.from(new Set(rows.map(r => r.party_name)))
+    const matchedSet = new Set<string>()
+    const PARTY_CHUNK = 200
+    for (let i = 0; i < uniqueNames.length; i += PARTY_CHUNK) {
+      const chunk = uniqueNames.slice(i, i + PARTY_CHUNK)
+      const { data } = await supabase
+        .from('parties')
+        .select('legal_name')
+        .eq('tenant_id', ut.tenant_id)
+        .in('legal_name', chunk)
+        .range(0, 9999)
+      ;(data || []).forEach((p: { legal_name: string }) => matchedSet.add(p.legal_name))
+    }
+
+    const total_balance = rows.reduce((s, r) => s + r.total, 0)
+    // Buckets simples por días
+    const buckets = [
+      { bucket: 'Al día (0-30)', min: 0, max: 30 },
+      { bucket: '31-60 días', min: 31, max: 60 },
+      { bucket: '61-90 días', min: 61, max: 90 },
+      { bucket: '91-120 días', min: 91, max: 120 },
+      { bucket: 'Más de 120', min: 121, max: 99999 },
+    ].map(b => {
+      const inBucket = rows.filter(r => r.days_overdue >= b.min && r.days_overdue <= b.max)
+      return { bucket: b.bucket, count: inBucket.length, total: inBucket.reduce((s, r) => s + r.total, 0) }
+    })
+
+    return {
+      success: true,
+      meta,
+      total: rows.length,
+      sample: rows.slice(0, limit),
+      rows,
+      parties_count: uniqueNames.length,
+      parties_matched: matchedSet.size,
+      total_balance,
+      buckets,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
+  }
+}
+
+export async function importReceivablesChunkAction(rows: ReceivableRow[]): Promise<
+  | { success: true; processed: number; skipped: number; unmatched_party: number; total_balance: number }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+    const { data: ut } = await supabase
+      .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+    if (!rows || rows.length === 0) return { success: false, error: 'Chunk vacío' }
+
+    const { data, error } = await supabase.rpc('import_receivables_wo', {
+      p_tenant_id: ut.tenant_id,
+      p_rows: rows,
+    })
+    if (error) return { success: false, error: error.message }
+    const r = data as { processed?: number; skipped?: number; unmatched_party?: number; total_balance?: number }
+    return {
+      success: true,
+      processed: r?.processed ?? 0,
+      skipped: r?.skipped ?? 0,
+      unmatched_party: r?.unmatched_party ?? 0,
+      total_balance: r?.total_balance ?? 0,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error en chunk' }
+  }
+}
+
+// ============================================================
 // PUC — Plan de Cuentas WO (ya existente)
 // ============================================================
 
