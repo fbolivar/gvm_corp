@@ -894,37 +894,45 @@ function parseWorldOfficeReceivablesCsv(csv: string): { meta: ReceivableMeta; ro
 
   const meta: ReceivableMeta = { cutoff_date: null, company_name: null }
   if (records[0]?.[0]) meta.company_name = records[0][0].trim()
-  // Linea 2: "Edades de Cartera con cierre al DD/MM/YYYY"
-  if (records[1]?.[0]) {
-    const m = records[1][0].match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/)
-    if (m) meta.cutoff_date = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+  // Línea 2: "Edades de Cartera con cierre al DD/MM/YYYY" (cobrar)
+  //          o "Cuentas por Pagar Vencidas al  DD/MM/YYYY" (pagar)
+  // Buscar fecha en las primeras líneas (no solo línea 2)
+  for (let i = 1; i < Math.min(4, records.length); i++) {
+    const m = (records[i]?.[0] || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/)
+    if (m) {
+      meta.cutoff_date = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+      break
+    }
   }
 
-  // Buscar header: contiene "Cliente" y "Vence"
+  // Buscar header: contiene Cliente o Proveedor + Vence + Valor Total
   let headerIdx = -1
   for (let i = 0; i < Math.min(8, records.length); i++) {
     const joined = records[i].join('|').toLowerCase()
-    if (joined.includes('cliente') && joined.includes('vence') && joined.includes('valor total')) {
+    if ((joined.includes('cliente') || joined.includes('proveedor')) && joined.includes('vence') && joined.includes('valor total')) {
       headerIdx = i
       break
     }
   }
-  if (headerIdx === -1) throw new Error('No se encontró el header con "Cliente;...;Vence;...;Valor Total"')
+  if (headerIdx === -1) throw new Error('No se encontró el header con "Cliente|Proveedor;...;Vence;...;Valor Total"')
 
-  const headers = records[headerIdx].map(h => h.trim().toLowerCase())
-  const colIdx = (needle: string) => headers.findIndex(h => h === needle.toLowerCase())
-  const iCliente = colIdx('cliente')
-  const iSucursal = colIdx('sucursal')
-  const iDoc = colIdx('doc')
-  const iNum = colIdx('num')
-  const iVence = colIdx('vence')
-  const iVendedor = colIdx('vendedor')
-  const iValor = colIdx('valor total')
-  const iDias = colIdx('dias')
+  // Normaliza: quita ":" final, lowercase, trim
+  const headers = records[headerIdx].map(h => h.trim().toLowerCase().replace(/:$/, ''))
+  const colIdx = (needles: string[]) => headers.findIndex(h => needles.some(n => h === n))
+  const iEntity = colIdx(['cliente', 'proveedor'])      // cliente (cobrar) o proveedor (pagar)
+  const iSucursal = colIdx(['sucursal', 'direccion', 'dirección'])
+  const iDoc = colIdx(['doc'])
+  const iNum = colIdx(['num'])
+  const iVence = colIdx(['vence'])
+  const iVendedor = colIdx(['vendedor'])
+  const iValor = colIdx(['valor total'])
+  const iDias = colIdx(['dias', 'días', 'numdias'])
 
-  if (iCliente < 0 || iNum < 0 || iValor < 0) {
-    throw new Error('Faltan columnas Cliente, Num o Valor Total en el CSV')
+  if (iEntity < 0 || iNum < 0 || iValor < 0) {
+    throw new Error('Faltan columnas Cliente/Proveedor, Num o Valor Total en el CSV')
   }
+  // Para mantener compatibilidad con el resto del código abajo que usa iCliente:
+  const iCliente = iEntity
 
   const rows: ReceivableRow[] = []
   for (let i = headerIdx + 1; i < records.length; i++) {
@@ -932,7 +940,9 @@ function parseWorldOfficeReceivablesCsv(csv: string): { meta: ReceivableMeta; ro
     const cliente = (f[iCliente] || '').trim()
     const num = (f[iNum] || '').trim()
     const valorRaw = (f[iValor] || '').trim()
-    if (!cliente || !num || !valorRaw) continue
+    if (!cliente || !valorRaw) continue
+    // Skip filas de Total/Subtotal (no tienen Num)
+    if (!num || /^total\s/i.test(cliente)) continue
 
     const total = parseWoMoney(valorRaw)
     if (total === 0) continue
