@@ -811,7 +811,9 @@ export async function importWorldOfficeBalanceAction(
     const finalPeriodEnd = meta.period_end || finalCutoff
     if (!finalCutoff) return { success: false, error: 'No se pudo determinar la fecha de corte' }
 
-    const CHUNK = 300
+    // Chunk grande para minimizar round-trips (Vercel timeout 60s default)
+    // 16k filas / 2000 = 8 chunks ~ 15-20s total
+    const CHUNK = 2000
     let processed = 0
     let skipped = 0
     let debits = 0
@@ -836,7 +838,8 @@ export async function importWorldOfficeBalanceAction(
       credits += r?.total_credits ?? 0
     }
 
-    revalidatePath('/accounting')
+    // No revalidamos /accounting aquí — el snapshot vive en su propia tabla
+    // y revalidar puede triggerear render de páginas que aún no existen.
 
     return {
       success: true,
