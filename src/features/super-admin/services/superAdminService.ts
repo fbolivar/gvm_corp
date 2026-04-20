@@ -176,6 +176,57 @@ export async function getPlatformActivityAction(limit = 20): Promise<PlatformAct
   return (data as PlatformActivityRow[]) || []
 }
 
+export interface PlatformReportTenant {
+  tenant_id: string
+  tenant_name: string
+  nit: string | null
+  created_at: string
+  plan: string | null
+  status: string | null
+  valid_until: string | null
+  max_users: number | null
+  users_count: number
+  mrr_usd: number
+}
+
+export interface PlatformReportDay {
+  date: string
+  count: number
+}
+
+export interface PlatformReport {
+  new_tenants: number
+  new_licenses: number
+  suspended_in_range: number
+  revenue_mrr_snapshot: number
+  tenants: PlatformReportTenant[]
+  daily_series: PlatformReportDay[]
+  plan_distribution: {
+    enterprise: number
+    professional: number
+    starter: number
+    trial: number
+  }
+}
+
+export async function getPlatformReportAction(
+  from: string,
+  to: string,
+  plan: string | null = null,
+  status: string | null = null,
+): Promise<PlatformReport> {
+  await requirePlatformAdmin()
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_platform_report', {
+    p_from: from,
+    p_to: to,
+    p_plan: plan,
+    p_status: status,
+  })
+  if (error) throw new Error(error.message)
+  return data as PlatformReport
+}
+
 /**
  * Create a new tenant with license and first admin user.
  * Uses admin client to bypass RLS during atomic setup.
