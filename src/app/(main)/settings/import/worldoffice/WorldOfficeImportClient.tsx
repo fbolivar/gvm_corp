@@ -23,6 +23,8 @@ import {
   importWorldOfficePucAction,
   previewWorldOfficePartiesAction,
   importWorldOfficePartiesAction,
+  previewWorldOfficeBalanceAction,
+  importWorldOfficeBalanceAction,
 } from '@/features/import/worldofficeActions'
 
 type Tab = 'puc' | 'parties' | 'balance' | 'entries'
@@ -30,7 +32,7 @@ type Tab = 'puc' | 'parties' | 'balance' | 'entries'
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { key: 'puc', label: 'Plan de cuentas', icon: BookOpen },
   { key: 'parties', label: 'Terceros', icon: Users },
-  { key: 'balance', label: 'Saldos iniciales', icon: Scale, disabled: true },
+  { key: 'balance', label: 'Saldos iniciales', icon: Scale },
   { key: 'entries', label: 'Asientos contables', icon: FileBarChart, disabled: true },
 ]
 
@@ -109,6 +111,7 @@ export function WorldOfficeImportClient() {
 
       {activeTab === 'puc' && <PucImporter />}
       {activeTab === 'parties' && <PartiesImporter />}
+      {activeTab === 'balance' && <BalanceImporter />}
     </div>
   )
 }
@@ -390,6 +393,11 @@ const DOC_TYPE_LABEL: Record<string, string> = {
   PEP: 'Permiso Esp. Permanencia',
 }
 
+function fmtMoney(n: number): string {
+  const sign = n < 0 ? '-' : ''
+  return `${sign}$${Math.abs(n).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+}
+
 function PartiesImporter() {
   const [csvContent, setCsvContent] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -638,6 +646,316 @@ function PartiesImporter() {
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando...</>
                 ) : (
                   <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} terceros</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// SALDOS INICIALES — Balance de Prueba
+// ============================================================
+
+interface BalanceRow {
+  account_code: string
+  account_name: string | null
+  party_doc_number: string
+  party_name: string
+  saldo_inicial: number
+  debitos: number
+  creditos: number
+  saldo_final: number
+}
+
+interface BalanceMeta {
+  cutoff_date: string | null
+  period_start: string | null
+  period_end: string | null
+  company_name: string | null
+}
+
+function BalanceImporter() {
+  const [csvContent, setCsvContent] = useState<string | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{
+    meta: BalanceMeta
+    total: number
+    sample: BalanceRow[]
+    accounts_count: number
+    parties_count: number
+    total_debits: number
+    total_credits: number
+    accounts_matched: number
+    parties_matched: number
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [cutoffOverride, setCutoffOverride] = useState<string>('')
+  const [importResult, setImportResult] = useState<{ processed: number; difference: number } | null>(null)
+
+  const handleFile = async (file: File) => {
+    setLoading(true)
+    setPreview(null)
+    setImportResult(null)
+    try {
+      const text = await file.text()
+      setCsvContent(text)
+      setFileName(file.name)
+
+      const res = await previewWorldOfficeBalanceAction(text)
+      if (!res.success) {
+        toast.error(res.error)
+        setCsvContent(null)
+        setFileName(null)
+        return
+      }
+      setPreview(res)
+      if (res.meta.cutoff_date) setCutoffOverride(res.meta.cutoff_date)
+      toast.success(`${res.total} movimientos · ${res.accounts_count} cuentas · ${res.parties_count} terceros`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!csvContent || !preview) return
+    const diff = preview.total_debits - preview.total_credits
+    const diffMsg = Math.abs(diff) > 1
+      ? `\n\n⚠️ Advertencia: débitos - créditos = ${fmtMoney(diff)} (debería ser cercano a 0).`
+      : ''
+    if (!confirm(`¿Importar saldos iniciales al corte ${cutoffOverride}?\n\n· ${preview.total} movimientos\n· ${preview.accounts_count} cuentas\n· ${preview.parties_count} terceros${diffMsg}`)) return
+
+    setImporting(true)
+    try {
+      const res = await importWorldOfficeBalanceAction(csvContent, cutoffOverride)
+      if (!res.success) {
+        toast.error(res.error || 'Error')
+        return
+      }
+      toast.success(`${res.processed} saldos importados`)
+      setImportResult({ processed: res.processed, difference: res.difference })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const reset = () => {
+    setCsvContent(null)
+    setFileName(null)
+    setPreview(null)
+    setImportResult(null)
+    setCutoffOverride('')
+  }
+
+  if (importResult) {
+    return (
+      <div className="surface-card p-8 text-center">
+        <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto mb-4">
+          <CheckCircle2 className="h-7 w-7" />
+        </div>
+        <h2 className="text-h2 mb-1">Saldos iniciales importados</h2>
+        <p className="text-sm text-slate-500 mb-1">
+          <strong>{importResult.processed}</strong> movimientos al corte <strong>{cutoffOverride}</strong>
+        </p>
+        {Math.abs(importResult.difference) > 1 && (
+          <p className="text-xs text-amber-700 mb-4">
+            Diferencia débitos-créditos: {fmtMoney(importResult.difference)}
+          </p>
+        )}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button variant="outline" onClick={reset}>Importar otro</Button>
+          <Button asChild>
+            <Link href="/accounting/reports/trial-balance">Ver balance</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="surface-card p-5 bg-sky-50/60 border-sky-200">
+        <div className="flex items-start gap-3">
+          <Scale className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-sky-900 space-y-1">
+            <p className="font-semibold">Cómo exportar el Balance de Prueba desde WorldOffice 9</p>
+            <ol className="list-decimal list-inside space-y-0.5 text-xs text-sky-800">
+              <li>Menú principal → <strong>Informes</strong> → <strong>Contabilidad Financieros</strong> → <strong>Balance de Prueba</strong></li>
+              <li><strong>Fechas</strong>: Inicial 1/Enero/2026 · Final 31/Marzo/2026 (o último cierre)</li>
+              <li><strong>Cuentas</strong>: Desde 1 Hasta 96 · <strong>Nivel</strong>: 5 (auxiliar)</li>
+              <li>☑ <strong>Detallar Terceros</strong> · ☑ <strong>Mostrar Nits</strong></li>
+              <li>Clic en <strong>Exportar a Excel</strong>, guarda como CSV delimitado por <code>;</code></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      {!preview && (
+        <div className="surface-card p-8">
+          <label
+            htmlFor="balance-file"
+            className="block border-2 border-dashed border-slate-200 rounded-xl p-10 text-center hover:border-slate-400 transition-colors cursor-pointer"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 text-slate-600">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Analizando balance... (puede tardar)</span>
+              </div>
+            ) : (
+              <>
+                <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-3">
+                  <Upload className="h-5 w-5 text-slate-600" />
+                </div>
+                <p className="text-sm font-medium text-slate-900 mb-1">
+                  Sube el Balance de Prueba exportado desde WO
+                </p>
+                <p className="text-xs text-slate-500">
+                  Acepta .csv y .txt delimitados por <code>;</code>
+                </p>
+              </>
+            )}
+            <input
+              id="balance-file"
+              type="file"
+              accept=".csv,.txt"
+              className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0]
+                if (f) handleFile(f)
+              }}
+            />
+          </label>
+        </div>
+      )}
+
+      {preview && (
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <FileSpreadsheet className="h-4 w-4 text-slate-700" />
+                  <span className="text-sm font-semibold text-slate-900">{fileName}</span>
+                </div>
+                {preview.meta.period_start && preview.meta.period_end && (
+                  <p className="text-xs text-slate-500">
+                    Período: <strong>{preview.meta.period_start}</strong> → <strong>{preview.meta.period_end}</strong>
+                  </p>
+                )}
+              </div>
+              <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Movimientos</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Cuentas</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">
+                  {preview.accounts_count}
+                  <span className="text-xs text-emerald-600 ml-1">({preview.accounts_matched} ✓)</span>
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Terceros</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">
+                  {preview.parties_count}
+                  <span className="text-xs text-emerald-600 ml-1">({preview.parties_matched} ✓)</span>
+                </p>
+              </div>
+              <div className={`border rounded-lg px-3 py-2 ${Math.abs(preview.total_debits - preview.total_credits) < 1 ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-200'}`}>
+                <p className="text-[11px] text-slate-600">Control DB-CR</p>
+                <p className="text-sm font-bold text-slate-900 tabular-nums truncate">
+                  {fmtMoney(preview.total_debits - preview.total_credits)}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+              <div>Débitos: <strong className="text-slate-900">{fmtMoney(preview.total_debits)}</strong></div>
+              <div>Créditos: <strong className="text-slate-900">{fmtMoney(preview.total_credits)}</strong></div>
+            </div>
+          </div>
+
+          <div className="surface-card p-5">
+            <label htmlFor="cutoff" className="block text-xs font-medium text-slate-700 mb-1.5">
+              Fecha de corte (snapshot contable)
+            </label>
+            <input
+              id="cutoff"
+              type="date"
+              value={cutoffOverride}
+              onChange={e => setCutoffOverride(e.target.value)}
+              className="h-10 border border-slate-200 rounded-lg px-3 text-sm focus:border-slate-400 focus:outline-none"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Desde esta fecha, todas las transacciones nuevas se registran solo en GVM Corp.
+            </p>
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h3 className="text-h3">Vista previa ({preview.sample.length} de {preview.total})</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100 text-left">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Cuenta</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Tercero</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Saldo inicial</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Débito</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Crédito</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Saldo final</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {preview.sample.map((r, i) => (
+                    <tr key={i} className="hover:bg-slate-50/60">
+                      <td className="px-3 py-2 text-xs font-mono text-slate-700">{r.account_code}</td>
+                      <td className="px-3 py-2 text-xs text-slate-900 truncate max-w-[220px]">
+                        {r.party_name}
+                        <span className="text-slate-400 ml-1 font-mono">{r.party_doc_number}</span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums">{fmtMoney(r.saldo_inicial)}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums text-emerald-700">{r.debitos > 0 ? fmtMoney(r.debitos) : '—'}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums text-rose-700">{r.creditos > 0 ? fmtMoney(r.creditos) : '—'}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums font-semibold">{fmtMoney(r.saldo_final)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="surface-card p-5 bg-amber-50/60 border-amber-200">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-900">
+                <p className="font-semibold mb-1">Listo para importar</p>
+                <p className="text-xs">
+                  Se registrarán {preview.total} movimientos al corte{' '}
+                  <strong>{cutoffOverride || '(define la fecha)'}</strong>. Si ya hay un corte en esa fecha, se actualizará.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={reset} disabled={importing}>Cancelar</Button>
+              <Button onClick={handleImport} disabled={importing || !cutoffOverride}>
+                {importing ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando...</>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} saldos</>
                 )}
               </Button>
             </div>

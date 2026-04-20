@@ -421,6 +421,360 @@ export async function importWorldOfficePartiesAction(
 }
 
 // ============================================================
+// SALDOS INICIALES — Balance de Prueba WO (por tercero y cuenta auxiliar)
+// ============================================================
+
+interface BalanceRow {
+  account_code: string
+  account_name: string | null
+  party_doc_number: string
+  party_name: string
+  party_doc_type: string | null
+  saldo_inicial: number
+  debitos: number
+  creditos: number
+  saldo_final: number
+}
+
+interface BalanceMeta {
+  cutoff_date: string | null       // ISO YYYY-MM-DD (fin del periodo)
+  period_start: string | null
+  period_end: string | null
+  company_name: string | null
+}
+
+/**
+ * Convierte formato WO a number:
+ *  · "3.496.000,00"  → 3496000
+ *  · "(234.000,00)"  → -234000
+ *  · "-" o "- "      → 0
+ *  · vacío           → 0
+ */
+function parseWoMoney(raw: string | undefined): number {
+  if (!raw) return 0
+  const t = raw.trim()
+  if (!t || t === '-' || t === '—') return 0
+
+  const isNegative = t.startsWith('(') && t.endsWith(')')
+  let clean = t.replace(/[()\s]/g, '')
+  // Formato CO: puntos miles, coma decimal
+  clean = clean.replace(/\./g, '').replace(',', '.')
+  const n = parseFloat(clean)
+  if (isNaN(n)) return 0
+  return isNegative ? -n : n
+}
+
+/**
+ * Parser del Balance de Prueba WO.
+ * Detecta el contexto de la cuenta actual y asigna cada movimiento al
+ * código auxiliar más reciente (típicamente 8+ dígitos).
+ */
+function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: BalanceRow[] } {
+  const lines = csv.split(/\r?\n/)
+  if (lines.length < 6) {
+    throw new Error('Archivo muy corto. ¿Es un Balance de Prueba de WO?')
+  }
+
+  // Extraer metadata de las primeras líneas
+  const meta: BalanceMeta = {
+    cutoff_date: null,
+    period_start: null,
+    period_end: null,
+    company_name: null,
+  }
+
+  for (let i = 0; i < Math.min(8, lines.length); i++) {
+    const l = lines[i].replace(/;/g, ' ').trim()
+    if (!l) continue
+    // "GVM CORPORATION GLOBAL VETERINARY..." (línea 1)
+    if (i === 0) meta.company_name = l
+    // "Balance de Prueba entre el 01/01/2026 y el 31/03/2026"
+    const m = l.match(/(\d{2})\/(\d{2})\/(\d{4})\s*y\s*el\s*(\d{2})\/(\d{2})\/(\d{4})/i)
+    if (m) {
+      meta.period_start = `${m[3]}-${m[2]}-${m[1]}`
+      meta.period_end = `${m[6]}-${m[5]}-${m[4]}`
+      meta.cutoff_date = meta.period_end
+    }
+  }
+
+  // Buscar línea de cabecera con "Saldo Inicial"
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const low = lines[i].toLowerCase()
+    if (low.includes('saldo inicial') && low.includes('débitos')) {
+      headerIdx = i
+      break
+    }
+  }
+  if (headerIdx === -1) {
+    throw new Error('No se encontró la cabecera "Saldo Inicial;Débitos;Créditos;Saldo Final"')
+  }
+
+  const rows: BalanceRow[] = []
+  let currentAccountCode: string | null = null
+  let currentAccountName: string | null = null
+
+  // Regex para detectar header de cuenta contable: "CODE NOMBRE;;;;" (sin valores)
+  // CODE es 1-10 dígitos, seguido de espacio y nombre
+  const accountHeaderRegex = /^(\d{1,10})\s+(.+?);;;;$/
+  // Regex para total: "Total CODE NOMBRE;val;val;val;val"
+  const totalRegex = /^Total\s+(\d+)\s+/i
+
+  // Regex para identificar TERCERO al inicio de la línea:
+  // patrón: "NOMBRE TIPODOC  NUMERO; ..."
+  // tipos: NIT, CC, CE, TI, PP, o frases como "Documento de identificación extranjero"
+  const partyRegex = /^(.+?)\s+(NIT|CC|CE|TI|PP|Documento de identificación extranjero|Documento de Identificación extranjero Persona Jurídica|Cédula de extranjería|Permiso especial de permanencia)\s+(\S[\S\s]*?)$/
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const raw = lines[i]
+    if (!raw || raw.trim() === '') continue
+
+    const trimmed = raw.trim()
+
+    // Saltar totales (no son movimientos reales)
+    if (totalRegex.test(trimmed)) continue
+
+    // Detectar header de cuenta (nivel jerárquico)
+    const accountMatch = trimmed.match(accountHeaderRegex)
+    if (accountMatch) {
+      const code = accountMatch[1]
+      const name = accountMatch[2].trim()
+      // Solo tomar auxiliares (8+ dígitos) como cuenta del contexto
+      // Los niveles superiores (1,2,4,6 dígitos) se ignoran como header
+      if (code.length >= 8) {
+        currentAccountCode = code
+        currentAccountName = name
+      } else {
+        // Código de nivel superior — actualizamos "en expectativa"
+        // (hasta que llegue una cuenta auxiliar)
+        currentAccountCode = null
+        currentAccountName = null
+      }
+      continue
+    }
+
+    // Línea con valores — debe ser movimiento de tercero
+    if (!currentAccountCode) continue // sin cuenta auxiliar de contexto
+
+    // Dividir por ';'
+    const fields = splitCsvLine(raw)
+    if (fields.length < 5) continue
+
+    const namePart = (fields[0] || '').trim()
+    if (!namePart) continue
+
+    // Parser del nombre+doc+número
+    const partyMatch = namePart.match(partyRegex)
+    if (!partyMatch) continue
+
+    let partyName = partyMatch[1].trim()
+    const docTypeRaw = partyMatch[2].trim()
+    let docNumber = partyMatch[3].trim()
+
+    // Normalizar doc_type
+    let docType: string
+    const dtLow = docTypeRaw.toLowerCase()
+    if (docTypeRaw === 'NIT') docType = 'NIT'
+    else if (docTypeRaw === 'CC') docType = 'CC'
+    else if (docTypeRaw === 'CE') docType = 'CE'
+    else if (docTypeRaw === 'TI') docType = 'TI'
+    else if (docTypeRaw === 'PP') docType = 'PP'
+    else if (dtLow.includes('persona jurídica') || dtLow.includes('persona juridica')) docType = 'NIT'
+    else if (dtLow.includes('cédula de extranjería') || dtLow.includes('cedula de extranjeria')) docType = 'CE'
+    else if (dtLow.includes('permiso especial')) docType = 'PEP'
+    else if (dtLow.includes('documento de identificación') || dtLow.includes('documento de identificacion')) docType = 'PP'
+    else docType = 'CC'
+
+    // Limpiar doc_number: el primer token suele ser el número; descartar DV si existe (último token de 1 dígito para NIT)
+    const tokens = docNumber.split(/\s+/).filter(Boolean)
+    if (tokens.length === 0) continue
+    docNumber = tokens.join('')
+    if (docType === 'NIT' && tokens.length >= 2) {
+      const last = tokens[tokens.length - 1]
+      if (/^\d{1}$/.test(last)) {
+        docNumber = tokens.slice(0, -1).join('')
+      }
+    }
+    if (['NIT', 'CC', 'TI'].includes(docType)) {
+      docNumber = docNumber.replace(/\D/g, '')
+    }
+    if (!docNumber) continue
+
+    // Limpiar nombre (quita espacios dobles)
+    partyName = partyName.replace(/\s{2,}/g, ' ').trim()
+
+    const saldoInicial = parseWoMoney(fields[1])
+    const debitos = parseWoMoney(fields[2])
+    const creditos = parseWoMoney(fields[3])
+    const saldoFinal = parseWoMoney(fields[4])
+
+    rows.push({
+      account_code: currentAccountCode,
+      account_name: currentAccountName,
+      party_doc_number: docNumber,
+      party_name: partyName,
+      party_doc_type: docType,
+      saldo_inicial: saldoInicial,
+      debitos,
+      creditos,
+      saldo_final: saldoFinal,
+    })
+  }
+
+  return { meta, rows }
+}
+
+export async function previewWorldOfficeBalanceAction(
+  csv: string,
+  limit = 30,
+): Promise<
+  | {
+      success: true
+      meta: BalanceMeta
+      total: number
+      sample: BalanceRow[]
+      accounts_count: number
+      parties_count: number
+      total_debits: number
+      total_credits: number
+      parties_matched: number
+      accounts_matched: number
+    }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: ut } = await supabase
+      .from('user_tenants')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+
+    const { meta, rows } = parseWorldOfficeBalanceCsv(csv)
+    if (rows.length === 0) return { success: false, error: 'No se detectaron movimientos. Verifica que exportaste con "Detallar Terceros" y "Mostrar Nits".' }
+
+    // Stats
+    const uniqueAccounts = new Set(rows.map(r => r.account_code))
+    const uniqueParties = new Set(rows.map(r => r.party_doc_number).filter(Boolean))
+    const totalDebits = rows.reduce((s, r) => s + r.debitos, 0)
+    const totalCredits = rows.reduce((s, r) => s + r.creditos, 0)
+
+    // Cruce con DB: cuentas y terceros ya existentes
+    const accCodes = Array.from(uniqueAccounts)
+    const { data: existingAccounts } = await supabase
+      .from('chart_accounts')
+      .select('code')
+      .eq('tenant_id', ut.tenant_id)
+      .in('code', accCodes)
+
+    const docs = Array.from(uniqueParties)
+    // Supabase IN limitado a ~1000 por query, pero manejable
+    const { data: existingParties } = docs.length > 0
+      ? await supabase
+          .from('parties')
+          .select('doc_number')
+          .eq('tenant_id', ut.tenant_id)
+          .in('doc_number', docs.slice(0, 2000))
+      : { data: [] as { doc_number: string }[] }
+
+    return {
+      success: true,
+      meta,
+      total: rows.length,
+      sample: rows.slice(0, limit),
+      accounts_count: uniqueAccounts.size,
+      parties_count: uniqueParties.size,
+      total_debits: totalDebits,
+      total_credits: totalCredits,
+      accounts_matched: (existingAccounts || []).length,
+      parties_matched: (existingParties || []).length,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
+  }
+}
+
+export async function importWorldOfficeBalanceAction(
+  csv: string,
+  cutoffDate: string,  // YYYY-MM-DD (el usuario puede sobrescribir el del archivo)
+): Promise<
+  | {
+      success: true
+      total: number
+      processed: number
+      skipped: number
+      total_debits: number
+      total_credits: number
+      difference: number
+    }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: ut } = await supabase
+      .from('user_tenants')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+
+    const { meta, rows } = parseWorldOfficeBalanceCsv(csv)
+    if (rows.length === 0) return { success: false, error: 'CSV sin movimientos' }
+
+    const finalCutoff = cutoffDate || meta.cutoff_date
+    const finalPeriodStart = meta.period_start || finalCutoff
+    const finalPeriodEnd = meta.period_end || finalCutoff
+    if (!finalCutoff) return { success: false, error: 'No se pudo determinar la fecha de corte' }
+
+    const CHUNK = 300
+    let processed = 0
+    let skipped = 0
+    let debits = 0
+    let credits = 0
+
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const chunk = rows.slice(i, i + CHUNK)
+      const { data, error } = await supabase.rpc('import_opening_balances_wo', {
+        p_tenant_id: ut.tenant_id,
+        p_cutoff_date: finalCutoff,
+        p_period_start: finalPeriodStart,
+        p_period_end: finalPeriodEnd,
+        p_rows: chunk,
+      })
+      if (error) {
+        return { success: false, error: `Error lote ${Math.floor(i / CHUNK) + 1}: ${error.message}` }
+      }
+      const r = data as { processed?: number; skipped?: number; total_debits?: number; total_credits?: number }
+      processed += r?.processed ?? 0
+      skipped += r?.skipped ?? 0
+      debits += r?.total_debits ?? 0
+      credits += r?.total_credits ?? 0
+    }
+
+    revalidatePath('/accounting')
+
+    return {
+      success: true,
+      total: rows.length,
+      processed,
+      skipped,
+      total_debits: debits,
+      total_credits: credits,
+      difference: debits - credits,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error' }
+  }
+}
+
+// ============================================================
 // PUC — Plan de Cuentas WO (ya existente)
 // ============================================================
 
