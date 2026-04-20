@@ -136,17 +136,32 @@ export default async function DeliveryNotePage({
                     .rm-doc { padding: 28px 36px; }
                 }
                 @media print {
-                    @page { size: A4; margin: 10mm; }
-                    html, body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    /* Forzar A4 portrait estricto — evita que el navegador use otro tamaño de papel */
+                    @page { size: 210mm 297mm; margin: 10mm; }
+                    html, body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                        height: auto !important;
+                        min-height: 0 !important;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
                     .no-print { display: none !important; }
-                    .rm-doc { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; font-size: 10px !important; }
+                    .rm-doc {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        font-size: 10px !important;
+                        page-break-inside: avoid !important;
+                        page-break-after: avoid !important;
+                    }
                     .rm-table th, .rm-table td { padding: 3px 6px !important; }
                     .rm-table tbody tr.rm-empty td { height: 14px !important; }
                     .rm-logo { height: 60px !important; }
                     .rm-h1 { font-size: 15px !important; }
                     .rm-box { min-height: 90px !important; padding: 8px 12px !important; }
-                    /* Impresión de 1 sola página siempre */
-                    html, body, .rm-doc { page-break-after: avoid; }
                 }
                 .rm-table { border-collapse: collapse; width: 100%; }
                 .rm-table th, .rm-table td { border: 1px solid #94a3b8; padding: 4px 8px; }

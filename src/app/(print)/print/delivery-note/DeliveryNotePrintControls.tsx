@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Printer } from "lucide-react";
 
@@ -24,6 +25,10 @@ export function DeliveryNotePrintControls({
 }) {
     const printed = useRef(false);
     const [titleSet, setTitleSet] = useState(false);
+    const searchParams = useSearchParams();
+    // Si la página se carga desde un iframe con autoprint=0, el padre maneja el print
+    const autoprintDisabled = searchParams?.get('autoprint') === '0';
+    const insideIframe = typeof window !== "undefined" && window.self !== window.top;
 
     // Set title lo antes posible (pre-paint en cliente)
     useIsoLayoutEffect(() => {
@@ -31,9 +36,10 @@ export function DeliveryNotePrintControls({
         setTitleSet(true);
     }, [filename]);
 
-    // Auto-abrir diálogo de impresión (una sola vez), asegurando el title antes
+    // Auto-abrir diálogo de impresión (una sola vez), solo si NO estamos en iframe
     useEffect(() => {
         if (printed.current) return;
+        if (autoprintDisabled || insideIframe) return; // el padre controla el print
         printed.current = true;
 
         const timer = setTimeout(() => {
@@ -42,7 +48,7 @@ export function DeliveryNotePrintControls({
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [filename]);
+    }, [filename, autoprintDisabled, insideIframe]);
 
     const handleReprint = () => {
         document.title = filename;

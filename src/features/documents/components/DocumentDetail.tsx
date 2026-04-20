@@ -33,6 +33,7 @@ import {
 import { emitDianAction } from '@/features/dian/actions'
 import { createPaymentLinkAction } from '@/features/payments/actions'
 import { deleteDocumentAction, forceDeleteDocumentAction } from '../actions'
+import { PrintDeliveryNoteButton } from './PrintDeliveryNoteButton'
 import { toast } from 'sonner'
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -254,15 +255,7 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
 
                 <div className="flex items-center gap-3">
                     {isDeliveryNote ? (
-                        <Button
-                            asChild
-                            variant="outline"
-                            className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
-                        >
-                            <Link href={`/print/delivery-note?id=${document.id}`} target="_blank">
-                                <Printer className="mr-3 h-4 w-4" /> Imprimir remisión
-                            </Link>
-                        </Button>
+                        <PrintDeliveryNoteButton docId={document.id!} />
                     ) : (
                         <Button
                             variant="outline"

@@ -12,9 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default function PrintLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="min-h-screen bg-white">
-            {children}
-        </div>
-    );
+    // NO usar min-h-screen: eso obliga al documento a 100vh, lo que hace que al
+    // guardar como PDF el navegador genere una hoja tan alta como el viewport
+    // (y queda mucho espacio en blanco al final). Dejamos altura automática.
+    return <div className="bg-white">{children}</div>;
 }
