@@ -4,10 +4,13 @@ import { JournalEntry, Account, AccountFormData } from '../types';
 export const accountingService = {
 
     async getAccounts(client: SupabaseClient) {
+        // range() supera el límite default de 1000 de PostgREST.
+        // 15000 cubre cualquier PUC colombiano (el estándar tiene ~3500 cuentas).
         const { data, error } = await client
             .from('chart_accounts')
             .select('*')
-            .order('code', { ascending: true });
+            .order('code', { ascending: true })
+            .range(0, 14999);
 
         if (error) { console.error('[accounting] getAccounts:', error.message); return [] as Account[]; }
         return data as Account[];
