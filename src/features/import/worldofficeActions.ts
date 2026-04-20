@@ -945,7 +945,8 @@ function parseWorldOfficeReceivablesCsv(csv: string): { meta: ReceivableMeta; ro
       due_date: parseDdMmYyyy(f[iVence]),
       seller: (f[iVendedor] || '').trim(),
       total,
-      days_overdue: parseInt((f[iDias] || '0').replace(/\D/g, ''), 10) || 0,
+      // WO emite días como "1,00" (coma decimal CO). Tomamos solo la parte entera antes de la coma.
+      days_overdue: parseInt(((f[iDias] || '0').split(',')[0]).replace(/\D/g, ''), 10) || 0,
     })
   }
 
