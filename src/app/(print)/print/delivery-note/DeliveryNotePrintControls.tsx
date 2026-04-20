@@ -26,9 +26,9 @@ export function DeliveryNotePrintControls({
     const printed = useRef(false);
     const [titleSet, setTitleSet] = useState(false);
     const searchParams = useSearchParams();
-    // Si la página se carga desde un iframe con autoprint=0, el padre maneja el print
+    // Solo respetamos autoprint=0 como override para preview sin imprimir.
+    // Auto-print funciona tanto en ventana principal como dentro de iframe.
     const autoprintDisabled = searchParams?.get('autoprint') === '0';
-    const insideIframe = typeof window !== "undefined" && window.self !== window.top;
 
     // Set title lo antes posible (pre-paint en cliente)
     useIsoLayoutEffect(() => {
@@ -36,19 +36,23 @@ export function DeliveryNotePrintControls({
         setTitleSet(true);
     }, [filename]);
 
-    // Auto-abrir diálogo de impresión (una sola vez), solo si NO estamos en iframe
+    // Auto-abrir diálogo de impresión (una sola vez)
     useEffect(() => {
         if (printed.current) return;
-        if (autoprintDisabled || insideIframe) return; // el padre controla el print
+        if (autoprintDisabled) return;
         printed.current = true;
 
         const timer = setTimeout(() => {
             document.title = filename;
-            window.print();
-        }, 500);
+            try {
+                window.print();
+            } catch (e) {
+                console.error("print() error:", e);
+            }
+        }, 600);
 
         return () => clearTimeout(timer);
-    }, [filename, autoprintDisabled, insideIframe]);
+    }, [filename, autoprintDisabled]);
 
     const handleReprint = () => {
         document.title = filename;
