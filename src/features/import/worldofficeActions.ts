@@ -517,6 +517,10 @@ function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: Bal
   // Regex para detectar header de cuenta contable: "CODE NOMBRE;;;;" (sin valores)
   // CODE es 1-10 dígitos, seguido de espacio y nombre
   const accountHeaderRegex = /^(\d{1,10})\s+(.+?);;;;$/
+  // Regex para cuenta LEAF sin tercero (valores directos en la línea):
+  // "CODE NOMBRE;saldo_ini;debitos;creditos;saldo_final"
+  // Solo aplica a cuentas de 4+ dígitos (cuenta/subcuenta/auxiliar).
+  const accountLeafWithValuesRegex = /^(\d{4,10})\s+(.+?);([^;]*);([^;]*);([^;]*);([^;]*)$/
   // Regex para total: "Total CODE NOMBRE;val;val;val;val"
   const totalRegex = /^Total\s+(\d+)\s+/i
 
@@ -534,7 +538,7 @@ function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: Bal
     // Saltar totales (no son movimientos reales)
     if (totalRegex.test(trimmed)) continue
 
-    // Detectar header de cuenta (nivel jerárquico)
+    // Detectar header de cuenta (nivel jerárquico) — valores vacíos
     const accountMatch = trimmed.match(accountHeaderRegex)
     if (accountMatch) {
       const code = accountMatch[1]
@@ -551,6 +555,39 @@ function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: Bal
         currentAccountCode = null
         currentAccountName = null
       }
+      continue
+    }
+
+    // Detectar cuenta LEAF con valores directos (sin breakdown de terceros)
+    // Ej: "24040505 IVA DESCONTABLE;0; 10.000.000,00 ; 20.000.000,00 ; (10.000.000,00)"
+    // Estas son cuentas marcadas requires_party=false o con saldo técnico.
+    const leafMatch = trimmed.match(accountLeafWithValuesRegex)
+    if (leafMatch) {
+      const code = leafMatch[1]
+      const name = leafMatch[2].trim()
+      const si = parseWoMoney(leafMatch[3])
+      const db = parseWoMoney(leafMatch[4])
+      const cr = parseWoMoney(leafMatch[5])
+      const sf = parseWoMoney(leafMatch[6])
+
+      // Solo registrar si tiene algún valor no cero
+      if (si !== 0 || db !== 0 || cr !== 0 || sf !== 0) {
+        rows.push({
+          account_code: code,
+          account_name: name,
+          party_doc_number: '',          // sin tercero — se consolida en el "tercero por defecto"
+          party_name: 'SIN TERCERO',
+          party_doc_type: null,
+          saldo_inicial: si,
+          debitos: db,
+          creditos: cr,
+          saldo_final: sf,
+        })
+      }
+
+      // Actualizar contexto (por si WO mezcla cuentas con/sin terceros)
+      currentAccountCode = code
+      currentAccountName = name
       continue
     }
 
