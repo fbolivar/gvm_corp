@@ -17,10 +17,22 @@ export const salesService = {
         if (fetchError) throw fetchError;
         if (!sourceDoc) throw new Error("Documento no encontrado");
 
-        // 2. Preparar nueva cabecera
-        const newDoc: Partial<Document> = {
+        // 2. Para remisiones: asignar número correlativo (REM-00001...)
+        let assignedNumber: string | undefined = undefined;
+        if (targetType === 'DELIVERY_NOTE') {
+            const { data: numData, error: numErr } = await client.rpc(
+                'next_delivery_note_number',
+                { p_tenant_id: sourceDoc.tenant_id }
+            );
+            if (numErr) throw numErr;
+            assignedNumber = numData as string;
+        }
+
+        // 3. Preparar nueva cabecera
+        const newDoc: Partial<Document> & { number?: string } = {
             tenant_id: sourceDoc.tenant_id,
             doc_type: targetType,
+            number: assignedNumber,
             party_id: sourceDoc.party_id,
             issue_date: new Date().toISOString().split('T')[0],
             due_date: sourceDoc.due_date,

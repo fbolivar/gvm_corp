@@ -41,6 +41,7 @@ interface DocTypeMeta {
 const DOC_TYPE_META: Record<string, DocTypeMeta> = {
     QUOTATION:      { label: "Cotización",     icon: ClipboardList, colorClass: "bg-amber-50 text-amber-600" },
     SALES_ORDER:    { label: "Pedido Venta",   icon: ShoppingCart,  colorClass: "bg-emerald-50 text-emerald-600" },
+    DELIVERY_NOTE:  { label: "Remisión",       icon: FileOutput,    colorClass: "bg-cyan-50 text-cyan-600" },
     INVOICE:        { label: "Factura Venta",  icon: FileCheck,     colorClass: "bg-blue-50 text-blue-600" },
     PURCHASE_ORDER: { label: "Orden Compra",   icon: FileInput,     colorClass: "bg-violet-50 text-violet-600" },
     VENDOR_BILL:    { label: "Factura Compra", icon: FileOutput,    colorClass: "bg-rose-50 text-rose-600" },

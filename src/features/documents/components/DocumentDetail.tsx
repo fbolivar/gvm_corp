@@ -162,6 +162,7 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
     const isSent = document.status === 'SENT';
     const isDraft = document.status === 'DRAFT';
     const isInvoice = document.doc_type === 'INVOICE';
+    const isDeliveryNote = document.doc_type === 'DELIVERY_NOTE';
     const balance = Number(document.balance ?? document.total ?? 0);
     // 'PAID' no está en el enum TypeScript actual pero puede existir en DB
     const canCreatePaymentLink = isInvoice && balance > 0 && (document.status as string) !== 'PAID';
@@ -176,6 +177,7 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
         'RECEIPT': 'Recibo de Caja',
         'QUOTATION': 'Cotización',
         'SALES_ORDER': 'Pedido de Venta',
+        'DELIVERY_NOTE': 'Remisión',
         'PURCHASE_ORDER': 'Orden de Compra',
         'VENDOR_BILL': 'Factura de Compra',
     };
@@ -251,13 +253,25 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        onClick={() => documentPdfService.generatePdf(document, tenantInfo, dianResolution)}
-                        className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
-                    >
-                        <Printer className="mr-3 h-4 w-4" /> Descargar PDF
-                    </Button>
+                    {isDeliveryNote ? (
+                        <Button
+                            asChild
+                            variant="outline"
+                            className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
+                        >
+                            <Link href={`/accounting/reports/delivery-note?id=${document.id}`}>
+                                <Printer className="mr-3 h-4 w-4" /> Imprimir remisión
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            onClick={() => documentPdfService.generatePdf(document, tenantInfo, dianResolution)}
+                            className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
+                        >
+                            <Printer className="mr-3 h-4 w-4" /> Descargar PDF
+                        </Button>
+                    )}
 
                     {isDraft && (
                         <Button
@@ -271,7 +285,33 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                         </Button>
                     )}
 
-                    {isDraft && (
+                    {/* Facturar desde remisión */}
+                    {isDeliveryNote && isDraft && (
+                        <Button
+                            onClick={async () => {
+                                const ok = await confirmFn({
+                                    title: "Facturar esta remisión",
+                                    description: "Se creará una factura de venta basada en los ítems despachados en esta remisión.",
+                                    variant: "warning",
+                                    confirmLabel: "Crear factura",
+                                });
+                                if (!ok) return;
+                                setProcessing(true);
+                                const { convertDocumentAction } = await import('@/features/sales/convertActions');
+                                const res = await convertDocumentAction(document.id!, 'INVOICE');
+                                setProcessing(false);
+                                if (res?.error) toast.error(res.error);
+                            }}
+                            disabled={processing}
+                            className="h-14 rounded-[1.25rem] bg-emerald-600 hover:bg-emerald-700 text-white font-black px-8 shadow-lg transition-all hover:scale-105 active:scale-95 text-[10px] uppercase tracking-widest"
+                        >
+                            {processing ? <Loader2 className="mr-3 h-4 w-4 animate-spin" /> : <Receipt className="mr-3 h-4 w-4" />}
+                            Facturar
+                        </Button>
+                    )}
+
+                    {/* Emitir DIAN — solo para documentos fiscales, NO para remisiones */}
+                    {isDraft && !isDeliveryNote && (
                         <Button
                             onClick={handleEmit}
                             disabled={processing}

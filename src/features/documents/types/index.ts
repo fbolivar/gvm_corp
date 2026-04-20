@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { Party } from "@/features/parties/types";
 import { Product } from "@/features/products/types";
 
-export const DocumentTypeEnum = z.enum(['INVOICE', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PAYROLL', 'PAYROLL_ADJUST', 'DOC_SUPPORT', 'RECEIPT', 'QUOTATION', 'SALES_ORDER', 'PURCHASE_ORDER', 'VENDOR_BILL']);
+export const DocumentTypeEnum = z.enum(['INVOICE', 'CREDIT_NOTE', 'DEBIT_NOTE', 'PAYROLL', 'PAYROLL_ADJUST', 'DOC_SUPPORT', 'RECEIPT', 'QUOTATION', 'SALES_ORDER', 'DELIVERY_NOTE', 'PURCHASE_ORDER', 'VENDOR_BILL']);
 export const DocumentStatusEnum = z.enum(['DRAFT', 'SIGNED', 'SENT', 'ACCEPTED', 'REJECTED', 'VOIDED']);
 
 export type DocumentType = z.infer<typeof DocumentTypeEnum>;

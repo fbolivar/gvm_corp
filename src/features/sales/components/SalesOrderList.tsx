@@ -15,6 +15,7 @@ import {
     XCircle,
     Plus,
     Calendar,
+    FileOutput,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/shared/lib/utils"
@@ -73,6 +74,20 @@ export function SalesOrderList({ orders }: SalesOrderListProps) {
         if (!ok) return
         setProcessingId(docId)
         const result = await convertDocumentAction(docId, 'INVOICE')
+        setProcessingId(null)
+        if (result?.error) toast.error(result.error)
+    }
+
+    const handleCreateDelivery = async (docId: string) => {
+        const ok = await confirmFn({
+            title: "Crear remisión",
+            description: "Se generará una remisión (hoja de envío) desde este pedido. Podrás imprimirla para el despacho y luego facturar desde ella.",
+            variant: "warning",
+            confirmLabel: "Crear remisión",
+        })
+        if (!ok) return
+        setProcessingId(docId)
+        const result = await convertDocumentAction(docId, 'DELIVERY_NOTE')
         setProcessingId(null)
         if (result?.error) toast.error(result.error)
     }
@@ -164,17 +179,31 @@ export function SalesOrderList({ orders }: SalesOrderListProps) {
                                     <td className="px-5 py-4">
                                         <div className="flex items-center justify-end gap-1.5">
                                             {(order.status === 'DRAFT' || order.status === 'SENT') && (
-                                                <Button
-                                                    size="sm"
-                                                    className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-[10px] font-semibold gap-1.5"
-                                                    onClick={() => handleConvertToInvoice(order.id!)}
-                                                    disabled={processingId === order.id}
-                                                >
-                                                    {processingId === order.id
-                                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                        : <><Receipt className="h-3.5 w-3.5" /> Facturar</>
-                                                    }
-                                                </Button>
+                                                <>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 rounded-lg text-[10px] font-semibold gap-1.5 border-cyan-200 text-cyan-700 hover:bg-cyan-50"
+                                                        onClick={() => handleCreateDelivery(order.id!)}
+                                                        disabled={processingId === order.id}
+                                                    >
+                                                        {processingId === order.id
+                                                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            : <><FileOutput className="h-3.5 w-3.5" /> Remisión</>
+                                                        }
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-[10px] font-semibold gap-1.5"
+                                                        onClick={() => handleConvertToInvoice(order.id!)}
+                                                        disabled={processingId === order.id}
+                                                    >
+                                                        {processingId === order.id
+                                                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            : <><Receipt className="h-3.5 w-3.5" /> Facturar</>
+                                                        }
+                                                    </Button>
+                                                </>
                                             )}
                                             <Button
                                                 variant="ghost"

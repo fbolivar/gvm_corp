@@ -18,13 +18,16 @@ export async function convertDocumentAction(sourceId: string, targetType: Docume
     }
 
     const listPath =
-        targetType === 'QUOTATION'   ? '/sales/quotations' :
-        targetType === 'SALES_ORDER' ? '/sales/orders' :
-        targetType === 'INVOICE'     ? '/sales/invoices' :
+        targetType === 'QUOTATION'     ? '/sales/quotations' :
+        targetType === 'SALES_ORDER'   ? '/sales/orders' :
+        targetType === 'DELIVERY_NOTE' ? '/sales/deliveries' :
+        targetType === 'INVOICE'       ? '/sales/invoices' :
         '/documents';
 
     revalidatePath(listPath);
     revalidatePath('/sales/quotations');
+    revalidatePath('/sales/orders');
+    revalidatePath('/documents');
     // Vista genérica de detalle — no existe /sales/invoices/[id] en las rutas
     redirect(`/documents/${newDocId}`);
 }
