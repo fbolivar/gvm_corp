@@ -21,13 +21,15 @@ import { toast } from 'sonner'
 import {
   previewWorldOfficePucAction,
   importWorldOfficePucAction,
+  previewWorldOfficePartiesAction,
+  importWorldOfficePartiesAction,
 } from '@/features/import/worldofficeActions'
 
 type Tab = 'puc' | 'parties' | 'balance' | 'entries'
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { key: 'puc', label: 'Plan de cuentas', icon: BookOpen },
-  { key: 'parties', label: 'Terceros', icon: Users, disabled: true },
+  { key: 'parties', label: 'Terceros', icon: Users },
   { key: 'balance', label: 'Saldos iniciales', icon: Scale, disabled: true },
   { key: 'entries', label: 'Asientos contables', icon: FileBarChart, disabled: true },
 ]
@@ -106,6 +108,7 @@ export function WorldOfficeImportClient() {
       </div>
 
       {activeTab === 'puc' && <PucImporter />}
+      {activeTab === 'parties' && <PartiesImporter />}
     </div>
   )
 }
@@ -354,6 +357,287 @@ function PucImporter() {
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando...</>
                 ) : (
                   <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} cuentas</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// TERCEROS — upsert no-destructivo sobre parties
+// ============================================================
+
+interface PartyRow {
+  legal_name: string
+  doc_type: string
+  doc_number: string
+  dv: string | null
+  address: string | null
+  phone: string | null
+  city: string | null
+}
+
+const DOC_TYPE_LABEL: Record<string, string> = {
+  NIT: 'NIT',
+  CC: 'Cédula',
+  CE: 'Cédula Extranjería',
+  PP: 'Pasaporte',
+  TI: 'Tarjeta Identidad',
+  PEP: 'Permiso Esp. Permanencia',
+}
+
+function PartiesImporter() {
+  const [csvContent, setCsvContent] = useState<string | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{
+    total: number
+    sample: PartyRow[]
+    summary: Record<string, number>
+    already_exist: number
+    new_ones: number
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ inserted: number; updated: number; skipped: number } | null>(null)
+
+  const handleFile = async (file: File) => {
+    setLoading(true)
+    setPreview(null)
+    setImportResult(null)
+    try {
+      const text = await file.text()
+      setCsvContent(text)
+      setFileName(file.name)
+
+      const res = await previewWorldOfficePartiesAction(text)
+      if (!res.success) {
+        toast.error(res.error)
+        setCsvContent(null)
+        setFileName(null)
+        return
+      }
+      setPreview({
+        total: res.total,
+        sample: res.sample,
+        summary: res.summary,
+        already_exist: res.already_exist,
+        new_ones: res.new_ones,
+      })
+      toast.success(`Detectados ${res.total} terceros · ${res.already_exist} ya existen, ${res.new_ones} nuevos`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error leyendo archivo')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!csvContent || !preview) return
+    if (!confirm(`¿Importar ${preview.total} terceros?\n\n· ${preview.new_ones} serán creados\n· ${preview.already_exist} serán enriquecidos (no destructivo)\n\nLos terceros existentes mantendrán su info actual y solo se completarán campos vacíos con datos de WorldOffice.`)) return
+    setImporting(true)
+    try {
+      const res = await importWorldOfficePartiesAction(csvContent)
+      if (!res.success) {
+        toast.error(res.error || 'Error en importación')
+        return
+      }
+      toast.success(`${res.inserted} creados · ${res.updated} actualizados`)
+      setImportResult({
+        inserted: res.inserted,
+        updated: res.updated,
+        skipped: res.skipped,
+      })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const reset = () => {
+    setCsvContent(null)
+    setFileName(null)
+    setPreview(null)
+    setImportResult(null)
+  }
+
+  if (importResult) {
+    return (
+      <div className="surface-card p-8 text-center">
+        <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto mb-4">
+          <CheckCircle2 className="h-7 w-7" />
+        </div>
+        <h2 className="text-h2 mb-1">Terceros importados</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          <strong>{importResult.inserted}</strong> creados ·{' '}
+          <strong>{importResult.updated}</strong> actualizados
+          {importResult.skipped > 0 && <> · {importResult.skipped} omitidos</>}
+        </p>
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button variant="outline" onClick={reset}>Importar otro archivo</Button>
+          <Button asChild>
+            <Link href="/parties">Ver terceros</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="surface-card p-5 bg-sky-50/60 border-sky-200">
+        <div className="flex items-start gap-3">
+          <Users className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-sky-900 space-y-1">
+            <p className="font-semibold">Cómo exportar el listado de terceros desde WorldOffice 9</p>
+            <ol className="list-decimal list-inside space-y-0.5 text-xs text-sky-800">
+              <li>Menú principal → <strong>Informes</strong> → <strong>Terceros</strong></li>
+              <li>En <strong>Ver solo con la propiedad</strong>: clic en <strong>Marcar Todo</strong> (12 tipos)</li>
+              <li><strong>Opciones del Informe</strong>: selecciona <strong>Lista de Terceros con direcciones</strong></li>
+              <li><strong>Estado</strong>: selecciona <strong>Todos</strong> (activos + inactivos)</li>
+              <li>Marca el checkbox <strong>&quot;Al exportar mostrar en todos los registros los valores de las agrupaciones&quot;</strong></li>
+              <li>Clic en <strong>Exportar a Excel</strong> y guarda como CSV delimitado por <code>;</code></li>
+            </ol>
+            <p className="text-xs mt-1 italic">⚠️ Estrategia no destructiva: los terceros ya migrados de Dolibarr NO se sobreescriben — solo se completan sus campos vacíos con datos de WO.</p>
+          </div>
+        </div>
+      </div>
+
+      {!preview && (
+        <div className="surface-card p-8">
+          <label
+            htmlFor="parties-file"
+            className="block border-2 border-dashed border-slate-200 rounded-xl p-10 text-center hover:border-slate-400 transition-colors cursor-pointer"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 text-slate-600">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Procesando archivo...</span>
+              </div>
+            ) : (
+              <>
+                <div className="h-12 w-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-3">
+                  <Upload className="h-5 w-5 text-slate-600" />
+                </div>
+                <p className="text-sm font-medium text-slate-900 mb-1">
+                  Arrastra el archivo o haz clic para seleccionar
+                </p>
+                <p className="text-xs text-slate-500">
+                  Acepta .csv y .txt delimitados por <code>;</code>
+                </p>
+              </>
+            )}
+            <input
+              id="parties-file"
+              type="file"
+              accept=".csv,.txt"
+              className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0]
+                if (f) handleFile(f)
+              }}
+            />
+          </label>
+        </div>
+      )}
+
+      {preview && (
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <FileSpreadsheet className="h-4 w-4 text-slate-700" />
+                  <span className="text-sm font-semibold text-slate-900">{fileName}</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  <strong className="tabular-nums">{preview.total}</strong> terceros detectados
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={reset}>
+                Cambiar archivo
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-emerald-700">Nuevos</p>
+                <p className="text-base font-bold text-emerald-900 tabular-nums">{preview.new_ones}</p>
+              </div>
+              <div className="bg-sky-50 border border-sky-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-sky-700">Ya existen</p>
+                <p className="text-base font-bold text-sky-900 tabular-nums">{preview.already_exist}</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 md:col-span-2">
+                <p className="text-[11px] text-slate-500 mb-1">Por tipo de documento</p>
+                <p className="text-xs text-slate-700 flex flex-wrap gap-x-2">
+                  {Object.entries(preview.summary).map(([k, v]) => (
+                    <span key={k}>
+                      <strong>{DOC_TYPE_LABEL[k] || k}:</strong> {v}
+                    </span>
+                  ))}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-h3">Vista previa ({preview.sample.length} de {preview.total})</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100 text-left">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Nombre</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Doc</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Número</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Ciudad</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Teléfono</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {preview.sample.map((r, i) => (
+                    <tr key={`${r.doc_number}-${i}`} className="hover:bg-slate-50/60">
+                      <td className="px-3 py-2 text-xs text-slate-900 font-medium truncate max-w-[280px]">{r.legal_name}</td>
+                      <td className="px-3 py-2 text-xs text-slate-700">{DOC_TYPE_LABEL[r.doc_type] || r.doc_type}</td>
+                      <td className="px-3 py-2 text-xs font-mono text-slate-700">
+                        {r.doc_number}{r.dv && <span className="text-slate-400">-{r.dv}</span>}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-slate-600">{r.city || '—'}</td>
+                      <td className="px-3 py-2 text-xs text-slate-600 font-mono">{r.phone || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="surface-card p-5 bg-amber-50/60 border-amber-200">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-900">
+                <p className="font-semibold mb-1">Listo para importar</p>
+                <p className="text-xs">
+                  Se crearán <strong>{preview.new_ones}</strong> terceros nuevos y se enriquecerán
+                  {' '}<strong>{preview.already_exist}</strong> existentes (solo campos vacíos). Los datos
+                  actuales no se sobreescriben.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={reset} disabled={importing}>
+                Cancelar
+              </Button>
+              <Button onClick={handleImport} disabled={importing}>
+                {importing ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando...</>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} terceros</>
                 )}
               </Button>
             </div>
