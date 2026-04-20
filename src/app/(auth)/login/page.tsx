@@ -77,37 +77,40 @@ export default async function LoginPage() {
   const isAppHost = hostname.startsWith('app.bc-security.com')
   const platformConfig = isAppHost || !branding ? await getPlatformConfig() : null
 
-  // Super Admin (BC Fabric) login
+  // Super Admin (BC Fabric) login — minimalista
   if (isAdminHost) {
+    const platformCfg = await getPlatformConfig()
+    const masterLogo = platformCfg?.master_logo_url
+    const companyName = platformCfg?.company_name || 'BC Fabric'
+
     return (
-      <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 p-6">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-500 rounded-full filter blur-3xl" />
-        </div>
-
-        <div className="relative z-10 w-full max-w-md">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8">
-            <div className="flex flex-col items-center gap-3 mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-2xl">
-                <Shield className="w-8 h-8 text-white" />
+      <div className="min-h-screen flex items-center justify-center bg-white px-6">
+        <div className="w-full max-w-sm">
+          {/* Logo + nombre */}
+          <div className="flex flex-col items-center mb-10">
+            {masterLogo ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={masterLogo}
+                alt={companyName}
+                className="h-10 w-auto object-contain mb-4"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center mb-4">
+                <Shield className="h-5 w-5 text-white" />
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-black text-white tracking-tight">BC FABRIC SAS</div>
-                <div className="text-xs font-bold text-purple-300 uppercase tracking-[0.3em] mt-1">
-                  Consola Super Admin
-                </div>
-              </div>
-            </div>
-
-            <div className="[&_input]:bg-white/5 [&_input]:border-white/10 [&_input]:text-white [&_input::placeholder]:text-white/40 [&_label]:text-white/70 [&_button[type=submit]]:bg-gradient-to-r [&_button[type=submit]]:from-purple-600 [&_button[type=submit]]:to-indigo-600 [&_button[type=submit]]:hover:from-purple-700 [&_button[type=submit]]:hover:to-indigo-700">
-              <LoginForm />
-            </div>
-
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em] text-center mt-6">
-              Acceso Autorizado · Administración de Plataforma
-            </p>
+            )}
+            <h1 className="text-base font-semibold text-slate-900">{companyName}</h1>
+            <p className="text-xs text-slate-500 mt-1">Consola de administración</p>
           </div>
+
+          {/* Formulario */}
+          <LoginForm />
+
+          {/* Footer */}
+          <p className="text-[11px] text-slate-400 text-center mt-8">
+            Acceso restringido · Solo personal autorizado
+          </p>
         </div>
       </div>
     )
