@@ -438,7 +438,10 @@ export async function resetUserPasswordAction(
       password: tempPassword,
     })
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      const { translateAuthError } = await import('@/shared/lib/auth-errors')
+      return { success: false, error: translateAuthError(error.message) }
+    }
 
     return { success: true, tempPassword }
   } catch (err) {

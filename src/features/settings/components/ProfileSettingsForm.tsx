@@ -105,8 +105,9 @@ export function ProfileSettingsForm({ initialData }: Props) {
             setShowNew(false);
             setShowConfirm(false);
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : "Error desconocido";
-            toast.error("Error al cambiar contraseña: " + msg);
+            const { translateAuthError } = await import('@/shared/lib/auth-errors');
+            const raw = error instanceof Error ? error.message : "Error desconocido";
+            toast.error(translateAuthError(raw));
         } finally {
             setSavingPassword(false);
         }

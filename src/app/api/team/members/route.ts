@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { translateAuthError } from '@/shared/lib/auth-errors';
 
 export async function POST(request: NextRequest) {
     try {
@@ -261,7 +262,7 @@ export async function PATCH(request: NextRequest) {
 
         if (updateError) {
             console.error('[API /team/members PATCH] updateUser error:', updateError.message);
-            return NextResponse.json({ error: `Error actualizando contraseña: ${updateError.message}` }, { status: 500 });
+            return NextResponse.json({ error: translateAuthError(updateError.message) }, { status: 400 });
         }
 
         return NextResponse.json({ success: true, message: 'Contraseña actualizada exitosamente' });
