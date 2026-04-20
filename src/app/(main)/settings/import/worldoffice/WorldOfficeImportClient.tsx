@@ -691,6 +691,7 @@ function BalanceImporter() {
     total_credits: number
     accounts_matched: number
     parties_matched: number
+    diagnostics: { skipped_no_context: number; skipped_bad_format: number; samples: string[] }
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -937,6 +938,28 @@ function BalanceImporter() {
               </table>
             </div>
           </div>
+
+          {(preview.diagnostics.skipped_no_context > 0 || preview.diagnostics.skipped_bad_format > 0) && (
+            <div className="surface-card p-5 bg-rose-50/60 border-rose-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-rose-700 shrink-0 mt-0.5" />
+                <div className="text-sm text-rose-900 flex-1">
+                  <p className="font-semibold mb-1">Diagnóstico — líneas ignoradas</p>
+                  <p className="text-xs mb-3">
+                    Sin contexto de cuenta: <strong>{preview.diagnostics.skipped_no_context}</strong> · Formato no reconocido: <strong>{preview.diagnostics.skipped_bad_format}</strong>
+                  </p>
+                  {preview.diagnostics.samples.length > 0 && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer font-medium mb-2">Ver muestras ({preview.diagnostics.samples.length})</summary>
+                      <pre className="bg-white border border-rose-100 rounded p-2 overflow-x-auto text-[10px] leading-relaxed font-mono max-h-[320px] overflow-y-auto">
+                        {preview.diagnostics.samples.join('\n')}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="surface-card p-5 bg-amber-50/60 border-amber-200">
             <div className="flex items-start gap-3 mb-4">

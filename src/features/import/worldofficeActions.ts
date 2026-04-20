@@ -469,7 +469,11 @@ function parseWoMoney(raw: string | undefined): number {
  * Detecta el contexto de la cuenta actual y asigna cada movimiento al
  * código auxiliar más reciente (típicamente 8+ dígitos).
  */
-function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: BalanceRow[] } {
+function parseWorldOfficeBalanceCsv(csv: string): {
+  meta: BalanceMeta
+  rows: BalanceRow[]
+  diagnostics: { skipped_no_context: number; skipped_bad_format: number; samples: string[] }
+} {
   const lines = csv.split(/\r?\n/)
   if (lines.length < 6) {
     throw new Error('Archivo muy corto. ¿Es un Balance de Prueba de WO?')
@@ -513,6 +517,10 @@ function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: Bal
   const rows: BalanceRow[] = []
   let currentAccountCode: string | null = null
   let currentAccountName: string | null = null
+  let skippedNoContext = 0
+  let skippedBadFormat = 0
+  const samples: string[] = []
+  const pushSample = (s: string) => { if (samples.length < 20) samples.push(s.slice(0, 200)) }
 
   // Regex para detectar header de cuenta contable: "CODE NOMBRE;;;;" (sin valores)
   // CODE es 1-10 dígitos, seguido de espacio y nombre
@@ -592,18 +600,34 @@ function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: Bal
     }
 
     // Línea con valores — debe ser movimiento de tercero
-    if (!currentAccountCode) continue // sin cuenta auxiliar de contexto
+    if (!currentAccountCode) {
+      skippedNoContext++
+      pushSample(`[NO_CTX] ${trimmed}`)
+      continue
+    }
 
     // Dividir por ';'
     const fields = splitCsvLine(raw)
-    if (fields.length < 5) continue
+    if (fields.length < 5) {
+      skippedBadFormat++
+      pushSample(`[FEW_FIELDS=${fields.length}] ${trimmed}`)
+      continue
+    }
 
     const namePart = (fields[0] || '').trim()
-    if (!namePart) continue
+    if (!namePart) {
+      skippedBadFormat++
+      pushSample(`[NO_NAME] ${trimmed}`)
+      continue
+    }
 
     // Parser del nombre+doc+número
     const partyMatch = namePart.match(partyRegex)
-    if (!partyMatch) continue
+    if (!partyMatch) {
+      skippedBadFormat++
+      pushSample(`[NO_PARTY_MATCH ctx=${currentAccountCode}] ${trimmed}`)
+      continue
+    }
 
     let partyName = partyMatch[1].trim()
     const docTypeRaw = partyMatch[2].trim()
@@ -659,7 +683,15 @@ function parseWorldOfficeBalanceCsv(csv: string): { meta: BalanceMeta; rows: Bal
     })
   }
 
-  return { meta, rows }
+  return {
+    meta,
+    rows,
+    diagnostics: {
+      skipped_no_context: skippedNoContext,
+      skipped_bad_format: skippedBadFormat,
+      samples,
+    },
+  }
 }
 
 export async function previewWorldOfficeBalanceAction(
@@ -677,6 +709,7 @@ export async function previewWorldOfficeBalanceAction(
       total_credits: number
       parties_matched: number
       accounts_matched: number
+      diagnostics: { skipped_no_context: number; skipped_bad_format: number; samples: string[] }
     }
   | { success: false; error: string }
 > {
@@ -692,7 +725,7 @@ export async function previewWorldOfficeBalanceAction(
       .maybeSingle()
     if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
 
-    const { meta, rows } = parseWorldOfficeBalanceCsv(csv)
+    const { meta, rows, diagnostics } = parseWorldOfficeBalanceCsv(csv)
     if (rows.length === 0) return { success: false, error: 'No se detectaron movimientos. Verifica que exportaste con "Detallar Terceros" y "Mostrar Nits".' }
 
     // Stats
@@ -736,6 +769,7 @@ export async function previewWorldOfficeBalanceAction(
       total_credits: totalCredits,
       accounts_matched: (existingAccounts || []).length,
       parties_matched: matchedDocs.size,
+      diagnostics,
     }
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
@@ -769,7 +803,7 @@ export async function importWorldOfficeBalanceAction(
       .maybeSingle()
     if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
 
-    const { meta, rows } = parseWorldOfficeBalanceCsv(csv)
+    const { meta, rows } = parseWorldOfficeBalanceCsv(csv)  // diagnostics no se usa en import
     if (rows.length === 0) return { success: false, error: 'CSV sin movimientos' }
 
     const finalCutoff = cutoffDate || meta.cutoff_date
