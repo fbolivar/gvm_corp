@@ -204,8 +204,12 @@ export const logisticsService = {
             .select(`
                 *,
                 carrier:logistics_carriers(*),
+                warehouse:warehouses(id, name),
                 order:documents(*, party:parties(*)),
-                items:logistics_shipment_items(*, product:products(*))
+                items:logistics_shipment_items(*, product:products(*)),
+                prepared_by_profile:profiles!prepared_by(id, full_name, email),
+                verified_by_profile:profiles!verified_by(id, full_name, email),
+                dispatched_by_profile:profiles!dispatched_by(id, full_name, email)
             `)
             .eq('id', shipmentId)
             .single();

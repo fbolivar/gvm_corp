@@ -88,6 +88,7 @@ const NEXT_BUTTON_LABELS: Partial<Record<ShipmentStatus, string>> = {
 export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     const supabase = createClient()
     const [shipment, setShipment] = useState<any>(null)
+    const [tenant, setTenant] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
 
@@ -100,13 +101,31 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     async function loadDetails() {
         setLoading(true)
         try {
-            const data = await logisticsService.getShipmentDetails(supabase, shipmentId!)
-            setShipment(data)
+            const [shipmentData, tenantData] = await Promise.all([
+                logisticsService.getShipmentDetails(supabase, shipmentId!),
+                loadTenantInfo(),
+            ])
+            setShipment(shipmentData)
+            setTenant(tenantData)
         } catch (error) {
             console.error(error)
         } finally {
             setLoading(false)
         }
+    }
+
+    async function loadTenantInfo() {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return null
+        const { data: ut } = await supabase
+            .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+        if (!ut?.tenant_id) return null
+        const { data: t } = await supabase
+            .from('tenants')
+            .select('name, nit, dv, address, city, phone, logo_url')
+            .eq('id', ut.tenant_id)
+            .maybeSingle()
+        return t
     }
 
     const handleUpdateStatus = async (newStatus: ShipmentStatus) => {
@@ -123,9 +142,9 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
         }
     }
 
-    const handleDownloadPdf = () => {
+    const handleDownloadPdf = async () => {
         if (!shipment) return
-        logisticsPdfService.generateRemision(shipment)
+        await logisticsPdfService.generateRemision(shipment, tenant)
     }
 
     if (!shipmentId) return null
@@ -197,7 +216,9 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº Guía:</span>
-                                            <span className="text-[10px] sm:text-xs font-black text-primary font-mono">{shipment.tracking_number || 'S/N'}</span>
+                                            <span className="text-[10px] sm:text-xs font-black text-primary font-mono">
+                                                {shipment.tracking_number || `SHPT-${(shipment.id || '').slice(-6).toUpperCase()}`}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -242,28 +263,42 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                 </div>
 
                                 {/* Collaborators */}
-                                {(shipment.prepared_by || shipment.verified_by) && (
+                                {(shipment.prepared_by || shipment.verified_by || shipment.dispatched_by || shipment.delivered_by_name) && (
                                     <div className="space-y-3">
                                         <LabelText className="flex items-center gap-1">
                                             <Users className="h-3 w-3" /> Responsables
                                         </LabelText>
                                         <div className="bg-white p-4 sm:p-5 rounded-[1.5rem] sm:rounded-3xl shadow-sm space-y-3 border border-slate-100/50">
                                             {shipment.prepared_by && (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Preparó:</span>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-600 italic truncate max-w-[120px]">{shipment.prepared_by_profile?.email ?? shipment.prepared_by}</span>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Preparó:</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-700 italic text-right truncate">
+                                                        {shipment.prepared_by_profile?.full_name ?? shipment.prepared_by_profile?.email ?? '—'}
+                                                    </span>
                                                 </div>
                                             )}
                                             {shipment.verified_by && (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Verificó:</span>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-600 italic truncate max-w-[120px]">{shipment.verified_by_profile?.email ?? shipment.verified_by}</span>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Verificó:</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-700 italic text-right truncate">
+                                                        {shipment.verified_by_profile?.full_name ?? shipment.verified_by_profile?.email ?? '—'}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {shipment.dispatched_by && (
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Despachó:</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-700 italic text-right truncate">
+                                                        {shipment.dispatched_by_profile?.full_name ?? shipment.dispatched_by_profile?.email ?? '—'}
+                                                    </span>
                                                 </div>
                                             )}
                                             {shipment.delivered_by_name && (
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">Entregó:</span>
-                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-600 italic truncate max-w-[120px]">{shipment.delivered_by_name}</span>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Entregó:</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-black text-slate-700 italic text-right truncate">
+                                                        {shipment.delivered_by_name}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
