@@ -1071,6 +1071,272 @@ export async function importReceivablesChunkAction(
 }
 
 // ============================================================
+// INVENTARIO WO — Existencias por Bodega
+// ============================================================
+
+export interface InventoryRow {
+  bodega: string
+  sku: string
+  name: string
+  uom: string
+  qty: number
+  avg_cost: number
+  total_value: number
+  grupo_uno: string  // PRODUCTOS NO FABRICADOS / INVENTARIOS MATERIAS PRIMAS / ACTIVOS FIJOS / CONTABILIZACIONES AUTOMATICAS
+}
+
+function parseWorldOfficeInventoryCsv(csv: string): {
+  meta: { cutoff_date: string | null; company_name: string | null }
+  rows: InventoryRow[]
+  skipped_counts: { totals: number; contabilizaciones: number; activos_fijos: number; no_sku: number }
+} {
+  const records = readCsvRecords(csv)
+  if (records.length < 4) throw new Error('Archivo muy corto. ¿Es un Existencias por Bodega de WO?')
+
+  const meta: { cutoff_date: string | null; company_name: string | null } = {
+    cutoff_date: null,
+    company_name: records[0]?.[0]?.trim() || null,
+  }
+  // Linea 2: "Existencia de inventarios por Bodega al DD/MM/YYYY"
+  for (let i = 1; i < Math.min(4, records.length); i++) {
+    const m = (records[i]?.[0] || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/)
+    if (m) {
+      meta.cutoff_date = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+      break
+    }
+  }
+
+  // Buscar header
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(8, records.length); i++) {
+    const joined = records[i].join('|').toLowerCase()
+    if (joined.includes('bodega') && joined.includes('descripción') && joined.includes('existencia')) {
+      headerIdx = i
+      break
+    }
+  }
+  if (headerIdx === -1) throw new Error('No se encontró header con Bodega;...;Descripción;...;Existencia')
+
+  const headers = records[headerIdx].map(h => h.trim().toLowerCase())
+  const col = (n: string) => headers.findIndex(h => h === n)
+  const iBodega = col('bodega')
+  const iGrupoUno = col('grupouno')
+  const iDesc = headers.findIndex(h => h === 'descripción' || h === 'descripcion')
+  const iUom = headers.findIndex(h => h === 'u medida' || h === 'umedida')
+  const iExist = col('existencia')
+  const iProm = col('promedio')
+  const iCosto = col('costo')
+
+  if (iBodega < 0 || iDesc < 0 || iExist < 0) {
+    throw new Error('Faltan columnas Bodega, Descripción o Existencia')
+  }
+
+  // SKU pattern: CODE-NUM al inicio (ej "ALTRE-1360 ALTRESYN * 540 ML")
+  // El SKU típico WO es letras+digitos con dashes, seguido de espacio y nombre
+  const skuPattern = /^([A-Z][A-Z0-9._-]*?\d[A-Z0-9._-]*)\s+(.+)$/
+  // Filas a skipear (GrupoUno indica tipo de inventario)
+  const GRUPOS_VALIDOS = ['productos no fabricados por la empresa', 'inventarios materias primas', 'productos en proceso', 'productos terminados']
+
+  const rows: InventoryRow[] = []
+  const skipped = { totals: 0, contabilizaciones: 0, activos_fijos: 0, no_sku: 0 }
+
+  let currentBodega = ''
+  let currentGrupoUno = ''
+
+  for (let i = headerIdx + 1; i < records.length; i++) {
+    const f = records[i]
+    const raw0 = (f[iBodega] || '').trim()
+    const raw1 = iGrupoUno >= 0 ? (f[iGrupoUno] || '').trim() : ''
+    const desc = (f[iDesc] || '').trim()
+
+    // Actualizar bodega actual si aparece "Bodega: NAME"
+    if (/^bodega\s*:/i.test(raw0)) {
+      currentBodega = raw0.replace(/^bodega\s*:\s*/i, '').trim()
+    }
+
+    // Skip líneas de Total
+    if (/^total\s/i.test(raw0) || /^total\s/i.test(raw1) || /^total\s/i.test(desc)) {
+      skipped.totals++
+      continue
+    }
+
+    // Actualizar grupoUno si tiene valor en esta fila (sticky)
+    if (raw1 && !/^total/i.test(raw1)) {
+      currentGrupoUno = raw1.toLowerCase()
+    }
+
+    // Skip contabilizaciones automáticas y activos fijos
+    if (currentGrupoUno.includes('contabilizacion')) {
+      skipped.contabilizaciones++
+      continue
+    }
+    if (currentGrupoUno.includes('activos fijos')) {
+      skipped.activos_fijos++
+      continue
+    }
+
+    // Verificar que sea grupo válido de inventario
+    if (!GRUPOS_VALIDOS.some(g => currentGrupoUno.includes(g.substring(0, 20)))) {
+      // Si no se reconoce el grupo, igual intentamos procesar (fail-open)
+    }
+
+    // Extraer SKU de la descripción
+    const m = desc.match(skuPattern)
+    if (!m) {
+      skipped.no_sku++
+      continue
+    }
+    const sku = m[1].trim()
+    const name = m[2].trim()
+    const uom = iUom >= 0 ? (f[iUom] || '').trim() : 'Und.'
+
+    const qty = parseWoMoney(f[iExist] || '')
+    if (qty === 0) continue  // saldo positivo Mayor a 0 ya se filtró en WO, por si acaso
+
+    const avg_cost = parseWoMoney(iProm >= 0 ? (f[iProm] || '') : '')
+    const total_value = parseWoMoney(iCosto >= 0 ? (f[iCosto] || '') : '')
+
+    if (!currentBodega) continue  // sin contexto bodega, skip
+
+    rows.push({
+      bodega: currentBodega,
+      sku,
+      name,
+      uom,
+      qty,
+      avg_cost,
+      total_value,
+      grupo_uno: currentGrupoUno,
+    })
+  }
+
+  return { meta, rows, skipped_counts: skipped }
+}
+
+export async function previewWorldOfficeInventoryAction(csv: string, limit = 30): Promise<
+  | {
+      success: true
+      meta: { cutoff_date: string | null; company_name: string | null }
+      total: number
+      sample: InventoryRow[]
+      rows: InventoryRow[]
+      bodegas_count: number
+      bodegas: { name: string; products: number; value: number; matched: boolean }[]
+      products_count: number
+      products_matched: number
+      total_qty: number
+      total_value: number
+      skipped_counts: { totals: number; contabilizaciones: number; activos_fijos: number; no_sku: number }
+    }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+    const { data: ut } = await supabase
+      .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+
+    const { meta, rows, skipped_counts } = parseWorldOfficeInventoryCsv(csv)
+    if (rows.length === 0) return { success: false, error: 'No se detectaron filas de inventario. Verifica el formato.' }
+
+    // Stats por bodega
+    const bodegaMap = new Map<string, { products: number; value: number }>()
+    for (const r of rows) {
+      const bk = r.bodega
+      const cur = bodegaMap.get(bk) || { products: 0, value: 0 }
+      cur.products++
+      cur.value += r.total_value
+      bodegaMap.set(bk, cur)
+    }
+    const bodegas = Array.from(bodegaMap.entries()).map(([name, v]) => ({ name, ...v, matched: false }))
+
+    // Check matching de bodegas
+    const { data: dbWarehouses } = await supabase
+      .from('warehouses')
+      .select('id, name, code')
+      .eq('tenant_id', ut.tenant_id)
+    for (const b of bodegas) {
+      const upperBodega = b.name.toUpperCase()
+      b.matched = (dbWarehouses || []).some((w: { name: string; code: string }) =>
+        w.name.toUpperCase() === upperBodega ||
+        w.name.toUpperCase().includes(upperBodega) ||
+        (w.code || '').toUpperCase() === upperBodega
+      )
+    }
+
+    // Match productos por SKU
+    const uniqueSkus = Array.from(new Set(rows.map(r => r.sku.toUpperCase())))
+    const matchedSkus = new Set<string>()
+    const PROD_CHUNK = 500
+    for (let i = 0; i < uniqueSkus.length; i += PROD_CHUNK) {
+      const chunk = uniqueSkus.slice(i, i + PROD_CHUNK)
+      const { data } = await supabase
+        .from('products')
+        .select('sku')
+        .eq('tenant_id', ut.tenant_id)
+        .in('sku', chunk)
+        .range(0, 9999)
+      ;(data || []).forEach((p: { sku: string }) => matchedSkus.add(p.sku.toUpperCase()))
+    }
+
+    const totalQty = rows.reduce((s, r) => s + r.qty, 0)
+    const totalValue = rows.reduce((s, r) => s + r.total_value, 0)
+
+    return {
+      success: true,
+      meta,
+      total: rows.length,
+      sample: rows.slice(0, limit),
+      rows,
+      bodegas_count: bodegas.length,
+      bodegas,
+      products_count: uniqueSkus.length,
+      products_matched: matchedSkus.size,
+      total_qty: totalQty,
+      total_value: totalValue,
+      skipped_counts,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
+  }
+}
+
+export async function importInventoryChunkAction(rows: InventoryRow[]): Promise<
+  | { success: true; processed: number; skipped: number; new_products: number; new_warehouses: number; total_qty: number; total_value: number }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+    const { data: ut } = await supabase
+      .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+    if (!rows || rows.length === 0) return { success: false, error: 'Chunk vacío' }
+
+    const { data, error } = await supabase.rpc('import_inventory_wo', {
+      p_tenant_id: ut.tenant_id,
+      p_rows: rows,
+    })
+    if (error) return { success: false, error: error.message }
+    const r = data as { processed?: number; skipped?: number; new_products?: number; new_warehouses?: number; total_qty?: number; total_value?: number }
+    return {
+      success: true,
+      processed: r?.processed ?? 0,
+      skipped: r?.skipped ?? 0,
+      new_products: r?.new_products ?? 0,
+      new_warehouses: r?.new_warehouses ?? 0,
+      total_qty: r?.total_qty ?? 0,
+      total_value: r?.total_value ?? 0,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error en chunk' }
+  }
+}
+
+// ============================================================
 // PUC — Plan de Cuentas WO (ya existente)
 // ============================================================
 

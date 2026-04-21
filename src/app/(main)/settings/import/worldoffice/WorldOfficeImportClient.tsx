@@ -15,6 +15,7 @@ import {
   Scale,
   FileBarChart,
   Wallet,
+  Package,
 } from 'lucide-react'
 import { PageHeader } from '@/shared/components/ui/page-header'
 import { Button } from '@/shared/components/ui/button'
@@ -28,16 +29,20 @@ import {
   importBalanceChunkAction,
   previewWorldOfficeReceivablesAction,
   importReceivablesChunkAction,
+  previewWorldOfficeInventoryAction,
+  importInventoryChunkAction,
   type ReceivableRow,
+  type InventoryRow,
 } from '@/features/import/worldofficeActions'
 
-type Tab = 'puc' | 'parties' | 'balance' | 'receivables' | 'entries'
+type Tab = 'puc' | 'parties' | 'balance' | 'receivables' | 'inventory' | 'entries'
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { key: 'puc', label: 'Plan de cuentas', icon: BookOpen },
   { key: 'parties', label: 'Terceros', icon: Users },
   { key: 'balance', label: 'Saldos iniciales', icon: Scale },
   { key: 'receivables', label: 'Cartera detalle', icon: Wallet },
+  { key: 'inventory', label: 'Inventario', icon: Package },
   { key: 'entries', label: 'Asientos contables', icon: FileBarChart, disabled: true },
 ]
 
@@ -118,6 +123,7 @@ export function WorldOfficeImportClient() {
       {activeTab === 'parties' && <PartiesImporter />}
       {activeTab === 'balance' && <BalanceImporter />}
       {activeTab === 'receivables' && <ReceivablesImporter />}
+      {activeTab === 'inventory' && <InventoryImporter />}
     </div>
   )
 }
@@ -1283,6 +1289,250 @@ function ReceivablesImporter() {
                   </>
                 ) : (
                   <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} {carteraType === 'INVOICE' ? 'facturas' : 'cuentas por pagar'}</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// INVENTARIO — Existencias por Bodega (WO)
+// ============================================================
+
+function InventoryImporter() {
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{
+    meta: { cutoff_date: string | null; company_name: string | null }
+    total: number
+    sample: InventoryRow[]
+    rows: InventoryRow[]
+    bodegas_count: number
+    bodegas: { name: string; products: number; value: number; matched: boolean }[]
+    products_count: number
+    products_matched: number
+    total_qty: number
+    total_value: number
+    skipped_counts: { totals: number; contabilizaciones: number; activos_fijos: number; no_sku: number }
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [importResult, setImportResult] = useState<{ processed: number; new_products: number; new_warehouses: number; total_value: number } | null>(null)
+
+  const handleFile = async (file: File) => {
+    setLoading(true); setPreview(null); setImportResult(null)
+    try {
+      const text = await file.text()
+      setFileName(file.name)
+      const res = await previewWorldOfficeInventoryAction(text)
+      if (!res.success) {
+        toast.error(res.error); setFileName(null); return
+      }
+      setPreview(res)
+      toast.success(`${res.total} líneas · ${res.bodegas_count} bodegas · ${res.products_matched}/${res.products_count} productos matched`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally { setLoading(false) }
+  }
+
+  const handleImport = async () => {
+    if (!preview?.rows) return
+    if (!confirm(`¿Importar inventario de ${preview.bodegas_count} bodegas (${preview.total} líneas, $${preview.total_value.toLocaleString('es-CO')})?\n\nEsto reemplazará el stock existente para los productos y bodegas listados.`)) return
+
+    setImporting(true)
+    setProgress({ done: 0, total: preview.rows.length })
+    const CHUNK = 300
+    let processed = 0, newProducts = 0, newWarehouses = 0, totalValue = 0
+    try {
+      for (let i = 0; i < preview.rows.length; i += CHUNK) {
+        const chunk = preview.rows.slice(i, i + CHUNK)
+        const res = await importInventoryChunkAction(chunk)
+        if (!res.success) {
+          toast.error(`Lote ${Math.floor(i / CHUNK) + 1}: ${res.error}`)
+          setProgress(null); return
+        }
+        processed += res.processed
+        newProducts += res.new_products
+        newWarehouses += res.new_warehouses
+        totalValue += res.total_value
+        setProgress({ done: i + chunk.length, total: preview.rows.length })
+      }
+      toast.success(`${processed} líneas de stock importadas`)
+      setImportResult({ processed, new_products: newProducts, new_warehouses: newWarehouses, total_value: totalValue })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setImporting(false); setProgress(null)
+    }
+  }
+
+  const reset = () => { setFileName(null); setPreview(null); setImportResult(null) }
+
+  if (importResult) {
+    return (
+      <div className="surface-card p-8 text-center">
+        <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto mb-4">
+          <CheckCircle2 className="h-7 w-7" />
+        </div>
+        <h2 className="text-h2 mb-1">Inventario importado</h2>
+        <p className="text-sm text-slate-500 mb-1">
+          <strong>{importResult.processed.toLocaleString('es-CO')}</strong> líneas · valor total <strong>{fmtMoney(importResult.total_value)}</strong>
+        </p>
+        {(importResult.new_products > 0 || importResult.new_warehouses > 0) && (
+          <p className="text-xs text-slate-600 mb-4">
+            {importResult.new_products} productos nuevos · {importResult.new_warehouses} bodegas nuevas
+          </p>
+        )}
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button variant="outline" onClick={reset}>Importar otro</Button>
+          <Button asChild><Link href="/inventory">Ver inventario</Link></Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="surface-card p-5 bg-sky-50/60 border-sky-200">
+        <div className="flex items-start gap-3">
+          <Package className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-sky-900 space-y-1">
+            <p className="font-semibold">Cómo exportar Existencias por Bodega desde WorldOffice 9</p>
+            <p className="text-xs">1. Inventarios → <strong>Inventarios Por Bodega</strong></p>
+            <p className="text-xs">2. <strong>Estilo</strong>: Ver saldo positivo Mayor a 0 · <strong>Fecha</strong>: 31/03/2026</p>
+            <p className="text-xs">3. <strong>Bodega</strong>: Marcar Todo · Excluir ACTIVOS FIJOS y CONTABILIZACIONES (ya está)</p>
+            <p className="text-xs">4. <strong>Ordenado por</strong>: Código Producto · Click <strong>Exportar a Excel</strong></p>
+          </div>
+        </div>
+      </div>
+
+      {!preview && (
+        <div className="surface-card p-8 text-center">
+          <input
+            type="file" accept=".csv,.txt" id="inventory-upload" className="hidden"
+            onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={loading}
+          />
+          <label htmlFor="inventory-upload" className="cursor-pointer inline-flex flex-col items-center gap-3">
+            <div className="h-14 w-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+            </div>
+            <span className="text-sm font-medium">{loading ? 'Procesando...' : 'Subir CSV de Existencias por Bodega'}</span>
+            <span className="text-xs text-slate-500">{fileName || 'inventario-wo.csv'}</span>
+          </label>
+        </div>
+      )}
+
+      {preview && (
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-slate-600" />
+                  {fileName}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">Corte: <strong>{preview.meta.cutoff_date || '—'}</strong></p>
+              </div>
+              <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Líneas</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Productos</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">
+                  {preview.products_count.toLocaleString('es-CO')}
+                  <span className="text-xs text-emerald-600 ml-1">({preview.products_matched} ✓)</span>
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Bodegas</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.bodegas_count}</p>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-600">Valor inventario</p>
+                <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmtMoney(preview.total_value)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-slate-700 mb-2">Bodegas en el archivo</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {preview.bodegas.map(b => (
+                  <div key={b.name} className={`rounded-md px-2 py-1.5 text-[11px] border ${b.matched ? 'bg-emerald-50/40 border-emerald-100' : 'bg-amber-50/40 border-amber-100'}`}>
+                    <p className="font-medium text-slate-900">{b.matched ? '✓' : '⚠'} {b.name}</p>
+                    <p className="text-slate-600">{b.products} prods · {fmtMoney(b.value)}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-500 mt-2">Las bodegas con ⚠ no existen en BD; se crearán automáticamente.</p>
+            </div>
+
+            {(preview.skipped_counts.contabilizaciones + preview.skipped_counts.activos_fijos + preview.skipped_counts.no_sku) > 0 && (
+              <div className="mt-3 text-[11px] text-slate-500">
+                Filas omitidas: contabilizaciones={preview.skipped_counts.contabilizaciones} · activos fijos={preview.skipped_counts.activos_fijos} · sin SKU={preview.skipped_counts.no_sku}
+              </div>
+            )}
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h3 className="text-h3">Vista previa ({preview.sample.length} de {preview.total})</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100 text-left">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Bodega</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">SKU</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Producto</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Cant.</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Costo prom.</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {preview.sample.map((r, i) => (
+                    <tr key={i} className="hover:bg-slate-50/60">
+                      <td className="px-3 py-2 text-xs text-slate-700">{r.bodega}</td>
+                      <td className="px-3 py-2 text-xs font-mono text-slate-700">{r.sku}</td>
+                      <td className="px-3 py-2 text-xs text-slate-900 truncate max-w-[280px]">{r.name}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums">{r.qty.toLocaleString('es-CO')}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums text-slate-600">{fmtMoney(r.avg_cost)}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums font-semibold">{fmtMoney(r.total_value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="surface-card p-5 bg-amber-50/60 border-amber-200">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-900">
+                <p className="font-semibold mb-1">Listo para importar</p>
+                <p className="text-xs">
+                  Se reemplazará el stock existente para los productos y bodegas listados. Productos sin match se crearán nuevos.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={reset} disabled={importing}>Cancelar</Button>
+              <Button onClick={handleImport} disabled={importing}>
+                {importing ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {progress ? `Importando ${progress.done.toLocaleString()}/${progress.total.toLocaleString()}...` : 'Importando...'}
+                  </>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} líneas</>
                 )}
               </Button>
             </div>
