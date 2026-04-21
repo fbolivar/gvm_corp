@@ -1,5 +1,7 @@
 import { ShipmentManager } from "@/features/logistics/components/ShipmentManager"
-import { Sparkles } from "lucide-react"
+import { Button } from "@/shared/components/ui/button"
+import Link from "next/link"
+import { Sparkles, BookOpen } from "lucide-react"
 
 export default function LogisticsPage() {
     return (
@@ -16,6 +18,12 @@ export default function LogisticsPage() {
                         </div>
                     </div>
                 </div>
+                <Button variant="outline" asChild className="h-10 rounded-xl">
+                    <Link href="/help/logistics-flow">
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Guía del Flujo
+                    </Link>
+                </Button>
             </div>
 
             <ShipmentManager />
