@@ -286,9 +286,9 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
         {
             group: t.sidebar.tools.toUpperCase(),
             links: [
-                { title: 'Notificaciones', href: "/notifications", icon: Bell }, // siempre visible
-                { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare }, // siempre visible
-                { title: 'Importación', href: "/settings/import", icon: Upload }, // siempre visible
+                { title: 'Notificaciones', href: "/notifications", icon: Bell }, // siempre visible — centro de alertas personal
+                { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare, moduleKey: 'collaboration' },
+                { title: 'Importación', href: "/settings/import", icon: Upload, moduleKey: 'settings' },
                 { title: 'Tecnología', href: "/technology", icon: Monitor, moduleKey: 'technology' },
                 {
                     title: 'DIAN',
