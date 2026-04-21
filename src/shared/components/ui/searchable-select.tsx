@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Search, X, Check } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 
@@ -34,9 +35,16 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [openUpward, setOpenUpward] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; openUpward: boolean }>({
+    top: 0, left: 0, width: 0, openUpward: false,
+  })
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // SSR safety: solo montar el portal en el cliente
+  useEffect(() => { setMounted(true) }, [])
 
   const selectedItem = useMemo(() => items.find((i) => i.value === value), [items, value])
 
@@ -51,29 +59,52 @@ export function SearchableSelect({
       .slice(0, 200)
   }, [items, query])
 
+  // Calcular posición del dropdown basada en el trigger
+  const recalcPosition = () => {
+    if (!triggerRef.current) return
+    const rect = triggerRef.current.getBoundingClientRect()
+    const DROPDOWN_MAX = 400
+    const spaceBelow = window.innerHeight - rect.bottom
+    const spaceAbove = rect.top
+    const openUpward = spaceBelow < DROPDOWN_MAX && spaceAbove > spaceBelow
+    setPos({
+      top: openUpward ? rect.top - 8 : rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+      openUpward,
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return
+    recalcPosition()
+  }, [open])
+
+  // Close on outside click + recalc on scroll/resize
   useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const inTrigger = triggerRef.current?.contains(target)
+      const inDropdown = dropdownRef.current?.contains(target)
+      if (!inTrigger && !inDropdown) {
         setOpen(false)
         setQuery('')
       }
     }
+    function handleViewportChange() { recalcPosition() }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleViewportChange, true)
+    window.addEventListener('resize', handleViewportChange)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleViewportChange, true)
+      window.removeEventListener('resize', handleViewportChange)
+    }
   }, [open])
 
   useEffect(() => {
-    if (!open) return
-    // Decide si abrir hacia arriba según espacio disponible
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      const spaceAbove = rect.top
-      const DROPDOWN_MAX = 400  // altura aprox del dropdown (input + lista)
-      setOpenUpward(spaceBelow < DROPDOWN_MAX && spaceAbove > spaceBelow)
-    }
-    setTimeout(() => inputRef.current?.focus(), 10)
+    if (open) setTimeout(() => inputRef.current?.focus(), 10)
   }, [open])
 
   function handleSelect(itemValue: string) {
@@ -89,8 +120,9 @@ export function SearchableSelect({
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
@@ -101,12 +133,7 @@ export function SearchableSelect({
           disabled && 'opacity-50 cursor-not-allowed'
         )}
       >
-        <span
-          className={cn(
-            'truncate flex-1',
-            !selectedItem && 'text-slate-400'
-          )}
-        >
+        <span className={cn('truncate flex-1', !selectedItem && 'text-slate-400')}>
           {selectedItem ? selectedItem.label : placeholder}
         </span>
         <div className="flex items-center gap-1 shrink-0">
@@ -121,22 +148,23 @@ export function SearchableSelect({
               <X className="h-3 w-3" />
             </span>
           )}
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 text-slate-300 transition-transform',
-              open && 'rotate-180'
-            )}
-          />
+          <ChevronDown className={cn('h-4 w-4 text-slate-300 transition-transform', open && 'rotate-180')} />
         </div>
       </button>
 
-      {open && (
-        <div className={cn(
-          "absolute z-50 w-full bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in duration-150",
-          openUpward
-            ? "bottom-full mb-2 slide-in-from-bottom-2"
-            : "mt-2 slide-in-from-top-2"
-        )}>
+      {mounted && open && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            top: pos.openUpward ? 'auto' : pos.top,
+            bottom: pos.openUpward ? window.innerHeight - pos.top : 'auto',
+            left: pos.left,
+            width: pos.width,
+            zIndex: 9999,
+          }}
+          className="bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in duration-150"
+        >
           <div className="p-2 border-b border-slate-100 bg-slate-50/50">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -167,13 +195,9 @@ export function SearchableSelect({
                       )}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-slate-900 truncate">
-                          {item.label}
-                        </div>
+                        <div className="text-sm font-semibold text-slate-900 truncate">{item.label}</div>
                         {item.subLabel && (
-                          <div className="text-[11px] text-slate-400 truncate font-medium">
-                            {item.subLabel}
-                          </div>
+                          <div className="text-[11px] text-slate-400 truncate font-medium">{item.subLabel}</div>
                         )}
                       </div>
                       {item.value === value && (
@@ -195,7 +219,8 @@ export function SearchableSelect({
               </ul>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
