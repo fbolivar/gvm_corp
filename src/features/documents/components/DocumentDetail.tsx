@@ -36,6 +36,7 @@ import { deleteDocumentAction, forceDeleteDocumentAction } from '../actions'
 import { PrintDeliveryNoteButton } from './PrintDeliveryNoteButton'
 import { PrintSalesOrderButton } from './PrintSalesOrderButton'
 import { PrintVendorBillButton } from './PrintVendorBillButton'
+import { PrintDocSupportButton } from './PrintDocSupportButton'
 import { toast } from 'sonner'
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -168,6 +169,7 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
     const isDeliveryNote = document.doc_type === 'DELIVERY_NOTE';
     const isSalesOrder = document.doc_type === 'SALES_ORDER';
     const isVendorBill = document.doc_type === 'VENDOR_BILL';
+    const isDocSupport = document.doc_type === 'DOC_SUPPORT';
     const balance = Number(document.balance ?? document.total ?? 0);
     // 'PAID' no está en el enum TypeScript actual pero puede existir en DB
     const canCreatePaymentLink = isInvoice && balance > 0 && (document.status as string) !== 'PAID';
@@ -264,6 +266,8 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                         <PrintSalesOrderButton docId={document.id!} />
                     ) : isVendorBill ? (
                         <PrintVendorBillButton docId={document.id!} />
+                    ) : isDocSupport ? (
+                        <PrintDocSupportButton docId={document.id!} />
                     ) : (
                         <Button
                             variant="outline"
