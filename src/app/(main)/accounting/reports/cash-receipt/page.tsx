@@ -29,8 +29,28 @@ interface TreasuryTransaction {
     description: string | null;
     reference_number: string | null;
     transaction_type: string;
-    parties: Party | null;
+    accounting_entry_id: string | null;
+    parties: PartyFull | null;
     treasury_accounts: TreasuryAccount | null;
+}
+
+interface PartyFull {
+    legal_name: string | null;
+    nit: string | null;
+    doc_number?: string | null;
+    dv?: string | null;
+    address?: string | null;
+    city?: string | null;
+    phone?: string | null;
+}
+
+interface JournalLineDetail {
+    id: string;
+    debit: number;
+    credit: number;
+    description: string | null;
+    chart_account_code: string | null;
+    party_name: string | null;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -38,13 +58,73 @@ interface TreasuryTransaction {
 const fmt = (n: number) =>
     `$${n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+function fmtNumber(n: number): string {
+    return n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
 function fmtDate(dateStr: string): string {
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
 }
 
+function fmtDateLong(iso: string | null | undefined): string {
+    if (!iso) return '—';
+    const d = new Date(iso + (iso.includes('T') ? '' : 'T00:00:00'));
+    const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    return `${days[d.getDay()]}, ${d.getDate()} de ${months[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
 function shortId(id: string): string {
     return id.slice(0, 8).toUpperCase();
+}
+
+// ─── Number to words (Colombian pesos) ────────────────────────────────────────
+
+const UNITS = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE', 'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'VEINTE'];
+const TENS = ['', '', 'VEINTI', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+const HUNDREDS = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+
+function hundredsToWords(n: number): string {
+    if (n === 0) return '';
+    if (n === 100) return 'CIEN';
+    if (n <= 20) return UNITS[n];
+    if (n < 100) {
+        const t = Math.floor(n / 10);
+        const u = n % 10;
+        if (t === 2) return u === 0 ? 'VEINTE' : `VEINTI${UNITS[u]}`;
+        return u === 0 ? TENS[t] : `${TENS[t]} Y ${UNITS[u]}`;
+    }
+    const h = Math.floor(n / 100);
+    const rest = n % 100;
+    return rest === 0 ? HUNDREDS[h] : `${HUNDREDS[h]} ${hundredsToWords(rest)}`;
+}
+
+function numberToWords(n: number): string {
+    n = Math.floor(Math.abs(n));
+    if (n === 0) return 'CERO';
+    const millones = Math.floor(n / 1_000_000);
+    const miles = Math.floor((n % 1_000_000) / 1000);
+    const resto = n % 1000;
+    const parts: string[] = [];
+    if (millones > 0) parts.push(millones === 1 ? 'UN MILLON' : `${hundredsToWords(millones)} MILLONES`);
+    if (miles > 0) parts.push(miles === 1 ? 'MIL' : `${hundredsToWords(miles)} MIL`);
+    if (resto > 0) parts.push(hundredsToWords(resto));
+    return parts.join(' ');
+}
+
+function amountInWords(amount: number): string {
+    return `${numberToWords(amount)} PESOS M/CTE`;
+}
+
+// Extract year + consecutive from reference_number like "RC-2026-556" or plain text
+function parseReceiptNumber(raw: string | null | undefined, fallbackId: string): { year: string; number: string } {
+    const s = (raw || '').trim();
+    const m = s.match(/(\d{4}).*?(\d+)$/);
+    if (m) return { year: m[1], number: m[2] };
+    const lastDigits = s.match(/(\d+)$/);
+    if (lastDigits) return { year: new Date().getFullYear().toString(), number: lastDigits[1] };
+    return { year: new Date().getFullYear().toString(), number: shortId(fallbackId) };
 }
 
 // ── List View ─────────────────────────────────────────────────────────────────
@@ -186,6 +266,8 @@ interface PrintViewProps {
     tenantEmail?: string | null;
     tenantCity?: string | null;
     tenantLogoUrl?: string | null;
+    journalLines: JournalLineDetail[];
+    elaboratedBy: string;
 }
 
 function PrintView({
@@ -195,260 +277,247 @@ function PrintView({
     tenantDv,
     tenantAddress,
     tenantPhone,
-    tenantEmail,
+    tenantEmail: _tenantEmail,
     tenantCity,
     tenantLogoUrl,
+    journalLines,
+    elaboratedBy,
 }: PrintViewProps) {
     const amount = Number(tx.amount);
-    const refNum = tx.reference_number || shortId(tx.id);
-    const payerName = tx.parties?.legal_name ?? 'CONSUMIDOR FINAL';
-    const payerNit = tx.parties?.nit ?? '';
-    const accountName = tx.treasury_accounts?.name ?? null;
-    const bankName = tx.treasury_accounts?.bank_name ?? null;
-    const paymentMethod = bankName ? 'Transferencia Bancaria' : 'Efectivo';
+    const party = tx.parties;
+    const payerName = (party?.legal_name || 'SIN BENEFICIARIO').toUpperCase();
+    const payerNit = party?.nit ? `${party.nit}${party.dv ? ` ${party.dv}` : ''}` : (party?.doc_number || '—');
+    const { year, number } = parseReceiptNumber(tx.reference_number, tx.id);
+    const concept = (tx.description || '—').toUpperCase();
+
+    // If no journal lines, synthesize two standard lines for display
+    const lines: JournalLineDetail[] = journalLines.length > 0 ? journalLines : [
+        {
+            id: 'synth-debit',
+            debit: amount,
+            credit: 0,
+            description: concept,
+            chart_account_code: '—',
+            party_name: payerName,
+        },
+        {
+            id: 'synth-credit',
+            debit: 0,
+            credit: amount,
+            description: concept,
+            chart_account_code: '—',
+            party_name: payerName,
+        },
+    ];
+
+    const totalDebit = lines.reduce((s, l) => s + Number(l.debit || 0), 0);
+    const totalCredit = lines.reduce((s, l) => s + Number(l.credit || 0), 0);
 
     return (
-        <div className="min-h-screen bg-slate-100 print:bg-white">
-            {/* Controls bar — hidden on print */}
-            <div className="print:hidden bg-white border-b border-slate-100 px-8 py-5 flex items-center justify-between shadow-sm">
-                <Link
-                    href="/accounting/reports/cash-receipt"
-                    className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-slate-900 transition-colors"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Volver a la lista
-                </Link>
-                <div className="flex items-center gap-4">
-                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                        Recibo #{refNum}
-                    </span>
+        <>
+            <style>{`
+                @media screen { .rc-doc { padding: 24px 32px; } }
+                @media print {
+                    @page { size: 210mm 297mm; margin: 10mm; }
+                    html, body {
+                        margin: 0 !important; padding: 0 !important;
+                        background: white !important;
+                        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+                    }
+                    .no-print { display: none !important; }
+                    .rc-doc { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; font-size: 10px !important; }
+                }
+                .rc-outer { border: 1px solid #111; border-collapse: collapse; width: 100%; }
+                .rc-outer td { border: 1px solid #111; vertical-align: top; padding: 4px 8px; }
+                .rc-head-gray { background: #d9d9d9; font-weight: 700; text-transform: uppercase; font-size: 9px; letter-spacing: 0.02em; }
+                .rc-head-dark { background: #7a7a7a; color: #fff; font-weight: 700; text-transform: uppercase; font-size: 10px; text-align: center; letter-spacing: 0.03em; }
+                .rc-table { width: 100%; border-collapse: collapse; }
+                .rc-table th, .rc-table td { border: 1px solid #111; padding: 4px 6px; font-size: 10px; vertical-align: top; }
+                .rc-table th { background: #d9d9d9; text-transform: uppercase; font-size: 9px; letter-spacing: 0.02em; text-align: left; }
+                .rc-num { text-align: right; font-variant-numeric: tabular-nums; }
+            `}</style>
+
+            <div className="no-print sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-3">
+                <div className="max-w-[820px] mx-auto flex items-center justify-between gap-4">
+                    <Link
+                        href="/accounting/reports/cash-receipt"
+                        className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 shrink-0"
+                    >
+                        <ArrowLeft className="h-4 w-4" /> Volver al listado
+                    </Link>
                     <PrintButton label="Imprimir Recibo" />
                 </div>
             </div>
 
-            {/* A4 sheet wrapper */}
-            <div className="flex items-start justify-center py-12 print:py-0 print:block">
-                <div className={cn(
-                    "bg-white w-full max-w-[794px] min-h-[1123px]",
-                    "print:w-full print:max-w-none print:min-h-0 print:shadow-none",
-                    "shadow-[0_8px_80px_rgba(0,0,0,0.15)] print:rounded-none rounded-[2.5rem]",
-                    "flex flex-col"
-                )}>
+            {/* ═══════════════════════ RECIBO DE CAJA ═══════════════════════ */}
+            <div className="rc-doc max-w-[820px] mx-auto bg-white text-slate-900" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px' }}>
 
-                    {/* ── COMPANY HEADER ──────────────────────────────────── */}
-                    <div className="px-16 pt-14 pb-10 border-b-4 border-slate-900 flex items-start justify-between gap-8">
-                        <div className="flex items-center gap-5">
-                            {tenantLogoUrl ? (
-                                <img
-                                    src={tenantLogoUrl}
-                                    alt={tenantName}
-                                    className="h-16 w-auto object-contain"
-                                />
-                            ) : (
-                                <div className="h-16 w-16 rounded-2xl bg-slate-900 flex items-center justify-center text-white shrink-0">
-                                    <Building2 className="h-8 w-8" />
-                                </div>
-                            )}
-                            <div>
-                                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-tight">
-                                    {tenantName}
-                                </h2>
-                                <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                                    NIT: {tenantNit}-{tenantDv}
-                                </p>
-                                <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2">
-                                    {tenantAddress && (
-                                        <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
-                                            <MapPin className="h-3 w-3 shrink-0" />
-                                            {tenantAddress}{tenantCity ? `, ${tenantCity}` : ''}
-                                        </span>
-                                    )}
-                                    {tenantPhone && (
-                                        <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
-                                            <Phone className="h-3 w-3 shrink-0" />
-                                            {tenantPhone}
-                                        </span>
-                                    )}
-                                    {tenantEmail && (
-                                        <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
-                                            <Mail className="h-3 w-3 shrink-0" />
-                                            {tenantEmail}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Receipt title block */}
-                        <div className="text-right shrink-0">
-                            <div className="inline-block border-2 border-slate-900 rounded-2xl px-6 py-4">
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] leading-none mb-2">
-                                    Documento
-                                </p>
-                                <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
-                                    Recibo de Caja
-                                </h1>
-                                <div className="mt-3 flex flex-col gap-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                        No.
-                                    </span>
-                                    <span className="text-xl font-black text-emerald-600 italic tracking-tighter">
-                                        {refNum}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ── DATE ROW ─────────────────────────────────────────── */}
-                    <div className="px-16 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">
-                                Fecha:
-                            </span>
-                            <span className="text-sm font-black text-slate-900 italic tracking-tight">
-                                {fmtDate(tx.date)}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">
-                                Cuenta:
-                            </span>
-                            <span className="text-sm font-black text-slate-700 italic">
-                                {accountName ?? 'Caja General'}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* ── BODY ─────────────────────────────────────────────── */}
-                    <div className="px-16 py-10 flex-1 space-y-8">
-
-                        {/* RECIBIMOS DE */}
-                        <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                            <div className="bg-slate-900 px-6 py-3">
-                                <span className="text-[9px] font-black text-white uppercase tracking-[0.5em]">
-                                    Recibimos De
-                                </span>
-                            </div>
-                            <div className="px-6 py-5 flex items-center justify-between gap-6">
-                                <div className="flex-1">
-                                    <p className="text-base font-black text-slate-900 uppercase italic tracking-tight">
-                                        {payerName}
-                                    </p>
-                                    {payerNit && (
-                                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                                            NIT / CC: {payerNit}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* LA SUMA DE */}
-                        <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                            <div className="bg-emerald-600 px-6 py-3">
-                                <span className="text-[9px] font-black text-white uppercase tracking-[0.5em]">
-                                    La Suma De
-                                </span>
-                            </div>
-                            <div className="px-6 py-5">
-                                <p className="text-sm font-black text-slate-700 uppercase italic tracking-tight">
-                                    SON: {fmt(amount)} PESOS M/CTE
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* POR CONCEPTO DE */}
-                        <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                            <div className="bg-slate-100 px-6 py-3">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em]">
-                                    Por Concepto De
-                                </span>
-                            </div>
-                            <div className="px-6 py-5">
-                                <p className="text-sm font-medium text-slate-700 leading-relaxed">
-                                    {tx.description ?? 'Pago recibido'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* FORMA DE PAGO */}
-                        <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                            <div className="bg-slate-100 px-6 py-3">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.5em]">
-                                    Forma de Pago
-                                </span>
-                            </div>
-                            <div className="px-6 py-5 flex items-center gap-4">
-                                <span className="text-sm font-black text-slate-700 italic uppercase tracking-tight">
-                                    {paymentMethod}
-                                </span>
-                                {bankName && (
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        — {bankName}
-                                    </span>
+                {/* ── HEADER: logo + empresa + caja recibo ──────────────────── */}
+                <table className="rc-outer">
+                    <tbody>
+                        <tr>
+                            <td rowSpan={3} style={{ width: '130px', padding: '8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                {tenantLogoUrl ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img src={tenantLogoUrl} alt={tenantName} style={{ maxHeight: '70px', maxWidth: '110px', objectFit: 'contain' }} />
+                                ) : (
+                                    <div style={{ fontSize: '22px', fontWeight: 900, color: '#1f6b35' }}>{tenantName.split(' ')[0]}</div>
                                 )}
-                            </div>
-                        </div>
+                            </td>
+                            <td colSpan={2} style={{ padding: '6px 12px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                <div style={{ fontSize: '15px', fontWeight: 900, letterSpacing: '0.01em' }}>{tenantName}</div>
+                            </td>
+                            <td rowSpan={3} style={{ width: '180px', padding: 0, verticalAlign: 'top' }}>
+                                <div style={{ background: '#e8efe5', padding: '10px 6px', textAlign: 'center', fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1px solid #111' }}>
+                                    RECIBO DE CAJA
+                                </div>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <tbody>
+                                        <tr>
+                                            <td style={{ padding: '10px 4px', textAlign: 'center', fontSize: '16px', fontWeight: 900, color: '#2d8a4e', borderRight: '1px solid #111', width: '50%' }}>{year}</td>
+                                            <td style={{ padding: '10px 4px', textAlign: 'center', fontSize: '16px', fontWeight: 900, width: '50%' }}>{number}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colSpan={2} style={{ padding: '3px 12px', textAlign: 'center', fontSize: '11px' }}>
+                                <span style={{ fontWeight: 700 }}>Nit</span>
+                                <span style={{ marginLeft: '24px' }}>{tenantNit}{tenantDv ? ` ${tenantDv}` : ''}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colSpan={2} style={{ padding: '3px 12px', textAlign: 'center', fontSize: '10.5px' }}>
+                                {tenantAddress || '—'}
+                                {tenantPhone ? ` TEL ${tenantPhone}` : ''}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                        {/* AMOUNT BOX — hero display */}
-                        <div className="bg-slate-900 rounded-2xl px-8 py-6 flex items-center justify-between">
-                            <div>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em] mb-1">
-                                    Valor Total Recibido
-                                </p>
-                                <p className="text-4xl font-black text-emerald-400 italic tracking-tighter leading-none">
-                                    {fmt(amount)}
-                                </p>
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">
-                                    PESOS MONEDA CORRIENTE
-                                </p>
-                            </div>
-                            <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                                <Receipt className="h-8 w-8 text-emerald-400" />
-                            </div>
-                        </div>
+                {/* ── BENEFICIARIO ── */}
+                <table className="rc-outer" style={{ borderTop: 'none' }}>
+                    <tbody>
+                        <tr>
+                            <td className="rc-head-dark" style={{ padding: '4px 8px', textAlign: 'left' }}>BENEFICIARIO</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '6px 8px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>{payerName}</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                    </div>
+                {/* ── NIT / POR CONCEPTO DE ── */}
+                <table className="rc-outer" style={{ borderTop: 'none' }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ width: '40%', padding: '3px 8px', background: '#7a7a7a', color: '#fff', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', borderRight: '1px solid #111' }}>NIT</td>
+                            <td style={{ padding: '3px 8px', background: '#7a7a7a', color: '#fff', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>POR CONCEPTO DE</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '6px 8px', fontWeight: 700, fontSize: '11px', borderRight: '1px solid #111' }}>{payerNit}</td>
+                            <td style={{ padding: '6px 8px', fontWeight: 600, fontSize: '10.5px', textTransform: 'uppercase' }}>{concept}</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                    {/* ── SIGNATURES ───────────────────────────────────────── */}
-                    <div className="px-16 pb-14 pt-6 border-t-2 border-slate-100">
-                        <div className="grid grid-cols-2 gap-16 mt-8">
-                            <div className="flex flex-col gap-2">
-                                <div className="h-px bg-slate-900 w-full" />
-                                <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.4em] text-center">
-                                    Recibido Por
-                                </p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                                    Nombre, Cargo y Sello
-                                </p>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <div className="h-px bg-slate-400 w-full" />
-                                <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.4em] text-center">
-                                    Firma del Pagador
-                                </p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                                    Nombre y Documento
-                                </p>
-                            </div>
-                        </div>
+                {/* ── DIRECCION / CIUDAD / TELEFONO ── */}
+                <table className="rc-outer" style={{ borderTop: 'none' }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ padding: '3px 8px', background: '#7a7a7a', color: '#fff', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', borderRight: '1px solid #111', width: '40%' }}>DIRECCION</td>
+                            <td style={{ padding: '3px 8px', background: '#7a7a7a', color: '#fff', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', borderRight: '1px solid #111', width: '30%' }}>CIUDAD</td>
+                            <td style={{ padding: '3px 8px', background: '#7a7a7a', color: '#fff', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>TELEFONO</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '6px 8px', fontSize: '11px', borderRight: '1px solid #111' }}>{party?.address || '—'}</td>
+                            <td style={{ padding: '6px 8px', fontSize: '11px', borderRight: '1px solid #111' }}>{party?.city || '—'}</td>
+                            <td style={{ padding: '6px 8px', fontSize: '11px' }}>{party?.phone || '—'}</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                        {/* Footer legal note */}
-                        <div className="mt-10 pt-6 border-t border-slate-100 flex items-center justify-between">
-                            <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">
-                                Este documento es soporte contable válido conforme a la normativa colombiana
-                            </span>
-                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">
-                                {tenantName} • NIT {tenantNit}-{tenantDv}
-                            </span>
-                        </div>
-                    </div>
+                {/* ── FECHA DOCUMENTO / ELABORADO POR / CHEQUE No. ── */}
+                <table className="rc-outer" style={{ borderTop: 'none' }}>
+                    <tbody>
+                        <tr>
+                            <td className="rc-head-dark" style={{ padding: '3px 8px', width: '40%' }}>FECHA DOCUMENTO</td>
+                            <td className="rc-head-dark" style={{ padding: '3px 8px', width: '40%' }}>ELABORADO POR</td>
+                            <td className="rc-head-dark" style={{ padding: '3px 8px', width: '20%' }}>CHEQUE No.</td>
+                        </tr>
+                        <tr>
+                            <td style={{ padding: '6px 8px', fontSize: '11px', textAlign: 'center' }}>{fmtDateLong(tx.date)}</td>
+                            <td style={{ padding: '6px 8px', fontSize: '11px', textAlign: 'center', textTransform: 'uppercase', fontWeight: 700 }}>{elaboratedBy}</td>
+                            <td style={{ padding: '6px 8px', fontSize: '11px', textAlign: 'center', fontWeight: 700 }}>
+                                {tx.reference_number && /^\d+$/.test(tx.reference_number) ? tx.reference_number : ''}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {/* ── Accounting table ── */}
+                <table className="rc-table" style={{ borderTop: 'none' }}>
+                    <thead>
+                        <tr>
+                            <th style={{ width: '15%' }}>Codigo Cuenta</th>
+                            <th style={{ width: '32%' }}>Concepto</th>
+                            <th style={{ width: '28%' }}>Tercero</th>
+                            <th className="rc-num" style={{ width: '12.5%' }}>Debito</th>
+                            <th className="rc-num" style={{ width: '12.5%' }}>Credito</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {lines.map((l) => (
+                            <tr key={l.id}>
+                                <td style={{ fontWeight: 700 }}>{l.chart_account_code ?? '—'}</td>
+                                <td style={{ textTransform: 'uppercase' }}>{l.description ?? '—'}</td>
+                                <td style={{ textTransform: 'uppercase' }}>{l.party_name ?? '—'}</td>
+                                <td className="rc-num">{Number(l.debit) > 0 ? fmtNumber(Number(l.debit)) : '0'}</td>
+                                <td className="rc-num">{Number(l.credit) > 0 ? fmtNumber(Number(l.credit)) : '0'}</td>
+                            </tr>
+                        ))}
+                        {Array.from({ length: Math.max(0, 3 - lines.length) }).map((_, i) => (
+                            <tr key={`filler-${i}`} style={{ height: '22px' }}>
+                                <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {/* ── Footer totals + valor en letras + firmas ── */}
+                <table className="rc-outer" style={{ borderTop: 'none' }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ width: '50%', padding: '4px 8px', verticalAlign: 'top' }}>
+                                <div className="rc-head-gray" style={{ padding: '3px 6px', display: 'inline-block', marginBottom: '4px' }}>Valor en Letras</div>
+                                <div style={{ fontSize: '10.5px', textTransform: 'uppercase', fontWeight: 600, lineHeight: 1.4 }}>{amountInWords(amount)}</div>
+                                <div style={{ fontSize: '10.5px', textTransform: 'uppercase', fontWeight: 600, marginTop: '2px' }}>PESOS M/CTE</div>
+                            </td>
+                            <td className="rc-head-gray" style={{ width: '25%', padding: '4px 8px', textAlign: 'center' }}>TOTAL DEL DOCUMENTO</td>
+                            <td className="rc-num" style={{ width: '12.5%', padding: '4px 8px', fontWeight: 700 }}>{fmtNumber(totalDebit)}</td>
+                            <td className="rc-num" style={{ width: '12.5%', padding: '4px 8px', fontWeight: 700 }}>{fmtNumber(totalCredit)}</td>
+                        </tr>
+                        <tr>
+                            <td className="rc-head-gray" style={{ padding: '4px 8px' }}>REVISADO POR</td>
+                            <td colSpan={3} rowSpan={2} className="rc-head-dark" style={{ padding: '4px 8px', verticalAlign: 'top', height: '70px' }}>
+                                FIRMA Y SELLO DEL BENEFICIARIO
+                            </td>
+                        </tr>
+                        <tr>
+                            <td className="rc-head-gray" style={{ padding: '4px 8px' }}>APROBADO POR</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '9px', color: '#6b7280' }}>
+                    <p>{tenantName} · NIT {tenantNit}{tenantDv ? `-${tenantDv}` : ''}{tenantCity ? ` · ${tenantCity}` : ''}</p>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
+
 
 // ── Page (Server Component) ───────────────────────────────────────────────────
 
@@ -476,7 +545,7 @@ export default async function CashReceiptPage({
     if (params.id) {
         const { data: tx, error } = await supabase
             .from('treasury_transactions')
-            .select('*, parties(legal_name, nit), treasury_accounts(name, bank_name)')
+            .select('*, parties(legal_name, nit, doc_number, dv, address, city, phone), treasury_accounts(name, bank_name)')
             .eq('id', params.id)
             .eq('transaction_type', 'RECEIPT')
             .single();
@@ -503,6 +572,41 @@ export default async function CashReceiptPage({
 
         const typedTx = tx as unknown as TreasuryTransaction;
 
+        // Fetch journal lines for this entry
+        let journalLines: JournalLineDetail[] = [];
+        if (typedTx.accounting_entry_id) {
+            const { data: jlRaw } = await supabase
+                .from('journal_lines')
+                .select('id, debit, credit, description, chart_accounts(code), parties(legal_name)')
+                .eq('entry_id', typedTx.accounting_entry_id)
+                .order('debit', { ascending: false });
+            if (jlRaw) {
+                journalLines = (jlRaw as unknown as Array<{
+                    id: string;
+                    debit: number;
+                    credit: number;
+                    description: string | null;
+                    chart_accounts: { code: string } | null;
+                    parties: { legal_name: string } | null;
+                }>).map(jl => ({
+                    id: jl.id,
+                    debit: Number(jl.debit ?? 0),
+                    credit: Number(jl.credit ?? 0),
+                    description: jl.description,
+                    chart_account_code: jl.chart_accounts?.code ?? null,
+                    party_name: jl.parties?.legal_name ?? null,
+                }));
+            }
+        }
+
+        // Elaborated by (current user)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', user.id)
+            .maybeSingle();
+        const elaboratedBy = (profile?.full_name || profile?.email?.split('@')[0] || '—').toUpperCase();
+
         return (
             <PrintView
                 tx={typedTx}
@@ -514,6 +618,8 @@ export default async function CashReceiptPage({
                 tenantEmail={tenant?.email}
                 tenantCity={tenant?.city}
                 tenantLogoUrl={tenant?.logo_url}
+                journalLines={journalLines}
+                elaboratedBy={elaboratedBy}
             />
         );
     }
@@ -521,7 +627,7 @@ export default async function CashReceiptPage({
     // ── LIST VIEW ─────────────────────────────────────────────────────────────
     const queryBuilder = supabase
         .from('treasury_transactions')
-        .select('*, parties(legal_name, nit), treasury_accounts(name, bank_name)')
+        .select('*, parties(legal_name, nit, doc_number, dv, address, city, phone), treasury_accounts(name, bank_name)')
         .eq('transaction_type', 'RECEIPT')
         .order('date', { ascending: false })
         .limit(20);
