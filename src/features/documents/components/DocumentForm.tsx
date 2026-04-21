@@ -319,6 +319,31 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                 />
                             </FormField>
 
+                            {isSale && warehouseItems.length > 0 && (
+                                <FormField
+                                    label="Bodega de origen"
+                                    htmlFor="df-warehouse"
+                                    colSpan={2}
+                                    error={form.formState.errors.warehouse_id?.message}
+                                >
+                                    <SearchableSelect
+                                        items={warehouseItems}
+                                        value={form.watch('warehouse_id') || ''}
+                                        onChange={(v) => {
+                                            form.setValue('warehouse_id', v || null, { shouldValidate: true, shouldDirty: true });
+                                            // Propaga a todas las líneas existentes
+                                            const currentLines = form.getValues('lines') ?? [];
+                                            currentLines.forEach((_, i) => {
+                                                form.setValue(`lines.${i}.warehouse_id`, v || null, { shouldDirty: true });
+                                            });
+                                        }}
+                                        placeholder="Selecciona la bodega desde donde sale la mercancía"
+                                        emptyMessage="Sin bodegas"
+                                        className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-900 hover:border-slate-300 transition"
+                                    />
+                                </FormField>
+                            )}
+
                             <FormField label="Observaciones (aparecen en PDF)" htmlFor="df-notes-public">
                                 <Input
                                     id="df-notes-public"

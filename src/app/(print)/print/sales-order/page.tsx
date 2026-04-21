@@ -44,6 +44,7 @@ interface DocRow {
   prescription_date: string | null;
   commercial_user_id: string | null;
   party?: Party | null;
+  warehouse?: { id: string; name: string; code: string | null } | null;
   document_lines: DocumentLine[];
 }
 
@@ -94,7 +95,7 @@ export default async function SalesOrderPrintPage({
   const { data: rawDoc, error } = await supabase
     .from("documents")
     .select(
-      "*, party:parties(legal_name, doc_number, doc_type, address, city, phone, email), document_lines(*, products(name, sku, uom))"
+      "*, party:parties(legal_name, doc_number, doc_type, address, city, phone, email), warehouse:warehouses(id, name, code), document_lines(*, products(name, sku, uom))"
     )
     .eq("id", params.id)
     .eq("doc_type", "SALES_ORDER")
@@ -190,6 +191,7 @@ export default async function SalesOrderPrintPage({
               <p><span>No. </span><span className="font-semibold">{displayNumber}</span></p>
               <p><span>Fecha : </span><span className="font-semibold">{fmtDate(doc.issue_date)}</span></p>
               {doc.due_date && <p><span>Fecha entrega : </span><span className="font-semibold">{fmtDate(doc.due_date)}</span></p>}
+              {doc.warehouse && <p><span>Bodega origen : </span><span className="font-semibold uppercase">{doc.warehouse.name}</span></p>}
               <p><span>Estado : </span><span className="font-semibold">{doc.status}</span></p>
             </div>
           </div>

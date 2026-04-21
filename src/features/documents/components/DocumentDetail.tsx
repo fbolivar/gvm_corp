@@ -28,7 +28,8 @@ import {
     Link2,
     Copy,
     Check,
-    Trash2
+    Trash2,
+    Warehouse,
 } from "lucide-react"
 import { emitDianAction } from '@/features/dian/actions'
 import { createPaymentLinkAction } from '@/features/payments/actions'
@@ -468,6 +469,17 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                                         </div>
                                         <span className="text-slate-500 font-bold text-xs">{document.party?.phone || 'Sin teléfono'}</span>
                                     </div>
+                                    {document.warehouse && (
+                                        <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                                            <div className="h-8 w-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                                <Warehouse className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bodega de origen</p>
+                                                <p className="text-slate-700 font-black text-sm italic">{document.warehouse.name}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
