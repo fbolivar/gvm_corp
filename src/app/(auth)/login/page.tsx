@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { headers } from 'next/headers'
 import type { Metadata } from 'next'
 import { LoginForm } from '@/features/auth/components/LoginForm'
@@ -29,11 +30,12 @@ interface TenantBranding {
   accent_color: string
 }
 
-async function getTenantByHost(): Promise<TenantBranding | null> {
+// React.cache deduplica dentro del mismo request: generateMetadata + page
+// comparten 1 sola RPC en vez de ejecutarla 2 veces.
+const getTenantByHost = cache(async (): Promise<TenantBranding | null> => {
   const h = await headers()
   const hostname = (h.get('host') || '').toLowerCase().split(':')[0]
 
-  // Skip generic hosts
   if (
     !hostname ||
     hostname.startsWith('admin.bc-security.com') ||
@@ -55,7 +57,7 @@ async function getTenantByHost(): Promise<TenantBranding | null> {
     .maybeSingle<TenantBranding>()
 
   return data || null
-}
+})
 
 interface PlatformConfig {
   master_logo_url: string | null
@@ -63,11 +65,11 @@ interface PlatformConfig {
   legal_name: string
 }
 
-async function getPlatformConfig(): Promise<PlatformConfig | null> {
+const getPlatformConfig = cache(async (): Promise<PlatformConfig | null> => {
   const supabase = await createClient()
   const { data } = await supabase.rpc('get_platform_config').maybeSingle<PlatformConfig>()
   return data
-}
+})
 
 export default async function LoginPage() {
   const branding = await getTenantByHost()
@@ -160,6 +162,7 @@ export default async function LoginPage() {
                 width={36}
                 height={36}
                 className="rounded-lg w-auto h-auto"
+                unoptimized
               />
             )}
           </div>
@@ -218,6 +221,7 @@ export default async function LoginPage() {
                   width={32}
                   height={32}
                   className="rounded-lg w-auto h-auto"
+                  unoptimized
                 />
               )}
             </div>

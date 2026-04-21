@@ -1,5 +1,8 @@
 'use client';
 
+// Página 100% client-side, sin datos dinámicos → estática permanente.
+export const dynamic = 'force-static';
+
 export default function OfflinePage() {
     return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center p-8">

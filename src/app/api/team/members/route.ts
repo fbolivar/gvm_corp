@@ -92,11 +92,12 @@ export async function POST(request: NextRequest) {
         let isNewUser = false;
 
         // Try to create user first
+        // must_change_password=true fuerza cambio de contraseña en el primer login
         const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
             email,
             password: finalPassword,
             email_confirm: true,
-            user_metadata: { full_name: displayName, role }
+            user_metadata: { full_name: displayName, role, must_change_password: true }
         });
 
         if (createError) {
@@ -282,9 +283,15 @@ export async function PATCH(request: NextRequest) {
         }
 
         // 5. Update password via admin client
+        // Fuerza cambio obligatorio en el siguiente login (si un admin resetea
+        // la clave, el usuario debe personalizarla de inmediato).
         const adminClient = createAdminClient();
+        const { data: targetAuthUser } = await adminClient.auth.admin.getUserById(userId);
+        const existingMeta = (targetAuthUser?.user?.user_metadata ?? {}) as Record<string, unknown>;
+
         const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
             password: newPassword,
+            user_metadata: { ...existingMeta, must_change_password: true },
         });
 
         if (updateError) {
@@ -292,7 +299,7 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ error: translateAuthError(updateError.message) }, { status: 400 });
         }
 
-        return NextResponse.json({ success: true, message: 'Contraseña actualizada exitosamente' });
+        return NextResponse.json({ success: true, message: 'Contraseña actualizada. El usuario deberá definir una nueva en su próximo ingreso.' });
 
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Error interno del servidor';

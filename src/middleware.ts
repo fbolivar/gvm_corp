@@ -89,8 +89,33 @@ export async function middleware(request: NextRequest) {
 
     if (user && (pathname === '/login' || pathname === '/signup')) {
         const url = request.nextUrl.clone()
-        url.pathname = isAdminHost ? '/super-admin' : '/dashboard'
+        // Si es primer login con flag activo, entra directo al cambio obligatorio
+        if (user.user_metadata?.must_change_password === true) {
+            url.pathname = '/change-password'
+        } else {
+            url.pathname = isAdminHost ? '/super-admin' : '/dashboard'
+        }
         return NextResponse.redirect(url)
+    }
+
+    // ─── Cambio de contraseña obligatorio en primer login ──────────────────
+    // Mientras must_change_password sea true, bloqueamos todo excepto la propia
+    // página /change-password y el signout.
+    if (user && user.user_metadata?.must_change_password === true) {
+        const isAllowed =
+            pathname.startsWith('/change-password')
+            || pathname.startsWith('/api')
+            || pathname.startsWith('/_next')
+            || pathname === '/favicon.ico'
+            || pathname === '/logo-gvm.png'
+            || pathname === '/manifest.webmanifest'
+            || pathname === '/sw.js'
+
+        if (!isAllowed) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/change-password'
+            return NextResponse.redirect(url)
+        }
     }
 
     // ─── admin.bc-security.com: restrict to super admin routes only ──────
@@ -126,6 +151,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest)$).*)',
+        // Excluye rutas que manejan su propia auth o son estáticas/públicas.
+        // Esto evita un supabase.auth.getUser() innecesario por request en esas rutas.
+        '/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|offline|terminal|pay|portal|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest|ico)$).*)',
     ],
 }
