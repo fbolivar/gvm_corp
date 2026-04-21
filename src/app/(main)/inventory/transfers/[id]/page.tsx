@@ -22,6 +22,7 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { TransferDetailActions } from '@/features/warehouse-transfers/components/TransferDetailActions';
+import { PrintWarehouseEntryButton } from '@/features/warehouse-transfers/components/PrintWarehouseEntryButton';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Detalle Traslado — GVM Corp' };
@@ -617,7 +618,10 @@ export default async function TransferDetailPage({
             </Card>
 
             {/* ── Action Buttons ───────────────────────────────────────────── */}
-            <TransferDetailActions transfer={transfer} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <PrintWarehouseEntryButton transferId={transfer.id!} />
+                <TransferDetailActions transfer={transfer} />
+            </div>
         </div>
     );
 }
