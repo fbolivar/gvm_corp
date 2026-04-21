@@ -34,11 +34,66 @@ function fmtNum(n: number): string {
     return n < 0 ? `-${formatted}` : formatted;
 }
 
+// Mapa de prioridad: primer módulo con permiso que se use como landing si el
+// usuario no tiene acceso al Dashboard gerencial.
+const MODULE_TO_ROUTE: Record<string, string> = {
+    logistics: '/logistics',
+    sales: '/sales',
+    purchasing: '/purchasing',
+    inventory: '/inventory',
+    accounting: '/accounting',
+    treasury: '/treasury',
+    payroll: '/payroll',
+    dian: '/dian',
+    documents: '/documents',
+    crm: '/crm',
+    production: '/production',
+    analytics: '/analytics',
+    support: '/support',
+    technology: '/technology',
+    contracts: '/contracts',
+    training: '/academy',
+    budget: '/budget',
+    collaboration: '/collaboration',
+    settings: '/settings',
+};
+
 export default async function DashboardPage() {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
+
+    // ─── Guard: solo roles con acceso a 'dashboard' ven el panel gerencial ───
+    // Otros roles son redirigidos a su primer módulo con permiso.
+    const { data: ut } = await supabase
+        .from('user_tenants')
+        .select('role, role_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    const HIGH_LEVEL_ROLES = ['SUPER ADMINISTRADOR', 'ADMINISTRADOR', 'owner', 'admin'];
+    const isHighLevel = ut?.role ? HIGH_LEVEL_ROLES.includes(ut.role) : false;
+
+    if (!isHighLevel && ut?.role_id) {
+        const { data: perms } = await supabase
+            .from('role_permissions')
+            .select('module_key, can_view')
+            .eq('role_id', ut.role_id);
+
+        const allowed = new Set((perms ?? []).filter(p => p.can_view).map(p => p.module_key));
+
+        if (!allowed.has('dashboard')) {
+            // Buscar el primer módulo con permiso siguiendo el orden del mapa
+            for (const [mod, route] of Object.entries(MODULE_TO_ROUTE)) {
+                if (allowed.has(mod)) {
+                    redirect(route);
+                }
+            }
+            // Sin módulos asignados: ir a "mi nómina" (siempre visible) como fallback
+            redirect('/my-payroll');
+        }
+    }
 
     try {
         smartAlertService.evaluateAndTriggerAlerts(supabase).catch(console.error);
