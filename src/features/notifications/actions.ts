@@ -137,10 +137,11 @@ export async function getNotificationsAction(
             .eq('user_id', user.id)
             .maybeSingle()
 
-        // Resolver categorías permitidas según permisos del rol.
-        // Admins ven todo. Resto ve solo las categorías cuyos módulos tenga autorizados.
+        // Resolver categorías PROHIBIDAS según permisos del rol.
+        // Admins ven todo. Resto: excluimos categorías cuyos módulos NO tenga autorizados.
+        // Usamos .not(..., 'in', ...) para no pisar el .or() de user/tenant filter.
         const isAdmin = userTenant?.role ? HIGH_LEVEL_ROLES.includes(userTenant.role) : false
-        let allowedCategories: string[] | null = null
+        let forbiddenCategories: string[] = []
 
         if (!isAdmin && userTenant?.role_id) {
             const { data: perms } = await supabase
@@ -149,8 +150,8 @@ export async function getNotificationsAction(
                 .eq('role_id', userTenant.role_id)
                 .eq('can_view', true)
             const allowedModules = new Set((perms ?? []).map(p => p.module_key))
-            allowedCategories = Object.entries(CATEGORY_TO_MODULES)
-                .filter(([, mods]) => mods.some(m => allowedModules.has(m)))
+            forbiddenCategories = Object.entries(CATEGORY_TO_MODULES)
+                .filter(([, mods]) => !mods.some(m => allowedModules.has(m)))
                 .map(([cat]) => cat)
         }
 
@@ -174,16 +175,10 @@ export async function getNotificationsAction(
             query = query.in('priority', ['CRITICAL', 'HIGH'] as NotificationPriority[])
         }
 
-        // Filtrar por categorías permitidas (solo para no-admins)
-        if (allowedCategories !== null) {
-            if (allowedCategories.length === 0) {
-                // El rol no tiene acceso a ninguna categoría → solo notifs personales sin categoría
-                query = query.is('category', null)
-            } else {
-                // Incluir notifs sin categoría (personales) + las categorías permitidas
-                const catsCsv = allowedCategories.map(c => `"${c}"`).join(',')
-                query = query.or(`category.is.null,category.in.(${catsCsv})`)
-            }
+        // Excluir categorías prohibidas (los null/sin categoría pasan siempre)
+        if (forbiddenCategories.length > 0) {
+            const forbiddenCsv = forbiddenCategories.map(c => `"${c}"`).join(',')
+            query = query.not('category', 'in', `(${forbiddenCsv})`)
         }
 
         const { data, error } = await query
@@ -212,9 +207,10 @@ export async function getUnreadCountAction(): Promise<number> {
             .eq('user_id', user.id)
             .maybeSingle()
 
-        // Mismo filtrado por categoría permitida que getNotificationsAction
+        // Mismo filtrado que getNotificationsAction — usando .not(...,'in',...) para
+        // no pisar el .or() user/tenant previo.
         const isAdmin = userTenant?.role ? HIGH_LEVEL_ROLES.includes(userTenant.role) : false
-        let allowedCategories: string[] | null = null
+        let forbiddenCategories: string[] = []
 
         if (!isAdmin && userTenant?.role_id) {
             const { data: perms } = await supabase
@@ -223,8 +219,8 @@ export async function getUnreadCountAction(): Promise<number> {
                 .eq('role_id', userTenant.role_id)
                 .eq('can_view', true)
             const allowedModules = new Set((perms ?? []).map(p => p.module_key))
-            allowedCategories = Object.entries(CATEGORY_TO_MODULES)
-                .filter(([, mods]) => mods.some(m => allowedModules.has(m)))
+            forbiddenCategories = Object.entries(CATEGORY_TO_MODULES)
+                .filter(([, mods]) => !mods.some(m => allowedModules.has(m)))
                 .map(([cat]) => cat)
         }
 
@@ -241,13 +237,9 @@ export async function getUnreadCountAction(): Promise<number> {
             query = query.eq('user_id', user.id)
         }
 
-        if (allowedCategories !== null) {
-            if (allowedCategories.length === 0) {
-                query = query.is('category', null)
-            } else {
-                const catsCsv = allowedCategories.map(c => `"${c}"`).join(',')
-                query = query.or(`category.is.null,category.in.(${catsCsv})`)
-            }
+        if (forbiddenCategories.length > 0) {
+            const forbiddenCsv = forbiddenCategories.map(c => `"${c}"`).join(',')
+            query = query.not('category', 'in', `(${forbiddenCsv})`)
         }
 
         const { count } = await query
