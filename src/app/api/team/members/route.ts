@@ -45,22 +45,35 @@ export async function POST(request: NextRequest) {
 
         // debug: [API /team/members] body received:', JSON.stringify(body));
 
-        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        const rawEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        const rawUsername = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
         const role = typeof body.role === 'string' ? body.role.trim() : '';
         const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : '';
         const zoneId = typeof body.zoneId === 'string' && body.zoneId.length > 0 ? body.zoneId : null;
         const rawPassword = typeof body.password === 'string' ? body.password.trim() : '';
 
-        if (!email || !email.includes('@')) {
-            return NextResponse.json({ error: `Email inválido: "${email}"` }, { status: 400 });
-        }
         if (!role) {
             return NextResponse.json({ error: 'El rol es requerido' }, { status: 400 });
+        }
+        if (!rawEmail && !rawUsername) {
+            return NextResponse.json({ error: 'Debes indicar un usuario o un email' }, { status: 400 });
+        }
+        if (rawUsername && !/^[a-z0-9._-]{3,30}$/.test(rawUsername)) {
+            return NextResponse.json({ error: 'Usuario inválido: 3-30 caracteres, solo letras, números, punto, guion y guion bajo' }, { status: 400 });
+        }
+
+        // Si no hay email, se genera uno sintético a partir del username para que
+        // Supabase Auth pueda crearlo. El usuario final entra con `username`.
+        const email = rawEmail || `${rawUsername}@users.gvm.local`;
+        const username = rawUsername || null;
+
+        if (!email.includes('@')) {
+            return NextResponse.json({ error: `Email inválido: "${email}"` }, { status: 400 });
         }
 
         const password = rawPassword.length >= 6 ? rawPassword : undefined;
         const tenantId = userTenant.tenant_id;
-        const displayName = fullName || email.split('@')[0];
+        const displayName = fullName || rawUsername || email.split('@')[0];
 
         // 4. Lookup role_id from app_roles
         const { data: appRole } = await supabase
@@ -127,17 +140,23 @@ export async function POST(request: NextRequest) {
                     await adminClient.auth.admin.updateUserById(targetUserId, { password });
                 }
 
-                // Ensure profile exists
+                // Ensure profile exists (preserva username existente si no se envía nuevo)
+                const profilePayload: Record<string, unknown> = {
+                    id: targetUserId,
+                    email,
+                    full_name: fullName || existingUser.user_metadata?.full_name || displayName,
+                };
+                if (username) profilePayload.username = username;
+
                 const { error: profileErr } = await adminClient
                     .from('profiles')
-                    .upsert({
-                        id: targetUserId,
-                        email,
-                        full_name: fullName || existingUser.user_metadata?.full_name || displayName,
-                    }, { onConflict: 'id' });
+                    .upsert(profilePayload, { onConflict: 'id' });
 
                 if (profileErr) {
                     console.error('[API /team/members] profile upsert error:', profileErr.message);
+                    if (profileErr.message?.toLowerCase().includes('unique') && username) {
+                        return NextResponse.json({ error: `El usuario "${username}" ya está en uso` }, { status: 409 });
+                    }
                 }
             } else {
                 console.error('[API /team/members] createUser unexpected error:', createError.message);
@@ -152,17 +171,25 @@ export async function POST(request: NextRequest) {
             isNewUser = true;
             // debug: [API /team/members] New user created:', targetUserId);
 
-            // Create profile
+            // Create profile con username si se envió
+            const profilePayload: Record<string, unknown> = {
+                id: targetUserId,
+                email,
+                full_name: displayName,
+            };
+            if (username) profilePayload.username = username;
+
             const { error: profileErr } = await adminClient
                 .from('profiles')
-                .upsert({
-                    id: targetUserId,
-                    email,
-                    full_name: displayName,
-                }, { onConflict: 'id' });
+                .upsert(profilePayload, { onConflict: 'id' });
 
             if (profileErr) {
                 console.error('[API /team/members] profile upsert error:', profileErr.message);
+                if (profileErr.message?.toLowerCase().includes('unique') && username) {
+                    // Rollback: eliminar user auth recién creado para no dejarlo huérfano
+                    await adminClient.auth.admin.deleteUser(targetUserId).catch(() => {});
+                    return NextResponse.json({ error: `El usuario "${username}" ya está en uso` }, { status: 409 });
+                }
             }
         }
 

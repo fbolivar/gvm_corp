@@ -10,7 +10,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, Loader2, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Lock, User, Loader2, ArrowRight, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
 import { SliderCaptcha } from "./SliderCaptcha";
@@ -69,15 +69,16 @@ export function LoginForm() {
 
             {/* Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {/* Email */}
+                {/* Usuario o Email */}
                 <div className="space-y-2">
-                    <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 ml-1">Email Corporativo</Label>
+                    <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 ml-1">Usuario o Email</Label>
                     <div className="relative group">
-                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-indigo-600 transition-colors duration-500" />
+                        <User className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-indigo-600 transition-colors duration-500" />
                         <Input
                             {...register("email")}
-                            type="email"
-                            placeholder="operador@gvm.com"
+                            type="text"
+                            autoComplete="username"
+                            placeholder="jperez  ó  operador@gvm.com"
                             className={cn(
                                 "h-14 pl-14 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 placeholder:text-slate-300 focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500/30 transition-all duration-500",
                                 errors.email && "ring-2 ring-rose-500/30 border-rose-300"

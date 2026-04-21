@@ -130,21 +130,28 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     }, [supabase, tenantId, router]);
 
     async function handleAddMember() {
-        if (!addEmail.trim()) {
-            toast.error("Ingresa un correo electrónico");
+        const identifier = addEmail.trim();
+        if (!identifier) {
+            toast.error("Ingresa un usuario o correo electrónico");
+            return;
+        }
+        if (!addPassword.trim() || addPassword.trim().length < 6) {
+            toast.error("La contraseña debe tener al menos 6 caracteres");
             return;
         }
 
         setAddLoading(true);
         try {
             const roleName = roles.find(r => r.id === addRole)?.name || addRole;
+            const isEmail = identifier.includes('@');
 
             // Llamada a la API Route privilegiada (usa Service Role Key server-side)
             const res = await fetch('/api/team/members', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: addEmail.trim(),
+                    email: isEmail ? identifier : undefined,
+                    username: !isEmail ? identifier : undefined,
                     password: addPassword.trim() || undefined,
                     fullName: addFullName.trim() || undefined,
                     role: roleName,
@@ -403,21 +410,26 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                         </div>
                                     </div>
 
-                                    {/* Fila 1: Email + Contraseña */}
+                                    {/* Fila 1: Usuario o Email + Contraseña */}
                                     <div className="grid grid-cols-2 gap-4">
-                                        {/* Email */}
+                                        {/* Usuario o Email */}
                                         <div className="space-y-2">
-                                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block">
-                                                Correo Electrónico
-                                            </Label>
+                                            <div className="flex items-center gap-2 h-4">
+                                                <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                                    Usuario o Email
+                                                </Label>
+                                                <span className="text-[8px] font-semibold text-slate-300 uppercase tracking-wider">
+                                                    {addEmail.includes('@') ? '· email' : addEmail ? '· usuario' : ''}
+                                                </span>
+                                            </div>
                                             <div className="relative">
-                                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                                 <Input
                                                     id="member-email"
-                                                    type="email"
+                                                    type="text"
                                                     value={addEmail}
                                                     onChange={(e) => setAddEmail(e.target.value)}
-                                                    placeholder="usuario@empresa.com"
+                                                    placeholder="jperez  ó  usuario@empresa.com"
                                                     className="h-14 bg-slate-50 border-none rounded-2xl font-medium pl-11 text-sm focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                                     onKeyDown={(e) => e.key === "Enter" && handleAddMember()}
                                                 />

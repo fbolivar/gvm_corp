@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
+// Acepta username o email. La validación de formato email se hace solo si contiene '@'.
 export const loginSchema = z.object({
-    email: z.string().email('Email inválido'),
+    email: z.string().trim().min(3, 'Ingresa tu usuario o email').refine((v) => {
+        if (!v.includes('@')) return /^[a-zA-Z0-9._-]+$/.test(v);
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }, 'Usuario o email inválido'),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 });
 
