@@ -16,6 +16,7 @@ import {
   FileBarChart,
   Wallet,
   Package,
+  Building2,
 } from 'lucide-react'
 import { PageHeader } from '@/shared/components/ui/page-header'
 import { Button } from '@/shared/components/ui/button'
@@ -31,11 +32,14 @@ import {
   importReceivablesChunkAction,
   previewWorldOfficeInventoryAction,
   importInventoryChunkAction,
+  previewWorldOfficeFixedAssetsAction,
+  importFixedAssetsChunkAction,
   type ReceivableRow,
   type InventoryRow,
+  type FixedAssetRow,
 } from '@/features/import/worldofficeActions'
 
-type Tab = 'puc' | 'parties' | 'balance' | 'receivables' | 'inventory' | 'entries'
+type Tab = 'puc' | 'parties' | 'balance' | 'receivables' | 'inventory' | 'fixed_assets' | 'entries'
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { key: 'puc', label: 'Plan de cuentas', icon: BookOpen },
@@ -43,6 +47,7 @@ const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: s
   { key: 'balance', label: 'Saldos iniciales', icon: Scale },
   { key: 'receivables', label: 'Cartera detalle', icon: Wallet },
   { key: 'inventory', label: 'Inventario', icon: Package },
+  { key: 'fixed_assets', label: 'Activos fijos', icon: Building2 },
   { key: 'entries', label: 'Asientos contables', icon: FileBarChart, disabled: true },
 ]
 
@@ -124,6 +129,7 @@ export function WorldOfficeImportClient() {
       {activeTab === 'balance' && <BalanceImporter />}
       {activeTab === 'receivables' && <ReceivablesImporter />}
       {activeTab === 'inventory' && <InventoryImporter />}
+      {activeTab === 'fixed_assets' && <FixedAssetsImporter />}
     </div>
   )
 }
@@ -1533,6 +1539,246 @@ function InventoryImporter() {
                   </>
                 ) : (
                   <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} líneas</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  LAND: 'Terrenos',
+  BUILDING: 'Edificios',
+  VEHICLE: 'Vehículos',
+  EQUIPMENT: 'Maquinaria',
+  FURNITURE: 'Muebles',
+  COMPUTER: 'Computación',
+  OTHER: 'Otros',
+}
+
+function FixedAssetsImporter() {
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{
+    meta: { cutoff_date: string | null; company_name: string | null }
+    total: number
+    sample: FixedAssetRow[]
+    rows: FixedAssetRow[]
+    totals: { cost: number; depreciation: number; net: number }
+    by_category: { category: string; count: number; cost: number }[]
+    skipped: { no_code: number; no_cost: number }
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [importResult, setImportResult] = useState<{ processed: number; total_cost: number; total_depreciation: number } | null>(null)
+
+  const handleFile = async (file: File) => {
+    setLoading(true); setPreview(null); setImportResult(null)
+    try {
+      const text = await file.text()
+      setFileName(file.name)
+      const res = await previewWorldOfficeFixedAssetsAction(text)
+      if (!res.success) {
+        toast.error(res.error); setFileName(null); return
+      }
+      setPreview(res)
+      toast.success(`${res.total} activos · ${fmtMoney(res.totals.cost)} costo histórico`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally { setLoading(false) }
+  }
+
+  const handleImport = async () => {
+    if (!preview?.rows) return
+    if (!confirm(`¿Importar ${preview.total} activos fijos (costo total ${fmtMoney(preview.totals.cost)})?\n\nEsto actualiza los existentes por código (ACTIF-XXX) y agrega los nuevos.`)) return
+
+    setImporting(true)
+    setProgress({ done: 0, total: preview.rows.length })
+    const CHUNK = 100
+    let processed = 0, totalCost = 0, totalDep = 0
+    try {
+      for (let i = 0; i < preview.rows.length; i += CHUNK) {
+        const chunk = preview.rows.slice(i, i + CHUNK)
+        const res = await importFixedAssetsChunkAction(chunk)
+        if (!res.success) {
+          toast.error(`Lote ${Math.floor(i / CHUNK) + 1}: ${res.error}`)
+          setProgress(null); return
+        }
+        processed += res.processed
+        totalCost += res.total_cost
+        totalDep += res.total_depreciation
+        setProgress({ done: i + chunk.length, total: preview.rows.length })
+      }
+      toast.success(`${processed} activos fijos importados`)
+      setImportResult({ processed, total_cost: totalCost, total_depreciation: totalDep })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setImporting(false); setProgress(null)
+    }
+  }
+
+  const reset = () => { setFileName(null); setPreview(null); setImportResult(null) }
+
+  if (importResult) {
+    return (
+      <div className="surface-card p-8 text-center">
+        <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto mb-4">
+          <CheckCircle2 className="h-7 w-7" />
+        </div>
+        <h2 className="text-h2 mb-1">Activos fijos importados</h2>
+        <p className="text-sm text-slate-500 mb-1">
+          <strong>{importResult.processed.toLocaleString('es-CO')}</strong> activos · costo <strong>{fmtMoney(importResult.total_cost)}</strong>
+        </p>
+        <p className="text-xs text-slate-500 mb-4">
+          Depreciación acumulada: {fmtMoney(importResult.total_depreciation)} · Neto: {fmtMoney(importResult.total_cost - importResult.total_depreciation)}
+        </p>
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button variant="outline" onClick={reset}>Importar otro</Button>
+          <Button asChild><Link href="/accounting/fixed-assets">Ver activos fijos</Link></Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="surface-card p-5 bg-sky-50/60 border-sky-200">
+        <div className="flex items-start gap-3">
+          <Building2 className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-sky-900 space-y-1">
+            <p className="font-semibold">Cómo exportar Activos Fijos desde WorldOffice 9</p>
+            <p className="text-xs">1. Informes → <strong>Contabilidad Financieros</strong> → <strong>Libro Auxiliar</strong></p>
+            <p className="text-xs">2. <strong>Cuentas</strong>: 1504 a 1599 · <strong>Fechas</strong>: 01/01 a 31/03/2026</p>
+            <p className="text-xs">3. <strong>Tipo Informe</strong>: Por Activo Fijo · <strong>Exportar a Excel</strong></p>
+          </div>
+        </div>
+      </div>
+
+      {!preview && (
+        <div className="surface-card p-8 text-center">
+          <input
+            type="file" accept=".csv,.txt" id="fixed-assets-upload" className="hidden"
+            onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={loading}
+          />
+          <label htmlFor="fixed-assets-upload" className="cursor-pointer inline-flex flex-col items-center gap-3">
+            <div className="h-14 w-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+            </div>
+            <span className="text-sm font-medium">{loading ? 'Procesando...' : 'Subir CSV de Libro Auxiliar (15xx)'}</span>
+            <span className="text-xs text-slate-500">{fileName || 'activos-fijos-wo.csv'}</span>
+          </label>
+        </div>
+      )}
+
+      {preview && (
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-slate-600" />
+                  {fileName}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">Corte: <strong>{preview.meta.cutoff_date || '—'}</strong></p>
+              </div>
+              <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Activos</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Costo histórico</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{fmtMoney(preview.totals.cost)}</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-amber-700">Dep. acumulada</p>
+                <p className="text-lg font-bold text-amber-700 tabular-nums">{fmtMoney(preview.totals.depreciation)}</p>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-600">Valor neto</p>
+                <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmtMoney(preview.totals.net)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-slate-700 mb-2">Distribución por categoría</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {preview.by_category.map(c => (
+                  <div key={c.category} className="bg-slate-50 border border-slate-100 rounded-md px-2 py-1.5 text-[11px]">
+                    <p className="font-medium text-slate-900">{CATEGORY_LABELS[c.category] || c.category}</p>
+                    <p className="text-slate-600">{c.count} activos · {fmtMoney(c.cost)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {(preview.skipped.no_code + preview.skipped.no_cost) > 0 && (
+              <div className="mt-3 text-[11px] text-slate-500">
+                Omitidos: sin código ACTIF={preview.skipped.no_code} · sin costo={preview.skipped.no_cost}
+              </div>
+            )}
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h3 className="text-h3">Vista previa ({preview.sample.length} de {preview.total})</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100 text-left">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Código</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Activo</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Categoría</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Cuenta</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Costo</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Dep. acum.</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Vida útil</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {preview.sample.map((r, i) => (
+                    <tr key={i} className="hover:bg-slate-50/60">
+                      <td className="px-3 py-2 text-xs font-mono text-slate-700">{r.code}</td>
+                      <td className="px-3 py-2 text-xs text-slate-900 truncate max-w-[280px]">{r.name}</td>
+                      <td className="px-3 py-2 text-xs text-slate-700">{CATEGORY_LABELS[r.category] || r.category}</td>
+                      <td className="px-3 py-2 text-xs font-mono text-slate-500">{r.cost_account}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums">{fmtMoney(r.acquisition_cost)}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums text-amber-700">{fmtMoney(r.accumulated_depreciation)}</td>
+                      <td className="px-3 py-2 text-xs text-right tabular-nums text-slate-600">{r.useful_life_years}a</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="surface-card p-5 bg-amber-50/60 border-amber-200">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-900">
+                <p className="font-semibold mb-1">Listo para importar</p>
+                <p className="text-xs">
+                  Cada activo se identifica por código (ACTIF-XXX). Si existe se actualiza; si no, se crea. La depreciación acumulada refleja el corte al 31/03/2026.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={reset} disabled={importing}>Cancelar</Button>
+              <Button onClick={handleImport} disabled={importing}>
+                {importing ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {progress ? `Importando ${progress.done}/${progress.total}...` : 'Importando...'}
+                  </>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} activos</>
                 )}
               </Button>
             </div>

@@ -1397,3 +1397,279 @@ export async function importWorldOfficePucAction(csv: string): Promise<ImportPuc
     }
   }
 }
+
+// ============================================================
+// ACTIVOS FIJOS WO — Libro Auxiliar cuentas 15xx
+// ============================================================
+
+export interface FixedAssetRow {
+  code: string
+  name: string
+  cost_account: string
+  dep_account: string
+  category: 'LAND' | 'BUILDING' | 'VEHICLE' | 'EQUIPMENT' | 'FURNITURE' | 'COMPUTER' | 'OTHER'
+  acquisition_date: string
+  acquisition_cost: number
+  accumulated_depreciation: number
+  monthly_depreciation: number
+  useful_life_years: number
+}
+
+function extractAssetCode(name: string): string {
+  const m = name.match(/ACTI?F-\d+/i)
+  return m ? m[0].toUpperCase() : ''
+}
+
+function mapPucToCategory(costAccount: string): FixedAssetRow['category'] {
+  const prefix4 = costAccount.substring(0, 4)
+  if (prefix4 === '1504' || prefix4 === '1508') return 'LAND'
+  if (prefix4 === '1512' || prefix4 === '1516') return 'BUILDING'
+  if (prefix4 === '1520') return 'EQUIPMENT'
+  if (prefix4 === '1524') return 'FURNITURE'
+  if (prefix4 === '1528') return 'COMPUTER'
+  if (prefix4 === '1540' || prefix4 === '1544' || prefix4 === '1548') return 'VEHICLE'
+  return 'OTHER'
+}
+
+function parseWorldOfficeFixedAssetsCsv(csv: string): {
+  meta: { cutoff_date: string | null; company_name: string | null }
+  rows: FixedAssetRow[]
+  skipped: { no_code: number; no_cost: number }
+  totals: { cost: number; depreciation: number }
+} {
+  const records = readCsvRecords(csv)
+  if (records.length < 5) throw new Error('Archivo muy corto. ¿Es un Libro Auxiliar de WO?')
+
+  const meta: { cutoff_date: string | null; company_name: string | null } = {
+    cutoff_date: null,
+    company_name: null,
+  }
+  if (records[0]?.[0]) meta.company_name = records[0][0].trim()
+  const mDate = (records[1]?.[0] || '').match(/y el (\d{1,2})\/(\d{1,2})\/(\d{4})/)
+  if (mDate) {
+    meta.cutoff_date = `${mDate[3]}-${mDate[2].padStart(2, '0')}-${mDate[1].padStart(2, '0')}`
+  }
+
+  // Encontrar header
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(6, records.length); i++) {
+    const low = (records[i][0] || '').toLowerCase()
+    if (low === 'inventario') { headerIdx = i; break }
+  }
+  if (headerIdx === -1) throw new Error('No se encontró la cabecera "Inventario". ¿Formato correcto?')
+
+  const rows: FixedAssetRow[] = []
+  const skipped = { no_code: 0, no_cost: 0 }
+  const totalsRaw = { cost: 0, depreciation: 0 }
+
+  // Estado del activo actual
+  type Current = {
+    name: string
+    cost_account: string
+    dep_account: string
+    acquisition_date: string
+    acquisition_cost: number
+    accumulated_depreciation: number
+    monthly_dep_sum: number
+    monthly_dep_count: number
+  }
+  let current: Current | null = null
+
+  const commitCurrent = () => {
+    if (!current) return
+    const code = extractAssetCode(current.name)
+    if (!code) { skipped.no_code++; current = null; return }
+    if (current.acquisition_cost === 0) { skipped.no_cost++; current = null; return }
+
+    const monthlyDep = current.monthly_dep_count > 0
+      ? current.monthly_dep_sum / current.monthly_dep_count
+      : 0
+    const annualDep = monthlyDep * 12
+    const usefulLife = annualDep > 0
+      ? Math.max(1, Math.round(current.acquisition_cost / annualDep))
+      : 10
+
+    rows.push({
+      code,
+      name: current.name.replace(/\s+/g, ' ').trim(),
+      cost_account: current.cost_account,
+      dep_account: current.dep_account,
+      category: mapPucToCategory(current.cost_account),
+      acquisition_date: current.acquisition_date,
+      acquisition_cost: current.acquisition_cost,
+      accumulated_depreciation: current.accumulated_depreciation,
+      monthly_depreciation: monthlyDep,
+      useful_life_years: usefulLife,
+    })
+    totalsRaw.cost += current.acquisition_cost
+    totalsRaw.depreciation += current.accumulated_depreciation
+    current = null
+  }
+
+  for (let i = headerIdx + 1; i < records.length; i++) {
+    const f = records[i]
+    const col0 = (f[0] || '').trim()
+    const col1 = (f[1] || '').trim()
+
+    // Fila de inicio de activo: col0 tiene nombre, col1 tiene cuenta costo (15xx no 159xx)
+    if (col0 && !col0.toLowerCase().startsWith('total ')) {
+      // Nuevo activo. Commit anterior
+      commitCurrent()
+
+      const accountMatch = col1.match(/^(\d{4,8})\s+(.*)$/)
+      if (!accountMatch) continue
+      const costAccount = accountMatch[1]
+      // Debe ser 15xx pero no 159xx (depreciación)
+      if (!costAccount.startsWith('15') || costAccount.startsWith('159')) continue
+
+      const nota = (f[4] || '').trim().toUpperCase()
+      const fechaStr = (f[3] || '').trim()
+      const debito = parseWoMoney(f[7])
+
+      let acqDate = '2025-12-31'
+      if (nota === 'SALDO INICIAL') {
+        acqDate = '2025-12-31'
+      } else {
+        // Compra Q1
+        const parsed = parseDdMmYyyy(fechaStr)
+        if (parsed) acqDate = parsed
+      }
+
+      current = {
+        name: col0,
+        cost_account: costAccount,
+        dep_account: '',
+        acquisition_date: acqDate,
+        acquisition_cost: debito,
+        accumulated_depreciation: 0,
+        monthly_dep_sum: 0,
+        monthly_dep_count: 0,
+      }
+      continue
+    }
+
+    // Fila "Total <ASSET NAME>" → cerrar activo
+    if (col0.toLowerCase().startsWith('total ') && !col0.toLowerCase().match(/^total \d/) && !col0.toLowerCase().startsWith('total general') && !col0.toLowerCase().startsWith('total movimientos')) {
+      commitCurrent()
+      continue
+    }
+
+    // Fila dentro del activo actual
+    if (!current) continue
+
+    // "Total 152410 EQUIPOS" → skip
+    if (col1.toLowerCase().startsWith('total ')) continue
+
+    // Fila con cuenta 159xxx
+    const accMatch = col1.match(/^(\d{4,8})\s+(.*)$/)
+    if (accMatch && accMatch[1].startsWith('159')) {
+      current.dep_account = accMatch[1]
+      const nota = (f[4] || '').trim().toUpperCase()
+      const credito = parseWoMoney(f[8])
+      if (nota === 'SALDO INICIAL') {
+        current.accumulated_depreciation += credito
+      }
+      // nota vacía pero con cuenta 159: probablemente primera fila del grupo dep (activos comprados Q1)
+      continue
+    }
+
+    // Fila sin cuenta explícita (col1 vacío) pero dentro del grupo 159 → movimiento de depreciación
+    if (!accMatch && current.dep_account && col1 === '') {
+      const nota = (f[4] || '').trim().toUpperCase()
+      const credito = parseWoMoney(f[8])
+      if (nota.startsWith('DEPRECIACION')) {
+        current.accumulated_depreciation += credito
+        current.monthly_dep_sum += credito
+        current.monthly_dep_count++
+      }
+      continue
+    }
+  }
+  commitCurrent()
+
+  return { meta, rows, skipped, totals: totalsRaw }
+}
+
+export async function previewWorldOfficeFixedAssetsAction(csv: string, limit = 30): Promise<
+  | {
+      success: true
+      meta: { cutoff_date: string | null; company_name: string | null }
+      total: number
+      sample: FixedAssetRow[]
+      rows: FixedAssetRow[]
+      totals: { cost: number; depreciation: number; net: number }
+      by_category: { category: string; count: number; cost: number }[]
+      skipped: { no_code: number; no_cost: number }
+    }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+    const { data: ut } = await supabase
+      .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+
+    const { meta, rows, skipped, totals } = parseWorldOfficeFixedAssetsCsv(csv)
+    if (rows.length === 0) return { success: false, error: 'No se detectaron activos fijos. Verifica el formato.' }
+
+    const catMap = new Map<string, { count: number; cost: number }>()
+    for (const r of rows) {
+      const c = catMap.get(r.category) || { count: 0, cost: 0 }
+      c.count++
+      c.cost += r.acquisition_cost
+      catMap.set(r.category, c)
+    }
+    const by_category = Array.from(catMap.entries()).map(([category, v]) => ({ category, ...v }))
+
+    return {
+      success: true,
+      meta,
+      total: rows.length,
+      sample: rows.slice(0, limit),
+      rows,
+      totals: {
+        cost: totals.cost,
+        depreciation: totals.depreciation,
+        net: totals.cost - totals.depreciation,
+      },
+      by_category,
+      skipped,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
+  }
+}
+
+export async function importFixedAssetsChunkAction(rows: FixedAssetRow[]): Promise<
+  | { success: true; processed: number; skipped: number; total_cost: number; total_depreciation: number }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+    const { data: ut } = await supabase
+      .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+    if (!rows || rows.length === 0) return { success: false, error: 'Chunk vacío' }
+
+    const { data, error } = await supabase.rpc('import_fixed_assets_wo', {
+      p_tenant_id: ut.tenant_id,
+      p_rows: rows,
+    })
+    if (error) return { success: false, error: error.message }
+    const r = data as { processed?: number; skipped?: number; total_cost?: number; total_depreciation?: number }
+    revalidatePath('/accounting/fixed-assets')
+    return {
+      success: true,
+      processed: r?.processed ?? 0,
+      skipped: r?.skipped ?? 0,
+      total_cost: r?.total_cost ?? 0,
+      total_depreciation: r?.total_depreciation ?? 0,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error en chunk' }
+  }
+}
