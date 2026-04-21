@@ -118,15 +118,13 @@ interface SidebarContentProps {
 // Para revelarlos todos (dev): poner HIDE_IMMATURE = false.
 //
 // Notificaciones: REVELADO (2026-04-20) — útil para ver alertas críticas.
-// Academy, Vendor Portal, Analytics BI, Cash-flow: ocultos hasta que
-// se enriquezcan con datos reales y UX específicos (fase 2 post-launch).
+// Analytics BI: REVELADO (2026-04-21) — los roles gerenciales lo requieren.
+// Academy, Vendor Portal, Cash-flow: ocultos hasta que se enriquezcan
+// con datos reales y UX específicos (fase 2 post-launch).
 const HIDE_IMMATURE = true;
 const IMMATURE_HREFS = new Set<string>([
     '/academy',
     '/vendor-portal',
-    '/analytics',
-    '/analytics/sales',
-    '/analytics/financial',
     '/treasury/cash-flow',
 ]);
 
