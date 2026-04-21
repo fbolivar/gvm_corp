@@ -138,23 +138,23 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
 
     return (
         <Dialog open={!!shipmentId} onOpenChange={onClose}>
-            <DialogContent className="max-w-5xl rounded-[3rem] p-0 overflow-hidden border-none shadow-premium bg-white">
+            <DialogContent className="max-w-5xl w-[calc(100vw-2rem)] rounded-3xl p-0 overflow-hidden border-none shadow-premium bg-white max-h-[92vh] flex flex-col">
                 <DialogHeader className="sr-only">
                     <DialogTitle>Detalles del Despacho</DialogTitle>
                     <DialogDescription>Ver y gestionar el progreso de la entrega.</DialogDescription>
                 </DialogHeader>
 
                 {loading ? (
-                    <div className="h-[600px] flex items-center justify-center bg-white">
+                    <div className="h-[400px] flex items-center justify-center bg-white">
                         <div className="flex flex-col items-center gap-4">
                             <RefreshCw className="h-10 w-10 animate-spin text-primary/30" />
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando expediente...</p>
                         </div>
                     </div>
                 ) : shipment && (
-                    <div className="flex flex-col lg:flex-row min-h-[600px] overflow-y-auto lg:overflow-visible max-h-[90vh] lg:max-h-none">
+                    <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
                         {/* Sidebar: Status & Info */}
-                        <div className="w-full lg:w-80 xl:w-96 bg-slate-50 p-6 sm:p-10 space-y-8 sm:space-y-10 border-b lg:border-b-0 lg:border-r border-slate-100 shrink-0">
+                        <div className="w-full lg:w-80 xl:w-96 bg-slate-50 p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-100 shrink-0 lg:overflow-y-auto">
                             <div className="flex flex-row lg:flex-col items-center lg:items-start gap-4 sm:gap-6">
                                 <div className="h-14 w-14 sm:h-20 sm:w-20 bg-white rounded-[1.2rem] sm:rounded-[2rem] shadow-sm flex items-center justify-center shrink-0">
                                     <Truck className="h-7 w-7 sm:h-10 sm:w-10 text-primary" />
@@ -284,7 +284,7 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                         </div>
 
                         {/* Main Body: Workflow & items */}
-                        <div className="flex-1 bg-white p-6 sm:p-10 space-y-10 sm:space-y-12 overflow-y-auto custom-scrollbar">
+                        <div className="flex-1 min-w-0 bg-white p-6 space-y-8 lg:overflow-y-auto custom-scrollbar">
                             {/* Actions */}
                             <div className="bg-white shadow-premium rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 group">
                                 <div className="space-y-1 text-center md:text-left">

@@ -31,7 +31,21 @@ const statusConfig: Record<ShipmentStatus, { label: string, color: string, icon:
     'RETURNED': { label: 'Devuelto', color: 'bg-rose-100 text-rose-700 border-rose-200', icon: XCircle },
 }
 
-export function ShipmentList({ onSelectShipment }: { onSelectShipment: (id: string) => void }) {
+type DashboardFilter = 'PENDING' | 'PACKING' | 'IN_TRANSIT' | 'DELIVERED'
+
+const FILTER_STATUSES: Record<Exclude<DashboardFilter, 'PENDING'>, ShipmentStatus[]> = {
+    PACKING: ['RECIBIDO', 'EN_ALISTAMIENTO'],
+    IN_TRANSIT: ['LISTO_DESPACHO', 'DESPACHADO', 'EN_TRANSITO'],
+    DELIVERED: ['ENTREGADO'],
+}
+
+export function ShipmentList({
+    onSelectShipment,
+    filter,
+}: {
+    onSelectShipment: (id: string) => void
+    filter?: DashboardFilter | null
+}) {
     const supabase = createClient()
     const [shipments, setShipments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -51,21 +65,31 @@ export function ShipmentList({ onSelectShipment }: { onSelectShipment: (id: stri
         }
     }
 
+    const filteredShipments = (() => {
+        if (!filter || filter === 'PENDING') return shipments
+        const allowedStatuses = FILTER_STATUSES[filter] ?? []
+        return shipments.filter(s => allowedStatuses.includes(s.status as ShipmentStatus))
+    })()
+
     if (loading) return <div className="space-y-4">{Array(4).fill(0).map((_, i) => <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" />)}</div>
 
     return (
         <div className="space-y-6">
-            {shipments.length === 0 ? (
+            {filteredShipments.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-premium">
                     <div className="h-16 w-16 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                         <Package className="h-8 w-8 text-slate-200" />
                     </div>
-                    <p className="text-slate-900 font-black italic text-base uppercase">No hay despachos registrados aún</p>
-                    <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mt-3">Empieza transformando una Orden de Venta</p>
+                    <p className="text-slate-900 font-black italic text-base uppercase">
+                        {filter && filter !== 'PENDING' ? 'No hay despachos en este estado' : 'No hay despachos registrados aún'}
+                    </p>
+                    <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mt-3">
+                        {filter && filter !== 'PENDING' ? 'Prueba limpiar el filtro' : 'Empieza transformando una Orden de Venta'}
+                    </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-4">
-                    {shipments.map((shipment) => {
+                    {filteredShipments.map((shipment) => {
                         const status = statusConfig[shipment.status as ShipmentStatus] || { label: shipment.status, color: 'bg-slate-100 text-slate-500', icon: Package }
                         return (
                             <div

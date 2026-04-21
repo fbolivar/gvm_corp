@@ -37,9 +37,18 @@ export const logisticsService = {
     },
 
     async getPendingOrders(supabase: SupabaseClient) {
-        // Fetch SALES_ORDER documents that don't have a 100% completed shipment
-        // For simplicity in Phase 2, we show all SALES_ORDER documents and let user decide
-        const { data, error } = await supabase
+        // Step 1: get order_ids that already have a shipment (any status).
+        // These should NOT appear in "Pendientes" - they've been taken into the shipment flow.
+        const { data: shipmentsWithOrders } = await supabase
+            .from('logistics_shipments')
+            .select('order_id');
+
+        const excludedOrderIds = (shipmentsWithOrders ?? [])
+            .map(s => s.order_id)
+            .filter((id): id is string => !!id);
+
+        // Step 2: fetch SALES_ORDER documents excluding those already in the shipment flow.
+        let query = supabase
             .from('documents')
             .select(`
                 *,
@@ -49,6 +58,11 @@ export const logisticsService = {
             .eq('doc_type', 'SALES_ORDER')
             .order('created_at', { ascending: false });
 
+        if (excludedOrderIds.length > 0) {
+            query = query.not('id', 'in', `(${excludedOrderIds.join(',')})`);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         return data;
     },
@@ -204,16 +218,24 @@ export const logisticsService = {
         // Summary of current shipment statuses
         const { data: statusData, error: statusError } = await supabase
             .from('logistics_shipments')
-            .select('status');
+            .select('status, order_id');
 
         if (statusError) throw statusError;
 
-        // Pending orders count
-        const { count, error: pendingError } = await supabase
+        // Pending orders count = SALES_ORDER documents without any shipment created.
+        const shipmentOrderIds = (statusData ?? [])
+            .map(s => s.order_id)
+            .filter((id): id is string => !!id);
+
+        let pendingQuery = supabase
             .from('documents')
             .select('*', { count: 'exact', head: true })
             .eq('doc_type', 'SALES_ORDER');
-        // In a real scenario, we'd filter out orders that are already fully shipped.
+
+        if (shipmentOrderIds.length > 0) {
+            pendingQuery = pendingQuery.not('id', 'in', `(${shipmentOrderIds.join(',')})`);
+        }
+        const { count, error: pendingError } = await pendingQuery;
 
         if (pendingError) throw pendingError;
 

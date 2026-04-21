@@ -8,15 +8,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import {
     Truck,
     Package,
-    Clock,
     CheckCircle2,
-    TrendingUp,
     AlertCircle,
     ShoppingBag,
-    Sparkles
+    Sparkles,
+    ArrowRight,
 } from "lucide-react"
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    ResponsiveContainer,
+    Tooltip,
+    Cell,
+    PieChart,
+    Pie,
+    Legend,
+} from "recharts"
 
-export function LogisticsDashboard({ refreshKey }: { refreshKey: number }) {
+type DashboardFilter = 'PENDING' | 'PACKING' | 'IN_TRANSIT' | 'DELIVERED'
+
+export function LogisticsDashboard({
+    refreshKey,
+    onCardClick,
+}: {
+    refreshKey: number
+    onCardClick?: (filter: DashboardFilter) => void
+}) {
     const supabase = createClient()
     const [stats, setStats] = useState<any>(null)
     const [loading, setLoading] = useState(true)
@@ -61,14 +80,25 @@ export function LogisticsDashboard({ refreshKey }: { refreshKey: number }) {
 
     if (!stats) return null
 
-    const cards = [
+    const cards: Array<{
+        title: string
+        value: number
+        icon: typeof ShoppingBag
+        color: string
+        bg: string
+        hex: string
+        desc: string
+        filter: DashboardFilter
+    }> = [
         {
             title: "Pedidos Pendientes",
             value: stats.ordersToProcess,
             icon: ShoppingBag,
             color: "text-amber-600",
             bg: "bg-amber-50",
-            desc: "Órdenes esperando despacho"
+            hex: "#f59e0b",
+            desc: "Órdenes esperando despacho",
+            filter: 'PENDING',
         },
         {
             title: "En Empaque",
@@ -76,7 +106,9 @@ export function LogisticsDashboard({ refreshKey }: { refreshKey: number }) {
             icon: Package,
             color: "text-blue-600",
             bg: "bg-blue-50",
-            desc: "Mercancía siendo alistada"
+            hex: "#0ea5e9",
+            desc: "Mercancía siendo alistada",
+            filter: 'PACKING',
         },
         {
             title: "En Camino",
@@ -84,7 +116,9 @@ export function LogisticsDashboard({ refreshKey }: { refreshKey: number }) {
             icon: Truck,
             color: "text-purple-600",
             bg: "bg-purple-50",
-            desc: "Despachos con guía activa"
+            hex: "#a855f7",
+            desc: "Despachos con guía activa",
+            filter: 'IN_TRANSIT',
         },
         {
             title: "Entregados",
@@ -92,28 +126,127 @@ export function LogisticsDashboard({ refreshKey }: { refreshKey: number }) {
             icon: CheckCircle2,
             color: "text-emerald-600",
             bg: "bg-emerald-50",
-            desc: "Entregas exitosas"
+            hex: "#10b981",
+            desc: "Entregas exitosas",
+            filter: 'DELIVERED',
         }
     ]
 
+    const chartData = cards.map(c => ({ name: c.title, value: c.value, fill: c.hex }))
+    const hasData = cards.some(c => c.value > 0)
+
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
-            {/* KPI Grid */}
+            {/* KPI Grid — clickable */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {cards.map((card, idx) => (
-                    <Card key={idx} className="border-none bg-white shadow-premium rounded-xl group hover:scale-[1.02] transition-all duration-300 overflow-hidden">
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 pt-6 px-6">
-                            <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em]">{card.title}</h3>
-                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center shadow-sm group-hover:bg-primary group-hover:text-white transition-all ${card.bg} ${card.color}`}>
-                                <card.icon className="h-5 w-5" />
+                {cards.map((card, idx) => {
+                    const isClickable = !!onCardClick
+                    return (
+                        <button
+                            key={idx}
+                            type="button"
+                            disabled={!isClickable}
+                            onClick={() => onCardClick?.(card.filter)}
+                            className="text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-xl"
+                        >
+                            <Card className={`border-none bg-white shadow-premium rounded-xl group transition-all duration-300 overflow-hidden ${isClickable ? 'hover:scale-[1.02] hover:shadow-active cursor-pointer' : ''}`}>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-6 px-6">
+                                    <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em]">{card.title}</h3>
+                                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center shadow-sm group-hover:bg-primary group-hover:text-white transition-all ${card.bg} ${card.color}`}>
+                                        <card.icon className="h-5 w-5" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="px-6 pb-6 space-y-2">
+                                    <div className="text-3xl font-black text-slate-900 tracking-tighter italic leading-none">{card.value}</div>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">{card.desc}</p>
+                                        {isClickable && (
+                                            <ArrowRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </button>
+                    )
+                })}
+            </div>
+
+            {/* Visual chart — distribution of current shipments */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <Card className="lg:col-span-3 border-none bg-white shadow-premium rounded-2xl p-2">
+                    <CardContent className="p-6 space-y-5">
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Distribución de despachos</h2>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Estado actual del flujo logístico</p>
+                        </div>
+                        {hasData ? (
+                            <div className="h-60">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(148,163,184,0.08)' }}
+                                            contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 600 }}
+                                        />
+                                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                                            {chartData.map((entry, i) => (
+                                                <Cell key={i} fill={entry.fill} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
-                        </CardHeader>
-                        <CardContent className="px-6 pb-6 space-y-0.5">
-                            <div className="text-3xl font-black text-slate-900 tracking-tighter italic leading-none">{card.value}</div>
-                            <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">{card.desc}</p>
-                        </CardContent>
-                    </Card>
-                ))}
+                        ) : (
+                            <div className="h-60 flex flex-col items-center justify-center text-slate-300">
+                                <Package className="h-10 w-10 mb-2" />
+                                <p className="text-xs font-bold uppercase tracking-widest">Sin datos aún</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-2 border-none bg-white shadow-premium rounded-2xl p-2">
+                    <CardContent className="p-6 space-y-5">
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Proporción</h2>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Participación por etapa</p>
+                        </div>
+                        {hasData ? (
+                            <div className="h-60">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={chartData.filter(d => d.value > 0)}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={40}
+                                            outerRadius={70}
+                                            paddingAngle={3}
+                                        >
+                                            {chartData.map((entry, i) => (
+                                                <Cell key={i} fill={entry.fill} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                                        <Legend
+                                            verticalAlign="bottom"
+                                            iconSize={8}
+                                            wrapperStyle={{ fontSize: 10, fontWeight: 700 }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="h-60 flex flex-col items-center justify-center text-slate-300">
+                                <Sparkles className="h-8 w-8 mb-2" />
+                                <p className="text-xs font-bold uppercase tracking-widest">Sin datos aún</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Carriers Stat Table */}

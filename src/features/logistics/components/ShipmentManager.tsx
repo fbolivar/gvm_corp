@@ -17,11 +17,24 @@ import {
     TrendingUp
 } from "lucide-react"
 
+type DashboardFilter = 'PENDING' | 'PACKING' | 'IN_TRANSIT' | 'DELIVERED'
+
 export function ShipmentManager() {
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
     const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState("dashboard")
     const [refreshKey, setRefreshKey] = useState(0)
+    const [shipmentFilter, setShipmentFilter] = useState<DashboardFilter | null>(null)
+
+    const handleKPIClick = (filter: DashboardFilter) => {
+        if (filter === 'PENDING') {
+            setActiveTab('pending')
+            setShipmentFilter(null)
+        } else {
+            setActiveTab('shipments')
+            setShipmentFilter(filter)
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -73,15 +86,28 @@ export function ShipmentManager() {
                     </div>
 
                     <TabsContent value="dashboard" className="mt-0 animate-in fade-in slide-in-from-bottom-6 duration-700 outline-none">
-                        <LogisticsDashboard refreshKey={refreshKey} />
+                        <LogisticsDashboard refreshKey={refreshKey} onCardClick={handleKPIClick} />
                     </TabsContent>
 
                     <TabsContent value="shipments" className="mt-0 animate-in fade-in slide-in-from-bottom-6 duration-700 outline-none">
                         <div className="space-y-4">
                             <div className="flex items-center justify-between mb-2">
                                 <h2 className="text-xl font-black text-slate-900 italic tracking-tight uppercase">Historial de Despachos</h2>
+                                {shipmentFilter && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShipmentFilter(null)}
+                                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                                    >
+                                        Limpiar filtro ×
+                                    </button>
+                                )}
                             </div>
-                            <ShipmentList key={`list-${refreshKey}`} onSelectShipment={setSelectedShipmentId} />
+                            <ShipmentList
+                                key={`list-${refreshKey}-${shipmentFilter ?? 'all'}`}
+                                onSelectShipment={setSelectedShipmentId}
+                                filter={shipmentFilter}
+                            />
                         </div>
                     </TabsContent>
 
