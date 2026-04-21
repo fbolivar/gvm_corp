@@ -199,6 +199,7 @@ export const logisticsService = {
     },
 
     async getShipmentDetails(supabase: SupabaseClient, shipmentId: string) {
+        // Paso 1: Shipment + relaciones con FK válidas
         const { data, error } = await supabase
             .from('logistics_shipments')
             .select(`
@@ -206,15 +207,31 @@ export const logisticsService = {
                 carrier:logistics_carriers(*),
                 warehouse:warehouses(id, name),
                 order:documents(*, party:parties(*)),
-                items:logistics_shipment_items(*, product:products(*)),
-                prepared_by_profile:profiles!prepared_by(id, full_name, email),
-                verified_by_profile:profiles!verified_by(id, full_name, email),
-                dispatched_by_profile:profiles!dispatched_by(id, full_name, email)
+                items:logistics_shipment_items(*, product:products(*))
             `)
             .eq('id', shipmentId)
             .single();
 
         if (error) throw error;
+        if (!data) return null;
+
+        // Paso 2: Traer perfiles de responsables (columnas sin FK hacia profiles)
+        const userIds = [data.prepared_by, data.verified_by, data.dispatched_by]
+            .filter((v): v is string => !!v);
+
+        if (userIds.length > 0) {
+            const uniqueIds = Array.from(new Set(userIds));
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, full_name, email')
+                .in('id', uniqueIds);
+
+            const byId = new Map((profiles ?? []).map(p => [p.id, p]));
+            (data as { prepared_by_profile?: unknown }).prepared_by_profile = data.prepared_by ? byId.get(data.prepared_by) ?? null : null;
+            (data as { verified_by_profile?: unknown }).verified_by_profile = data.verified_by ? byId.get(data.verified_by) ?? null : null;
+            (data as { dispatched_by_profile?: unknown }).dispatched_by_profile = data.dispatched_by ? byId.get(data.dispatched_by) ?? null : null;
+        }
+
         return data;
     },
 
