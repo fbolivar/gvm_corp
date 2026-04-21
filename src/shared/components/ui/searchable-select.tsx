@@ -34,6 +34,7 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [openUpward, setOpenUpward] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -63,9 +64,16 @@ export function SearchableSelect({
   }, [open])
 
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 10)
+    if (!open) return
+    // Decide si abrir hacia arriba según espacio disponible
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const DROPDOWN_MAX = 400  // altura aprox del dropdown (input + lista)
+      setOpenUpward(spaceBelow < DROPDOWN_MAX && spaceAbove > spaceBelow)
     }
+    setTimeout(() => inputRef.current?.focus(), 10)
   }, [open])
 
   function handleSelect(itemValue: string) {
@@ -123,7 +131,12 @@ export function SearchableSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className={cn(
+          "absolute z-50 w-full bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in duration-150",
+          openUpward
+            ? "bottom-full mb-2 slide-in-from-bottom-2"
+            : "mt-2 slide-in-from-top-2"
+        )}>
           <div className="p-2 border-b border-slate-100 bg-slate-50/50">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
