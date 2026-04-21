@@ -64,6 +64,14 @@ export const documentSchema = z.object({
     notes_internal: z.string().optional().nullable(),
     notes_public: z.string().optional().nullable(),
 
+    // ICA Compliance (Resolución 1056) — receta médica + comercial responsable
+    prescription_url: z.string().optional().nullable(),
+    prescription_doctor_name: z.string().optional().nullable(),
+    prescription_doctor_license: z.string().optional().nullable(),
+    prescription_doctor_type: z.enum(['VETERINARIO', 'ZOOTECNISTA']).optional().nullable(),
+    prescription_date: z.string().optional().nullable(),
+    commercial_user_id: z.string().uuid().optional().nullable(),
+
     created_at: z.string().optional(),
 
     // Relations (optional for fetching)

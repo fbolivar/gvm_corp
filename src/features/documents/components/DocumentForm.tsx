@@ -24,6 +24,14 @@ import { useMemo } from "react"
 import { format } from "date-fns"
 import { cn } from "@/shared/lib/utils"
 import { toast } from "sonner"
+import { IcaPrescriptionSection } from "./IcaPrescriptionSection"
+
+export interface CommercialOption {
+    user_id: string
+    full_name: string
+    signature_url: string | null
+    commercial_code: string | null
+}
 
 interface DocumentFormProps {
     parties: Party[]
@@ -32,6 +40,8 @@ interface DocumentFormProps {
     initialData?: Document
     onSubmit: (data: Document) => Promise<void>
     isLoading?: boolean
+    tenantId?: string
+    commercials?: CommercialOption[]
 }
 
 const LineTotal = ({ control, index }: { control: any; index: number }) => {
@@ -89,7 +99,7 @@ const DocumentTotals = ({ control, products }: { control: any; products: Product
     );
 };
 
-export function DocumentForm({ parties, products, warehouses = [], initialData, onSubmit, isLoading }: DocumentFormProps) {
+export function DocumentForm({ parties, products, warehouses = [], initialData, onSubmit, isLoading, tenantId, commercials = [] }: DocumentFormProps) {
     const defaults = {
         doc_type: 'INVOICE' as const,
         status: 'DRAFT' as const,
@@ -328,6 +338,17 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                             </FormField>
                         </FormSection>
                     </FormLayout>
+
+                    {/* ICA Compliance — solo para Pedidos de Venta */}
+                    {docType === 'SALES_ORDER' && tenantId && (
+                        <FormLayout>
+                            <IcaPrescriptionSection
+                                form={form}
+                                tenantId={tenantId}
+                                commercials={commercials}
+                            />
+                        </FormLayout>
+                    )}
 
                     {/* Items — tabla dinámica con useFieldArray, estructura propia */}
                     <div className="surface-card">

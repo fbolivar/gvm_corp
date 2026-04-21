@@ -1,6 +1,6 @@
 "use client"
 
-import { DocumentForm } from '@/features/documents/components/DocumentForm';
+import { DocumentForm, type CommercialOption } from '@/features/documents/components/DocumentForm';
 import { createSalesDocumentAction } from '@/features/sales/actions';
 import { Document } from "@/features/documents/types";
 import { Party } from "@/features/parties/types";
@@ -13,9 +13,11 @@ interface Props {
     parties: Party[];
     products: Product[];
     warehouses?: Warehouse[];
+    tenantId?: string;
+    commercials?: CommercialOption[];
 }
 
-export default function NewOrderClient({ parties, products, warehouses = [] }: Props) {
+export default function NewOrderClient({ parties, products, warehouses = [], tenantId, commercials = [] }: Props) {
     const router = useRouter();
 
     const handleSubmit = async (data: Document) => {
@@ -43,6 +45,8 @@ export default function NewOrderClient({ parties, products, warehouses = [] }: P
             warehouses={warehouses}
             onSubmit={handleSubmit}
             initialData={{ doc_type: 'SALES_ORDER' } as any}
+            tenantId={tenantId}
+            commercials={commercials}
         />
     );
 }

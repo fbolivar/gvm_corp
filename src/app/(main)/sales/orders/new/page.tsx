@@ -12,11 +12,30 @@ export default async function NewOrderPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [parties, products, warehouses] = await Promise.all([
+    const [parties, products, warehouses, ut] = await Promise.all([
         partyService.getAllPartiesLight(supabase, 'customer'),
         productService.getAllActiveProductsLight(supabase),
         inventoryService.getWarehouses(supabase),
+        supabase.from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle(),
     ]);
+    const tenantId = ut?.data?.tenant_id as string | undefined;
+
+    // Comerciales = profiles del tenant (que pueden vender)
+    const { data: tenantUsers } = tenantId
+        ? await supabase.from('user_tenants').select('user_id').eq('tenant_id', tenantId)
+        : { data: [] as { user_id: string }[] };
+    const userIds = (tenantUsers || []).map((u: { user_id: string }) => u.user_id);
+    const { data: profiles } = userIds.length > 0
+        ? await supabase.from('profiles').select('id, full_name, email, signature_url, commercial_code').in('id', userIds)
+        : { data: [] as Array<{ id: string; full_name: string | null; email: string | null; signature_url: string | null; commercial_code: string | null }> };
+    const commercials = (profiles || [])
+        .filter(p => p.full_name || p.email)
+        .map(p => ({
+            user_id: p.id,
+            full_name: p.full_name || p.email || 'Sin nombre',
+            signature_url: p.signature_url,
+            commercial_code: p.commercial_code,
+        }));
 
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 max-w-5xl mx-auto">
@@ -32,7 +51,13 @@ export default async function NewOrderPage() {
                     </div>
                 </div>
             </div>
-            <NewOrderClient parties={parties || []} products={products || []} warehouses={warehouses || []} />
+            <NewOrderClient
+                parties={parties || []}
+                products={products || []}
+                warehouses={warehouses || []}
+                tenantId={tenantId}
+                commercials={commercials}
+            />
         </div>
     );
 }
