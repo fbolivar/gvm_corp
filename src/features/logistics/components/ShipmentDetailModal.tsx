@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { logisticsService } from "../services/logisticsService"
-import { logisticsPdfService } from "../services/logisticsPdfService"
 import { ShipmentStatus } from "../types"
 import { Button } from "@/shared/components/ui/button"
 import { Badge } from "@/shared/components/ui/badge"
@@ -142,9 +141,25 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
         }
     }
 
-    const handleDownloadPdf = async () => {
+    const handleDownloadPdf = () => {
         if (!shipment) return
-        await logisticsPdfService.generateRemision(shipment, tenant)
+        const url = `/print/shipment-remision?id=${shipment.id}`
+        const width = 900
+        const height = 1100
+        const screenLeft = typeof window !== "undefined" ? window.screenLeft ?? 0 : 0
+        const screenTop = typeof window !== "undefined" ? window.screenTop ?? 0 : 0
+        const viewW = typeof window !== "undefined" ? window.innerWidth : 1920
+        const viewH = typeof window !== "undefined" ? window.innerHeight : 1080
+        const left = screenLeft + Math.max(0, (viewW - width) / 2)
+        const top = screenTop + Math.max(0, (viewH - height) / 2)
+        const popup = window.open(
+            url,
+            "gvm-print-remision",
+            `popup=yes,width=${width},height=${height},left=${left},top=${top},scrollbars=yes`
+        )
+        if (!popup || popup.closed) {
+            window.open(url, "_blank")
+        }
     }
 
     if (!shipmentId) return null
