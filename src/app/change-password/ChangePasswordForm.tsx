@@ -54,9 +54,11 @@ export function ChangePasswordForm() {
                 setIsLoading(false)
                 return
             }
-            toast.success('Contraseña actualizada. ¡Bienvenido!')
-            router.push('/dashboard')
-            router.refresh()
+            toast.success('Contraseña actualizada. Inicia sesión con tu nueva clave.')
+            // Cierre de sesión ya hecho en el server action → volvemos a /login
+            setTimeout(() => {
+                window.location.href = '/login'
+            }, 800)
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Error inesperado'
             toast.error(msg)
@@ -79,8 +81,7 @@ export function ChangePasswordForm() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         autoComplete="new-password"
-                        className="h-12 pl-13 pr-12 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 placeholder:text-slate-300 focus-visible:ring-2 focus-visible:ring-indigo-500/20"
-                        style={{ paddingLeft: '3.25rem' }}
+                        className="h-12 pl-[3.25rem] pr-12 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 placeholder:text-slate-300 focus-visible:ring-2 focus-visible:ring-indigo-500/20"
                     />
                     <button
                         type="button"
@@ -120,12 +121,11 @@ export function ChangePasswordForm() {
                         placeholder="••••••••"
                         autoComplete="new-password"
                         className={cn(
-                            'h-12 pl-13 pr-12 bg-slate-50 border rounded-2xl font-bold text-slate-900 placeholder:text-slate-300 focus-visible:ring-2',
+                            'h-12 pl-[3.25rem] pr-12 bg-slate-50 border rounded-2xl font-bold text-slate-900 placeholder:text-slate-300 focus-visible:ring-2',
                             confirmPassword.length > 0 && !match
                                 ? 'border-rose-300 focus-visible:ring-rose-500/20'
                                 : 'border-slate-100 focus-visible:ring-indigo-500/20'
                         )}
-                        style={{ paddingLeft: '3.25rem' }}
                     />
                     <button
                         type="button"
