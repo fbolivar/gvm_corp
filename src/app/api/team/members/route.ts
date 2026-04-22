@@ -230,6 +230,132 @@ export async function POST(request: NextRequest) {
     }
 }
 
+// PUT — edita datos del perfil (nombre, usuario, código comercial).
+// El email sintético (@users.gvm.local) se regenera si cambia el usuario.
+export async function PUT(request: NextRequest) {
+    try {
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+            return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+        }
+
+        const { data: userTenant } = await supabase
+            .from('user_tenants')
+            .select('role, tenant_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        const adminRoles = ['ADMINISTRADOR', 'SUPER ADMINISTRADOR', 'admin', 'owner'];
+        if (!userTenant || !adminRoles.includes(userTenant.role)) {
+            return NextResponse.json({ error: 'Sin permisos de administrador' }, { status: 403 });
+        }
+
+        let body: Record<string, unknown>;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Body JSON inválido' }, { status: 400 });
+        }
+
+        const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
+        const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : undefined;
+        const rawUsername = typeof body.username === 'string' ? body.username.trim().toLowerCase() : undefined;
+        const commercialCode = typeof body.commercialCode === 'string' ? body.commercialCode.trim() : undefined;
+
+        if (!userId) {
+            return NextResponse.json({ error: 'userId es requerido' }, { status: 400 });
+        }
+        if (rawUsername !== undefined && rawUsername.length > 0 && !/^[a-z0-9._-]{3,30}$/.test(rawUsername)) {
+            return NextResponse.json({
+                error: 'Usuario inválido: 3-30 caracteres, solo letras, números, punto, guion y guion bajo'
+            }, { status: 400 });
+        }
+
+        // Verificar que el usuario pertenece al mismo tenant
+        const { data: targetMember } = await supabase
+            .from('user_tenants')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('tenant_id', userTenant.tenant_id)
+            .maybeSingle();
+
+        if (!targetMember) {
+            return NextResponse.json({ error: 'Usuario no pertenece a este equipo' }, { status: 404 });
+        }
+
+        const adminClient = createAdminClient();
+
+        // Leer estado actual para decidir si hay que regenerar email sintético
+        const { data: currentAuth } = await adminClient.auth.admin.getUserById(userId);
+        const currentEmail = currentAuth?.user?.email ?? '';
+        const isSyntheticEmail = currentEmail.endsWith('@users.gvm.local');
+        const existingMeta = (currentAuth?.user?.user_metadata ?? {}) as Record<string, unknown>;
+
+        // Payload de profiles — solo campos efectivamente enviados
+        const profileUpdate: Record<string, unknown> = {};
+        if (fullName !== undefined) profileUpdate.full_name = fullName;
+        if (rawUsername !== undefined) profileUpdate.username = rawUsername || null;
+        if (commercialCode !== undefined) profileUpdate.commercial_code = commercialCode || null;
+
+        if (Object.keys(profileUpdate).length === 0) {
+            return NextResponse.json({ error: 'No se enviaron cambios' }, { status: 400 });
+        }
+
+        // Si cambia el username y el email actual es sintético, regeneramos
+        let newEmail: string | null = null;
+        if (rawUsername !== undefined && rawUsername.length > 0 && isSyntheticEmail) {
+            const candidate = `${rawUsername}@users.gvm.local`;
+            if (candidate !== currentEmail) {
+                newEmail = candidate;
+                profileUpdate.email = candidate;
+            }
+        }
+
+        // Actualizar profiles
+        const { error: profileErr } = await adminClient
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('id', userId);
+
+        if (profileErr) {
+            console.error('[API /team/members PUT] profile error:', profileErr.message);
+            if (profileErr.message?.toLowerCase().includes('unique') && rawUsername) {
+                return NextResponse.json({ error: `El usuario "${rawUsername}" ya está en uso` }, { status: 409 });
+            }
+            return NextResponse.json({ error: `Error actualizando perfil: ${profileErr.message}` }, { status: 500 });
+        }
+
+        // Actualizar auth.users si cambió full_name o email sintético
+        const authUpdate: { email?: string; user_metadata?: Record<string, unknown> } = {};
+        if (fullName !== undefined) {
+            authUpdate.user_metadata = { ...existingMeta, full_name: fullName };
+        }
+        if (newEmail) {
+            authUpdate.email = newEmail;
+        }
+
+        if (authUpdate.email || authUpdate.user_metadata) {
+            const { error: authErr } = await adminClient.auth.admin.updateUserById(userId, authUpdate);
+            if (authErr) {
+                console.error('[API /team/members PUT] auth error:', authErr.message);
+                // Profile ya se actualizó; reportamos warning pero no rollback para evitar
+                // estado parcial más complejo. El admin puede reintentar.
+                return NextResponse.json({
+                    error: `Perfil actualizado, pero falló la sincronización con autenticación: ${authErr.message}`
+                }, { status: 500 });
+            }
+        }
+
+        return NextResponse.json({ success: true, message: 'Datos actualizados correctamente' });
+
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        console.error('[API /team/members PUT] UNHANDLED:', message);
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
+}
+
 export async function PATCH(request: NextRequest) {
     try {
         // 1. Auth check

@@ -114,6 +114,20 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [passwordLoading, setPasswordLoading] = useState(false);
     const [memberSearch, setMemberSearch] = useState("");
+    const [editModal, setEditModal] = useState<TeamMember | null>(null);
+    const [editFullName, setEditFullName] = useState("");
+    const [editUsername, setEditUsername] = useState("");
+    const [editCommercialCode, setEditCommercialCode] = useState("");
+    const [editLoading, setEditLoading] = useState(false);
+
+    const openEditModal = useCallback((m: TeamMember) => {
+        setEditModal(m);
+        setEditFullName(m.full_name ?? '');
+        setEditUsername(
+            m.email?.endsWith('@users.gvm.local') ? m.email.split('@')[0] : ''
+        );
+        setEditCommercialCode('');
+    }, []);
 
     const [ConfirmDialogEl, confirmFn] = useConfirm();
     const supabase = createClient();
@@ -130,6 +144,50 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
         }
         setMembers(data || []);
     }, [supabase, tenantId, router]);
+
+    const handleSaveEdit = useCallback(async () => {
+        if (!editModal) return;
+        const trimmedName = editFullName.trim();
+        const trimmedUser = editUsername.trim().toLowerCase();
+        const trimmedCode = editCommercialCode.trim();
+
+        if (!trimmedName) {
+            toast.error('El nombre no puede estar vacío');
+            return;
+        }
+        if (trimmedUser && !/^[a-z0-9._-]{3,30}$/.test(trimmedUser)) {
+            toast.error('Usuario inválido: 3-30 caracteres, solo letras, números, punto, guion y guion bajo');
+            return;
+        }
+
+        setEditLoading(true);
+        try {
+            const res = await fetch('/api/team/members', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: editModal.user_id,
+                    fullName: trimmedName,
+                    username: trimmedUser,
+                    commercialCode: trimmedCode,
+                }),
+            });
+            const json = await res.json();
+            if (!res.ok) {
+                toast.error(json.error || 'No se pudo actualizar');
+                setEditLoading(false);
+                return;
+            }
+            toast.success('Datos actualizados');
+            setEditModal(null);
+            await refreshMembers();
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Error de red';
+            toast.error(msg);
+        } finally {
+            setEditLoading(false);
+        }
+    }, [editModal, editFullName, editUsername, editCommercialCode, refreshMembers]);
 
     async function handleAddMember() {
         const identifier = addEmail.trim();
@@ -707,6 +765,14 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                                                 {openMenu === member.id && (
                                                                     <div className="absolute right-0 top-12 z-50 w-64 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                                                         <p className="px-5 py-2 text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 mb-2">Acciones de Sistema</p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => { openEditModal(member); setOpenMenu(null); }}
+                                                                            className="w-full px-5 py-3 text-left text-[11px] font-black text-slate-900 hover:bg-slate-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                                                                        >
+                                                                            <User className="h-4 w-4" />
+                                                                            Editar Datos
+                                                                        </button>
                                                                         <a
                                                                             href={`/payroll/employees/new?userId=${member.user_id}&name=${encodeURIComponent(member.full_name || '')}&email=${encodeURIComponent(member.email)}`}
                                                                             className="w-full px-5 py-3 text-left text-[11px] font-black text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
@@ -1084,6 +1150,78 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                     disabled={passwordLoading || newPassword.length < 6}
                                 >
                                     {passwordLoading ? "Actualizando..." : "Guardar"}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Editar Datos del Usuario */}
+            {editModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md mx-4 animate-in slide-in-from-bottom-4 duration-300">
+                        <div className="p-8 space-y-6">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                                    <User className="h-6 w-6 text-indigo-600" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Editar Datos</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{editModal.email}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">Nombre Completo</Label>
+                                    <Input
+                                        value={editFullName}
+                                        onChange={(e) => setEditFullName(e.target.value)}
+                                        placeholder="Ej. Ana María Forero"
+                                        className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">Usuario (login)</Label>
+                                    <Input
+                                        value={editUsername}
+                                        onChange={(e) => setEditUsername(e.target.value.toLowerCase())}
+                                        placeholder="Ej. ana.forero"
+                                        className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold lowercase"
+                                    />
+                                    <p className="text-[9px] font-semibold text-slate-400">
+                                        3-30 caracteres, letras, números, punto, guion y guion bajo.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">Código Comercial (opcional)</Label>
+                                    <Input
+                                        value={editCommercialCode}
+                                        onChange={(e) => setEditCommercialCode(e.target.value)}
+                                        placeholder="Solo para vendedores"
+                                        className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 h-12 rounded-xl font-black text-xs uppercase tracking-widest"
+                                    onClick={() => setEditModal(null)}
+                                    disabled={editLoading}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="flex-1 h-12 rounded-xl font-black text-xs uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    onClick={handleSaveEdit}
+                                    disabled={editLoading || editFullName.trim().length === 0}
+                                >
+                                    {editLoading ? "Guardando..." : "Guardar"}
                                 </Button>
                             </div>
                         </div>
