@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic";
-import { TeamMember, AppRole, AppModule, Zone, RolePermission } from "@/features/settings/services/settingsService";
+import { TeamMember, AppRole, AppModule, Zone, RolePermission, TenantInfo } from "@/features/settings/services/settingsService";
 
 // ssr: false evita hidratación y asegura que cliente y servidor nunca difieran
 const TeamSettingsForm = dynamic(
@@ -20,6 +20,8 @@ interface Props {
     initialMembers: TeamMember[];
     currentUserId: string;
     tenantId: string;
+    tenant: TenantInfo;
+    generatedBy: string;
     roles: AppRole[];
     modules: AppModule[];
     initialZones: Zone[];

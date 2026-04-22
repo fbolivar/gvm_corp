@@ -62,12 +62,22 @@ export default async function TeamSettingsPage() {
         );
     }
 
+    // Nombre del admin que está generando reportes (para el footer del PDF)
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .maybeSingle();
+    const generatedBy = profile?.full_name || profile?.email || user.email || 'Admin';
+
     return (
         <div className="p-8 lg:p-12">
             <TeamSettingsClientWrapper
                 initialMembers={teamMembers}
                 currentUserId={user.id}
                 tenantId={tenant.id}
+                tenant={tenant}
+                generatedBy={generatedBy}
                 roles={roles}
                 modules={modules}
                 initialZones={zones}

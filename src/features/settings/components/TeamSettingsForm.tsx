@@ -47,17 +47,19 @@ import {
     Briefcase
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { settingsService, TeamMember, AppRole, AppModule, RolePermission, Zone } from "../services/settingsService";
+import { settingsService, TeamMember, AppRole, AppModule, RolePermission, Zone, TenantInfo } from "../services/settingsService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { useConfirm } from "@/shared/hooks/useConfirm";
-import { TableExportClient } from "@/features/accounting/components/TableExportClient";
+import { generateUsersReportPdf } from "../services/userReportPdfService";
 
 interface Props {
     initialMembers: TeamMember[];
     currentUserId: string;
     tenantId: string;
+    tenant: TenantInfo;
+    generatedBy: string;
     roles: AppRole[];
     modules: AppModule[];
     initialZones: Zone[];
@@ -92,7 +94,7 @@ const ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; colo
     ADMINISTRADOR: { label: "Admin", icon: Crown, color: "text-amber-600", bg: "bg-amber-50" }
 };
 
-export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, roles, modules, initialZones, initialPermissions }: Props) {
+export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tenant, generatedBy, roles, modules, initialZones, initialPermissions }: Props) {
     const [members, setMembers] = useState<TeamMember[]>(initialMembers);
     const [zones, setZones] = useState<Zone[]>(initialZones);
     const [permissions, setPermissions] = useState<RolePermission[]>(initialPermissions);
@@ -377,27 +379,50 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
 
     // Filtro de búsqueda sobre la Nómina de Personal Activo
     const memberSearchQ = memberSearch.trim().toLowerCase();
+    const cleanLogin = (email: string | null | undefined) => {
+        if (!email) return '';
+        return email.endsWith('@users.gvm.local') ? email.split('@')[0] : email;
+    };
     const filteredMembers = memberSearchQ
         ? members.filter(m => {
             const zoneName = zones.find(z => z.id === m.zone_id)?.name ?? '';
             return (
                 (m.full_name ?? '').toLowerCase().includes(memberSearchQ)
-                || (m.email ?? '').toLowerCase().includes(memberSearchQ)
+                || cleanLogin(m.email).toLowerCase().includes(memberSearchQ)
                 || (m.role_name ?? m.role ?? '').toLowerCase().includes(memberSearchQ)
                 || zoneName.toLowerCase().includes(memberSearchQ)
             );
         })
         : members;
 
-    // Filas para exportar (usuarios creados + perfil completo)
-    const exportMemberRows = filteredMembers.map(m => ({
-        'Nombre Completo': m.full_name ?? '',
-        'Email / Usuario': m.email ?? '',
-        'Rol': m.role_name ?? m.role ?? '',
-        'Zona': zones.find(z => z.id === m.zone_id)?.name ?? '',
-        'Estado': m.status ?? '',
-        'Fecha de Creación': m.created_at ? new Date(m.created_at).toLocaleDateString('es-CO') : '',
-    }));
+    // Muestra el "usuario" limpio: si el email es sintético @users.gvm.local,
+    // devuelve solo el username. Si es email real, lo deja igual.
+    const displayLogin = (email: string | null | undefined): string => {
+        if (!email) return '—';
+        if (email.endsWith('@users.gvm.local')) return email.split('@')[0];
+        return email;
+    };
+
+    const [reportLoading, setReportLoading] = useState(false);
+    const handleDownloadReport = async () => {
+        if (reportLoading) return;
+        setReportLoading(true);
+        try {
+            // Siempre exportamos TODOS los usuarios, no solo los filtrados
+            await generateUsersReportPdf({
+                tenant,
+                members,
+                zones,
+                generatedBy,
+            });
+            toast.success('Reporte de usuarios descargado');
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Error generando reporte';
+            toast.error(msg);
+        } finally {
+            setReportLoading(false);
+        }
+    };
 
     return (
         <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -645,18 +670,22 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                 <div className="relative w-full md:w-80">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                     <Input
-                                        placeholder="Buscar por nombre, email, rol o zona..."
+                                        placeholder="Buscar por nombre, usuario, rol o zona..."
                                         value={memberSearch}
                                         onChange={(e) => setMemberSearch(e.target.value)}
                                         className="pl-11 h-10 rounded-2xl text-xs bg-slate-50 border border-slate-100 font-bold text-slate-900 placeholder:text-slate-300"
                                     />
                                 </div>
-                                <TableExportClient
-                                    rows={exportMemberRows}
-                                    fileName={`usuarios-creados-${new Date().toISOString().slice(0, 10)}`}
-                                    sheetName="Usuarios"
-                                    showPrint={false}
-                                />
+                                <Button
+                                    type="button"
+                                    onClick={handleDownloadReport}
+                                    disabled={reportLoading}
+                                    title="Descargar reporte general de usuarios con logo y datos de empresa"
+                                    className="h-10 px-5 rounded-2xl bg-slate-900 hover:bg-indigo-600 text-white gap-2 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+                                >
+                                    <FileText className="h-4 w-4" />
+                                    {reportLoading ? 'Generando...' : 'Reporte PDF'}
+                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent className="p-10 pt-0">
@@ -698,7 +727,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                                                 <p className="font-black text-slate-900 italic tracking-tight truncate uppercase text-sm">
                                                                     {member.full_name || "SIN NOMBRE"}
                                                                 </p>
-                                                                <p className="text-[10px] font-bold text-slate-400 truncate tracking-widest">{member.email}</p>
+                                                                <p className="text-[10px] font-bold text-slate-400 truncate tracking-widest">{displayLogin(member.email)}</p>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -1108,7 +1137,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Cambiar Contraseña</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{passwordModal.email}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{displayLogin(passwordModal.email)}</p>
                                 </div>
                             </div>
 
@@ -1168,7 +1197,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Editar Datos</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{editModal.email}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{displayLogin(editModal.email)}</p>
                                 </div>
                             </div>
 
