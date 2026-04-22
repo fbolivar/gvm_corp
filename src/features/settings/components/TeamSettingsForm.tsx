@@ -52,6 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { useConfirm } from "@/shared/hooks/useConfirm";
+import { TableExportClient } from "@/features/accounting/components/TableExportClient";
 
 interface Props {
     initialMembers: TeamMember[];
@@ -112,6 +113,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
     const [newPassword, setNewPassword] = useState("");
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [passwordLoading, setPasswordLoading] = useState(false);
+    const [memberSearch, setMemberSearch] = useState("");
 
     const [ConfirmDialogEl, confirmFn] = useConfirm();
     const supabase = createClient();
@@ -314,6 +316,30 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
 
     const ADMIN_ROLES = ["admin", "owner", "ADMINISTRADOR", "SUPER ADMINISTRADOR", "Administrador", "Propietario"];
     const isCurrentUserAdmin = members.some(m => m.user_id === currentUserId && ADMIN_ROLES.includes(m.role));
+
+    // Filtro de búsqueda sobre la Nómina de Personal Activo
+    const memberSearchQ = memberSearch.trim().toLowerCase();
+    const filteredMembers = memberSearchQ
+        ? members.filter(m => {
+            const zoneName = zones.find(z => z.id === m.zone_id)?.name ?? '';
+            return (
+                (m.full_name ?? '').toLowerCase().includes(memberSearchQ)
+                || (m.email ?? '').toLowerCase().includes(memberSearchQ)
+                || (m.role_name ?? m.role ?? '').toLowerCase().includes(memberSearchQ)
+                || zoneName.toLowerCase().includes(memberSearchQ)
+            );
+        })
+        : members;
+
+    // Filas para exportar (usuarios creados + perfil completo)
+    const exportMemberRows = filteredMembers.map(m => ({
+        'Nombre Completo': m.full_name ?? '',
+        'Email / Usuario': m.email ?? '',
+        'Rol': m.role_name ?? m.role ?? '',
+        'Zona': zones.find(z => z.id === m.zone_id)?.name ?? '',
+        'Estado': m.status ?? '',
+        'Fecha de Creación': m.created_at ? new Date(m.created_at).toLocaleDateString('es-CO') : '',
+    }));
 
     return (
         <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -545,16 +571,35 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
 
                     {/* Members Table-like List */}
                     <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden mx-4 md:mx-0">
-                        <CardHeader className="p-10 pb-4 flex flex-row items-center justify-between">
+                        <CardHeader className="p-10 pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tight">
                                 <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center">
                                     <Users className="h-5 w-5 text-white" />
                                 </div>
                                 Nómina de Personal Activo
                                 <Badge className="ml-4 text-[10px] font-black bg-slate-100 text-slate-600 border-none rounded-full px-4 py-1.5 uppercase tracking-widest">
-                                    {members.length} REGISTROS
+                                    {memberSearch
+                                        ? `${filteredMembers.length} DE ${members.length} REGISTROS`
+                                        : `${members.length} REGISTROS`}
                                 </Badge>
                             </CardTitle>
+                            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                                <div className="relative w-full md:w-80">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                                    <Input
+                                        placeholder="Buscar por nombre, email, rol o zona..."
+                                        value={memberSearch}
+                                        onChange={(e) => setMemberSearch(e.target.value)}
+                                        className="pl-11 h-10 rounded-2xl text-xs bg-slate-50 border border-slate-100 font-bold text-slate-900 placeholder:text-slate-300"
+                                    />
+                                </div>
+                                <TableExportClient
+                                    rows={exportMemberRows}
+                                    fileName={`usuarios-creados-${new Date().toISOString().slice(0, 10)}`}
+                                    sheetName="Usuarios"
+                                    showPrint={false}
+                                />
+                            </div>
                         </CardHeader>
                         <CardContent className="p-10 pt-0">
                             <div className="overflow-x-auto">
@@ -568,7 +613,14 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, role
                                         </tr>
                                     </thead>
                                     <tbody className="space-y-4">
-                                        {members.map((member) => {
+                                        {filteredMembers.length === 0 && memberSearch && (
+                                            <tr>
+                                                <td colSpan={4} className="py-16 text-center text-xs text-slate-400 font-semibold">
+                                                    Sin coincidencias para "{memberSearch}"
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {filteredMembers.map((member) => {
                                             const roleCfg = ROLE_CONFIG[member.role] || ROLE_FALLBACK;
                                             const RoleIcon = roleCfg.icon;
                                             const isCurrentUser = member.user_id === currentUserId;

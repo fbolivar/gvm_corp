@@ -5,15 +5,15 @@ import { attendanceService } from '@/features/payroll/services/attendanceService
 import { settingsService } from '@/features/settings/services/settingsService';
 import { TableExportClient } from '@/features/accounting/components/TableExportClient';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { PayrollSummaryTable } from '@/features/payroll/components/PayrollSummaryTable';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
     Users, TrendingUp, Building2,
     ChevronLeft, ChevronRight, ArrowLeft,
-    Banknote, Timer,
+    Banknote,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { PayrollLoan, PayrollBenefit } from '@/features/payroll/types';
@@ -204,112 +204,17 @@ export default async function PayrollSummaryPage({
                 ))}
             </div>
 
-            {/* Consolidated Table */}
-            <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-sm font-bold text-slate-900">Liquidacion Consolidada</h3>
-                        <p className="text-xs text-slate-400">Devengados, Deducciones, Neto, Costo Empresa — {periodLabel}</p>
-                    </div>
-                    <span className="text-xs font-semibold text-indigo-600">{activeEmployees.length} empleados</span>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Empleado</th>
-                                <th className="hidden lg:table-cell px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Contrato</th>
-                                <th className="hidden lg:table-cell px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Salario Base</th>
-                                <th className="hidden lg:table-cell px-6 py-3 text-right text-[10px] font-semibold text-violet-500 uppercase tracking-wider">Horas / HE</th>
-                                <th className="px-6 py-3 text-right text-[10px] font-semibold text-emerald-500 uppercase tracking-wider">Devengado</th>
-                                <th className="hidden md:table-cell px-6 py-3 text-right text-[10px] font-semibold text-rose-400 uppercase tracking-wider">Deducciones</th>
-                                <th className="px-6 py-3 text-right text-[10px] font-semibold text-blue-500 uppercase tracking-wider">Neto</th>
-                                <th className="hidden md:table-cell px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Costo Empresa</th>
-                                <th className="px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Costo Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {rows.map(({ emp, settlement, party, companyCost, attSummary, hasAttendance }) => (
-                                <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-3">
-                                        <p className="text-xs font-bold text-slate-900">{party?.legal_name ?? 'Sin nombre'}</p>
-                                        <p className="text-[10px] text-slate-400">{party?.doc_number ?? '—'}</p>
-                                    </td>
-                                    <td className="hidden lg:table-cell px-6 py-3">
-                                        <span className="text-[10px] font-semibold text-indigo-600">{CONTRACT_LABEL[emp.contract_type] ?? emp.contract_type}</span>
-                                    </td>
-                                    <td className="hidden lg:table-cell px-6 py-3 text-right">
-                                        <span className="text-xs text-slate-500 tabular-nums font-mono">{fmt(settlement.salary_base)}</span>
-                                    </td>
-                                    <td className="hidden lg:table-cell px-6 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            <span className="text-xs text-slate-500 tabular-nums font-mono">
-                                                {attSummary?.totalWorkedHours ? `${attSummary.totalWorkedHours.toFixed(0)}h` : '—'}
-                                            </span>
-                                            {hasAttendance && (
-                                                <Badge className="text-[8px] font-bold bg-violet-50 text-violet-600 border-violet-200 px-1 py-0">
-                                                    {attSummary!.overtime.toFixed(1)} HE
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-3 text-right">
-                                        <span className="text-xs font-bold text-emerald-600 tabular-nums font-mono">{fmt(settlement.total_earnings)}</span>
-                                    </td>
-                                    <td className="hidden md:table-cell px-6 py-3 text-right">
-                                        <span className="text-xs text-rose-500 tabular-nums font-mono">-{fmt(settlement.total_deductions)}</span>
-                                    </td>
-                                    <td className="px-6 py-3 text-right">
-                                        <span className="text-xs font-bold text-blue-600 tabular-nums font-mono">{fmt(settlement.net_pay)}</span>
-                                    </td>
-                                    <td className="hidden md:table-cell px-6 py-3 text-right">
-                                        <span className="text-xs text-amber-600 tabular-nums font-mono">{fmt(companyCost)}</span>
-                                    </td>
-                                    <td className="px-6 py-3 text-right">
-                                        <span className="text-xs font-bold text-slate-900 tabular-nums font-mono">{fmt(settlement.net_pay + companyCost)}</span>
-                                    </td>
-                                </tr>
-                            ))}
-
-                            {rows.length === 0 && (
-                                <tr>
-                                    <td colSpan={9} className="px-6 py-16 text-center">
-                                        <Users className="h-8 w-8 text-slate-200 mx-auto mb-3" />
-                                        <p className="text-xs text-slate-400">No hay empleados activos</p>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-
-                        {rows.length > 0 && (
-                            <tfoot>
-                                <tr className="bg-slate-50 border-t border-slate-200">
-                                    <td className="px-6 py-3">
-                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Totales del Periodo</span>
-                                    </td>
-                                    <td className="hidden lg:table-cell px-6 py-3" colSpan={3} />
-                                    <td className="px-6 py-3 text-right">
-                                        <span className="text-xs font-bold text-emerald-600 tabular-nums font-mono">{fmt(totalEarnings)}</span>
-                                    </td>
-                                    <td className="hidden md:table-cell px-6 py-3 text-right">
-                                        <span className="text-xs font-bold text-rose-500 tabular-nums font-mono">-{fmt(totalDeductions)}</span>
-                                    </td>
-                                    <td className="px-6 py-3 text-right">
-                                        <span className="text-xs font-bold text-blue-600 tabular-nums font-mono">{fmt(totalNetPay)}</span>
-                                    </td>
-                                    <td className="hidden md:table-cell px-6 py-3 text-right">
-                                        <span className="text-xs font-bold text-amber-600 tabular-nums font-mono">{fmt(totalCostEmp)}</span>
-                                    </td>
-                                    <td className="px-6 py-3 text-right">
-                                        <span className="text-sm font-bold text-slate-900 tabular-nums font-mono">{fmt(totalCost)}</span>
-                                    </td>
-                                </tr>
-                            </tfoot>
-                        )}
-                    </table>
-                </div>
-            </Card>
+            {/* Consolidated Table (client: con buscador reactivo) */}
+            <PayrollSummaryTable
+                rows={rows}
+                periodLabel={periodLabel}
+                totalEarnings={totalEarnings}
+                totalDeductions={totalDeductions}
+                totalNetPay={totalNetPay}
+                totalCostEmp={totalCostEmp}
+                totalCost={totalCost}
+                activeCount={activeEmployees.length}
+            />
 
             {/* Company cost breakdown */}
             <Card className="rounded-2xl border border-slate-100 shadow-sm p-6">
