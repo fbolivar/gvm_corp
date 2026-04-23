@@ -44,6 +44,17 @@ interface DocumentFormProps {
     commercials?: CommercialOption[]
 }
 
+// Devuelve la tasa de IVA efectiva de una línea.
+// Prioridad: tax_config manual de la línea → tax_category del producto → 0%.
+function getLineTaxRate(line: any, products: Product[]): number {
+    if (Array.isArray(line?.tax_config) && line.tax_config.length > 0) {
+        const r = Number(line.tax_config[0]?.rate);
+        if (!Number.isNaN(r)) return r;
+    }
+    const prod = products.find(p => p.id === line?.product_id);
+    return { IVA_0: 0, IVA_5: 5, IVA_19: 19 }[(prod?.tax_category ?? 'IVA_0')] ?? 0;
+}
+
 const LineTotal = ({ control, index }: { control: any; index: number }) => {
     const qty = useWatch({ control, name: `lines.${index}.qty` }) || 0;
     const price = useWatch({ control, name: `lines.${index}.unit_price` }) || 0;
@@ -64,11 +75,8 @@ const DocumentTotals = ({ control, products }: { control: any; products: Product
         const price = Number(line.unit_price) || 0;
         const lineTotal = qty * price;
         subtotal += lineTotal;
-        if (line.product_id) {
-            const prod = products.find(p => p.id === line.product_id);
-            const taxRate = { IVA_0: 0, IVA_5: 5, IVA_19: 19 }[(prod?.tax_category ?? 'IVA_0')] ?? 0;
-            if (taxRate) taxes += lineTotal * (taxRate / 100);
-        }
+        const taxRate = getLineTaxRate(line, products);
+        if (taxRate) taxes += lineTotal * (taxRate / 100);
     });
     const total = subtotal + taxes;
 
@@ -152,11 +160,8 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
             const lineTotal = qty * price;
             line.line_total = lineTotal;
             subtotal += lineTotal;
-            if (line.product_id) {
-                const prod = products.find(p => p.id === line.product_id);
-                const taxRate = { IVA_0: 0, IVA_5: 5, IVA_19: 19 }[(prod?.tax_category ?? 'IVA_0')] ?? 0;
-                if (taxRate) taxes += lineTotal * (taxRate / 100);
-            }
+            const taxRate = getLineTaxRate(line, products);
+            if (taxRate) taxes += lineTotal * (taxRate / 100);
         });
         data.subtotal = subtotal;
         data.taxes = taxes;
@@ -386,7 +391,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                             </div>
                             <Button
                                 type="button"
-                                onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null })}
+                                onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [{ rate: 0, type: 'IVA', name: 'IVA' }] })}
                                 size="sm"
                             >
                                 <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar línea
@@ -401,7 +406,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null })}
+                                    onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [{ rate: 0, type: 'IVA', name: 'IVA' }] })}
                                 >
                                     <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar primera línea
                                 </Button>
@@ -418,7 +423,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                         <div key={field.id} className="p-4 hover:bg-slate-50/50 transition">
                                             <div className="grid grid-cols-12 gap-3 items-start">
                                                 {/* Producto + descripción */}
-                                                <div className="col-span-12 md:col-span-6 space-y-2">
+                                                <div className="col-span-12 md:col-span-5 space-y-2">
                                                     <SearchableSelect
                                                         items={productItems}
                                                         value={form.watch(`lines.${index}.product_id`) || ''}
@@ -465,7 +470,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                 </div>
 
                                                 {/* Cantidad */}
-                                                <div className="col-span-4 md:col-span-2 space-y-1">
+                                                <div className="col-span-3 md:col-span-1 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Cantidad</label>
                                                     <Input
                                                         type="number"
@@ -481,13 +486,13 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                             "text-[11px] font-medium",
                                                             stockExceeded ? "text-amber-600" : "text-slate-400"
                                                         )}>
-                                                            Disponible: {prod.stock_qty || 0}
+                                                            Disp: {prod.stock_qty || 0}
                                                         </p>
                                                     )}
                                                 </div>
 
                                                 {/* Precio */}
-                                                <div className="col-span-4 md:col-span-2 space-y-1">
+                                                <div className="col-span-3 md:col-span-2 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Precio</label>
                                                     <div className="relative">
                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
@@ -500,8 +505,35 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                     </div>
                                                 </div>
 
+                                                {/* IVA por línea */}
+                                                <div className="col-span-3 md:col-span-2 space-y-1">
+                                                    <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">IVA</label>
+                                                    {(() => {
+                                                        const currentRate = getLineTaxRate(form.watch(`lines.${index}`) ?? {}, products);
+                                                        return (
+                                                            <select
+                                                                value={String(currentRate)}
+                                                                onChange={(e) => {
+                                                                    const rate = Number(e.target.value);
+                                                                    form.setValue(
+                                                                        `lines.${index}.tax_config`,
+                                                                        [{ rate, type: 'IVA', name: 'IVA' }],
+                                                                        { shouldDirty: true }
+                                                                    );
+                                                                }}
+                                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium text-slate-900 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
+                                                                aria-label="IVA aplicable a esta línea"
+                                                            >
+                                                                <option value="0">Sin IVA (0%)</option>
+                                                                <option value="5">IVA 5%</option>
+                                                                <option value="19">IVA 19%</option>
+                                                            </select>
+                                                        );
+                                                    })()}
+                                                </div>
+
                                                 {/* Total + Delete */}
-                                                <div className="col-span-4 md:col-span-2 space-y-1">
+                                                <div className="col-span-3 md:col-span-2 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Total</label>
                                                     <div className="flex items-center justify-end gap-2 h-10">
                                                         <LineTotal control={form.control} index={index} />
