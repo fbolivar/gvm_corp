@@ -10,7 +10,9 @@ import {
     ArrowRightLeft,
     History,
     Box,
-    ArrowUpRight
+    ArrowUpRight,
+    FileSpreadsheet,
+    Warehouse,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/shared/components/ui/button';
@@ -74,42 +76,32 @@ export function InventoryDashboard({
             </div>
 
             {/* Filter bar */}
-            <div className="bg-white rounded-xl p-3 border border-slate-100 flex flex-col xl:flex-row items-center gap-3">
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center gap-3">
                 <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
                     <Input
                         placeholder="Buscar por SKU, referencia o descripción..."
-                        className="h-9 pl-10 bg-slate-50 border-none rounded-lg text-sm placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-indigo-200"
+                        className="h-9 pl-9 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-indigo-200"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg w-full xl:w-auto overflow-x-auto border border-slate-100">
-                    <button
-                        onClick={() => setSelectedWarehouse("all")}
-                        className={cn(
-                            "px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap",
-                            selectedWarehouse === "all"
-                                ? "bg-white text-slate-900 shadow-sm"
-                                : "text-slate-400 hover:text-slate-600"
-                        )}
+                <div className="relative w-full sm:w-auto sm:min-w-[220px]">
+                    <Warehouse className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300 pointer-events-none" />
+                    <select
+                        value={selectedWarehouse}
+                        onChange={(e) => setSelectedWarehouse(e.target.value)}
+                        title="Filtrar por bodega"
+                        aria-label="Filtrar por bodega"
+                        className="w-full h-9 bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 appearance-none"
                     >
-                        Todas
-                    </button>
-                    {warehouses.map(w => (
-                        <button
-                            key={String(w.id)}
-                            onClick={() => setSelectedWarehouse(String(w.id))}
-                            className={cn(
-                                "px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap",
-                                selectedWarehouse === String(w.id)
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-400 hover:text-slate-600"
-                            )}
-                        >
-                            {String(w.name)}
-                        </button>
-                    ))}
+                        <option value="all">Todas las bodegas</option>
+                        {warehouses.map(w => (
+                            <option key={String(w.id)} value={String(w.id)}>
+                                {String(w.name)}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

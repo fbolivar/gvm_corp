@@ -72,6 +72,7 @@ import {
     CalendarClock,
     Timer,
     QrCode,
+    FileSpreadsheet,
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -175,6 +176,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.sidebar.lots, href: "/inventory/lots", icon: FlaskConical },
                         { title: 'Análisis ABC', href: "/inventory/analysis", icon: BarChart3 },
                         { title: 'Seriales', href: "/inventory/serials", icon: Hash },
+                        { title: 'Importar Stock', href: "/inventory/import-stock", icon: FileSpreadsheet },
                     ]
                 },
                 {

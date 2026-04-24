@@ -3,12 +3,28 @@ import { Document, DocumentFilters, DocumentLine } from '../types';
 
 export const documentService = {
     async getDocuments(client: SupabaseClient, filters: DocumentFilters) {
+        // If searching by client name, resolve party IDs first
+        let partyIdFilter: string[] | null = null
+        if (filters.search && !/^[A-Z]{1,4}-\d/.test(filters.search)) {
+            // Looks like a name, not a doc number → search parties
+            const { data: matchedParties } = await client
+                .from('parties')
+                .select('id')
+                .ilike('legal_name', `%${filters.search}%`)
+                .limit(200)
+            if (matchedParties && matchedParties.length > 0) {
+                partyIdFilter = matchedParties.map((p: { id: string }) => p.id)
+            }
+        }
+
         let query = client.from('documents').select('*, party:parties(legal_name, doc_number)', { count: 'exact' });
 
         if (filters.search) {
-            // Search by number or party name
-            // Requires embedding or separate search, simplistic for now
-            query = query.ilike('number', `%${filters.search}%`);
+            if (partyIdFilter && partyIdFilter.length > 0) {
+                query = query.in('party_id', partyIdFilter)
+            } else {
+                query = query.ilike('number', `%${filters.search}%`)
+            }
         }
 
         if (filters.type) {
@@ -19,12 +35,20 @@ export const documentService = {
             query = query.eq('status', filters.status);
         }
 
+        if (filters.start_date) {
+            query = query.gte('issue_date', filters.start_date)
+        }
+
+        if (filters.end_date) {
+            query = query.lte('issue_date', filters.end_date)
+        }
+
         const from = (filters.page - 1) * filters.per_page;
         const to = from + filters.per_page - 1;
 
         const { data, error, count } = await query
             .range(from, to)
-            .order('created_at', { ascending: false });
+            .order('issue_date', { ascending: false });
 
         if (error) { console.error('[documents] getDocuments:', error.message); return { data: [] as Document[], count: 0 }; }
         return { data: data as Document[], count };

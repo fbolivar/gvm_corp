@@ -4,7 +4,7 @@ import { inventoryService } from '@/features/inventory/services/inventoryService
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/shared/components/ui/page-header';
 import { Button } from '@/shared/components/ui/button';
-import { Package, Plus, Warehouse as WarehouseIcon, FlaskConical } from 'lucide-react';
+import { Package, Plus, Warehouse as WarehouseIcon, FlaskConical, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
@@ -78,6 +78,12 @@ export default async function InventoryPage({ searchParams }: PageProps) {
                             <Link href="/inventory/warehouses">
                                 <WarehouseIcon className="h-4 w-4 mr-1.5" />
                                 Bodegas
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                            <Link href="/inventory/import-stock">
+                                <FileSpreadsheet className="h-4 w-4 mr-1.5" />
+                                Importar Stock
                             </Link>
                         </Button>
                         <Button asChild>

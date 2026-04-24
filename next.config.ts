@@ -131,7 +131,7 @@ const nextConfig: NextConfig = {
     // Server Actions body size limit — default 1MB no alcanza para imports
     // masivos (Dolibarr puede enviar 5000+ filas en una sola llamada)
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: '50mb',
     },
   },
 }

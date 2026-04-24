@@ -15,6 +15,7 @@ import {
   importDolibarrInvoicesAction,
   importDolibarrReceivablesAction,
   importDolibarrBookkeepingAction,
+  importDolibarrSalesOrdersAction,
   type ImportResult,
 } from '@/features/import/dolibarrActions'
 
@@ -29,6 +30,7 @@ type DatasetKey =
   | 'stock'
   | 'lotes'
   | 'contactos'
+  | 'ordenes'
   | 'facturas'
   | 'cartera'
   | 'asientos'
@@ -111,6 +113,15 @@ const DATASETS: Dataset[] = [
     dependsOn: ['terceros'],
     suggestedFileName: '02_contactos.csv',
     action: async (rows) => importDolibarrContactsAction(rows as never),
+  },
+  {
+    key: 'ordenes',
+    title: '5c. Órdenes de Venta (Dolibarr)',
+    description: 'Pedidos históricos exportados desde Comercio → Órdenes de venta → Export. Una fila por línea de producto.',
+    requiredColumns: ['Razón social', 'Ref.', 'Fecha de orden', 'Total'],
+    dependsOn: ['terceros'],
+    suggestedFileName: 'ordenes_dolibarr_2025.csv',
+    action: async (rows) => importDolibarrSalesOrdersAction(rows as Record<string, string>[]),
   },
   {
     key: 'facturas',
@@ -231,17 +242,36 @@ export function DolibarrImporter() {
     setDatasets(prev => ({ ...prev, [key]: { ...prev[key], status: 'loading' } }))
 
     try {
-      const result = await def.action(ds.rows)
-      const realErrors = result.errors.filter(e => !e.message.startsWith('INFO:'))
+      const CHUNK = 3000
+      const rows = ds.rows
+      let totalInserted = 0
+      const allErrors: ImportResult['errors'] = []
+
+      if (rows.length > CHUNK) {
+        toast.info(`${rows.length.toLocaleString()} filas — procesando en lotes de ${CHUNK}...`)
+      }
+
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const chunk = rows.slice(i, i + CHUNK)
+        const result = await def.action(chunk)
+        totalInserted += result.inserted
+        allErrors.push(...result.errors)
+        if (rows.length > CHUNK) {
+          toast.info(`Lote ${Math.floor(i / CHUNK) + 1}/${Math.ceil(rows.length / CHUNK)}: ${totalInserted} importados`)
+        }
+      }
+
+      const combined: ImportResult = { inserted: totalInserted, errors: allErrors }
+      const realErrors = allErrors.filter(e => !e.message.startsWith('INFO:'))
       setDatasets(prev => ({
         ...prev,
-        [key]: { ...prev[key], status: realErrors.length > 0 ? 'error' : 'success', result },
+        [key]: { ...prev[key], status: realErrors.length > 0 ? 'error' : 'success', result: combined },
       }))
 
       if (realErrors.length === 0) {
-        toast.success(`${def.title}: ${result.inserted} registros importados`)
+        toast.success(`${def.title}: ${totalInserted} registros importados`)
       } else {
-        toast.warning(`${def.title}: ${result.inserted} OK, ${realErrors.length} errores`)
+        toast.warning(`${def.title}: ${totalInserted} OK, ${realErrors.length} errores`)
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido'

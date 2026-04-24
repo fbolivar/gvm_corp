@@ -204,6 +204,24 @@ export interface DolibarrPriceRow {
   price_level?: string
 }
 
+export interface DolibarrSalesOrderRow {
+  razon_social?: string
+  nit?: string
+  ref?: string
+  fecha_orden?: string
+  subtotal?: string
+  total?: string
+  estado?: string
+  nota_publica?: string
+  descripcion_linea?: string
+  id_linea?: string
+  cantidad?: string
+  importe_linea?: string
+  tasa_iva?: string
+  etiqueta_producto?: string
+  producto_ref?: string
+}
+
 export interface DolibarrLotRow {
   sku?: string
   warehouse_code?: string
@@ -2069,4 +2087,201 @@ export async function importDolibarrPricesAction(
     const msg = e instanceof Error ? `${e.message}\n${e.stack}` : String(e)
     return { inserted: 0, errors: [{ row: 0, message: `Excepción: ${msg}` }] }
   }
+}
+
+// ─── IMPORT: ÓRDENES DE VENTA (Dolibarr) ─────────────────────────────────────
+// CSV exportado desde Herramientas → Export → Pedidos de clientes
+// Columnas esperadas (export Dolibarr en español):
+//   Razón social, ID profesional 1, Ref., Fecha de orden,
+//   Total (sin imp.), Total, Estado, Nota (pública),
+//   Descripción de la línea, ID de línea, Cantidad por línea,
+//   Importe excl. impuesto por línea, Tasa de IVA de la línea,
+//   Etiqueta del producto, Producto ref.
+
+function mapSalesOrderStatus(raw: string | undefined): string {
+  const v = (raw ?? '').trim()
+  if (v === '-1') return 'VOIDED'
+  if (v === '0')  return 'DRAFT'
+  if (v === '1' || v === '2' || v === '3') return 'SENT'
+  const u = v.toUpperCase()
+  if (u.includes('CANCEL') || u.includes('ANULA') || u.includes('ANNUL')) return 'VOIDED'
+  if (u.includes('VALID') || u.includes('PROCESO') || u.includes('ENTREGA') || u.includes('LIVR')) return 'SENT'
+  return 'DRAFT'
+}
+
+export async function importDolibarrSalesOrdersAction(
+  rawRows: Record<string, string>[]
+): Promise<ImportResult> {
+  const supabase = await createClient()
+  const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
+  if (!tenantId) return { inserted: 0, errors: [{ row: 0, message: 'No se pudo obtener tenant_id' }] }
+
+  const errors: ImportError[] = []
+
+  // Limpia texto Dolibarr: quita \n literal, Pa?s y caracteres raros
+  const cleanText = (v: string) =>
+    v.replace(/\\n/g, ' ')          // \n literal → espacio
+     .replace(/Pa\?s/g, 'País')     // encoding roto
+     .replace(/\s+/g, ' ')
+     .trim()
+
+  const normalize = (raw: Record<string, string>) => ({
+    razon_social:      cleanText(raw['Razón social']                        ?? ''),
+    nit:               (raw['ID profesional 1']                             ?? '').trim(),
+    ref:               (raw['Ref.']                                         ?? '').trim(),
+    fecha_orden:       (raw['Fecha de orden']                               ?? '').trim(),
+    subtotal:          (raw['Total (sin imp.)']                             ?? '').trim(),
+    total:             (raw['Total']                                        ?? '').trim(),
+    estado:            (raw['Estado']                                       ?? '').trim(),
+    nota_publica:      cleanText(raw['Nota (pública)']                      ?? ''),
+    descripcion_linea: cleanText(raw['Descripción de la línea']             ?? ''),
+    cantidad:          (raw['Cantidad por línea']                           ?? '').trim(),
+    importe_linea:     (raw['Importe excl. impuesto por línea']             ?? '').trim(),
+    tasa_iva:          (raw['Tasa de IVA de la línea']                      ?? '').trim(),
+    etiqueta_producto: cleanText(raw['Etiqueta del producto']               ?? ''),
+  })
+
+  const rows = rawRows.map(normalize)
+
+  // Agrupar por Ref.
+  const orderMap = new Map<string, ReturnType<typeof normalize>[]>()
+  for (const row of rows) {
+    if (!row.ref) continue
+    if (!orderMap.has(row.ref)) orderMap.set(row.ref, [])
+    orderMap.get(row.ref)!.push(row)
+  }
+
+  if (orderMap.size === 0) {
+    return { inserted: 0, errors: [{ row: 0, message: 'No se encontraron referencias de orden (columna "Ref." vacía o faltante)' }] }
+  }
+
+  // Órdenes existentes (detectar duplicados)
+  const { data: existingDocs } = await supabase
+    .from('documents')
+    .select('number')
+    .eq('tenant_id', tenantId)
+    .eq('doc_type', 'SALES_ORDER')
+
+  const existingNumbers = new Set((existingDocs ?? []).map((d: Record<string, string>) => d.number))
+
+  // Parties del tenant (cruzar por NIT o nombre)
+  const { data: partiesData } = await supabase
+    .from('parties')
+    .select('id, legal_name, doc_number')
+    .eq('tenant_id', tenantId)
+
+  const parties = (partiesData ?? []) as { id: string; legal_name: string; doc_number: string | null }[]
+  const partyByNit  = new Map(parties.filter(p => p.doc_number).map(p => [p.doc_number!.replace(/[^0-9]/g, ''), p.id]))
+  const partyByName = new Map(parties.map(p => [p.legal_name.toUpperCase().trim(), p.id]))
+
+  // ── Construir lotes de documentos válidos ────────────────────────────────
+  type DocPayload = {
+    tenant_id: string; doc_type: string; number: string; party_id: string
+    issue_date: string; subtotal: number; taxes: number; total: number
+    balance: number; status: string; notes_public: string | null
+    notes_internal: string; currency: string
+  }
+  type LinePayload = {
+    description: string; qty: number; unit_price: number
+    line_total: number; tax_config: unknown[]
+    _ref: string  // temporal para enlazar con doc.id
+  }
+
+  const docsToInsert: DocPayload[] = []
+  const linesByRef = new Map<string, Omit<LinePayload, '_ref'>[]>()
+
+  for (const [ref, lineRows] of orderMap) {
+    if (existingNumbers.has(ref)) {
+      errors.push({ row: 0, message: `INFO: Orden "${ref}" ya existe — omitida` })
+      continue
+    }
+
+    const header = lineRows[0]
+    const nitClean = (header.nit ?? '').replace(/[^0-9]/g, '')
+    let partyId: string | null = partyByNit.get(nitClean) ?? null
+    if (!partyId && header.razon_social) {
+      partyId = partyByName.get(header.razon_social.toUpperCase().trim()) ?? null
+    }
+    if (!partyId) {
+      errors.push({ row: 0, message: `Orden "${ref}": cliente "${header.razon_social}" no encontrado — impórtalo en Terceros primero` })
+      continue
+    }
+
+    const issueDate = normalizeDate(header.fecha_orden) ?? new Date().toISOString().substring(0, 10)
+    const subtotalVal = parseNumber(header.subtotal)
+    const totalVal    = parseNumber(header.total)
+
+    docsToInsert.push({
+      tenant_id:      tenantId,
+      doc_type:       'SALES_ORDER',
+      number:         ref,
+      party_id:       partyId,
+      issue_date:     issueDate,
+      subtotal:       subtotalVal,
+      taxes:          Math.max(0, totalVal - subtotalVal),
+      total:          totalVal,
+      balance:        totalVal,
+      status:         mapSalesOrderStatus(header.estado),
+      notes_public:   header.nota_publica || null,
+      notes_internal: `Importado desde Dolibarr · Ref: ${ref}`,
+      currency:       'COP',
+    })
+
+    const lines = lineRows
+      .filter(lr => lr.descripcion_linea || lr.etiqueta_producto)
+      .map(lr => {
+        const qty       = parseNumber(lr.cantidad) || 1
+        const lineTotal = parseNumber(lr.importe_linea)
+        const taxRate   = parseNumber(lr.tasa_iva)
+        return {
+          description: lr.descripcion_linea || lr.etiqueta_producto || 'Producto',
+          qty,
+          unit_price:  qty > 0 ? lineTotal / qty : lineTotal,
+          line_total:  lineTotal,
+          tax_config:  [{ rate: taxRate, type: 'IVA', name: `IVA ${taxRate}%` }],
+        }
+      })
+    if (lines.length > 0) linesByRef.set(ref, lines)
+  }
+
+  // ── INSERT masivo de documentos en chunks de 500 ─────────────────────────
+  const CHUNK = 500
+  let inserted = 0
+
+  for (let i = 0; i < docsToInsert.length; i += CHUNK) {
+    const chunk = docsToInsert.slice(i, i + CHUNK)
+    const { data: insertedDocs, error: docsErr } = await supabase
+      .from('documents')
+      .insert(chunk)
+      .select('id, number')
+
+    if (docsErr || !insertedDocs) {
+      errors.push({ row: 0, message: `Error insertando documentos (lote ${i}-${i + chunk.length}): ${docsErr?.message}` })
+      continue
+    }
+
+    inserted += insertedDocs.length
+
+    // ── INSERT masivo de líneas para este chunk ───────────────────────────
+    const allLines: Record<string, unknown>[] = []
+    for (const doc of insertedDocs as { id: string; number: string }[]) {
+      const lines = linesByRef.get(doc.number) ?? []
+      for (const ln of lines) {
+        allLines.push({ ...ln, document_id: doc.id })
+      }
+    }
+
+    if (allLines.length > 0) {
+      for (let j = 0; j < allLines.length; j += CHUNK) {
+        const { error: linesErr } = await supabase
+          .from('document_lines')
+          .insert(allLines.slice(j, j + CHUNK))
+        if (linesErr) {
+          errors.push({ row: 0, message: `Error insertando líneas (lote docs ${i}): ${linesErr.message}` })
+        }
+      }
+    }
+  }
+
+  return { inserted, errors }
 }

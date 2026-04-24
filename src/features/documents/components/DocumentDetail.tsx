@@ -47,6 +47,7 @@ import Link from "next/link"
 import { documentPdfService } from '../services/documentPdfService'
 import type { TenantPdfInfo, DianResolutionPdfInfo } from '../services/documentPdfService'
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { DocumentAttachmentsSection } from "./DocumentAttachmentsSection"
 
 interface DocumentDetailProps {
     document: Document;
@@ -598,6 +599,14 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                     </Card>
                 </div>
             </div>
+
+            {/* 📎 ADJUNTOS POR DEPARTAMENTO */}
+            {document.id && document.tenant_id && (
+                <DocumentAttachmentsSection
+                    documentId={document.id}
+                    tenantId={document.tenant_id}
+                />
+            )}
         </div>
     )
 }
