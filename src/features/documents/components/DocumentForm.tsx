@@ -505,29 +505,18 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                     </div>
                                                 </div>
 
-                                                {/* IVA por línea */}
+                                                {/* IVA por línea — solo lectura, se toma del producto */}
                                                 <div className="col-span-3 md:col-span-2 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">IVA</label>
                                                     {(() => {
-                                                        const currentRate = getLineTaxRate(form.watch(`lines.${index}`) ?? {}, products);
+                                                        const rate = getLineTaxRate(form.watch(`lines.${index}`) ?? {}, products);
                                                         return (
-                                                            <select
-                                                                value={String(currentRate)}
-                                                                onChange={(e) => {
-                                                                    const rate = Number(e.target.value);
-                                                                    form.setValue(
-                                                                        `lines.${index}.tax_config`,
-                                                                        [{ rate, type: 'IVA', name: 'IVA' }],
-                                                                        { shouldDirty: true }
-                                                                    );
-                                                                }}
-                                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium text-slate-900 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
-                                                                aria-label="IVA aplicable a esta línea"
-                                                            >
-                                                                <option value="0">Sin IVA (0%)</option>
-                                                                <option value="5">IVA 5%</option>
-                                                                <option value="19">IVA 19%</option>
-                                                            </select>
+                                                            <div className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 flex items-center">
+                                                                <span className="text-sm font-semibold text-slate-700 tabular-nums">
+                                                                    {rate === 0 ? '0%' : `${rate}%`}
+                                                                </span>
+                                                                <span className="ml-1.5 text-xs text-slate-400">IVA</span>
+                                                            </div>
                                                         );
                                                     })()}
                                                 </div>
