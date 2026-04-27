@@ -2171,8 +2171,63 @@ export async function importDolibarrSalesOrdersAction(
     .eq('tenant_id', tenantId)
 
   const parties = (partiesData ?? []) as { id: string; legal_name: string; doc_number: string | null }[]
-  const partyByNit  = new Map(parties.filter(p => p.doc_number).map(p => [p.doc_number!.replace(/[^0-9]/g, ''), p.id]))
+  // Filtrar claves vacías: evita que parties sin dígitos capturen órdenes con NIT vacío
+  const partyByNit = new Map(
+    parties
+      .filter(p => p.doc_number)
+      .map(p => [p.doc_number!.replace(/[^0-9]/g, ''), p.id] as [string, string])
+      .filter(([k]) => k !== '')
+  )
   const partyByName = new Map(parties.map(p => [p.legal_name.toUpperCase().trim(), p.id]))
+
+  // ── Auto-crear parties faltantes ─────────────────────────────────────────
+  const toCreate = new Map<string, { nit: string; name: string }>()
+  for (const [, lineRows] of orderMap) {
+    const h = lineRows[0]
+    if (!h.razon_social) continue
+    const nameKey = h.razon_social.toUpperCase().trim()
+    const nk = h.nit.replace(/[^0-9]/g, '')
+    if (!partyByName.has(nameKey) && !(nk && partyByNit.has(nk))) {
+      toCreate.set(nameKey, { nit: h.nit, name: h.razon_social })
+    }
+  }
+  if (toCreate.size > 0) {
+    const newParties = Array.from(toCreate.values()).map(p => {
+      const isCompany = /S\.?A\.?S\.?|LTDA|S\.?A\.|CIA\b|CORP\b|S\.?EN\s*C|SAS\b/i.test(p.name)
+      const docNum = p.nit || `DOL-${p.name.replace(/[^A-Z0-9]/gi, '-').toUpperCase().slice(0, 40)}`
+      return {
+        tenant_id: tenantId, legal_name: p.name, doc_number: docNum,
+        doc_type: isCompany ? 'NIT' : 'CC',
+        party_type: isCompany ? 'COMPANY' : 'PERSON',
+        is_customer: true, is_vendor: false,
+      }
+    })
+    for (let i = 0; i < newParties.length; i += 200) {
+      const { data: created } = await supabase
+        .from('parties')
+        .upsert(newParties.slice(i, i + 200), { onConflict: 'tenant_id,doc_number', ignoreDuplicates: false })
+        .select('id, legal_name')
+      for (const p of (created ?? []) as { id: string; legal_name: string }[]) {
+        partyByName.set(p.legal_name.toUpperCase().trim(), p.id)
+      }
+    }
+    // Recuperar también las que ya existían y no fueron devueltas por upsert
+    const stillMissing = Array.from(toCreate.values())
+      .filter(p => !partyByName.has(p.name.toUpperCase().trim()))
+      .map(p => p.name)
+    if (stillMissing.length > 0) {
+      for (let i = 0; i < stillMissing.length; i += 200) {
+        const { data: existing } = await supabase
+          .from('parties')
+          .select('id, legal_name')
+          .eq('tenant_id', tenantId)
+          .in('legal_name', stillMissing.slice(i, i + 200))
+        for (const p of (existing ?? []) as { id: string; legal_name: string }[]) {
+          partyByName.set(p.legal_name.toUpperCase().trim(), p.id)
+        }
+      }
+    }
+  }
 
   // ── Construir lotes de documentos válidos ────────────────────────────────
   type DocPayload = {
@@ -2184,7 +2239,7 @@ export async function importDolibarrSalesOrdersAction(
   type LinePayload = {
     description: string; qty: number; unit_price: number
     line_total: number; tax_config: unknown[]
-    _ref: string  // temporal para enlazar con doc.id
+    _ref: string
   }
 
   const docsToInsert: DocPayload[] = []
@@ -2198,12 +2253,12 @@ export async function importDolibarrSalesOrdersAction(
 
     const header = lineRows[0]
     const nitClean = (header.nit ?? '').replace(/[^0-9]/g, '')
-    let partyId: string | null = partyByNit.get(nitClean) ?? null
+    let partyId: string | null = (nitClean && partyByNit.get(nitClean)) || null
     if (!partyId && header.razon_social) {
       partyId = partyByName.get(header.razon_social.toUpperCase().trim()) ?? null
     }
     if (!partyId) {
-      errors.push({ row: 0, message: `Orden "${ref}": cliente "${header.razon_social}" no encontrado — impórtalo en Terceros primero` })
+      errors.push({ row: 0, message: `Orden "${ref}": sin cliente — omitida` })
       continue
     }
 

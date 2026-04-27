@@ -215,8 +215,22 @@ export function DolibarrImporter() {
   const [running, setRunning] = useState(false)
 
   const handleFile = useCallback(async (key: DatasetKey, file: File) => {
-    const text = await file.text()
-    const rows = parseCSV(text)
+    let rows: Record<string, string>[]
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const XLSX = await import('xlsx')
+      const buffer = await file.arrayBuffer()
+      const wb = XLSX.read(buffer, { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' })
+      rows = data.map(row =>
+        Object.fromEntries(
+          Object.entries(row).map(([k, v]) => [k.trim(), String(v ?? '').trim()])
+        )
+      )
+    } else {
+      const text = await file.text()
+      rows = parseCSV(text)
+    }
     setDatasets(prev => ({
       ...prev,
       [key]: { file, rows, status: 'idle', result: null },
@@ -364,10 +378,10 @@ export function DolibarrImporter() {
                   {!ds.file ? (
                     <label className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 cursor-pointer text-sm font-medium text-slate-700 flex items-center gap-2">
                       <Upload className="w-4 h-4" />
-                      Cargar CSV
+                      Cargar CSV / Excel
                       <input
                         type="file"
-                        accept=".csv"
+                        accept=".csv,.xlsx,.xls"
                         className="hidden"
                         onChange={e => {
                           const f = e.target.files?.[0]
