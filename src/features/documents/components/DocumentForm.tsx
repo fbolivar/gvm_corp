@@ -18,9 +18,10 @@ import {
     AlertCircle,
     CheckCircle2,
     Link2,
-    Loader
+    Loader,
+    PackageX,
 } from "lucide-react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { format } from "date-fns"
 import { cn } from "@/shared/lib/utils"
 import { toast } from "sonner"
@@ -130,6 +131,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
     const { fields, append, remove } = useFieldArray({ control: form.control, name: "lines" });
     const docType = form.watch('doc_type');
     const isSale = ['INVOICE', 'QUOTATION', 'SALES_ORDER', 'RECEIPT'].includes(docType);
+    const [ignoreStock, setIgnoreStock] = useState(false);
 
     const handleProductChange = (index: number, productId: string) => {
         const product = products.find(p => p.id === productId);
@@ -222,7 +224,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
         })), [warehouses]);
 
     const lines = form.watch('lines');
-    const hasStockIssues = isSale && lines?.some((line: any) => {
+    const hasStockIssues = !ignoreStock && isSale && lines?.some((line: any) => {
         const prod = products.find(p => p.id === line.product_id);
         return prod && (Number(line.qty) || 0) > (prod.stock_qty || 0);
     });
@@ -349,6 +351,37 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                 </FormField>
                             )}
 
+                            {isSale && (
+                                <div className="col-span-full">
+                                    <label
+                                        htmlFor="df-ignore-stock"
+                                        className={cn(
+                                            "flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors select-none",
+                                            ignoreStock
+                                                ? "border-amber-300 bg-amber-50"
+                                                : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                                        )}
+                                    >
+                                        <input
+                                            id="df-ignore-stock"
+                                            type="checkbox"
+                                            checked={ignoreStock}
+                                            onChange={(e) => setIgnoreStock(e.target.checked)}
+                                            className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                        />
+                                        <PackageX className={cn("h-4 w-4 shrink-0", ignoreStock ? "text-amber-600" : "text-slate-400")} />
+                                        <div>
+                                            <p className={cn("text-xs font-semibold", ignoreStock ? "text-amber-800" : "text-slate-600")}>
+                                                Omitir verificación de inventario
+                                            </p>
+                                            <p className="text-[11px] text-slate-400 mt-0.5">
+                                                Permite crear el documento aunque no haya stock disponible en la bodega seleccionada.
+                                            </p>
+                                        </div>
+                                    </label>
+                                </div>
+                            )}
+
                             <FormField label="Observaciones (aparecen en PDF)" htmlFor="df-notes-public">
                                 <Input
                                     id="df-notes-public"
@@ -417,7 +450,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     const pid = form.watch(`lines.${index}.product_id`);
                                     const prod = products.find(p => p.id === pid);
                                     const qty = Number(form.watch(`lines.${index}.qty`)) || 0;
-                                    const stockExceeded = isSale && prod && qty > (prod.stock_qty || 0);
+                                    const stockExceeded = !ignoreStock && isSale && prod && qty > (prod.stock_qty || 0);
 
                                     return (
                                         <div key={field.id} className="p-4 hover:bg-slate-50/50 transition">
