@@ -407,7 +407,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                         <FormLayout>
                             <IcaPrescriptionSection
                                 form={form}
-                                tenantId={tenantId}
+                                tenantId={tenantId as string}
                                 commercials={commercials}
                             />
                         </FormLayout>
