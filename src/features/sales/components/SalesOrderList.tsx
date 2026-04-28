@@ -22,6 +22,7 @@ import {
 import Link from "next/link"
 import { cn } from "@/shared/lib/utils"
 import { convertDocumentAction } from "../convertActions"
+import { confirmSalesOrderAction } from "@/features/documents/actions"
 import { toast } from "sonner"
 import { useConfirm } from "@/shared/hooks/useConfirm"
 
@@ -84,6 +85,21 @@ export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOr
         const result = await convertDocumentAction(docId, 'INVOICE')
         setProcessingId(null)
         if (result?.error) toast.error(result.error)
+    }
+
+    const handleConfirmOrder = async (docId: string) => {
+        const ok = await confirmFn({
+            title: "Confirmar Pedido",
+            description: "Al confirmar, el pedido quedará listo para despacho en el módulo de Logística. Esta acción no se puede deshacer.",
+            variant: "warning",
+            confirmLabel: "Confirmar Pedido",
+        })
+        if (!ok) return
+        setProcessingId(docId)
+        const result = await confirmSalesOrderAction(docId)
+        setProcessingId(null)
+        if (result?.error) toast.error(result.error)
+        else toast.success("Pedido confirmado — ya aparece en Logística")
     }
 
     const handleCreateDelivery = async (docId: string) => {
@@ -166,7 +182,20 @@ export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOr
                                 </td>
                                 <td className="px-5 py-4">
                                     <div className="flex items-center justify-end gap-1.5">
-                                        {(order.status === 'DRAFT' || order.status === 'SENT') && (
+                                        {order.status === 'DRAFT' && (
+                                            <Button
+                                                size="sm"
+                                                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-[10px] font-semibold gap-1.5"
+                                                onClick={() => handleConfirmOrder(order.id!)}
+                                                disabled={processingId === order.id}
+                                            >
+                                                {processingId === order.id
+                                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    : <><Send className="h-3.5 w-3.5" /> Confirmar</>
+                                                }
+                                            </Button>
+                                        )}
+                                        {order.status === 'SENT' && (
                                             <>
                                                 <Button
                                                     size="sm"

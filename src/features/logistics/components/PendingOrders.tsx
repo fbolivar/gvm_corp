@@ -28,8 +28,9 @@ export function PendingOrders({ onSelectOrder }: { onSelectOrder: (order: any) =
         try {
             const data = await logisticsService.getPendingOrders(supabase)
             setOrders(data)
-        } catch (error) {
-            console.error(error)
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : JSON.stringify(error)
+            console.error('getPendingOrders error:', msg)
         } finally {
             setLoading(false)
         }

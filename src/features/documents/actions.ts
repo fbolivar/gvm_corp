@@ -113,6 +113,40 @@ export async function deleteDocumentAction(id: string): Promise<{ error?: string
 }
 
 /**
+ * Confirma un pedido de venta: DRAFT → SENT.
+ * Solo aplica para SALES_ORDER en estado DRAFT.
+ * Una vez confirmado aparece en la cola de logística como pendiente de despacho.
+ */
+export async function confirmSalesOrderAction(id: string): Promise<{ error?: string }> {
+    const supabase = await createClient();
+
+    try {
+        const { data: doc, error: selErr } = await supabase
+            .from('documents')
+            .select('id, status, doc_type')
+            .eq('id', id)
+            .single();
+
+        if (selErr || !doc) return { error: 'Pedido no encontrado' };
+        if (doc.doc_type !== 'SALES_ORDER') return { error: 'Solo se pueden confirmar pedidos de venta' };
+        if (doc.status !== 'DRAFT') return { error: `El pedido ya está en estado ${doc.status}` };
+
+        const { error: updErr } = await supabase
+            .from('documents')
+            .update({ status: 'SENT' })
+            .eq('id', id);
+
+        if (updErr) return { error: updErr.message };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : 'Error desconocido' };
+    }
+
+    revalidatePath('/sales/orders');
+    revalidatePath('/logistics');
+    return {};
+}
+
+/**
  * Versión "fuerza" del delete: desvincula los documentos hijos (SET parent_id = NULL)
  * antes de borrar. Útil cuando el usuario confirma que quiere eliminar el padre
  * manteniendo los hijos (ej: borrar una cotización DRAFT y dejar la factura hija

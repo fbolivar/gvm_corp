@@ -37,26 +37,9 @@ export const logisticsService = {
     },
 
     async getPendingOrders(supabase: SupabaseClient) {
-        // Traer solo órdenes SIN shipment usando LEFT JOIN implícito en Supabase:
-        // filtramos por order_id IS NULL en la relación para evitar pasar miles de IDs en la URL.
-        const { data, error } = await supabase
-            .from('documents')
-            .select(`
-                *,
-                party:parties(legal_name, email, phone),
-                lines:document_lines(*),
-                shipment:logistics_shipments!logistics_shipments_order_id_fkey(id)
-            `)
-            .eq('doc_type', 'SALES_ORDER')
-            .is('logistics_shipments.id', null)
-            .order('created_at', { ascending: false });
-
+        const { data, error } = await supabase.rpc('get_pending_logistics_orders');
         if (error) throw error;
-        // Filtro adicional client-side por si el IS NULL no aplica correctamente
-        return (data ?? []).filter((d: Record<string, unknown>) => {
-            const s = d.shipment as unknown[]
-            return !s || s.length === 0
-        });
+        return (data as unknown[]) ?? [];
     },
 
     async upsertCarrier(supabase: SupabaseClient, carrier: Partial<Carrier>) {
@@ -244,7 +227,8 @@ export const logisticsService = {
         const { count: totalOrders, error: totalError } = await supabase
             .from('documents')
             .select('*', { count: 'exact', head: true })
-            .eq('doc_type', 'SALES_ORDER');
+            .eq('doc_type', 'SALES_ORDER')
+            .eq('status', 'SENT');
 
         if (totalError) throw totalError;
         const count = Math.max(0, (totalOrders ?? 0) - shipmentOrderIds.size);
