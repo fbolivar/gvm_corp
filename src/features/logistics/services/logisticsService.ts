@@ -37,34 +37,26 @@ export const logisticsService = {
     },
 
     async getPendingOrders(supabase: SupabaseClient) {
-        // Step 1: get order_ids that already have a shipment (any status).
-        // These should NOT appear in "Pendientes" - they've been taken into the shipment flow.
-        const { data: shipmentsWithOrders } = await supabase
-            .from('logistics_shipments')
-            .select('order_id');
-
-        const excludedOrderIds = (shipmentsWithOrders ?? [])
-            .map(s => s.order_id)
-            .filter((id): id is string => !!id);
-
-        // Step 2: fetch SALES_ORDER documents excluding those already in the shipment flow.
-        let query = supabase
+        // Traer solo órdenes SIN shipment usando LEFT JOIN implícito en Supabase:
+        // filtramos por order_id IS NULL en la relación para evitar pasar miles de IDs en la URL.
+        const { data, error } = await supabase
             .from('documents')
             .select(`
                 *,
                 party:parties(legal_name, email, phone),
-                lines:document_lines(*)
+                lines:document_lines(*),
+                shipment:logistics_shipments!logistics_shipments_order_id_fkey(id)
             `)
             .eq('doc_type', 'SALES_ORDER')
+            .is('logistics_shipments.id', null)
             .order('created_at', { ascending: false });
 
-        if (excludedOrderIds.length > 0) {
-            query = query.not('id', 'in', `(${excludedOrderIds.join(',')})`);
-        }
-
-        const { data, error } = await query;
         if (error) throw error;
-        return data;
+        // Filtro adicional client-side por si el IS NULL no aplica correctamente
+        return (data ?? []).filter((d: Record<string, unknown>) => {
+            const s = d.shipment as unknown[]
+            return !s || s.length === 0
+        });
     },
 
     async upsertCarrier(supabase: SupabaseClient, carrier: Partial<Carrier>) {
@@ -243,22 +235,19 @@ export const logisticsService = {
 
         if (statusError) throw statusError;
 
-        // Pending orders count = SALES_ORDER documents without any shipment created.
-        const shipmentOrderIds = (statusData ?? [])
-            .map(s => s.order_id)
-            .filter((id): id is string => !!id);
+        // Pending orders = total SALES_ORDER - los que ya tienen shipment
+        // Evitamos pasar miles de IDs en la URL usando aritmética directa.
+        const shipmentOrderIds = new Set(
+            (statusData ?? []).map(s => s.order_id).filter((id): id is string => !!id)
+        );
 
-        let pendingQuery = supabase
+        const { count: totalOrders, error: totalError } = await supabase
             .from('documents')
             .select('*', { count: 'exact', head: true })
             .eq('doc_type', 'SALES_ORDER');
 
-        if (shipmentOrderIds.length > 0) {
-            pendingQuery = pendingQuery.not('id', 'in', `(${shipmentOrderIds.join(',')})`);
-        }
-        const { count, error: pendingError } = await pendingQuery;
-
-        if (pendingError) throw pendingError;
+        if (totalError) throw totalError;
+        const count = Math.max(0, (totalOrders ?? 0) - shipmentOrderIds.size);
 
         // Stats by carrier
         const { data: carrierStats, error: carrierError } = await supabase
