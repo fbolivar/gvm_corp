@@ -42,8 +42,10 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
     const [trackingNumber, setTrackingNumber] = useState('')
     const [notes, setNotes] = useState('')
     const [freightCost, setFreightCost] = useState<number>(0)
-    const [currentUserEmail, setCurrentUserEmail] = useState<string>('')
     const [currentUserId, setCurrentUserId] = useState<string>('')
+    const [teamMembers, setTeamMembers] = useState<{ id: string; full_name: string; email: string }[]>([])
+    const [preparedBy, setPreparedBy] = useState<string>('')
+    const [verifiedBy, setVerifiedBy] = useState<string>('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [shipmentItems, setShipmentItems] = useState<Partial<ShipmentItem>[]>([])
 
@@ -52,6 +54,7 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
             loadCarriers()
             loadWarehouses()
             loadCurrentUser()
+            loadTeamMembers()
             // Default: ship everything in the order
             const initialItems = order.lines.map((line: any) => ({
                 product_id: line.product_id,
@@ -66,9 +69,22 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                setCurrentUserEmail(user.email || user.id)
                 setCurrentUserId(user.id)
+                setPreparedBy(user.id)
+                setVerifiedBy(user.id)
             }
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    async function loadTeamMembers() {
+        try {
+            const { data } = await supabase
+                .from('profiles')
+                .select('id, full_name, email')
+                .order('full_name', { ascending: true })
+            setTeamMembers(data ?? [])
         } catch (error) {
             console.error(error)
         }
@@ -115,8 +131,8 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
                 notes: notes,
                 status: 'RECIBIDO',
                 freight_cost: freightCost,
-                prepared_by: currentUserId || null,
-                verified_by: currentUserId || null,
+                prepared_by: preparedBy || currentUserId || null,
+                verified_by: verifiedBy || currentUserId || null,
             }
 
             await logisticsService.createShipment(supabase, shipmentPayload, shipmentItems)
@@ -221,23 +237,45 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
                     </div>
 
                     {/* Collaborators */}
-                    {currentUserEmail && (
-                        <div className="space-y-4">
-                            <Label className="text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
-                                <Users className="h-3 sm:h-3.5 w-3 sm:w-3.5" /> Responsables del Despacho
-                            </Label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Preparado por</p>
-                                    <p className="text-xs font-black text-slate-900 italic truncate">{currentUserEmail}</p>
-                                </div>
-                                <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-sm space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Verificado por</p>
-                                    <p className="text-xs font-black text-slate-900 italic truncate">{currentUserEmail}</p>
-                                </div>
+                    <div className="space-y-4">
+                        <Label className="text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] pl-1 flex items-center gap-2">
+                            <Users className="h-3 sm:h-3.5 w-3 sm:w-3.5" /> Responsables del Despacho
+                        </Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1">Preparado por</p>
+                                <select
+                                    title="Preparado por"
+                                    className="w-full h-12 sm:h-14 bg-slate-50 border-none rounded-xl sm:rounded-2xl px-5 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-slate-900 text-sm appearance-none shadow-sm cursor-pointer"
+                                    value={preparedBy}
+                                    onChange={(e) => setPreparedBy(e.target.value)}
+                                >
+                                    <option value="">— Sin asignar —</option>
+                                    {teamMembers.map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.full_name || m.email}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1">Verificado por</p>
+                                <select
+                                    title="Verificado por"
+                                    className="w-full h-12 sm:h-14 bg-slate-50 border-none rounded-xl sm:rounded-2xl px-5 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-slate-900 text-sm appearance-none shadow-sm cursor-pointer"
+                                    value={verifiedBy}
+                                    onChange={(e) => setVerifiedBy(e.target.value)}
+                                >
+                                    <option value="">— Sin asignar —</option>
+                                    {teamMembers.map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.full_name || m.email}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     {/* Items Table */}
                     <div className="space-y-5">
