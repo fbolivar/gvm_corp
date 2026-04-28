@@ -214,24 +214,16 @@ export const logisticsService = {
         // Summary of current shipment statuses
         const { data: statusData, error: statusError } = await supabase
             .from('logistics_shipments')
-            .select('status, order_id');
+            .select('status, order_id')
+            .limit(100000);
 
         if (statusError) throw statusError;
 
-        // Pending orders = total SALES_ORDER - los que ya tienen shipment
-        // Evitamos pasar miles de IDs en la URL usando aritmética directa.
-        const shipmentOrderIds = new Set(
-            (statusData ?? []).map(s => s.order_id).filter((id): id is string => !!id)
-        );
-
-        const { count: totalOrders, error: totalError } = await supabase
-            .from('documents')
-            .select('*', { count: 'exact', head: true })
-            .eq('doc_type', 'SALES_ORDER')
-            .eq('status', 'SENT');
-
-        if (totalError) throw totalError;
-        const count = Math.max(0, (totalOrders ?? 0) - shipmentOrderIds.size);
+        // Pending orders = SENT SALES_ORDER sin shipment (via RPC para evitar límite de 1000 filas)
+        const { data: pendingCount, error: pendingError } = await supabase
+            .rpc('get_pending_orders_count');
+        if (pendingError) throw pendingError;
+        const count = Number(pendingCount ?? 0);
 
         // Stats by carrier
         const { data: carrierStats, error: carrierError } = await supabase
