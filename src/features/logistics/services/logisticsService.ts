@@ -211,52 +211,17 @@ export const logisticsService = {
     },
 
     async getDashboardStats(supabase: SupabaseClient) {
-        // Summary of current shipment statuses
-        const { data: statusData, error: statusError } = await supabase
-            .from('logistics_shipments')
-            .select('status, order_id')
-            .limit(100000);
-
-        if (statusError) throw statusError;
-
-        // Pending orders = SENT SALES_ORDER sin shipment (via RPC para evitar límite de 1000 filas)
-        const { data: pendingCount, error: pendingError } = await supabase
-            .rpc('get_pending_orders_count');
-        if (pendingError) throw pendingError;
-        const count = Number(pendingCount ?? 0);
-
-        // Stats by carrier
-        const { data: carrierStats, error: carrierError } = await supabase
-            .from('logistics_shipments')
-            .select('carrier:logistics_carriers(name)');
-
-        if (carrierError) throw carrierError;
-
-        const rows = statusData || [];
-
-        const stats = {
-            total: rows.length,
-            // RECIBIDO = newly received orders awaiting processing
-            pending: rows.filter(s => s.status === 'RECIBIDO').length,
-            // EN_ALISTAMIENTO = orders being picked/packed
-            packed: rows.filter(s => s.status === 'EN_ALISTAMIENTO').length,
-            // DESPACHADO + EN_TRANSITO = in transit to customer
-            shipped: rows.filter(s => s.status === 'DESPACHADO' || s.status === 'EN_TRANSITO').length,
-            // ENTREGADO = confirmed delivered
-            delivered: rows.filter(s => s.status === 'ENTREGADO').length,
-            ordersToProcess: count || 0,
-            byCarrier: (carrierStats || []).reduce((acc: Record<string, number>, curr) => {
-                // Supabase returns the joined relation as an array when using select()
-                const carrierRel = curr.carrier;
-                const carrierName = Array.isArray(carrierRel)
-                    ? (carrierRel[0]?.name ?? 'Interno')
-                    : ((carrierRel as { name?: string } | null)?.name ?? 'Interno');
-                acc[carrierName] = (acc[carrierName] || 0) + 1;
-                return acc;
-            }, {})
+        const { data, error } = await supabase.rpc('get_logistics_dashboard_stats');
+        if (error) throw error;
+        return data as {
+            total: number;
+            pending: number;
+            packed: number;
+            shipped: number;
+            delivered: number;
+            ordersToProcess: number;
+            byCarrier: Record<string, number>;
         };
-
-        return stats;
     },
 
     async getShipmentFulfillment(supabase: SupabaseClient, shipmentId: string): Promise<ShipmentFulfillment> {
