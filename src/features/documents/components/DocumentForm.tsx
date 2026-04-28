@@ -402,8 +402,8 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                         </FormSection>
                     </FormLayout>
 
-                    {/* ICA Compliance — solo para Pedidos de Venta */}
-                    {docType === 'SALES_ORDER' && tenantId && (
+                    {/* ICA Compliance — temporalmente deshabilitado */}
+                    {false && docType === 'SALES_ORDER' && tenantId && (
                         <FormLayout>
                             <IcaPrescriptionSection
                                 form={form}
