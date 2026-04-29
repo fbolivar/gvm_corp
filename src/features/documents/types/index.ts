@@ -14,6 +14,7 @@ export const documentLineSchema = z.object({
     document_id: z.string().optional(),
     product_id: z.string().uuid().optional().nullable(),
     warehouse_id: z.string().uuid().optional().nullable(),
+    lot_id: z.string().uuid().optional().nullable(),
     description: z.string().optional().default(''),
     qty: z.coerce.number().min(0).default(1),
     unit_price: z.coerce.number().min(0).default(0),

@@ -21,11 +21,12 @@ import {
     Loader,
     PackageX,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import { format } from "date-fns"
 import { cn } from "@/shared/lib/utils"
 import { toast } from "sonner"
 import { IcaPrescriptionSection } from "./IcaPrescriptionSection"
+import { createClient } from "@/lib/supabase/client"
 
 export interface CommercialOption {
     user_id: string
@@ -131,7 +132,25 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
     const { fields, append, remove } = useFieldArray({ control: form.control, name: "lines" });
     const docType = form.watch('doc_type');
     const isSale = ['INVOICE', 'QUOTATION', 'SALES_ORDER', 'RECEIPT'].includes(docType);
+    const isDeliveryNote = docType === 'DELIVERY_NOTE';
     const [ignoreStock, setIgnoreStock] = useState(false);
+    const supabase = createClient();
+
+    // lots[index] = array de lotes disponibles para esa línea
+    const [lineLots, setLineLots] = useState<Record<number, { id: string; lot_number: string; batch_code?: string; qty: number; expiration_date: string }[]>>({});
+
+    const loadLotsForLine = useCallback(async (index: number, productId: string, warehouseId: string) => {
+        if (!productId || !warehouseId) { setLineLots(prev => ({ ...prev, [index]: [] })); return; }
+        const { data } = await supabase
+            .from('product_lots')
+            .select('id, lot_number, batch_code, qty, expiration_date')
+            .eq('product_id', productId)
+            .eq('warehouse_id', warehouseId)
+            .eq('status', 'ACTIVE')
+            .gt('qty', 0)
+            .order('expiration_date', { ascending: true });
+        setLineLots(prev => ({ ...prev, [index]: data ?? [] }));
+    }, []);
 
     const handleProductChange = (index: number, productId: string) => {
         const product = products.find(p => p.id === productId);
@@ -456,7 +475,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                         <div key={field.id} className="p-4 hover:bg-slate-50/50 transition">
                                             <div className="grid grid-cols-12 gap-3 items-start">
                                                 {/* Producto + descripción */}
-                                                <div className="col-span-12 md:col-span-5 space-y-2">
+                                                <div className="col-span-12 md:col-span-4 space-y-2">
                                                     <SearchableSelect
                                                         items={productItems}
                                                         value={form.watch(`lines.${index}.product_id`) || ''}
@@ -482,9 +501,11 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                                 <SearchableSelect
                                                                     items={warehouseItems}
                                                                     value={whValue}
-                                                                    onChange={(v) =>
-                                                                        form.setValue(`lines.${index}.warehouse_id`, v || null, { shouldDirty: true })
-                                                                    }
+                                                                    onChange={(v) => {
+                                                                        form.setValue(`lines.${index}.warehouse_id`, v || null, { shouldDirty: true });
+                                                                        form.setValue(`lines.${index}.lot_id`, null, { shouldDirty: true });
+                                                                        if (v && pidSel) loadLotsForLine(index, pidSel, v);
+                                                                    }}
                                                                     placeholder="Bodega de despacho (requerido)"
                                                                     emptyMessage="Sin bodegas"
                                                                     className={cn(
@@ -500,14 +521,43 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                             </div>
                                                         );
                                                     })()}
+                                                    {/* Selector de Lote — solo en Remisiones */}
+                                                    {isDeliveryNote && (() => {
+                                                        const pidSel = form.watch(`lines.${index}.product_id`);
+                                                        const whSel = form.watch(`lines.${index}.warehouse_id`);
+                                                        const lots = lineLots[index] ?? [];
+                                                        if (!pidSel || !whSel) return null;
+                                                        return (
+                                                            <div className="space-y-1">
+                                                                <select
+                                                                    title="Lote del producto"
+                                                                    className="w-full h-9 bg-indigo-50 border border-indigo-200 rounded-lg px-3 text-xs text-slate-700 font-medium appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-200 transition"
+                                                                    value={form.watch(`lines.${index}.lot_id`) ?? ''}
+                                                                    onChange={(e) => form.setValue(`lines.${index}.lot_id`, e.target.value || null, { shouldDirty: true })}
+                                                                    onFocus={() => { if (lots.length === 0) loadLotsForLine(index, pidSel, whSel); }}
+                                                                >
+                                                                    <option value="">— Lote (opcional) —</option>
+                                                                    {lots.map(l => (
+                                                                        <option key={l.id} value={l.id}>
+                                                                            {l.lot_number}{l.batch_code ? ` · ${l.batch_code}` : ''} — {l.qty} uds · Vence {new Date(l.expiration_date).toLocaleDateString('es-CO')}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                                {lots.length === 0 && (
+                                                                    <p className="text-[10px] text-slate-400 font-medium">Sin lotes activos en esta bodega</p>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
 
                                                 {/* Cantidad */}
-                                                <div className="col-span-3 md:col-span-1 space-y-1">
+                                                <div className="col-span-6 md:col-span-2 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Cantidad</label>
                                                     <Input
                                                         type="number"
                                                         step="0.01"
+                                                        min="0"
                                                         {...form.register(`lines.${index}.qty`, { valueAsNumber: true })}
                                                         className={cn(
                                                             "h-10 text-right text-sm font-medium tabular-nums",
@@ -525,7 +575,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                 </div>
 
                                                 {/* Precio */}
-                                                <div className="col-span-3 md:col-span-2 space-y-1">
+                                                <div className="col-span-6 md:col-span-2 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Precio</label>
                                                     <div className="relative">
                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
@@ -539,7 +589,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                 </div>
 
                                                 {/* IVA por línea — solo lectura, se toma del producto */}
-                                                <div className="col-span-3 md:col-span-2 space-y-1">
+                                                <div className="col-span-6 md:col-span-2 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">IVA</label>
                                                     {(() => {
                                                         const rate = getLineTaxRate(form.watch(`lines.${index}`) ?? {}, products);
@@ -555,7 +605,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                 </div>
 
                                                 {/* Total + Delete */}
-                                                <div className="col-span-3 md:col-span-2 space-y-1">
+                                                <div className="col-span-6 md:col-span-2 space-y-1">
                                                     <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Total</label>
                                                     <div className="flex items-center justify-end gap-2 h-10">
                                                         <LineTotal control={form.control} index={index} />
