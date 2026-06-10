@@ -29,6 +29,21 @@ export async function createPurchaseOrderAction(formData: unknown) {
     }
 }
 
+export async function updatePurchaseOrderAction(orderId: string, formData: unknown) {
+    const supabase = await createClient();
+    const parsed = purchaseOrderSchema.safeParse(formData);
+    if (!parsed.success) return { error: 'Datos inválidos: ' + JSON.stringify(parsed.error.format()) };
+
+    try {
+        await purchaseOrderService.updateOrder(supabase, orderId, parsed.data);
+        revalidatePath('/purchasing/orders');
+        revalidatePath(`/purchasing/orders/${orderId}`);
+        return { success: true };
+    } catch (error: unknown) {
+        return { error: (error as Error).message };
+    }
+}
+
 export async function submitForApprovalAction(orderId: string) {
     const supabase = await createClient();
     try {

@@ -51,6 +51,7 @@ function formatDate(iso: string): string {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
+            timeZone: 'America/Bogota',
         });
     } catch {
         return iso;
@@ -63,6 +64,7 @@ function formatTime(iso: string): string {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
+            timeZone: 'America/Bogota',
         });
     } catch {
         return '';

@@ -11,6 +11,7 @@ import {
     Eye,
     Loader2,
     PackageCheck,
+    Pencil,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -60,6 +61,16 @@ export function POActionButtons({ orderId, status }: POActionButtonsProps) {
                     <Eye className="h-3.5 w-3.5" />
                 </Link>
             </Button>
+
+            {/* DRAFT → Edit */}
+            {status === "DRAFT" && (
+                <Button variant="outline" size="sm" className="h-8 px-3 rounded-xl text-xs font-semibold gap-1.5" asChild>
+                    <Link href={`/purchasing/orders/${orderId}/edit`}>
+                        <Pencil className="h-3 w-3" />
+                        Editar
+                    </Link>
+                </Button>
+            )}
 
             {/* DRAFT → Send for approval */}
             {status === "DRAFT" && (

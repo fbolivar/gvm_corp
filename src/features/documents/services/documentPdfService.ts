@@ -75,6 +75,7 @@ export const documentPdfService = {
             'SALES_ORDER': 'Pedido de Venta No',
             'RECEIPT': 'Recibo de Caja No',
             'DOC_SUPPORT': 'Documento Soporte No',
+            'DELIVERY_NOTE': 'Remisión No',
         };
 
         // =====================================================

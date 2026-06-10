@@ -30,6 +30,7 @@ import {
     Check,
     Trash2,
     Warehouse,
+    FileDown,
 } from "lucide-react"
 import { emitDianAction } from '@/features/dian/actions'
 import { createPaymentLinkAction } from '@/features/payments/actions'
@@ -262,23 +263,20 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {isDeliveryNote ? (
-                        <PrintDeliveryNoteButton docId={document.id!} />
-                    ) : isSalesOrder ? (
-                        <PrintSalesOrderButton docId={document.id!} />
-                    ) : isVendorBill ? (
-                        <PrintVendorBillButton docId={document.id!} />
-                    ) : isDocSupport ? (
-                        <PrintDocSupportButton docId={document.id!} />
-                    ) : (
-                        <Button
-                            variant="outline"
-                            onClick={() => documentPdfService.generatePdf(document, tenantInfo, dianResolution)}
-                            className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
-                        >
-                            <Printer className="mr-3 h-4 w-4" /> Descargar PDF
-                        </Button>
-                    )}
+                    {/* Botones de impresión para tipos específicos */}
+                    {isDeliveryNote && <PrintDeliveryNoteButton docId={document.id!} />}
+                    {isSalesOrder && <PrintSalesOrderButton docId={document.id!} />}
+                    {isVendorBill && <PrintVendorBillButton docId={document.id!} />}
+                    {isDocSupport && <PrintDocSupportButton docId={document.id!} />}
+
+                    {/* Botón PDF — disponible para todos los tipos */}
+                    <Button
+                        variant="outline"
+                        onClick={() => documentPdfService.generatePdf(document, tenantInfo, dianResolution)}
+                        className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
+                    >
+                        <FileDown className="mr-3 h-4 w-4" /> PDF
+                    </Button>
 
                     {isDraft && (
                         <Button

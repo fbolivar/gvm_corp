@@ -106,6 +106,41 @@ export const purchaseOrderService = {
         return po;
     },
 
+    async updateOrder(client: SupabaseClient, orderId: string, order: PurchaseOrder) {
+        const { lines, ...header } = order;
+
+        const subtotal = lines.reduce((sum, l) => sum + l.qty * l.unit_cost, 0);
+        const tax_total = lines.reduce((sum, l) => sum + l.qty * l.unit_cost * (l.tax_rate || 0), 0);
+        const total = subtotal + tax_total;
+
+        const { error: headerError } = await client
+            .from('purchase_orders')
+            .update({ ...header, subtotal, tax_total, total, updated_at: new Date().toISOString() })
+            .eq('id', orderId)
+            .eq('status', 'DRAFT');
+        if (headerError) throw headerError;
+
+        const { error: deleteError } = await client
+            .from('purchase_order_lines')
+            .delete()
+            .eq('order_id', orderId);
+        if (deleteError) throw deleteError;
+
+        const lineData = lines.map(l => ({
+            order_id: orderId,
+            product_id: l.product_id,
+            qty: l.qty,
+            unit_cost: l.unit_cost,
+            tax_rate: l.tax_rate || 0,
+            notes: l.notes,
+        }));
+
+        const { error: linesError } = await client
+            .from('purchase_order_lines')
+            .insert(lineData);
+        if (linesError) throw linesError;
+    },
+
     async submitForApproval(client: SupabaseClient, orderId: string) {
         const { error } = await client
             .from('purchase_orders')
