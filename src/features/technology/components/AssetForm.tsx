@@ -8,6 +8,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Badge } from '@/shared/components/ui/badge';
+import { SearchableSelect } from '@/shared/components/ui/searchable-select';
 import { Monitor, Save, Loader2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createAssetAction } from '../actions/technologyActions';
@@ -27,6 +28,12 @@ export function AssetForm({ employees = [] }: AssetFormProps) {
     const formRef = useRef<HTMLFormElement>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [selectedEmployee, setSelectedEmployee] = useState('');
+
+    const employeeItems = employees.map(e => ({
+        value: e.id,
+        label: e.party?.legal_name || 'Sin nombre',
+    }));
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -104,27 +111,28 @@ export function AssetForm({ employees = [] }: AssetFormProps) {
                     </div>
 
                     {/* Asignar a empleado */}
-                    {employees.length > 0 && (
-                        <div className="pt-4 border-t border-slate-50">
-                            <div className="flex items-center gap-2 mb-3">
-                                <UserPlus className="h-4 w-4 text-indigo-500" />
-                                <Label className="text-xs font-semibold text-slate-700">Asignar a Empleado</Label>
-                                <Badge variant="secondary" className="text-[9px] font-semibold">Opcional</Badge>
-                            </div>
-                            <Select name="employee_id">
-                                <SelectTrigger className="h-9 rounded-xl">
-                                    <SelectValue placeholder="Sin asignar — Disponible" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {employees.map(emp => (
-                                        <SelectItem key={emp.id} value={emp.id}>
-                                            {emp.party?.legal_name || 'Sin nombre'}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    <div className="pt-4 border-t border-slate-50">
+                        <div className="flex items-center gap-2 mb-3">
+                            <UserPlus className="h-4 w-4 text-indigo-500" />
+                            <Label className="text-xs font-semibold text-slate-700">Asignar a Empleado</Label>
+                            <Badge variant="secondary" className="text-[9px] font-semibold">Opcional</Badge>
                         </div>
-                    )}
+                        {/* hidden input para FormData */}
+                        <input type="hidden" name="employee_id" value={selectedEmployee} />
+                        <SearchableSelect
+                            items={employeeItems}
+                            value={selectedEmployee}
+                            onChange={setSelectedEmployee}
+                            placeholder="Buscar empleado por nombre..."
+                            emptyMessage={employees.length === 0 ? 'No hay empleados activos registrados' : 'Sin resultados'}
+                            className="h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900"
+                        />
+                        {employees.length === 0 && (
+                            <p className="text-[10px] text-slate-400 mt-1.5">
+                                Registra empleados en <strong>Nómina → Empleados</strong> para poder asignar activos.
+                            </p>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
 

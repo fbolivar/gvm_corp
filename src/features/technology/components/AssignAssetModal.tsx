@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { SearchableSelect } from '@/shared/components/ui/searchable-select';
 import { Loader2, UserPlus } from 'lucide-react';
 import { assignAssetAction } from '../actions/technologyActions';
 
@@ -26,17 +26,29 @@ export function AssignAssetModal({ open, onOpenChange, assetId, employees, onSuc
     const formRef = useRef<HTMLFormElement>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [selectedEmployee, setSelectedEmployee] = useState('');
+
+    const employeeItems = employees.map(e => ({
+        value: e.id,
+        label: e.party?.legal_name || 'Sin nombre',
+    }));
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        if (!selectedEmployee) {
+            setError('Debes seleccionar un empleado.');
+            return;
+        }
         setLoading(true);
         setError('');
         try {
             const fd = new FormData(formRef.current!);
             fd.set('asset_id', assetId);
+            fd.set('employee_id', selectedEmployee);
             await assignAssetAction(fd);
             onSuccess();
             onOpenChange(false);
+            setSelectedEmployee('');
         } catch (err: unknown) {
             setError((err as Error).message);
         } finally {
@@ -59,16 +71,18 @@ export function AssignAssetModal({ open, onOpenChange, assetId, employees, onSuc
 
                     <div className="space-y-1.5">
                         <Label className="text-xs font-semibold text-slate-700">Empleado *</Label>
-                        <Select name="employee_id" required>
-                            <SelectTrigger className="h-9 rounded-xl"><SelectValue placeholder="Seleccionar empleado" /></SelectTrigger>
-                            <SelectContent>
-                                {employees.map(emp => (
-                                    <SelectItem key={emp.id} value={emp.id}>
-                                        {emp.party?.legal_name || 'Sin nombre'}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <input type="hidden" name="employee_id" value={selectedEmployee} />
+                        <SearchableSelect
+                            items={employeeItems}
+                            value={selectedEmployee}
+                            onChange={setSelectedEmployee}
+                            placeholder="Buscar empleado por nombre..."
+                            emptyMessage={employees.length === 0 ? 'No hay empleados activos' : 'Sin resultados'}
+                            className="h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900"
+                        />
+                        {!selectedEmployee && (
+                            <p className="text-[10px] text-rose-400">Debes seleccionar un empleado</p>
+                        )}
                     </div>
 
                     <div className="space-y-1.5">
