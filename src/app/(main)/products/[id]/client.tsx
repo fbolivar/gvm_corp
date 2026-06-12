@@ -10,6 +10,7 @@ import { Button } from '@/shared/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
+import { PrintLabelButton } from '@/features/products/components/PrintLabelButton';
 
 export default function EditProductClient({ product, movements }: { product: Product; movements?: any[] }) { // eslint-disable-line @typescript-eslint/no-explicit-any
     const router = useRouter();
@@ -40,7 +41,7 @@ export default function EditProductClient({ product, movements }: { product: Pro
                 >
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                         <h1 className="text-lg font-bold text-slate-900 truncate">{product.name}</h1>
                         <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 shrink-0">
@@ -49,6 +50,13 @@ export default function EditProductClient({ product, movements }: { product: Pro
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium">Gestion tecnica y movimientos de inventario</p>
                 </div>
+                <PrintLabelButton
+                    product={{
+                        sku: product.sku || '',
+                        name: product.name,
+                        price: product.selling_price ?? undefined,
+                    }}
+                />
             </div>
 
             {/* Tabs */}

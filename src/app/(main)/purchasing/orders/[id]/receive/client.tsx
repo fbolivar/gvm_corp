@@ -17,6 +17,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { PurchaseOrderWithDetails } from '@/features/purchasing/types'
 import { receiveOrderAction } from '@/features/purchasing/actions/receiveOrderActions'
+import { PrintLabelButton } from '@/features/products/components/PrintLabelButton'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -231,6 +232,9 @@ export default function ReceiveOrderClient({ order }: Props) {
                                         Cant. a recibir
                                     </div>
                                 </th>
+                                <th scope="col" className="px-4 py-5 text-center text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                                    Etiqueta
+                                </th>
                             </tr>
                         </thead>
 
@@ -359,6 +363,18 @@ export default function ReceiveOrderClient({ order }: Props) {
                                                     </span>
                                                 )}
                                             </div>
+                                        </td>
+
+                                        {/* Print label */}
+                                        <td className="px-4 py-5 text-center">
+                                            <PrintLabelButton
+                                                variant="icon"
+                                                defaultQty={Math.max(1, inputNum || 1)}
+                                                product={{
+                                                    sku: line.product?.sku ?? '',
+                                                    name: line.product?.name ?? 'Producto',
+                                                }}
+                                            />
                                         </td>
                                     </tr>
                                 )
