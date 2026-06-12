@@ -374,8 +374,14 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
         }
     }
 
-    const ADMIN_ROLES = ["admin", "owner", "ADMINISTRADOR", "SUPER ADMINISTRADOR", "Administrador", "Propietario"];
-    const isCurrentUserAdmin = members.some(m => m.user_id === currentUserId && ADMIN_ROLES.includes(m.role));
+    // Un usuario puede gestionar el equipo si:
+    // 1. Su rol es SUPER ADMINISTRADOR (acceso total), o
+    // 2. Su rol tiene can_edit=true en el módulo 'settings' según role_permissions
+    const currentMember = members.find(m => m.user_id === currentUserId);
+    const isCurrentUserAdmin =
+        currentMember?.role === 'SUPER ADMINISTRADOR' ||
+        (currentMember?.role_id != null &&
+            permissions.some(p => p.role_id === currentMember.role_id && p.module_key === 'settings' && p.can_edit));
 
     // Filtro de búsqueda sobre la Nómina de Personal Activo
     const memberSearchQ = memberSearch.trim().toLowerCase();

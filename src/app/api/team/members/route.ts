@@ -2,6 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { translateAuthError } from '@/shared/lib/auth-errors';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Verifica si el usuario autenticado puede gestionar miembros del equipo.
+// Retorna el tenant_id si tiene permiso, o null si no.
+async function getManagingTenantId(
+    supabase: SupabaseClient,
+    userId: string
+): Promise<{ tenantId: string } | null> {
+    const { data: userTenant } = await supabase
+        .from('user_tenants')
+        .select('role, role_id, tenant_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (!userTenant) return null;
+
+    // SUPER ADMINISTRADOR siempre tiene acceso completo
+    if (userTenant.role === 'SUPER ADMINISTRADOR') {
+        return { tenantId: userTenant.tenant_id };
+    }
+
+    // Para cualquier otro rol, verificar permiso can_edit en módulo settings
+    if (userTenant.role_id) {
+        const { data: perm } = await supabase
+            .from('role_permissions')
+            .select('can_edit')
+            .eq('role_id', userTenant.role_id)
+            .eq('module_key', 'settings')
+            .maybeSingle();
+
+        if (perm?.can_edit === true) {
+            return { tenantId: userTenant.tenant_id };
+        }
+    }
+
+    return null;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -17,22 +54,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
 
-        // 2. Admin check
-        const { data: userTenant, error: tenantError } = await supabase
-            .from('user_tenants')
-            .select('role, tenant_id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        if (tenantError) {
-            console.error('[API /team/members] tenant lookup error:', tenantError.message);
-            return NextResponse.json({ error: `Error buscando tenant: ${tenantError.message}` }, { status: 500 });
-        }
-
-        const adminRoles = ['ADMINISTRADOR', 'SUPER ADMINISTRADOR', 'admin', 'owner'];
-        if (!userTenant || !adminRoles.includes(userTenant.role)) {
-            console.error('[API /team/members] forbidden — role:', userTenant?.role);
-            return NextResponse.json({ error: `Sin permisos de administrador (rol: ${userTenant?.role || 'sin tenant'})` }, { status: 403 });
+        // 2. Permission check — rol dinámico vía role_permissions
+        const managing = await getManagingTenantId(supabase, user.id);
+        if (!managing) {
+            return NextResponse.json({ error: 'Sin permisos para gestionar el equipo' }, { status: 403 });
         }
 
         // 3. Parse body (manual validation — no Zod to avoid subtle rejections)
@@ -72,7 +97,7 @@ export async function POST(request: NextRequest) {
         }
 
         const password = rawPassword.length >= 6 ? rawPassword : undefined;
-        const tenantId = userTenant.tenant_id;
+        const tenantId = managing.tenantId;
         const displayName = fullName || rawUsername || email.split('@')[0];
 
         // 4. Lookup role_id from app_roles
@@ -240,15 +265,9 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
 
-        const { data: userTenant } = await supabase
-            .from('user_tenants')
-            .select('role, tenant_id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        const adminRoles = ['ADMINISTRADOR', 'SUPER ADMINISTRADOR', 'admin', 'owner'];
-        if (!userTenant || !adminRoles.includes(userTenant.role)) {
-            return NextResponse.json({ error: 'Sin permisos de administrador' }, { status: 403 });
+        const managingPut = await getManagingTenantId(supabase, user.id);
+        if (!managingPut) {
+            return NextResponse.json({ error: 'Sin permisos para gestionar el equipo' }, { status: 403 });
         }
 
         let body: Record<string, unknown>;
@@ -277,7 +296,7 @@ export async function PUT(request: NextRequest) {
             .from('user_tenants')
             .select('id')
             .eq('user_id', userId)
-            .eq('tenant_id', userTenant.tenant_id)
+            .eq('tenant_id', managingPut.tenantId)
             .maybeSingle();
 
         if (!targetMember) {
@@ -366,16 +385,10 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
 
-        // 2. Admin check
-        const { data: userTenant } = await supabase
-            .from('user_tenants')
-            .select('role, tenant_id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        const adminRoles = ['ADMINISTRADOR', 'SUPER ADMINISTRADOR', 'admin', 'owner'];
-        if (!userTenant || !adminRoles.includes(userTenant.role)) {
-            return NextResponse.json({ error: 'Sin permisos de administrador' }, { status: 403 });
+        // 2. Permission check — rol dinámico
+        const managingPatch = await getManagingTenantId(supabase, user.id);
+        if (!managingPatch) {
+            return NextResponse.json({ error: 'Sin permisos para gestionar el equipo' }, { status: 403 });
         }
 
         // 3. Parse body
@@ -401,7 +414,7 @@ export async function PATCH(request: NextRequest) {
             .from('user_tenants')
             .select('id')
             .eq('user_id', userId)
-            .eq('tenant_id', userTenant.tenant_id)
+            .eq('tenant_id', managingPatch.tenantId)
             .maybeSingle();
 
         if (!targetMember) {
