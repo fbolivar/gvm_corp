@@ -285,7 +285,7 @@ y += 7;
 doc.setFont('helvetica', 'normal');
 doc.setFontSize(10.5);
 setColor(C.slate700);
-const objetivo = 'Este documento guía al equipo en la verificación de que los datos migrados desde Dolibarr están correctamente cargados en GVM Corp, y en las pruebas operativas del día 1 para detectar cualquier inconsistencia antes de entrar en operación normal.';
+const objetivo = 'Este documento guía al equipo en la verificación de que los datos migrados desde WorldOffice están correctamente cargados en GVM Corp, y en las pruebas operativas del día 1 para detectar cualquier inconsistencia antes de entrar en operación normal.';
 const objLines = doc.splitTextToSize(objetivo, CONTENT_W);
 objLines.forEach(line => {
     doc.text(line, MARGIN, y);
@@ -293,18 +293,18 @@ objLines.forEach(line => {
 });
 y += 8;
 
-h2('Datos migrados desde Dolibarr');
+h2('Datos migrados desde WorldOffice');
 bullets([
     'Terceros: 1.110 (1.018 clientes y 103 proveedores)',
     'Productos activos: 2.709',
     'Lotes: 550 (74 vigentes + 476 vencidos con fechas reales)',
     'Bodegas: 12',
-    '1.219 registros con trazabilidad a Dolibarr (tabla party_external_ids)',
+    '1.219 registros con trazabilidad a WorldOffice (tabla party_external_ids)',
 ]);
 
 calloutBox(
     'Pendiente de captura manual',
-    'Las 3 órdenes de venta activas de abril 2026 en Dolibarr (PO2604-1694 Vetiplus, PO2604-1695 Campeon, PO2604-1696 American Vet — total $11.770.266) deben capturarse manualmente en GVM Corp el día 1. No se migraron automáticamente.',
+    'Las 3 órdenes de venta activas de abril 2026 en WorldOffice (PO2604-1694 Vetiplus, PO2604-1695 Campeon, PO2604-1696 American Vet — total $11.770.266) deben capturarse manualmente en GVM Corp el día 1. No se migraron automáticamente.',
     C.amber
 );
 
@@ -393,16 +393,16 @@ moduleCard('Análisis ABC', '/inventory/analysis', [
 
 calloutBox(
     '¿Qué hacer con los 476 lotes vencidos?',
-    'Son lotes de Dolibarr con fecha de vencimiento ya pasada. Ana decide: (a) Darlos de baja masivamente si ya no existen físicamente; (b) Dejarlos visibles con alerta roja si aún hay existencia física. Un script de baja masiva se puede preparar si se decide opción (a).',
+    'Son lotes con fecha de vencimiento ya pasada. Ana decide: (a) Darlos de baja masivamente si ya no existen físicamente; (b) Dejarlos visibles con alerta roja si aún hay existencia física. Un script de baja masiva se puede preparar si se decide opción (a).',
     C.amber
 );
 
 // ===== Captura de órdenes pendientes =====
 h1('5. Captura manual de 3 órdenes 2026 (30 min)');
-paragraph('Estas son las únicas órdenes de venta activas en Dolibarr a la fecha del go-live. Deben capturarse en GVM Corp para no perder trazabilidad.');
+paragraph('Estas son las únicas órdenes de venta activas a la fecha del go-live. Deben capturarse en GVM Corp para no perder trazabilidad.');
 
 h3('Orden 1: PO2604-1694 — VETIPLUS SAS');
-paragraph('Valor sin IVA: $1.082.766. Ir a /sales/orders/new. Cliente: VETIPLUS SAS. Fecha: emisión original de Dolibarr. Agregar las líneas de producto tal como figuran en Dolibarr (SKU, cantidad, precio). Guardar como borrador.');
+paragraph('Valor sin IVA: $1.082.766. Ir a /sales/orders/new. Cliente: VETIPLUS SAS. Fecha: emisión original. Agregar las líneas de producto (SKU, cantidad, precio). Guardar como borrador.');
 
 h3('Orden 2: PO2604-1695 — CAMPEON CENTRO VETERINARIO');
 paragraph('Valor sin IVA: $9.888.000. Mismo proceso. Esta es la de mayor valor — doble chequeo de líneas, precios y bodega de despacho.');

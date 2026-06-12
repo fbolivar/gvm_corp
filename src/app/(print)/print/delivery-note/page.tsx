@@ -121,7 +121,7 @@ export default async function DeliveryNotePage({
     const lines = (doc.document_lines ?? []) as DocumentLine[];
     const totalQty = lines.reduce((s, l) => s + (Number(l.qty) || 0), 0);
 
-    // Display number sin prefix REM- (como Dolibarr: REMISIÓN No.-05911)
+    // Display number sin prefix REM- (REMISIÓN No.-05911)
     const displayNumber = (doc.number || '').replace(/^REM-/i, '') || '—';
 
     // Nombre de archivo al guardar como PDF: REMISION No-00001 - Cliente - 20-04-2026

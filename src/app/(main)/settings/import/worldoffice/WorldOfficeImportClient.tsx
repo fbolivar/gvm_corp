@@ -528,7 +528,7 @@ function PartiesImporter() {
               <li>Marca el checkbox <strong>&quot;Al exportar mostrar en todos los registros los valores de las agrupaciones&quot;</strong></li>
               <li>Clic en <strong>Exportar a Excel</strong> y guarda como CSV delimitado por <code>;</code></li>
             </ol>
-            <p className="text-xs mt-1 italic">⚠️ Estrategia no destructiva: los terceros ya migrados de Dolibarr NO se sobreescriben — solo se completan sus campos vacíos con datos de WO.</p>
+            <p className="text-xs mt-1 italic">⚠️ Estrategia no destructiva: los terceros ya existentes NO se sobreescriben — solo se completan sus campos vacíos con datos de WO.</p>
           </div>
         </div>
       </div>
