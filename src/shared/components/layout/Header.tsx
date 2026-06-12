@@ -17,6 +17,7 @@ import type { User } from "@supabase/supabase-js"
 import { LogOut, Settings, User as UserIcon } from "lucide-react"
 import { NotificationBell } from "./NotificationBell"
 import { CommandPaletteTrigger } from "@/features/search/components/CommandPalette"
+import { ThemeToggle } from "@/shared/components/theme/ThemeToggle"
 
 export function Header() {
     const [mounted, setMounted] = useState(false);
@@ -76,6 +77,7 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
+                <ThemeToggle variant="dropdown" />
                 <NotificationBell />
             </div>
         </div>

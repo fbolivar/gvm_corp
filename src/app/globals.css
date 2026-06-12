@@ -5,7 +5,6 @@
 @layer base {
   :root {
     --background: 220 33% 98%;
-    /* Soft light gray/blue background */
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -15,7 +14,6 @@
     --popover-foreground: 222 47% 11%;
 
     --primary: 231 82% 61%;
-    /* The vibrant blue from DealDeck */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -35,10 +33,54 @@
     --ring: 221.2 83.2% 53.3%;
 
     --radius: 0.75rem;
-    /* Professional border radius adjusted for compact feel */
 
     --success: 142 70% 45%;
     --warning: 38 92% 50%;
+
+    /* Layout tokens */
+    --page-bg: 220 13% 95%;
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --header-bg: 220 13% 95%;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 231 82% 61%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217 32% 18%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 217 32% 18%;
+    --muted-foreground: 215 20% 60%;
+
+    --accent: 217 32% 18%;
+    --accent-foreground: 210 40% 96%;
+
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 18%;
+    --input: 217 32% 18%;
+    --ring: 224 70% 55%;
+
+    --success: 142 60% 40%;
+    --warning: 38 85% 45%;
+
+    /* Layout tokens */
+    --page-bg: 222 47% 5%;
+    --sidebar-bg: 222 47% 8%;
+    --sidebar-border: 217 32% 15%;
+    --header-bg: 222 47% 5%;
   }
 }
 
@@ -66,12 +108,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  @apply bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors;
 }
 
 /* Glassmorphism Classes */
 .glass-card {
-  @apply bg-white/70 backdrop-blur-lg border border-white/20;
+  @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-lg border border-white/20 dark:border-white/5;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
@@ -170,11 +212,11 @@
 @layer components {
   /* Títulos (legacy: mantener compatibilidad; nuevas páginas usan PageHeader) */
   .page-title {
-    @apply text-2xl md:text-3xl font-bold tracking-tight text-slate-900;
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100;
   }
 
   .page-subtitle {
-    @apply text-sm text-slate-500 font-normal;
+    @apply text-sm text-slate-500 dark:text-slate-400 font-normal;
   }
 
   .page-container {
@@ -182,32 +224,32 @@
   }
 
   /* Escala tipográfica semántica */
-  .text-h1 { @apply text-2xl md:text-3xl font-bold tracking-tight text-slate-900; }
-  .text-h2 { @apply text-lg md:text-xl font-semibold text-slate-900; }
-  .text-h3 { @apply text-base font-semibold text-slate-900; }
-  .text-body { @apply text-sm text-slate-700; }
-  .text-caption { @apply text-xs text-slate-500; }
-  .text-metric { @apply text-3xl md:text-4xl font-bold tracking-tight tabular-nums text-slate-900; }
+  .text-h1 { @apply text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100; }
+  .text-h2 { @apply text-lg md:text-xl font-semibold text-slate-900 dark:text-slate-100; }
+  .text-h3 { @apply text-base font-semibold text-slate-900 dark:text-slate-100; }
+  .text-body { @apply text-sm text-slate-700 dark:text-slate-300; }
+  .text-caption { @apply text-xs text-slate-500 dark:text-slate-400; }
+  .text-metric { @apply text-3xl md:text-4xl font-bold tracking-tight tabular-nums text-slate-900 dark:text-slate-100; }
 
   /* Surfaces (cards) */
   .surface-card {
-    @apply bg-white border border-slate-200/70 rounded-2xl shadow-sm;
+    @apply bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700/60 rounded-2xl shadow-sm;
   }
   .surface-elevated {
-    @apply bg-white border border-slate-200/70 rounded-2xl shadow-md;
+    @apply bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700/60 rounded-2xl shadow-md;
   }
   .surface-muted {
-    @apply bg-slate-50 border border-slate-100 rounded-2xl;
+    @apply bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50 rounded-2xl;
   }
 
   /* Status badges (intenciones estándar) */
   .badge-base { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium; }
-  .badge-neutral { @apply badge-base bg-slate-100 text-slate-700; }
-  .badge-success { @apply badge-base bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60; }
-  .badge-warning { @apply badge-base bg-amber-50 text-amber-700 ring-1 ring-amber-200/60; }
-  .badge-danger { @apply badge-base bg-rose-50 text-rose-700 ring-1 ring-rose-200/60; }
-  .badge-info { @apply badge-base bg-sky-50 text-sky-700 ring-1 ring-sky-200/60; }
-  .badge-draft { @apply badge-base bg-slate-50 text-slate-600 ring-1 ring-slate-200; }
+  .badge-neutral { @apply badge-base bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300; }
+  .badge-success { @apply badge-base bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200/60 dark:ring-emerald-700/40; }
+  .badge-warning { @apply badge-base bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 ring-1 ring-amber-200/60 dark:ring-amber-700/40; }
+  .badge-danger { @apply badge-base bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 ring-1 ring-rose-200/60 dark:ring-rose-700/40; }
+  .badge-info { @apply badge-base bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 ring-1 ring-sky-200/60 dark:ring-sky-700/40; }
+  .badge-draft { @apply badge-base bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700; }
 
   /* Data table skin estándar */
   .data-table-wrap {
@@ -217,16 +259,16 @@
     @apply w-full text-sm;
   }
   .data-table thead {
-    @apply bg-slate-50/50 border-b border-slate-200;
+    @apply bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700;
   }
   .data-table th {
-    @apply px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wide;
+    @apply px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide;
   }
   .data-table td {
-    @apply px-4 py-3 text-sm text-slate-700 border-b border-slate-100 last:border-b-0;
+    @apply px-4 py-3 text-sm text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800 last:border-b-0;
   }
   .data-table tbody tr:hover {
-    @apply bg-slate-50/50;
+    @apply bg-slate-50/50 dark:bg-slate-800/30;
   }
 
   /* Empty state */
@@ -234,13 +276,13 @@
     @apply flex flex-col items-center justify-center py-16 px-6 text-center;
   }
   .empty-state-icon {
-    @apply h-12 w-12 text-slate-300 mb-4;
+    @apply h-12 w-12 text-slate-300 dark:text-slate-600 mb-4;
   }
   .empty-state-title {
-    @apply text-h3 text-slate-700 mb-1;
+    @apply text-h3 text-slate-700 dark:text-slate-300 mb-1;
   }
   .empty-state-desc {
-    @apply text-sm text-slate-500 max-w-sm;
+    @apply text-sm text-slate-500 dark:text-slate-400 max-w-sm;
   }
 
   /* KPI card */
@@ -248,7 +290,7 @@
     @apply surface-card p-5 flex flex-col gap-2;
   }
   .kpi-label {
-    @apply text-xs font-medium text-slate-500 uppercase tracking-wide;
+    @apply text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide;
   }
   .kpi-value {
     @apply text-metric;

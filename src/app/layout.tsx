@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { ThemeProvider } from '@/shared/components/theme/ThemeProvider'
 
 export const metadata: Metadata = {
     title: {
@@ -34,8 +35,11 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-    themeColor: '#0f172a',
-    colorScheme: 'light',
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#f1f5f9' },
+        { media: '(prefers-color-scheme: dark)', color: '#0a0f1e' },
+    ],
+    colorScheme: 'light dark',
     width: 'device-width',
     initialScale: 1,
     maximumScale: 5,
@@ -47,8 +51,12 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="es">
-            <body>{children}</body>
+        <html lang="es" suppressHydrationWarning>
+            <body>
+                <ThemeProvider>
+                    {children}
+                </ThemeProvider>
+            </body>
         </html>
     )
 }

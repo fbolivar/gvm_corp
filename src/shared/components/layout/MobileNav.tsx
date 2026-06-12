@@ -28,10 +28,10 @@ export function MobileNav() {
     return (
         <>
             {/* Top Bar */}
-            <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14 bg-white/80 backdrop-blur-xl border-b border-slate-100 shadow-sm">
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
                 <div className="flex items-center gap-2">
                     <img src="/logo-gvm.png" alt="GVM S.A.S" className="h-7 w-7 object-contain" />
-                    <span className="text-base font-black text-slate-900 tracking-tight italic">
+                    <span className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight italic">
                         GVM<span className="text-primary"> S.A.S</span>
                     </span>
                 </div>
@@ -40,7 +40,7 @@ export function MobileNav() {
                         variant="ghost"
                         size="icon"
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-                        className="text-slate-600 hover:bg-slate-100 rounded-lg h-9 w-9"
+                        className="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-9 w-9"
                     >
                         <Search className="h-4 w-4" />
                     </Button>
@@ -48,7 +48,7 @@ export function MobileNav() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setIsOpen(!isOpen)}
-                        className="text-slate-600 hover:bg-slate-100 rounded-lg h-9 w-9"
+                        className="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-9 w-9"
                     >
                         {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
                     </Button>

@@ -444,21 +444,21 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
     if (!mounted) return null;
 
     return (
-        <div className="flex flex-col h-full bg-white border-r border-slate-100 shadow-sm overflow-hidden relative group/sidebar">
+        <div className="flex flex-col h-full bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative group/sidebar transition-colors duration-300">
             {/* 🏎️ Brand Logo Section */}
             <div className="h-24 flex items-center px-8 shrink-0 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-3 opacity-[0.03] pointer-events-none group-hover/sidebar:rotate-12 transition-transform duration-1000">
-                    <Factory className="h-16 w-16 text-slate-900" />
+                    <Factory className="h-16 w-16 text-slate-900 dark:text-slate-100" />
                 </div>
                 <div className="flex items-center gap-3 relative z-10">
-                    <div className="h-12 w-12 bg-slate-50 rounded-xl flex items-center justify-center p-1.5 border border-slate-100 shadow-inner group-hover/sidebar:scale-110 transition-transform duration-500">
+                    <div className="h-12 w-12 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-center p-1.5 border border-slate-100 dark:border-slate-800 shadow-inner group-hover/sidebar:scale-110 transition-transform duration-500">
                         <img src="/logo-gvm.png" alt="GVM S.A.S" className="h-full w-full object-contain" />
                     </div>
                     <div className="flex flex-col leading-none">
-                        <span className="text-xl font-black text-slate-900 tracking-tighter italic">
-                            GVM<span className="text-indigo-600 italic"> S.A.S</span>
+                        <span className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic">
+                            GVM<span className="text-indigo-600 dark:text-indigo-400 italic"> S.A.S</span>
                         </span>
-                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 italic">Enterprise OS v3.0</span>
+                        <span className="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] mt-1 italic">Enterprise OS v3.0</span>
                     </div>
                 </div>
             </div>
@@ -497,11 +497,11 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     return (
                         <div key={groupIndex} className="space-y-3">
                             <div className="flex items-center gap-2 px-3">
-                                <div className="h-px flex-1 bg-slate-100" />
-                                <h3 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.25em] whitespace-nowrap">
+                                <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+                                <h3 className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.25em] whitespace-nowrap">
                                     {group.group}
                                 </h3>
-                                <div className="h-px w-3 bg-slate-100" />
+                                <div className="h-px w-3 bg-slate-100 dark:bg-slate-800" />
                             </div>
                             <div className="space-y-1">
                                 {visibleLinks.map((link) => {
@@ -519,22 +519,24 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                                     className={cn(
                                                         "w-full flex items-center justify-between px-3 py-3 text-[12px] font-black rounded-xl transition-all duration-300 group/link border border-transparent",
                                                         isChildActive || isOpen
-                                                            ? "text-slate-900 bg-slate-50 border-slate-100 shadow-sm"
-                                                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                                                            ? "text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/70 border-slate-100 dark:border-slate-700/50 shadow-sm"
+                                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                                     )}
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <div className={cn(
                                                             "h-7 w-7 rounded-lg flex items-center justify-center transition-all shadow-sm",
-                                                            isChildActive || isOpen ? "bg-indigo-600 text-white shadow-indigo-100" : "bg-white text-slate-400 border border-slate-100 group-hover/link:bg-slate-100 group-hover/link:text-slate-600"
+                                                            isChildActive || isOpen
+                                                                ? "bg-indigo-600 text-white shadow-indigo-100 dark:shadow-indigo-900"
+                                                                : "bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-700 group-hover/link:bg-slate-100 dark:group-hover/link:bg-slate-700 group-hover/link:text-slate-600 dark:group-hover/link:text-slate-300"
                                                         )}>
                                                             <link.icon className="h-3.5 w-3.5" />
                                                         </div>
                                                         <span className="uppercase tracking-widest italic">{link.title}</span>
                                                     </div>
                                                     <ChevronDown className={cn(
-                                                        "h-3.5 w-3.5 text-slate-300 transition-transform duration-300",
-                                                        isOpen && "rotate-180 text-indigo-600"
+                                                        "h-3.5 w-3.5 text-slate-300 dark:text-slate-600 transition-transform duration-300",
+                                                        isOpen && "rotate-180 text-indigo-600 dark:text-indigo-400"
                                                     )} />
                                                 </button>
                                             ) : (
@@ -544,13 +546,15 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                                     className={cn(
                                                         "flex items-center gap-3 px-3 py-3 text-[12px] font-black rounded-xl transition-all duration-300 group/link border border-transparent",
                                                         isActive
-                                                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
-                                                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                                                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-indigo-900/40"
+                                                            : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                                     )}
                                                 >
                                                     <div className={cn(
                                                         "h-7 w-7 rounded-lg flex items-center justify-center transition-all relative",
-                                                        isActive ? "bg-white/20 text-white" : "bg-slate-50 text-slate-400 group-hover/link:bg-slate-100 group-hover/link:text-slate-600"
+                                                        isActive
+                                                            ? "bg-white/20 text-white"
+                                                            : "bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover/link:bg-slate-100 dark:group-hover/link:bg-slate-700 group-hover/link:text-slate-600 dark:group-hover/link:text-slate-300"
                                                     )}>
                                                         <link.icon className="h-3.5 w-3.5" />
                                                         {link.href === '/notifications' && unreadCount > 0 && (
@@ -569,7 +573,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                                     "overflow-hidden transition-all duration-500 ease-in-out px-2",
                                                     isOpen ? "max-h-[800px] opacity-100 py-1" : "max-h-0 opacity-0"
                                                 )}>
-                                                    <div className="ml-3.5 pl-3.5 border-l border-slate-100 space-y-0.5">
+                                                    <div className="ml-3.5 pl-3.5 border-l border-slate-100 dark:border-slate-800 space-y-0.5">
                                                         {/* Overview link */}
                                                         <Link
                                                             href={link.href}
@@ -577,8 +581,8 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                                             className={cn(
                                                                 "flex items-center gap-2.5 px-3 py-2 text-[9px] font-black uppercase tracking-[0.15em] rounded-lg transition-all duration-300 italic",
                                                                 pathname === link.href
-                                                                    ? "text-indigo-600 bg-indigo-50"
-                                                                    : "text-slate-400 hover:text-slate-900 hover:bg-slate-50"
+                                                                    ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                                                                    : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                                             )}
                                                         >
                                                             <div className="h-1 w-1 rounded-full bg-current opacity-30" />
@@ -594,13 +598,13 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                                                     className={cn(
                                                                         "flex items-center gap-2.5 px-3 py-2 text-[9px] font-black uppercase tracking-[0.15em] rounded-lg transition-all duration-300 italic",
                                                                         isSubActive
-                                                                            ? "text-indigo-600 bg-indigo-50"
-                                                                            : "text-slate-400 hover:text-slate-900 hover:bg-slate-50"
+                                                                            ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                                                                            : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                                                     )}
                                                                 >
                                                                     <child.icon className={cn(
                                                                         "h-3 w-3",
-                                                                        isSubActive ? "text-indigo-600" : "opacity-30"
+                                                                        isSubActive ? "text-indigo-600 dark:text-indigo-400" : "opacity-30"
                                                                     )} />
                                                                     <span>{child.title}</span>
                                                                 </Link>
@@ -620,52 +624,52 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
 
             {/* User Profile Section */}
             <div className="mt-auto shrink-0 p-6">
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner">
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <button className="w-full flex items-center gap-3 px-1.5 py-1.5 rounded-xl hover:bg-white transition-all group cursor-pointer text-left">
+                                <button className="w-full flex items-center gap-3 px-1.5 py-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all group cursor-pointer text-left">
                                     <div className="relative">
-                                        <Avatar className="h-10 w-10 border-2 border-slate-200 group-hover:border-indigo-600 transition-colors shrink-0 rounded-xl overflow-hidden shadow-sm">
+                                        <Avatar className="h-10 w-10 border-2 border-slate-200 dark:border-slate-700 group-hover:border-indigo-600 transition-colors shrink-0 rounded-xl overflow-hidden shadow-sm">
                                             <AvatarImage src={user.user_metadata?.avatar_url} />
-                                            <AvatarFallback className="bg-slate-900 text-white font-black text-[10px] group-hover:bg-indigo-600 transition-colors uppercase">
+                                            <AvatarFallback className="bg-slate-900 dark:bg-slate-700 text-white font-black text-[10px] group-hover:bg-indigo-600 transition-colors uppercase">
                                                 {user.user_metadata?.full_name
                                                     ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
                                                     : 'US'}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full shadow-lg" />
+                                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-lg" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[12px] font-black text-slate-900 leading-none truncate italic group-hover:text-indigo-600 transition-colors uppercase tracking-tight">
+                                        <p className="text-[12px] font-black text-slate-900 dark:text-slate-100 leading-none truncate italic group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-tight">
                                             {user.user_metadata?.full_name || 'Usuario'}
                                         </p>
                                         <div className="flex items-center gap-1.5 mt-1">
-                                            <div className="h-1 w-1 bg-indigo-600 rounded-full" />
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                                            <div className="h-1 w-1 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">
                                                 {role}
                                             </p>
                                         </div>
                                     </div>
-                                    <ChevronUp className="h-3.5 w-3.5 text-slate-300 group-hover:text-slate-900 transition-colors shrink-0" />
+                                    <ChevronUp className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors shrink-0" />
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-60 mb-3 bg-white border-slate-100 text-slate-900 rounded-2xl p-2 shadow-2xl" side="top" align="start" forceMount>
+                            <DropdownMenuContent className="w-60 mb-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl p-2 shadow-2xl" side="top" align="start" forceMount>
                                 <DropdownMenuLabel className="font-normal p-3">
                                     <div className="flex flex-col space-y-1">
                                         <p className="text-xs font-black italic uppercase tracking-tight">{user.user_metadata?.full_name}</p>
-                                        <p className="text-[9px] font-medium text-slate-400 truncate">{user.email}</p>
+                                        <p className="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate">{user.email}</p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-slate-100" />
+                                <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
                                 <DropdownMenuGroup className="p-1.5 space-y-0.5">
-                                    <DropdownMenuItem onClick={() => window.location.href = '/settings/profile'} className="rounded-xl focus:bg-slate-50 focus:text-indigo-600 cursor-pointer py-2.5">
-                                        <UserIcon className="mr-2.5 h-3.5 w-3.5 text-indigo-600" />
+                                    <DropdownMenuItem onClick={() => window.location.href = '/settings/profile'} className="rounded-xl focus:bg-slate-50 dark:focus:bg-slate-800 focus:text-indigo-600 dark:focus:text-indigo-400 cursor-pointer py-2.5">
+                                        <UserIcon className="mr-2.5 h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                                         <span className="text-[10px] font-black uppercase tracking-widest italic">Perfil Maestro</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
-                                <DropdownMenuSeparator className="bg-slate-100" />
-                                <DropdownMenuItem onClick={handleSignOut} className="rounded-xl focus:bg-rose-50 focus:text-rose-600 cursor-pointer py-2.5 text-rose-500">
+                                <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                                <DropdownMenuItem onClick={handleSignOut} className="rounded-xl focus:bg-rose-50 dark:focus:bg-rose-900/20 focus:text-rose-600 cursor-pointer py-2.5 text-rose-500">
                                     <LogOut className="mr-2.5 h-3.5 w-3.5" />
                                     <span className="text-[10px] font-black uppercase tracking-widest italic">Cerrar Sesión</span>
                                 </DropdownMenuItem>
@@ -675,7 +679,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         <Button
                             variant="ghost"
                             onClick={handleSignOut}
-                            className="w-full justify-start text-slate-400 font-black hover:text-slate-900 hover:bg-white transition-all rounded-xl h-11 uppercase tracking-widest text-[9px] italic"
+                            className="w-full justify-start text-slate-400 font-black hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-800 transition-all rounded-xl h-11 uppercase tracking-widest text-[9px] italic"
                         >
                             <LogOut className="mr-3 h-4 w-4" />
                             Cerrar Sesión
