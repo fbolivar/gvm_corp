@@ -187,14 +187,23 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
                                 <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                     <Percent className="h-3 w-3" /> Categoria IVA
                                 </Label>
-                                <select
-                                    {...form.register('tax_category')}
-                                    className="w-full h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 outline-none text-sm"
-                                >
-                                    {(Object.keys(TAX_LABELS) as (keyof typeof TAX_LABELS)[]).map(k => (
-                                        <option key={k} value={k}>{TAX_LABELS[k]}</option>
-                                    ))}
-                                </select>
+                                {initialData ? (
+                                    // Edición: IVA fijo, no modificable
+                                    <div className="w-full h-9 px-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-sm flex items-center gap-2 cursor-not-allowed select-none">
+                                        <span className="flex-1">{TAX_LABELS[initialData.tax_category as keyof typeof TAX_LABELS] ?? initialData.tax_category}</span>
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fijo</span>
+                                    </div>
+                                ) : (
+                                    // Creación: seleccionable
+                                    <select
+                                        {...form.register('tax_category')}
+                                        className="w-full h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 outline-none text-sm"
+                                    >
+                                        {(Object.keys(TAX_LABELS) as (keyof typeof TAX_LABELS)[]).map(k => (
+                                            <option key={k} value={k}>{TAX_LABELS[k]}</option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
