@@ -1083,6 +1083,7 @@ export interface InventoryRow {
   avg_cost: number
   total_value: number
   grupo_uno: string  // PRODUCTOS NO FABRICADOS / INVENTARIOS MATERIAS PRIMAS / ACTIVOS FIJOS / CONTABILIZACIONES AUTOMATICAS
+  iva_pct?: number  // Tasa IVA extraída del CSV si la columna existe: 0, 5 ó 19
 }
 
 function parseWorldOfficeInventoryCsv(csv: string): {
@@ -1117,15 +1118,17 @@ function parseWorldOfficeInventoryCsv(csv: string): {
   }
   if (headerIdx === -1) throw new Error('No se encontró header con Bodega;...;Descripción;...;Existencia')
 
-  const headers = records[headerIdx].map(h => h.trim().toLowerCase())
+  const headers = records[headerIdx].map(h => h.trim().toLowerCase().replace(/\s+/g, '').replace('%', ''))
   const col = (n: string) => headers.findIndex(h => h === n)
   const iBodega = col('bodega')
   const iGrupoUno = col('grupouno')
   const iDesc = headers.findIndex(h => h === 'descripción' || h === 'descripcion')
-  const iUom = headers.findIndex(h => h === 'u medida' || h === 'umedida')
+  const iUom = headers.findIndex(h => h === 'umedida' || h === 'udemedida')
   const iExist = col('existencia')
   const iProm = col('promedio')
   const iCosto = col('costo')
+  // Columna IVA — WorldOffice puede exportarla como "% IVA", "IVA", "Tasa IVA", "IVA(%)", etc.
+  const iIva = headers.findIndex(h => h === 'iva' || h === 'tasaiva' || h === 'ivaiva' || h.startsWith('iva'))
 
   if (iBodega < 0 || iDesc < 0 || iExist < 0) {
     throw new Error('Faltan columnas Bodega, Descripción o Existencia')
@@ -1198,6 +1201,18 @@ function parseWorldOfficeInventoryCsv(csv: string): {
 
     if (!currentBodega) continue  // sin contexto bodega, skip
 
+    // Extraer IVA si la columna existe en este CSV
+    let iva_pct: number | undefined = undefined
+    if (iIva >= 0) {
+      const rawIva = (f[iIva] || '').trim().replace('%', '').replace(',', '.').trim()
+      const parsed = parseFloat(rawIva)
+      if (!isNaN(parsed)) {
+        if (parsed >= 18 && parsed <= 20) iva_pct = 19
+        else if (parsed >= 4 && parsed <= 6) iva_pct = 5
+        else iva_pct = 0
+      }
+    }
+
     rows.push({
       bodega: currentBodega,
       sku,
@@ -1207,6 +1222,7 @@ function parseWorldOfficeInventoryCsv(csv: string): {
       avg_cost,
       total_value,
       grupo_uno: currentGrupoUno,
+      ...(iva_pct !== undefined ? { iva_pct } : {}),
     })
   }
 

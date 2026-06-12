@@ -1412,6 +1412,7 @@ function InventoryImporter() {
             <p className="text-xs">2. <strong>Estilo</strong>: Ver saldo positivo Mayor a 0 · <strong>Fecha</strong>: 31/03/2026</p>
             <p className="text-xs">3. <strong>Bodega</strong>: Marcar Todo · Excluir ACTIVOS FIJOS y CONTABILIZACIONES (ya está)</p>
             <p className="text-xs">4. <strong>Ordenado por</strong>: Código Producto · Click <strong>Exportar a Excel</strong></p>
+            <p className="text-xs text-emerald-800 mt-1">💡 Si el reporte incluye columna <strong>% IVA</strong> o <strong>Tasa IVA</strong>, el IVA se importará automáticamente por producto (0%, 5% ó 19%).</p>
           </div>
         </div>
       </div>
@@ -1501,6 +1502,9 @@ function InventoryImporter() {
                     <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Producto</th>
                     <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Cant.</th>
                     <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Costo prom.</th>
+                    {preview.sample.some(r => r.iva_pct !== undefined) && (
+                      <th className="px-3 py-2 text-xs font-semibold text-emerald-700 uppercase text-right">IVA</th>
+                    )}
                     <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-right">Valor</th>
                   </tr>
                 </thead>
@@ -1512,6 +1516,11 @@ function InventoryImporter() {
                       <td className="px-3 py-2 text-xs text-slate-900 truncate max-w-[280px]">{r.name}</td>
                       <td className="px-3 py-2 text-xs text-right tabular-nums">{r.qty.toLocaleString('es-CO')}</td>
                       <td className="px-3 py-2 text-xs text-right tabular-nums text-slate-600">{fmtMoney(r.avg_cost)}</td>
+                      {preview.sample.some(s => s.iva_pct !== undefined) && (
+                        <td className="px-3 py-2 text-xs text-right tabular-nums font-semibold text-emerald-700">
+                          {r.iva_pct !== undefined ? `${r.iva_pct}%` : '—'}
+                        </td>
+                      )}
                       <td className="px-3 py-2 text-xs text-right tabular-nums font-semibold">{fmtMoney(r.total_value)}</td>
                     </tr>
                   ))}
