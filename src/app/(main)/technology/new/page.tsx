@@ -11,16 +11,23 @@ export default async function NewAssetPage() {
 
     const tenant = await settingsService.getTenantInfo(supabase);
 
-    // Fetch active employees for assignment selector
-    const { data: rawEmployees } = await supabase
-        .from('employees')
-        .select('id, party:parties(legal_name)')
-        .eq('status', 'ACTIVE')
-        .order('created_at');
+    // Fetch active employees for assignment selector (name from parties or profiles fallback)
+    const { data: empRows } = await supabase.rpc('execute_sql_internal', {
+        query: `
+            SELECT e.id,
+                   COALESCE(p.legal_name, pr.full_name, 'Sin nombre') AS display_name
+            FROM employees e
+            LEFT JOIN parties  p  ON p.id  = e.party_id
+            LEFT JOIN profiles pr ON pr.id = e.user_id
+            WHERE e.tenant_id = get_my_tenant_id()
+              AND e.status = 'ACTIVE'
+            ORDER BY display_name
+        `
+    });
 
-    const employees = (rawEmployees || []).map((e: Record<string, unknown>) => ({
-        id: e.id as string,
-        party: Array.isArray(e.party) ? (e.party[0] as { legal_name: string } | null) : (e.party as { legal_name: string } | null),
+    const employees = ((empRows as { id: string; display_name: string }[]) || []).map(e => ({
+        id: e.id,
+        party: { legal_name: e.display_name },
     }));
 
     return (
