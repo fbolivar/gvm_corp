@@ -24,6 +24,7 @@ import {
     PackageCheck,
     AlertCircle,
     MessageSquare,
+    Pencil,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { Metadata } from 'next';
@@ -398,6 +399,23 @@ export default async function PurchaseOrderDetailPage({
                     Volver a Órdenes
                 </Link>
             </div>
+
+            {/* ── Edit Banner (DRAFT only) ───────────────────────────────────── */}
+            {po.status === 'DRAFT' && (
+                <Link
+                    href={`/purchasing/orders/${po.id}/edit`}
+                    className="flex items-center gap-4 bg-amber-500 hover:bg-amber-400 rounded-2xl px-6 py-4 transition-all group shadow-lg shadow-amber-500/20"
+                >
+                    <div className="h-10 w-10 rounded-xl bg-amber-600/30 flex items-center justify-center shrink-0">
+                        <Pencil className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-900">Borrador — Sin confirmar</p>
+                        <p className="text-sm font-black text-slate-950">Haz clic para editar esta orden antes de enviarla a aprobación</p>
+                    </div>
+                    <ArrowLeft className="h-5 w-5 text-amber-900 rotate-180 group-hover:translate-x-1 transition-transform" />
+                </Link>
+            )}
 
             {/* ── Premium Dark Header ─────────────────────────────────────────── */}
             <div

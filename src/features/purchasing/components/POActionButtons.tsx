@@ -12,6 +12,7 @@ import {
     Loader2,
     PackageCheck,
     Pencil,
+    RotateCcw,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -19,6 +20,7 @@ import {
     approveOrderAction,
     cancelOrderAction,
 } from "@/features/purchasing/actions"
+import { rejectOrderAction } from "@/features/purchasing/actions/purchaseOrderActions"
 import { POStatus } from "@/features/purchasing/types"
 
 interface POActionButtonsProps {
@@ -92,7 +94,7 @@ export function POActionButtons({ orderId, status }: POActionButtonsProps) {
                 </Button>
             )}
 
-            {/* PENDING_APPROVAL → Approve or Reject */}
+            {/* PENDING_APPROVAL → Approve or Return to Draft */}
             {status === "PENDING_APPROVAL" && (
                 <>
                     <Button
@@ -113,16 +115,19 @@ export function POActionButtons({ orderId, status }: POActionButtonsProps) {
 
                     <Button
                         variant="outline"
-                        size="icon"
-                        className="h-8 w-8 rounded-lg border-rose-100 text-rose-500 hover:bg-rose-50"
+                        size="sm"
+                        className="h-8 px-3 rounded-xl text-xs font-semibold border-amber-200 text-amber-700 hover:bg-amber-50 gap-1.5"
                         disabled={busy("reject")}
-                        onClick={() => run("reject", () => cancelOrderAction(orderId))}
-                        title="Rechazar"
+                        onClick={() => run("reject", () => rejectOrderAction(orderId))}
+                        title="Devolver a Borrador para editar"
                     >
                         {busy("reject") ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                            <XCircle className="h-3.5 w-3.5" />
+                            <>
+                                <RotateCcw className="h-3 w-3" />
+                                Devolver
+                            </>
                         )}
                     </Button>
                 </>
