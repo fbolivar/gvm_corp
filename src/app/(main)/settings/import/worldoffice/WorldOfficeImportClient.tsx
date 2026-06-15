@@ -17,6 +17,7 @@ import {
   Wallet,
   Package,
   Building2,
+  Percent,
 } from 'lucide-react'
 import { PageHeader } from '@/shared/components/ui/page-header'
 import { Button } from '@/shared/components/ui/button'
@@ -34,12 +35,16 @@ import {
   importInventoryChunkAction,
   previewWorldOfficeFixedAssetsAction,
   importFixedAssetsChunkAction,
+  previewWorldOfficeProductTaxAction,
+  importProductTaxChunkAction,
   type ReceivableRow,
   type InventoryRow,
   type FixedAssetRow,
+  type ProductTaxRow,
+  type ProductTaxSample,
 } from '@/features/import/worldofficeActions'
 
-type Tab = 'puc' | 'parties' | 'balance' | 'receivables' | 'inventory' | 'fixed_assets' | 'entries'
+type Tab = 'puc' | 'parties' | 'balance' | 'receivables' | 'inventory' | 'product_tax' | 'fixed_assets' | 'entries'
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; disabled?: boolean }[] = [
   { key: 'puc', label: 'Plan de cuentas', icon: BookOpen },
@@ -47,6 +52,7 @@ const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: s
   { key: 'balance', label: 'Saldos iniciales', icon: Scale },
   { key: 'receivables', label: 'Cartera detalle', icon: Wallet },
   { key: 'inventory', label: 'Inventario', icon: Package },
+  { key: 'product_tax', label: 'IVA productos', icon: Percent },
   { key: 'fixed_assets', label: 'Activos fijos', icon: Building2 },
   { key: 'entries', label: 'Asientos contables', icon: FileBarChart, disabled: true },
 ]
@@ -129,6 +135,7 @@ export function WorldOfficeImportClient() {
       {activeTab === 'balance' && <BalanceImporter />}
       {activeTab === 'receivables' && <ReceivablesImporter />}
       {activeTab === 'inventory' && <InventoryImporter />}
+      {activeTab === 'product_tax' && <ProductTaxImporter />}
       {activeTab === 'fixed_assets' && <FixedAssetsImporter />}
     </div>
   )
@@ -1548,6 +1555,253 @@ function InventoryImporter() {
                   </>
                 ) : (
                   <><CheckCircle2 className="h-4 w-4 mr-2" /> Importar {preview.total} líneas</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// IVA POR PRODUCTO — Listado de Inventarios (WO) → corrige tax_category
+// ============================================================
+
+const TAX_BADGE: Record<string, { label: string; cls: string }> = {
+  IVA_0: { label: '0%', cls: 'bg-slate-100 text-slate-700' },
+  IVA_5: { label: '5%', cls: 'bg-amber-100 text-amber-800' },
+  IVA_19: { label: '19%', cls: 'bg-sky-100 text-sky-800' },
+  '': { label: '—', cls: 'bg-slate-50 text-slate-400' },
+}
+
+function ProductTaxImporter() {
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{
+    total_parsed: number
+    matched: number
+    unmatched: number
+    will_change: number
+    skipped_no_tax: number
+    distribution: { iva0: number; iva5: number; iva19: number }
+    sample: ProductTaxSample[]
+    rows: ProductTaxRow[]
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [importResult, setImportResult] = useState<{ updated: number; d0: number; d5: number; d19: number } | null>(null)
+
+  const handleFile = async (file: File) => {
+    setLoading(true); setPreview(null); setImportResult(null)
+    try {
+      const text = await file.text()
+      setFileName(file.name)
+      const res = await previewWorldOfficeProductTaxAction(text)
+      if (!res.success) { toast.error(res.error); setFileName(null); return }
+      setPreview(res)
+      toast.success(`${res.matched} productos cruzados · ${res.will_change} cambian de IVA`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally { setLoading(false) }
+  }
+
+  const handleImport = async () => {
+    if (!preview?.rows) return
+    if (!confirm(`¿Actualizar el IVA de ${preview.matched} productos?\n\n· ${preview.will_change} cambiarán de tarifa\n· 0%: ${preview.distribution.iva0} · 5%: ${preview.distribution.iva5} · 19%: ${preview.distribution.iva19}\n\nSolo se modifica el IVA; no se tocan costos, nombres ni stock.`)) return
+
+    setImporting(true)
+    setProgress({ done: 0, total: preview.rows.length })
+    const CHUNK = 400
+    let updated = 0, d0 = 0, d5 = 0, d19 = 0
+    try {
+      for (let i = 0; i < preview.rows.length; i += CHUNK) {
+        const chunk = preview.rows.slice(i, i + CHUNK)
+        const res = await importProductTaxChunkAction(chunk)
+        if (!res.success) {
+          toast.error(`Lote ${Math.floor(i / CHUNK) + 1}: ${res.error}`)
+          setProgress(null); return
+        }
+        updated += res.updated; d0 += res.d0; d5 += res.d5; d19 += res.d19
+        setProgress({ done: i + chunk.length, total: preview.rows.length })
+      }
+      toast.success(`${updated} productos actualizados`)
+      setImportResult({ updated, d0, d5, d19 })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error')
+    } finally {
+      setImporting(false); setProgress(null)
+    }
+  }
+
+  const reset = () => { setFileName(null); setPreview(null); setImportResult(null) }
+
+  if (importResult) {
+    return (
+      <div className="surface-card p-8 text-center">
+        <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mx-auto mb-4">
+          <CheckCircle2 className="h-7 w-7" />
+        </div>
+        <h2 className="text-h2 mb-1">IVA actualizado</h2>
+        <p className="text-sm text-slate-500 mb-1">
+          <strong>{importResult.updated.toLocaleString('es-CO')}</strong> productos actualizados
+        </p>
+        <p className="text-xs text-slate-600 mb-4">
+          0%: {importResult.d0} · 5%: {importResult.d5} · 19%: {importResult.d19}
+        </p>
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button variant="outline" onClick={reset}>Importar otro</Button>
+          <Button asChild><Link href="/products">Ver productos</Link></Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="surface-card p-5 bg-sky-50/60 border-sky-200">
+        <div className="flex items-start gap-3">
+          <Percent className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-sky-900 space-y-1">
+            <p className="font-semibold">Cómo exportar el IVA por producto desde WorldOffice 9</p>
+            <ol className="list-decimal list-inside space-y-0.5 text-xs text-sky-800">
+              <li>Informes → <strong>Inventarios</strong> → <strong>Listado de Inventarios</strong></li>
+              <li><strong>Tipo de informe</strong>: Ver Todo · <strong>Opciones</strong>: Ver todo (incluye saldo 0)</li>
+              <li>NO marques nada en &quot;Grupo Uno/Dos que Excluye el Informe&quot;</li>
+              <li>Marca <strong>&quot;Al exportar mostrar en todos los registros los valores de las agrupaciones&quot;</strong></li>
+              <li><strong>Exportar a Excel</strong> → guarda como CSV delimitado por <code>;</code></li>
+            </ol>
+            <p className="text-xs mt-1 italic">Cruza por <strong>Código Producto</strong> y corrige el IVA (0% / 5% / 19%). No destructivo: solo cambia el IVA.</p>
+          </div>
+        </div>
+      </div>
+
+      {!preview && (
+        <div className="surface-card p-8 text-center">
+          <input
+            type="file" accept=".csv,.txt" id="product-tax-upload" className="hidden"
+            onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={loading}
+          />
+          <label htmlFor="product-tax-upload" className="cursor-pointer inline-flex flex-col items-center gap-3">
+            <div className="h-14 w-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600">
+              {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+            </div>
+            <span className="text-sm font-medium">{loading ? 'Procesando...' : 'Subir CSV de Listado de Inventarios'}</span>
+            <span className="text-xs text-slate-500">{fileName || 'listado-inventarios-wo.csv'}</span>
+          </label>
+        </div>
+      )}
+
+      {preview && (
+        <div className="space-y-4">
+          <div className="surface-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-slate-600" />
+                {fileName}
+              </p>
+              <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Cruzados</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">
+                  {preview.matched.toLocaleString('es-CO')}
+                  <span className="text-xs text-slate-400 ml-1">/ {preview.total_parsed}</span>
+                </p>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-amber-700">Cambian de IVA</p>
+                <p className="text-lg font-bold text-amber-700 tabular-nums">{preview.will_change.toLocaleString('es-CO')}</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">No cruzan</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.unmatched.toLocaleString('es-CO')}</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-slate-500">Sin IVA reconocible</p>
+                <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.skipped_no_tax.toLocaleString('es-CO')}</p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-slate-700 mb-2">Distribución resultante (productos cruzados)</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-slate-50 border border-slate-100 rounded-md px-3 py-2 text-center">
+                  <p className="text-[11px] text-slate-500">Excluido / Exento (0%)</p>
+                  <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.distribution.iva0}</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-100 rounded-md px-3 py-2 text-center">
+                  <p className="text-[11px] text-amber-700">Diferencial (5%)</p>
+                  <p className="text-lg font-bold text-amber-800 tabular-nums">{preview.distribution.iva5}</p>
+                </div>
+                <div className="bg-sky-50 border border-sky-100 rounded-md px-3 py-2 text-center">
+                  <p className="text-[11px] text-sky-700">General (19%)</p>
+                  <p className="text-lg font-bold text-sky-800 tabular-nums">{preview.distribution.iva19}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h3 className="text-h3">Vista previa ({preview.sample.length} muestra — primero los que cambian)</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100 text-left">
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Código</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase">Producto</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-center">IVA actual</th>
+                    <th className="px-3 py-2 text-xs font-semibold text-slate-600 uppercase text-center">→ Nuevo IVA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {preview.sample.map((r, i) => {
+                    const cur = TAX_BADGE[r.current_tax ?? ''] || TAX_BADGE['']
+                    const next = TAX_BADGE[r.new_tax] || TAX_BADGE['']
+                    return (
+                      <tr key={i} className={`hover:bg-slate-50/60 ${r.changes ? 'bg-amber-50/30' : ''}`}>
+                        <td className="px-3 py-2 text-xs font-mono text-slate-700">{r.code}</td>
+                        <td className="px-3 py-2 text-xs text-slate-900 truncate max-w-[320px]">{r.name}</td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] font-semibold ${cur.cls}`}>{cur.label}</span>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] font-semibold ${next.cls}`}>{next.label}</span>
+                          {r.changes && <span className="ml-1 text-[10px] text-amber-600">●</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="surface-card p-5 bg-amber-50/60 border-amber-200">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-900">
+                <p className="font-semibold mb-1">Listo para aplicar</p>
+                <p className="text-xs">
+                  Se actualizará el IVA de <strong>{preview.matched}</strong> productos ({preview.will_change} cambian de tarifa).
+                  Solo se modifica el IVA; costos, nombres y stock quedan intactos.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={reset} disabled={importing}>Cancelar</Button>
+              <Button onClick={handleImport} disabled={importing || preview.matched === 0}>
+                {importing ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {progress ? `Aplicando ${progress.done.toLocaleString()}/${progress.total.toLocaleString()}...` : 'Aplicando...'}
+                  </>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4 mr-2" /> Actualizar IVA de {preview.matched} productos</>
                 )}
               </Button>
             </div>

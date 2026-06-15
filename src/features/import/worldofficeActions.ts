@@ -1689,3 +1689,220 @@ export async function importFixedAssetsChunkAction(rows: FixedAssetRow[]): Promi
     return { success: false, error: err instanceof Error ? err.message : 'Error en chunk' }
   }
 }
+
+// ============================================================
+// IVA POR PRODUCTO — Listado de Inventarios WO (corrige tax_category)
+// ============================================================
+
+export type TaxCategory = 'IVA_0' | 'IVA_5' | 'IVA_19'
+
+export interface ProductTaxRow {
+  code: string
+  name: string
+  tax_category: TaxCategory
+}
+
+/**
+ * Resuelve la categoría de IVA de GVM a partir del export del Listado de
+ * Inventarios WO. Prioriza la clasificación explícita de "DescGrupoDos"
+ * (EXCLUIDOS 0% / EXENTO 0% / GRAVADOS AL 19% / GRAVADOS AL 5%) y usa la
+ * columna numérica "Iva" como respaldo. Las tasas atípicas de cuentas de
+ * gasto (7%, 2%) no se asignan (retornan null y se omiten).
+ */
+function resolveProductTax(ivaRaw: string, descGrupoDos: string): TaxCategory | null {
+  const d = (descGrupoDos || '').toUpperCase()
+  if (d.includes('EXCLUID') || d.includes('EXENT')) return 'IVA_0'
+  if (d.includes('19')) return 'IVA_19'
+  if (d.includes('AL 5') || /\b5\s*%/.test(d)) return 'IVA_5'
+
+  // Respaldo numérico: WO exporta el IVA como fracción (0,19) o porcentaje (19)
+  const n = parseFloat((ivaRaw || '').replace(/\s/g, '').replace('%', '').replace(',', '.'))
+  if (isNaN(n)) return null
+  const pct = Math.round(n > 1 ? n : n * 100)
+  if (pct >= 18 && pct <= 20) return 'IVA_19'
+  if (pct >= 4 && pct <= 6) return 'IVA_5'
+  if (pct === 0) return 'IVA_0'
+  return null
+}
+
+function parseWorldOfficeProductTaxCsv(csv: string): { rows: ProductTaxRow[]; skipped_no_tax: number } {
+  const records = readCsvRecords(csv)
+  if (records.length < 2) throw new Error('Archivo muy corto. ¿Es un Listado de Inventarios de WO?')
+
+  // Header: contiene "Codigo Producto" e "Iva"
+  let headerIdx = -1
+  for (let i = 0; i < Math.min(6, records.length); i++) {
+    const joined = records[i].join('|').toLowerCase()
+    if (joined.includes('codigo') && joined.includes('iva')) {
+      headerIdx = i
+      break
+    }
+  }
+  if (headerIdx === -1) {
+    throw new Error('No se encontró la cabecera con "Codigo Producto" e "Iva". ¿Exportaste el Listado de Inventarios?')
+  }
+
+  const headers = records[headerIdx].map(h => h.trim().toLowerCase())
+  const iCode = headers.findIndex(h => h === 'codigo producto' || h === 'código producto' || h === 'codigo' || h === 'código')
+  const iName = headers.findIndex(h => h === 'descripción' || h === 'descripcion')
+  const iDescG2 = headers.findIndex(h => h === 'descgrupodos' || h.includes('descgrupodos') || h.includes('desc grupo dos'))
+  const iIva = headers.findIndex(h => h === 'iva' || h === '% iva' || h === 'iva%' || h === 'tasaiva')
+
+  if (iCode === -1 || iIva === -1) {
+    throw new Error('Faltan columnas Codigo o Iva en el CSV.')
+  }
+
+  const rows: ProductTaxRow[] = []
+  let skippedNoTax = 0
+  for (let i = headerIdx + 1; i < records.length; i++) {
+    const f = records[i]
+    const code = (f[iCode] || '').trim()
+    if (!code) continue
+    // Saltar filas placeholder de agrupación ("Grupo Uno"/"Grupo Dos")
+    if (/^grupo\s+(uno|dos)$/i.test(code)) continue
+
+    const name = iName >= 0 ? (f[iName] || '').trim() : ''
+    const descG2 = iDescG2 >= 0 ? (f[iDescG2] || '').trim() : ''
+    const ivaRaw = (f[iIva] || '').trim()
+
+    const tax = resolveProductTax(ivaRaw, descG2)
+    if (!tax) { skippedNoTax++; continue }
+
+    rows.push({ code, name, tax_category: tax })
+  }
+
+  return { rows, skipped_no_tax: skippedNoTax }
+}
+
+export interface ProductTaxSample {
+  code: string
+  name: string
+  current_tax: string | null
+  new_tax: TaxCategory
+  changes: boolean
+}
+
+export async function previewWorldOfficeProductTaxAction(csv: string, limit = 40): Promise<
+  | {
+      success: true
+      total_parsed: number
+      matched: number
+      unmatched: number
+      will_change: number
+      skipped_no_tax: number
+      distribution: { iva0: number; iva5: number; iva19: number }
+      sample: ProductTaxSample[]
+      rows: ProductTaxRow[]   // solo los que cruzan con productos existentes
+    }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+    const { data: ut } = await supabase
+      .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+
+    const { rows: parsed, skipped_no_tax } = parseWorldOfficeProductTaxCsv(csv)
+    if (parsed.length === 0) return { success: false, error: 'No se detectaron productos con IVA en el archivo.' }
+
+    // Dedupe por código (último gana)
+    const byCode = new Map<string, ProductTaxRow>()
+    for (const r of parsed) byCode.set(r.code.toUpperCase(), r)
+
+    // Traer todos los productos del tenant (sku + tax_category actual)
+    const currentBySku = new Map<string, string>()
+    let from = 0
+    const PAGE = 1000
+    for (;;) {
+      const { data, error } = await supabase
+        .from('products')
+        .select('sku, tax_category')
+        .eq('tenant_id', ut.tenant_id)
+        .range(from, from + PAGE - 1)
+      if (error) return { success: false, error: error.message }
+      const batch = (data || []) as { sku: string; tax_category: string | null }[]
+      batch.forEach(p => currentBySku.set((p.sku || '').toUpperCase(), p.tax_category ?? ''))
+      if (batch.length < PAGE) break
+      from += PAGE
+    }
+
+    const matchedRows: ProductTaxRow[] = []
+    const sample: ProductTaxSample[] = []
+    const distribution = { iva0: 0, iva5: 0, iva19: 0 }
+    let willChange = 0
+
+    for (const [code, r] of byCode) {
+      if (!currentBySku.has(code)) continue
+      const current = currentBySku.get(code) ?? null
+      matchedRows.push(r)
+      if (r.tax_category === 'IVA_0') distribution.iva0++
+      else if (r.tax_category === 'IVA_5') distribution.iva5++
+      else distribution.iva19++
+      const changes = current !== r.tax_category
+      if (changes) willChange++
+      if (sample.length < limit && changes) {
+        sample.push({ code: r.code, name: r.name, current_tax: current, new_tax: r.tax_category, changes })
+      }
+    }
+    // Si hay pocos cambios, completar muestra con no-cambios para contexto
+    if (sample.length < limit) {
+      for (const [code, r] of byCode) {
+        if (sample.length >= limit) break
+        if (!currentBySku.has(code)) continue
+        const current = currentBySku.get(code) ?? null
+        if (current === r.tax_category) {
+          sample.push({ code: r.code, name: r.name, current_tax: current, new_tax: r.tax_category, changes: false })
+        }
+      }
+    }
+
+    return {
+      success: true,
+      total_parsed: byCode.size,
+      matched: matchedRows.length,
+      unmatched: byCode.size - matchedRows.length,
+      will_change: willChange,
+      skipped_no_tax,
+      distribution,
+      sample,
+      rows: matchedRows,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error procesando CSV' }
+  }
+}
+
+export async function importProductTaxChunkAction(rows: ProductTaxRow[]): Promise<
+  | { success: true; updated: number; unmatched: number; d0: number; d5: number; d19: number }
+  | { success: false; error: string }
+> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+    const { data: ut } = await supabase
+      .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+    if (!rows || rows.length === 0) return { success: false, error: 'Chunk vacío' }
+
+    const { data, error } = await supabase.rpc('update_product_tax_wo', {
+      p_tenant_id: ut.tenant_id,
+      p_rows: rows,
+    })
+    if (error) return { success: false, error: error.message }
+    const r = data as { updated?: number; unmatched?: number; d0?: number; d5?: number; d19?: number }
+    revalidatePath('/products')
+    return {
+      success: true,
+      updated: r?.updated ?? 0,
+      unmatched: r?.unmatched ?? 0,
+      d0: r?.d0 ?? 0,
+      d5: r?.d5 ?? 0,
+      d19: r?.d19 ?? 0,
+    }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error en chunk' }
+  }
+}
