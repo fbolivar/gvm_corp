@@ -5,7 +5,6 @@ import { settingsService } from "@/features/settings/services/settingsService"
 import { kioskService } from "@/features/payroll/services/kioskService"
 import { VisualReportHeader } from "@/features/accounting/components/VisualReportHeader"
 import { TerminalManager } from "@/features/payroll/components/TerminalManager"
-import { EmployeeQRCards } from "@/features/payroll/components/EmployeeQRCards"
 import { Button } from "@/shared/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft, QrCode, Monitor } from "lucide-react"
@@ -69,22 +68,12 @@ export default async function TerminalsPage() {
                 <ol className="space-y-2 text-xs text-indigo-700">
                     <li className="flex gap-2"><span className="font-black text-indigo-500">1.</span> Crea un terminal y copia la URL generada</li>
                     <li className="flex gap-2"><span className="font-black text-indigo-500">2.</span> Abre la URL en una tablet/celular fijo en la entrada</li>
-                    <li className="flex gap-2"><span className="font-black text-indigo-500">3.</span> Imprime los carnets QR para cada empleado (abajo)</li>
+                    <li className="flex gap-2"><span className="font-black text-indigo-500">3.</span> Imprime el carnet QR de cada empleado desde su ficha en <Link href="/payroll/employees" className="underline font-semibold">Empleados</Link></li>
                     <li className="flex gap-2"><span className="font-black text-indigo-500">4.</span> Los empleados escanean su carnet al llegar/salir</li>
                 </ol>
             </div>
 
-            <div className="grid grid-cols-12 gap-6">
-                {/* Left: Terminal Manager */}
-                <div className="col-span-12 lg:col-span-7">
-                    <TerminalManager terminals={terminals} baseUrl={baseUrl} />
-                </div>
-
-                {/* Right: QR Cards */}
-                <div className="col-span-12 lg:col-span-5">
-                    <EmployeeQRCards />
-                </div>
-            </div>
+            <TerminalManager terminals={terminals} baseUrl={baseUrl} />
         </div>
     )
 }

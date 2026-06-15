@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { EditEmployeeFormWrapper } from "@/features/payroll/components/EditEmployeeFormWrapper"
+import { EmployeeCarnet } from "@/features/payroll/components/EmployeeCarnet"
 import { AuditTrail } from "@/shared/components/ui/audit-trail"
 import { Button } from "@/shared/components/ui/button"
 import { ChevronLeft, UserCog, Sparkles } from "lucide-react"
@@ -55,6 +56,11 @@ export default async function EditEmployeePage({ params }: PageProps) {
             </div>
 
             <EditEmployeeFormWrapper employeeId={id} />
+
+            {/* Carnet QR del empleado */}
+            <div className="max-w-md">
+                <EmployeeCarnet employeeId={id} />
+            </div>
 
             {/* Historial de auditoría */}
             <div className="mt-8">

@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
 import { contractLabel, formatDocNumber, getInitials, splitName } from "../utils/carnetHelpers"
 
-interface EmployeeQR {
+export interface EmployeeQR {
     id: string
     name: string
     doc_number: string
@@ -17,18 +17,18 @@ interface EmployeeQR {
 }
 
 const STORAGE_KEY = "gvm_carnet_photos"
-function loadPhotos(): Record<string, string> {
+export function loadPhotos(): Record<string, string> {
     if (typeof window === "undefined") return {}
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") } catch { return {} }
 }
-function savePhoto(id: string, url: string) { const p = loadPhotos(); p[id] = url; localStorage.setItem(STORAGE_KEY, JSON.stringify(p)) }
-function removePhoto(id: string) { const p = loadPhotos(); delete p[id]; localStorage.setItem(STORAGE_KEY, JSON.stringify(p)) }
+export function savePhoto(id: string, url: string) { const p = loadPhotos(); p[id] = url; localStorage.setItem(STORAGE_KEY, JSON.stringify(p)) }
+export function removePhoto(id: string) { const p = loadPhotos(); delete p[id]; localStorage.setItem(STORAGE_KEY, JSON.stringify(p)) }
 
 // ─── Dimensiones CR80 portrait ───────────────────────────────────────────────
 const W = 260, H = 412   // ratio ~0.631 (igual que CR80)
 
 // ─── FRENTE del carnet ───────────────────────────────────────────────────────
-function CarnetFront({ emp, photo }: { emp: EmployeeQR; photo?: string }) {
+export function CarnetFront({ emp, photo }: { emp: EmployeeQR; photo?: string }) {
     const initials = getInitials(emp.name)
     const { line1, line2 } = splitName(emp.name)
     const doc = formatDocNumber(emp.doc_number)
@@ -108,7 +108,7 @@ function CarnetFront({ emp, photo }: { emp: EmployeeQR; photo?: string }) {
 }
 
 // ─── REVERSO del carnet ──────────────────────────────────────────────────────
-function CarnetBack({ emp }: { emp: EmployeeQR }) {
+export function CarnetBack({ emp }: { emp: EmployeeQR }) {
     const headerPath = `M 0 0 L ${W} 0 L ${W} 70 C ${W * 0.75} 84 ${W * 0.5} 68 ${W * 0.3} 82 C ${W * 0.12} 96 0 84 0 76 Z`
     const waveBack  = `M 0 ${H} L 0 ${H - 60} C 55 ${H - 78} 115 ${H - 58} 170 ${H - 70} C 210 ${H - 79} 240 ${H - 65} ${W} ${H - 70} L ${W} ${H} Z`
     const waveFront = `M 0 ${H} L 0 ${H - 34} C 60 ${H - 52} 118 ${H - 32} 172 ${H - 43} C 210 ${H - 51} 238 ${H - 38} ${W} ${H - 44} L ${W} ${H} Z`

@@ -98,3 +98,48 @@ export async function generateEmployeeQrPayloadsAction() {
         })
         .sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** Genera el carnet QR de UN empleado (para la ficha del empleado). */
+export async function getEmployeeCarnetAction(employeeId: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autenticado');
+
+    const secret = process.env.KIOSK_QR_SECRET;
+    if (!secret) throw new Error('KIOSK_QR_SECRET no configurado en el servidor');
+
+    const { data: ut } = await supabase
+        .from('user_tenants')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+    if (!ut) return null;
+
+    const { data: emp } = await supabase
+        .from('employees')
+        .select('id, user_id, contract_type, parties(legal_name, doc_number)')
+        .eq('tenant_id', ut.tenant_id)
+        .eq('id', employeeId)
+        .maybeSingle();
+    if (!emp) return null;
+
+    const party = resolvePartyRow(emp.parties as unknown as PartyRow | PartyRow[] | null);
+
+    let profileName: string | undefined;
+    if (!party?.legal_name && emp.user_id) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', emp.user_id)
+            .maybeSingle();
+        profileName = profile?.full_name ?? undefined;
+    }
+
+    return {
+        id: emp.id,
+        name: resolveEmployeeName(party, profileName),
+        doc_number: party?.doc_number || '',
+        contract_type: (emp as { contract_type?: string }).contract_type || '',
+        qrPayload: kioskService.generateQrPayload(emp.id, secret),
+    };
+}
