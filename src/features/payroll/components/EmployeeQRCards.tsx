@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button"
 import { Loader2, Printer, CreditCard, Download, Camera, X, RefreshCw, ChevronDown, ChevronUp, Search, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
+import { contractLabel, formatDocNumber, getInitials, splitName } from "../utils/carnetHelpers"
 
 interface EmployeeQR {
     id: string
@@ -13,24 +14,6 @@ interface EmployeeQR {
     doc_number: string
     contract_type: string
     qrPayload: string
-}
-
-const CONTRACT_LABELS: Record<string, string> = {
-    // Inglés
-    INDEFINITE: "Contrato Indefinido",
-    FIXED_TERM: "Término Fijo",
-    TEMPORARY:  "Contrato Temporal",
-    FREELANCE:  "Prestación de Servicios",
-    INTERN:     "Practicante",
-    // Español (valores reales en BD)
-    INDEFINIDO:            "Contrato Indefinido",
-    TERMINO_FIJO:          "Término Fijo",
-    FIJO:                  "Término Fijo",
-    TEMPORAL:              "Contrato Temporal",
-    PRESTACION_SERVICIOS:  "Prestación de Servicios",
-    SERVICIOS:             "Prestación de Servicios",
-    PRACTICANTE:           "Practicante",
-    APRENDIZ:              "Aprendiz",
 }
 
 const STORAGE_KEY = "gvm_carnet_photos"
@@ -46,12 +29,10 @@ const W = 260, H = 412   // ratio ~0.631 (igual que CR80)
 
 // ─── FRENTE del carnet ───────────────────────────────────────────────────────
 function CarnetFront({ emp, photo }: { emp: EmployeeQR; photo?: string }) {
-    const initials = emp.name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase()
-    const words = emp.name.split(" ").filter(Boolean)
-    const line1 = words.slice(0, 2).join(" ")
-    const line2 = words.slice(2, 4).join(" ")
-    const doc = emp.doc_number ? emp.doc_number.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "—"
-    const cargo = CONTRACT_LABELS[emp.contract_type] || "Empleado Activo"
+    const initials = getInitials(emp.name)
+    const { line1, line2 } = splitName(emp.name)
+    const doc = formatDocNumber(emp.doc_number)
+    const cargo = contractLabel(emp.contract_type)
 
     // SVG paths
     const headerPath = `M 0 0 L ${W} 0 L ${W} 85 C ${W * 0.78} 100 ${W * 0.55} 82 ${W * 0.38} 96 C ${W * 0.2} 110 ${W * 0.08} 102 0 92 Z`

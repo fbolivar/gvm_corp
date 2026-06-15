@@ -316,6 +316,11 @@ test('should calculate total with tax', () => {
 - **Fix**: Siempre usar `npm run dev` (auto-detecta puerto)
 - **Aplicar en**: Todos los proyectos
 
+### 2026-06-15: Carnets QR — nombre y cargo del empleado
+- **Error**: (1) Empleados sin `party` salían como "Sin nombre" (no se miraba `profiles.full_name`). (2) `contract_type` en español (`INDEFINIDO`) caía al fallback "Empleado Activo" porque el mapa solo tenía claves en inglés.
+- **Fix**: Lógica pura y testeada en `src/features/payroll/utils/carnetHelpers.ts` (`resolveEmployeeName` con cascada party→profiles→"Sin nombre", `contractLabel` con claves ES+EN, `resolvePartyRow` para el quirk de PostgREST objeto/array). Fuente única usada por `kioskActions` y `EmployeeQRCards`. Tests en `carnetHelpers.test.ts` congelan el comportamiento.
+- **Aplicar en**: Cualquier lectura de relaciones embebidas de Supabase (pueden venir como objeto o array) y cualquier dato con valores enum mezclados ES/EN. Extraer lógica frágil a funciones puras + test antes de que se vuelva a romper.
+
 ---
 
 *Este archivo es el cerebro de la fábrica. Cada error documentado la hace más fuerte.*

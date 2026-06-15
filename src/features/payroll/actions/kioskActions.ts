@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { kioskService } from '../services/kioskService';
+import { resolvePartyRow, resolveEmployeeName, type PartyRow } from '../utils/carnetHelpers';
 
 export async function createTerminalAction(name: string) {
     const supabase = await createClient();
@@ -64,15 +65,11 @@ export async function generateEmployeeQrPayloadsAction() {
 
     if (!employees || employees.length === 0) return [];
 
-    type PartyRow = { legal_name: string; doc_number: string }
+    type RawParty = PartyRow | PartyRow[] | null
 
     // Para empleados sin party, buscar nombre en profiles
     const noPartyUserIds = employees
-        .filter(e => {
-            const p = (e.parties as unknown as PartyRow | PartyRow[] | null)
-            const row = Array.isArray(p) ? p[0] : p
-            return !row?.legal_name
-        })
+        .filter(e => !resolvePartyRow(e.parties as unknown as RawParty)?.legal_name)
         .map(e => e.user_id)
         .filter(Boolean) as string[];
 
@@ -89,9 +86,8 @@ export async function generateEmployeeQrPayloadsAction() {
 
     return employees
         .map(emp => {
-            const raw = (emp.parties as unknown as PartyRow | PartyRow[] | null)
-            const party = Array.isArray(raw) ? raw[0] : raw
-            const name = party?.legal_name || (emp.user_id ? profileMap[emp.user_id] : '') || 'Sin nombre'
+            const party = resolvePartyRow(emp.parties as unknown as RawParty)
+            const name = resolveEmployeeName(party, emp.user_id ? profileMap[emp.user_id] : undefined)
             return {
                 id: emp.id,
                 name,
