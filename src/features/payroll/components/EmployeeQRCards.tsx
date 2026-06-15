@@ -16,11 +16,21 @@ interface EmployeeQR {
 }
 
 const CONTRACT_LABELS: Record<string, string> = {
+    // Inglés
     INDEFINITE: "Contrato Indefinido",
     FIXED_TERM: "Término Fijo",
     TEMPORARY:  "Contrato Temporal",
     FREELANCE:  "Prestación de Servicios",
     INTERN:     "Practicante",
+    // Español (valores reales en BD)
+    INDEFINIDO:            "Contrato Indefinido",
+    TERMINO_FIJO:          "Término Fijo",
+    FIJO:                  "Término Fijo",
+    TEMPORAL:              "Contrato Temporal",
+    PRESTACION_SERVICIOS:  "Prestación de Servicios",
+    SERVICIOS:             "Prestación de Servicios",
+    PRACTICANTE:           "Practicante",
+    APRENDIZ:              "Aprendiz",
 }
 
 const STORAGE_KEY = "gvm_carnet_photos"
