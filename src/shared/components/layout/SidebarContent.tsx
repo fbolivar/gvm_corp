@@ -87,9 +87,8 @@ import {
 } from "@/shared/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
-import type { User } from "@supabase/supabase-js"
 import { useI18n } from "@/shared/stores/useLanguageStore"
-import { getUnreadCountAction } from "@/features/notifications/actions"
+import { getSidebarBootstrapAction, type SidebarUser } from "@/shared/actions/shellBootstrap"
 
 interface SubLink {
     title: string
@@ -322,7 +321,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
     ];
 
     const [mounted, setMounted] = useState(false);
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<SidebarUser | null>(null);
     const [role, setRole] = useState<string>("Miembro");
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
@@ -333,7 +332,18 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
 
     useEffect(() => {
         setMounted(true);
-        getUnreadCountAction().then(setUnreadCount).catch(() => {});
+        // Una sola llamada server-side trae usuario, rol, permisos, admin y unread.
+        getSidebarBootstrapAction()
+            .then((b) => {
+                setUser(b.user);
+                setRole(b.role);
+                setPermissions(b.permissions);
+                setIsPlatformAdmin(b.isPlatformAdmin);
+                setUnreadCount(b.unreadCount);
+            })
+            .catch((error) => {
+                console.error("Error cargando datos del sidebar:", error);
+            });
     }, []);
 
     // Auto-expand the section that matches current path
@@ -352,69 +362,6 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
         });
         setOpenSections(prev => ({ ...prev, ...initial }));
     }, [pathname]);
-
-    useEffect(() => {
-        const getUser = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                setUser(user);
-
-                if (user) {
-                    // Check platform admin status
-                    supabase.rpc('is_platform_admin').then((res: { data: boolean | null }) => {
-                        setIsPlatformAdmin(Boolean(res.data))
-                    })
-
-                    // Traer role, role_id Y tenant_id del usuario
-                    const { data: userTenant } = await supabase
-                        .from('user_tenants')
-                        .select('role, role_id, tenant_id')
-                        .eq('user_id', user.id)
-                        .maybeSingle();
-
-                    if (userTenant) {
-                        const roleName = userTenant.role || 'Miembro';
-                        setRole(roleName);
-
-                        // Roles top-level: comparación EXACTA
-                        const HIGH_LEVEL_ROLES = ['SUPER ADMINISTRADOR', 'ADMINISTRADOR', 'owner', 'admin'];
-                        const isHighLevel = HIGH_LEVEL_ROLES.includes(roleName);
-
-                        if (isHighLevel) {
-                            setPermissions({ all: true });
-                        } else if (userTenant.role_id) {
-                            // Consultar permisos por role_id (sin tenant_id, esa col no existe)
-                            const { data: perms, error: permsError } = await supabase
-                                .from('role_permissions')
-                                .select('module_key, can_view')
-                                .eq('role_id', userTenant.role_id);
-
-                            if (permsError) {
-                                console.error('Error cargando permisos:', permsError.message);
-                                setPermissions({});
-                            } else if (perms && perms.length > 0) {
-                                const permMap: Record<string, boolean> = {};
-                                perms.forEach((p: { module_key: string; can_view: boolean }) => {
-                                    if (p.can_view) permMap[p.module_key] = true;
-                                });
-                                setPermissions(permMap);
-                            } else {
-                                // Sin permisos → nada visible (excepto dashboard por defecto)
-                                setPermissions({ dashboard: true });
-                            }
-                        } else {
-                            // Sin role_id → solo dashboard
-                            setPermissions({ dashboard: true });
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching user or permissions:", error);
-                setPermissions({});
-            }
-        };
-        getUser();
-    }, []);
 
     // Verificar si el usuario puede ver un módulo
     const isAuthorized = (moduleKey?: string) => {
