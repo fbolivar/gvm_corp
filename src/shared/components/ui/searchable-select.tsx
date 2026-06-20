@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Search, X, Check } from 'lucide-react'
+import { ChevronDown, Search, X, Check, Plus } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 
 export interface SearchableSelectItem {
@@ -21,6 +21,14 @@ interface SearchableSelectProps {
   className?: string
   disabled?: boolean
   error?: boolean
+  /** Permite crear una entrada de texto libre cuando lo escrito no está en la lista. */
+  allowCreate?: boolean
+  /** Callback al elegir crear: recibe el texto escrito. */
+  onCreate?: (text: string) => void
+  /** Etiqueta de la opción de crear. Por defecto: «Usar "X"». */
+  createLabel?: (text: string) => string
+  /** Texto a mostrar en el botón cuando no hay item seleccionado (ej. nombre libre). */
+  customLabel?: string
 }
 
 export function SearchableSelect({
@@ -32,6 +40,10 @@ export function SearchableSelect({
   className,
   disabled = false,
   error = false,
+  allowCreate = false,
+  onCreate,
+  createLabel,
+  customLabel,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -113,6 +125,22 @@ export function SearchableSelect({
     setQuery('')
   }
 
+  function handleCreate() {
+    const text = query.trim()
+    if (!text) return
+    onCreate?.(text)
+    setOpen(false)
+    setQuery('')
+  }
+
+  // Mostrar la opción de crear cuando hay texto y no coincide exactamente con un item
+  const showCreate = useMemo(() => {
+    if (!allowCreate || !onCreate) return false
+    const q = query.trim().toLowerCase()
+    if (!q) return false
+    return !items.some((i) => i.label.trim().toLowerCase() === q)
+  }, [allowCreate, onCreate, query, items])
+
   function handleClear(e: React.MouseEvent) {
     e.stopPropagation()
     onChange('')
@@ -133,8 +161,8 @@ export function SearchableSelect({
           disabled && 'opacity-50 cursor-not-allowed'
         )}
       >
-        <span className={cn('truncate flex-1', !selectedItem && 'text-slate-400')}>
-          {selectedItem ? selectedItem.label : placeholder}
+        <span className={cn('truncate flex-1', !selectedItem && !customLabel && 'text-slate-400')}>
+          {selectedItem ? selectedItem.label : (customLabel || placeholder)}
         </span>
         <div className="flex items-center gap-1 shrink-0">
           {selectedItem && !disabled && (
@@ -180,7 +208,19 @@ export function SearchableSelect({
           </div>
 
           <div className="max-h-[320px] overflow-y-auto overscroll-contain">
-            {filteredItems.length === 0 ? (
+            {showCreate && (
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="w-full text-left px-4 py-2.5 hover:bg-emerald-50 flex items-center gap-2 text-emerald-700 border-b border-slate-100 transition-colors"
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                <span className="text-sm font-semibold truncate">
+                  {createLabel ? createLabel(query.trim()) : `Usar «${query.trim()}»`}
+                </span>
+              </button>
+            )}
+            {filteredItems.length === 0 && !showCreate ? (
               <div className="p-6 text-center text-sm text-slate-400">{emptyMessage}</div>
             ) : (
               <ul className="py-1">

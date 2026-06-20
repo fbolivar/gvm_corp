@@ -479,17 +479,25 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                     <SearchableSelect
                                                         items={productItems}
                                                         value={form.watch(`lines.${index}.product_id`) || ''}
+                                                        customLabel={!form.watch(`lines.${index}.product_id`) ? (form.watch(`lines.${index}.description`) || undefined) : undefined}
+                                                        allowCreate
+                                                        createLabel={(t) => `Usar «${t}» como producto nuevo`}
+                                                        onCreate={(name) => {
+                                                            form.setValue(`lines.${index}.product_id`, null, { shouldDirty: true })
+                                                            form.setValue(`lines.${index}.warehouse_id`, null, { shouldDirty: true })
+                                                            form.setValue(`lines.${index}.description`, name, { shouldValidate: true, shouldDirty: true })
+                                                        }}
                                                         onChange={(v) => {
                                                             form.setValue(`lines.${index}.product_id`, v, { shouldValidate: true, shouldDirty: true })
                                                             handleProductChange(index, v)
                                                         }}
-                                                        placeholder="Buscar producto por SKU o nombre..."
+                                                        placeholder="Buscar del catálogo o escribir un nombre nuevo..."
                                                         emptyMessage="Sin coincidencias"
                                                         className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-900 hover:border-slate-300 transition"
                                                     />
                                                     <Input
                                                         {...form.register(`lines.${index}.description`)}
-                                                        placeholder="Descripción adicional (opcional)"
+                                                        placeholder="Nombre o descripción del ítem"
                                                         className="h-8 bg-transparent border-slate-100 rounded-md text-xs text-slate-600 placeholder:text-slate-300"
                                                     />
                                                     {isSale && warehouseItems.length > 0 && (() => {
