@@ -79,10 +79,20 @@ export function SearchableSelect({
     const spaceBelow = window.innerHeight - rect.bottom
     const spaceAbove = rect.top
     const openUpward = spaceBelow < DROPDOWN_MAX && spaceAbove > spaceBelow
+
+    // El dropdown se ensancha más allá del campo (que puede ser angosto) para
+    // mostrar la referencia completa, sin salirse de la pantalla.
+    const MIN_WIDTH = 360
+    const width = Math.min(Math.max(rect.width, MIN_WIDTH), window.innerWidth - 16)
+    let left = rect.left
+    if (left + width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - width - 8)
+    }
+
     setPos({
       top: openUpward ? rect.top - 8 : rect.bottom + 8,
-      left: rect.left,
-      width: rect.width,
+      left,
+      width,
       openUpward,
     })
   }
@@ -235,7 +245,7 @@ export function SearchableSelect({
                       )}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-slate-900 truncate">{item.label}</div>
+                        <div className="text-sm font-semibold text-slate-900 break-words">{item.label}</div>
                         {item.subLabel && (
                           <div className="text-[11px] text-slate-400 truncate font-medium">{item.subLabel}</div>
                         )}
