@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { technologyService } from '@/features/technology/services/technologyService';
+import { employeeService } from '@/features/payroll/services/employeeService';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { AssetDetailClient } from '@/features/technology/components/AssetDetailClient';
 
@@ -28,24 +29,8 @@ export default async function AssetDetailPage({ params }: PageProps) {
         technologyService.getCurrentAssignment(supabase, id),
     ]);
 
-    // Get employees for assignment modal (name from parties or profiles fallback)
-    const { data: empRows } = await supabase.rpc('execute_sql_internal', {
-        query: `
-            SELECT e.id,
-                   COALESCE(p.legal_name, pr.full_name, 'Sin nombre') AS display_name
-            FROM employees e
-            LEFT JOIN parties  p  ON p.id  = e.party_id
-            LEFT JOIN profiles pr ON pr.id = e.user_id
-            WHERE e.tenant_id = get_my_tenant_id()
-              AND e.status = 'ACTIVE'
-            ORDER BY display_name
-        `
-    });
-
-    const employees = ((empRows as { id: string; display_name: string }[]) || []).map(e => ({
-        id: e.id,
-        party: { legal_name: e.display_name },
-    }));
+    // Empleados activos para el modal de asignación (nombre desde party o profiles)
+    const employees = await employeeService.getActiveEmployeesForSelect(supabase);
 
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">

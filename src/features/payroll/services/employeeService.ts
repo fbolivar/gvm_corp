@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Employee } from '../types';
 import { Party } from '@/features/parties/types';
+import { resolvePartyRow, resolveEmployeeName, type PartyRow } from '../utils/carnetHelpers';
 
 export const employeeService = {
     async getEmployees(client: SupabaseClient) {
@@ -12,6 +13,45 @@ export const employeeService = {
 
         if (error) throw error;
         return data as Employee[];
+    },
+
+    /**
+     * Empleados activos con nombre resuelto (party → profiles → "Sin nombre"),
+     * para selectores de asignación. Consulta normal (segura por RLS); reemplaza
+     * el uso de execute_sql_internal.
+     */
+    async getActiveEmployeesForSelect(client: SupabaseClient): Promise<{ id: string; party: { legal_name: string } }[]> {
+        type Row = { id: string; user_id: string | null; parties: PartyRow | PartyRow[] | null };
+        const { data: emps } = await client
+            .from('employees')
+            .select('id, user_id, parties(legal_name)')
+            .eq('status', 'ACTIVE');
+        if (!emps) return [];
+
+        const rows = emps as unknown as Row[];
+        const noPartyUserIds = rows
+            .filter(e => !resolvePartyRow(e.parties)?.legal_name)
+            .map(e => e.user_id)
+            .filter(Boolean) as string[];
+
+        const profileMap: Record<string, string> = {};
+        if (noPartyUserIds.length > 0) {
+            const { data: profiles } = await client
+                .from('profiles')
+                .select('id, full_name')
+                .in('id', noPartyUserIds);
+            (profiles || []).forEach((p: { id: string; full_name: string | null }) => {
+                profileMap[p.id] = p.full_name || '';
+            });
+        }
+
+        return rows
+            .map(e => {
+                const party = resolvePartyRow(e.parties);
+                const name = resolveEmployeeName(party, e.user_id ? profileMap[e.user_id] : undefined);
+                return { id: e.id, party: { legal_name: name } };
+            })
+            .sort((a, b) => a.party.legal_name.localeCompare(b.party.legal_name));
     },
 
     async getEmployeeById(client: SupabaseClient, id: string) {
