@@ -260,6 +260,12 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                             <Calendar className="h-3 w-3 text-indigo-500" />
                             {document.issue_date ? format(new Date(document.issue_date), 'PPP', { locale: es }) : '-'}
                         </p>
+                        {document.expected_delivery_date && (
+                            <p className="text-emerald-600 font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 pl-[52px]">
+                                <Calendar className="h-3 w-3 text-emerald-500" />
+                                Entrega estimada: {format(new Date(document.expected_delivery_date), 'PPP', { locale: es })}
+                            </p>
+                        )}
                     </div>
                 </div>
 

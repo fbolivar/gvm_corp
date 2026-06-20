@@ -187,6 +187,8 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
         data.subtotal = subtotal;
         data.taxes = taxes;
         data.total = subtotal + taxes;
+        // Normalizar fecha vacía a null (columna date no acepta cadena vacía)
+        data.expected_delivery_date = data.expected_delivery_date?.trim() ? data.expected_delivery_date : null;
         try {
             await onSubmit(data);
         } catch (err: unknown) {
@@ -326,6 +328,21 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     className="h-10"
                                 />
                             </FormField>
+
+                            {(docType === 'SALES_ORDER' || docType === 'QUOTATION') && (
+                                <FormField
+                                    label="Fecha de entrega estimada"
+                                    htmlFor="df-delivery-date"
+                                    colSpan={2}
+                                >
+                                    <Input
+                                        id="df-delivery-date"
+                                        type="date"
+                                        {...form.register('expected_delivery_date')}
+                                        className="h-10"
+                                    />
+                                </FormField>
+                            )}
 
                             <FormField
                                 label={isSale ? 'Cliente' : 'Proveedor'}

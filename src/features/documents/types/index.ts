@@ -52,6 +52,7 @@ export const documentSchema = z.object({
 
     issue_date: z.string().refine((val) => !isNaN(Date.parse(val)), "Fecha inválida"),
     due_date: z.string().optional().nullable(),
+    expected_delivery_date: z.string().optional().nullable(),
 
     currency: z.string().default('COP'),
 
