@@ -18,6 +18,7 @@ import {
     Plus,
     Calendar,
     FileOutput,
+    Pencil,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/shared/lib/utils"
@@ -183,17 +184,30 @@ export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOr
                                 <td className="px-5 py-4">
                                     <div className="flex items-center justify-end gap-1.5">
                                         {order.status === 'DRAFT' && (
-                                            <Button
-                                                size="sm"
-                                                className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-[10px] font-semibold gap-1.5"
-                                                onClick={() => handleConfirmOrder(order.id!)}
-                                                disabled={processingId === order.id}
-                                            >
-                                                {processingId === order.id
-                                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    : <><Send className="h-3.5 w-3.5" /> Confirmar</>
-                                                }
-                                            </Button>
+                                            <>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-600"
+                                                    title="Editar borrador"
+                                                    asChild
+                                                >
+                                                    <Link href={`/documents/${order.id}/edit`}>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    className="h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-[10px] font-semibold gap-1.5"
+                                                    onClick={() => handleConfirmOrder(order.id!)}
+                                                    disabled={processingId === order.id}
+                                                >
+                                                    {processingId === order.id
+                                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        : <><Send className="h-3.5 w-3.5" /> Confirmar</>
+                                                    }
+                                                </Button>
+                                            </>
                                         )}
                                         {order.status === 'SENT' && (
                                             <>

@@ -162,6 +162,65 @@ export const documentService = {
         return newDoc;
     },
 
+    /**
+     * Actualiza un documento existente (solo borradores) y reemplaza sus líneas.
+     * Excluye relaciones y campos de identidad del header. No re-genera asiento
+     * contable (los borradores se reconcilian al emitir).
+     */
+    async updateDocument(client: SupabaseClient, id: string, document: Document & { lines?: DocumentLine[] }) {
+        // Excluir relaciones y campos que no se deben sobrescribir
+        const {
+            lines,
+            party,
+            warehouse,
+            electronic_document,
+            id: _id,
+            tenant_id: _tenantId,
+            created_at: _createdAt,
+            number: _number,
+            ...headerData
+        } = document as Document & {
+            lines?: DocumentLine[];
+            party?: unknown;
+            warehouse?: unknown;
+            electronic_document?: unknown;
+        };
+
+        const { data: updatedDoc, error: headerError } = await client
+            .from('documents')
+            .update(headerData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (headerError) throw headerError;
+
+        // Reemplazar líneas: borrar las existentes e insertar las nuevas
+        const { error: delError } = await client
+            .from('document_lines')
+            .delete()
+            .eq('document_id', id);
+        if (delError) throw delError;
+
+        if (lines && lines.length > 0) {
+            const linesWithDocId = lines.map(line => {
+                const { id: _lineId, document_id: _docId, ...rest } = line as DocumentLine & { document_id?: string };
+                return {
+                    ...rest,
+                    document_id: id,
+                    tax_config: line.tax_config || null,
+                };
+            });
+
+            const { error: linesError } = await client
+                .from('document_lines')
+                .insert(linesWithDocId);
+            if (linesError) throw linesError;
+        }
+
+        return updatedDoc;
+    },
+
     // Helper to re-calculate totals (Backend validation)
     calculateTotals(lines: DocumentLine[]) {
         let subtotal = 0;

@@ -31,6 +31,7 @@ import {
     Trash2,
     Warehouse,
     FileDown,
+    Pencil,
 } from "lucide-react"
 import { emitDianAction } from '@/features/dian/actions'
 import { createPaymentLinkAction } from '@/features/payments/actions'
@@ -277,6 +278,18 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                     >
                         <FileDown className="mr-3 h-4 w-4" /> PDF
                     </Button>
+
+                    {isDraft && (
+                        <Button
+                            variant="outline"
+                            asChild
+                            className="h-14 rounded-[1.25rem] border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 font-black px-8 shadow-sm transition-all hover:scale-105 active:scale-95 text-[10px] uppercase tracking-widest"
+                        >
+                            <Link href={`/documents/${document.id}/edit`}>
+                                <Pencil className="mr-3 h-4 w-4" /> Editar
+                            </Link>
+                        </Button>
+                    )}
 
                     {isDraft && (
                         <Button
