@@ -491,31 +491,23 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     return (
                                         <div key={field.id} className="p-4 hover:bg-slate-50/50 transition">
                                             <div className="grid grid-cols-12 gap-3 items-start">
-                                                {/* Producto + descripción */}
+                                                {/* Producto: nombre libre (primario) + catálogo opcional */}
                                                 <div className="col-span-12 md:col-span-4 space-y-2">
+                                                    <Input
+                                                        {...form.register(`lines.${index}.description`)}
+                                                        placeholder="Escribe el nombre del producto o servicio"
+                                                        className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-900 font-medium placeholder:text-slate-400 hover:border-slate-300 transition"
+                                                    />
                                                     <SearchableSelect
                                                         items={productItems}
                                                         value={form.watch(`lines.${index}.product_id`) || ''}
-                                                        customLabel={!form.watch(`lines.${index}.product_id`) ? (form.watch(`lines.${index}.description`) || undefined) : undefined}
-                                                        allowCreate
-                                                        createLabel={(t) => `Usar «${t}» como producto nuevo`}
-                                                        onCreate={(name) => {
-                                                            form.setValue(`lines.${index}.product_id`, null, { shouldDirty: true })
-                                                            form.setValue(`lines.${index}.warehouse_id`, null, { shouldDirty: true })
-                                                            form.setValue(`lines.${index}.description`, name, { shouldValidate: true, shouldDirty: true })
-                                                        }}
                                                         onChange={(v) => {
                                                             form.setValue(`lines.${index}.product_id`, v, { shouldValidate: true, shouldDirty: true })
                                                             handleProductChange(index, v)
                                                         }}
-                                                        placeholder="Buscar del catálogo o escribir un nombre nuevo..."
-                                                        emptyMessage="Sin coincidencias"
-                                                        className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-900 hover:border-slate-300 transition"
-                                                    />
-                                                    <Input
-                                                        {...form.register(`lines.${index}.description`)}
-                                                        placeholder="Nombre o descripción del ítem"
-                                                        className="h-8 bg-transparent border-slate-100 rounded-md text-xs text-slate-600 placeholder:text-slate-300"
+                                                        placeholder="🔗 Vincular con catálogo (opcional)"
+                                                        emptyMessage="Sin coincidencias en el catálogo"
+                                                        className="h-9 bg-slate-50 border border-slate-200 rounded-lg px-3 text-xs text-slate-600 hover:border-slate-300 transition"
                                                     />
                                                     {isSale && warehouseItems.length > 0 && (() => {
                                                         const whValue = form.watch(`lines.${index}.warehouse_id`) || '';
