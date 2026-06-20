@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { partyService } from '@/features/parties/services/partyService';
 import { productService } from '@/features/products/services/productService';
 import { inventoryService } from '@/features/inventory/services/inventoryService';
+import { getPartiesLightCached, getProductsLightCached } from '@/shared/lib/cachedLookups';
 import NewOrderClient from './client';
 import { ShoppingCart } from 'lucide-react';
 import { redirect } from 'next/navigation';
@@ -12,13 +13,15 @@ export default async function NewOrderPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const [parties, products, warehouses, ut] = await Promise.all([
-        partyService.getAllPartiesLight(supabase, 'customer'),
-        productService.getAllActiveProductsLight(supabase),
+    const { data: utRow } = await supabase
+        .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle();
+    const tenantId = utRow?.tenant_id as string | undefined;
+
+    const [parties, products, warehouses] = await Promise.all([
+        tenantId ? getPartiesLightCached(tenantId, 'customer') : partyService.getAllPartiesLight(supabase, 'customer'),
+        tenantId ? getProductsLightCached(tenantId) : productService.getAllActiveProductsLight(supabase),
         inventoryService.getWarehouses(supabase),
-        supabase.from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle(),
     ]);
-    const tenantId = ut?.data?.tenant_id as string | undefined;
 
     // Comerciales = profiles del tenant (que pueden vender)
     const { data: tenantUsers } = tenantId

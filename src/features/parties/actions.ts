@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { partyService } from "./services/partyService";
 import { Party, partySchema } from "./types";
 import { revalidatePath } from "next/cache";
+import { revalidatePartiesCache } from "@/shared/lib/cachedLookups";
 
 export async function createPartyAction(data: Party) {
     const supabase = await createClient();
@@ -16,6 +17,7 @@ export async function createPartyAction(data: Party) {
 
     try {
         const result = await partyService.createParty(supabase, parsed.data);
+        revalidatePartiesCache();
         revalidatePath('/parties');
         return { success: true, data: result };
     } catch (error: any) {
@@ -37,6 +39,7 @@ export async function updatePartyAction(id: string, data: Party) {
         return { error: error.message };
     }
 
+    revalidatePartiesCache();
     revalidatePath('/parties');
     revalidatePath(`/parties/${id}`);
     return { success: true };

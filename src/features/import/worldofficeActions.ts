@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { revalidateProductsCache, revalidatePartiesCache } from '@/shared/lib/cachedLookups'
 
 // Fila normalizada del PUC para enviar a la RPC
 interface PucRow {
@@ -406,6 +407,7 @@ export async function importWorldOfficePartiesAction(
       totalSkipped += r?.skipped ?? 0
     }
 
+    revalidatePartiesCache()
     revalidatePath('/parties')
 
     return {
@@ -1338,6 +1340,7 @@ export async function importInventoryChunkAction(rows: InventoryRow[]): Promise<
     })
     if (error) return { success: false, error: error.message }
     const r = data as { processed?: number; skipped?: number; new_products?: number; new_warehouses?: number; total_qty?: number; total_value?: number }
+    revalidateProductsCache()
     return {
       success: true,
       processed: r?.processed ?? 0,
@@ -1893,6 +1896,7 @@ export async function importProductTaxChunkAction(rows: ProductTaxRow[]): Promis
     })
     if (error) return { success: false, error: error.message }
     const r = data as { updated?: number; unmatched?: number; d0?: number; d5?: number; d19?: number }
+    revalidateProductsCache()
     revalidatePath('/products')
     return {
       success: true,

@@ -5,6 +5,7 @@ import { productService } from "./services/productService";
 import { Product, productSchema } from "./types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { revalidateProductsCache } from "@/shared/lib/cachedLookups";
 
 export async function createProductAction(data: Product) {
     const supabase = await createClient();
@@ -21,6 +22,7 @@ export async function createProductAction(data: Product) {
         return { error: error.message };
     }
 
+    revalidateProductsCache();
     revalidatePath('/products');
     redirect('/products');
 }
@@ -40,6 +42,7 @@ export async function updateProductAction(id: string, data: Product) {
         return { error: error.message };
     }
 
+    revalidateProductsCache();
     revalidatePath('/products');
     revalidatePath(`/products/${id}`);
     redirect('/products');

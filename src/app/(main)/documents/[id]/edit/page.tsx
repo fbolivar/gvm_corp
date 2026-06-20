@@ -3,6 +3,7 @@ import { documentService } from '@/features/documents/services/documentService';
 import { partyService } from '@/features/parties/services/partyService';
 import { productService } from '@/features/products/services/productService';
 import { inventoryService } from '@/features/inventory/services/inventoryService';
+import { getPartiesLightCached, getProductsLightCached } from '@/shared/lib/cachedLookups';
 import EditDocumentClient from './client';
 import { redirect, notFound } from 'next/navigation';
 import { Pencil } from 'lucide-react';
@@ -31,13 +32,15 @@ export default async function EditDocumentPage({ params }: PageProps) {
         redirect(`/documents/${id}`);
     }
 
-    const [parties, products, warehouses, ut] = await Promise.all([
-        partyService.getAllPartiesLight(supabase, 'all'),
-        productService.getAllActiveProductsLight(supabase),
+    const { data: utRow } = await supabase
+        .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle();
+    const tenantId = utRow?.tenant_id as string | undefined;
+
+    const [parties, products, warehouses] = await Promise.all([
+        tenantId ? getPartiesLightCached(tenantId, 'all') : partyService.getAllPartiesLight(supabase, 'all'),
+        tenantId ? getProductsLightCached(tenantId) : productService.getAllActiveProductsLight(supabase),
         inventoryService.getWarehouses(supabase),
-        supabase.from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle(),
     ]);
-    const tenantId = ut?.data?.tenant_id as string | undefined;
 
     return (
         <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto">

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { partyService } from '@/features/parties/services/partyService';
 import { productService } from '@/features/products/services/productService';
 import { inventoryService } from '@/features/inventory/services/inventoryService';
+import { getPartiesLightCached, getProductsLightCached } from '@/shared/lib/cachedLookups';
 import NewQuotationClient from './client';
 import { FileText } from 'lucide-react';
 import { redirect } from 'next/navigation';
@@ -19,9 +20,13 @@ export default async function NewQuotationPage({ searchParams }: PageProps) {
     const params = await searchParams;
     const preSelectedProductId = (params?.productId as string) || undefined;
 
+    const { data: ut } = await supabase
+        .from('user_tenants').select('tenant_id').eq('user_id', user.id).maybeSingle();
+    const tenantId = ut?.tenant_id as string | undefined;
+
     const [parties, products, warehouses] = await Promise.all([
-        partyService.getAllPartiesLight(supabase, 'customer'),
-        productService.getAllActiveProductsLight(supabase),
+        tenantId ? getPartiesLightCached(tenantId, 'customer') : partyService.getAllPartiesLight(supabase, 'customer'),
+        tenantId ? getProductsLightCached(tenantId) : productService.getAllActiveProductsLight(supabase),
         inventoryService.getWarehouses(supabase),
     ]);
 
