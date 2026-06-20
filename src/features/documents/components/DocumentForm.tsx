@@ -132,6 +132,8 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
     const { fields, append, remove } = useFieldArray({ control: form.control, name: "lines" });
     const docType = form.watch('doc_type');
     const isSale = ['INVOICE', 'QUOTATION', 'SALES_ORDER', 'RECEIPT'].includes(docType);
+    // Las cotizaciones NO despachan mercancía: no requieren bodega ni control de stock.
+    const needsWarehouse = ['INVOICE', 'SALES_ORDER', 'DELIVERY_NOTE', 'RECEIPT'].includes(docType);
     const isDeliveryNote = docType === 'DELIVERY_NOTE';
     const [ignoreStock, setIgnoreStock] = useState(false);
     const supabase = createClient();
@@ -163,8 +165,8 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
     };
 
     const handleFormSubmit = async (data: Document) => {
-        // Validación temprana: en ventas, toda línea con producto requiere bodega.
-        if (isSale && warehouseItems.length > 0) {
+        // Validación temprana: en ventas que despachan, toda línea con producto requiere bodega.
+        if (needsWarehouse && warehouseItems.length > 0) {
             const missing = (data.lines || []).some(
                 (l: any) => l.product_id && !l.warehouse_id
             );
@@ -245,7 +247,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
         })), [warehouses]);
 
     const lines = form.watch('lines');
-    const hasStockIssues = !ignoreStock && isSale && lines?.some((line: any) => {
+    const hasStockIssues = !ignoreStock && needsWarehouse && lines?.some((line: any) => {
         const prod = products.find(p => p.id === line.product_id);
         return prod && (Number(line.qty) || 0) > (prod.stock_qty || 0);
     });
@@ -362,7 +364,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                 />
                             </FormField>
 
-                            {isSale && warehouseItems.length > 0 && (
+                            {needsWarehouse && warehouseItems.length > 0 && (
                                 <FormField
                                     label="Bodega de origen"
                                     htmlFor="df-warehouse"
@@ -387,7 +389,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                 </FormField>
                             )}
 
-                            {isSale && (
+                            {needsWarehouse && (
                                 <div className="col-span-full">
                                     <label
                                         htmlFor="df-ignore-stock"
@@ -486,7 +488,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     const pid = form.watch(`lines.${index}.product_id`);
                                     const prod = products.find(p => p.id === pid);
                                     const qty = Number(form.watch(`lines.${index}.qty`)) || 0;
-                                    const stockExceeded = !ignoreStock && isSale && prod && qty > (prod.stock_qty || 0);
+                                    const stockExceeded = !ignoreStock && needsWarehouse && prod && qty > (prod.stock_qty || 0);
 
                                     return (
                                         <div key={field.id} className="p-4 hover:bg-slate-50/50 transition">
@@ -495,7 +497,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                 <div className="col-span-12 md:col-span-4 space-y-2">
                                                     <Input
                                                         {...form.register(`lines.${index}.description`)}
-                                                        placeholder="Escribe el nombre del producto o servicio"
+                                                        placeholder="Producto o servicio"
                                                         className="h-10 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-900 font-medium placeholder:text-slate-400 hover:border-slate-300 transition"
                                                     />
                                                     <SearchableSelect
@@ -505,11 +507,11 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                             form.setValue(`lines.${index}.product_id`, v, { shouldValidate: true, shouldDirty: true })
                                                             handleProductChange(index, v)
                                                         }}
-                                                        placeholder="🔗 Vincular con catálogo (opcional)"
+                                                        placeholder="Del catálogo (opcional)"
                                                         emptyMessage="Sin coincidencias en el catálogo"
                                                         className="h-9 bg-slate-50 border border-slate-200 rounded-lg px-3 text-xs text-slate-600 hover:border-slate-300 transition"
                                                     />
-                                                    {isSale && warehouseItems.length > 0 && (() => {
+                                                    {needsWarehouse && warehouseItems.length > 0 && (() => {
                                                         const whValue = form.watch(`lines.${index}.warehouse_id`) || '';
                                                         const pidSel = form.watch(`lines.${index}.product_id`);
                                                         const showError = !!pidSel && !whValue;
@@ -581,7 +583,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                             stockExceeded && "border-amber-300 bg-amber-50"
                                                         )}
                                                     />
-                                                    {isSale && prod && (
+                                                    {needsWarehouse && prod && (
                                                         <p className={cn(
                                                             "text-[11px] font-medium",
                                                             stockExceeded ? "text-amber-600" : "text-slate-400"
