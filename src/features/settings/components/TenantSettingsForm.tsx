@@ -137,6 +137,29 @@ export function TenantSettingsForm({ initialData }: Props) {
                                 <Badge className="bg-white/5 border-white/10 text-white/40 rounded-full px-4 py-1 text-[8px] font-black uppercase tracking-widest">Máx 2MB</Badge>
                                 <Badge className="bg-white/5 border-white/10 text-white/40 rounded-full px-4 py-1 text-[8px] font-black uppercase tracking-widest">PNG / SVG / JPG</Badge>
                             </div>
+                            <label className="inline-flex items-center gap-2 cursor-pointer bg-primary hover:bg-primary/90 text-white rounded-xl px-5 py-2.5 text-xs font-black uppercase tracking-widest transition mt-3">
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file && initialData?.id) {
+                                            if (file.size > 2 * 1024 * 1024) { toast.error("El logo no debe superar 2MB"); return; }
+                                            const toastId = toast.loading("Subiendo logo...");
+                                            try {
+                                                await settingsService.uploadTenantLogo(supabase, initialData.id, file);
+                                                toast.success("Logo actualizado — aparecerá en los PDF", { id: toastId });
+                                                window.location.reload();
+                                            } catch (error: unknown) {
+                                                toast.error("Error al subir: " + (error instanceof Error ? error.message : 'desconocido'), { id: toastId });
+                                            }
+                                        }
+                                    }}
+                                />
+                                <Camera className="h-4 w-4" />
+                                {initialData?.logo_url ? 'Cambiar logo' : 'Subir logo'}
+                            </label>
                         </div>
                     </CardContent>
                 </Card>

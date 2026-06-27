@@ -401,8 +401,16 @@ export const documentPdfService = {
         y = Math.max(y + 20, tY) + 5;
 
         // =====================================================
-        // 5. LEGAL NOTICE
+        // 5. DISCLAIMER (cotizaciones) + LEGAL NOTICE
         // =====================================================
+        if (document.doc_type === 'QUOTATION') {
+            doc.setFontSize(8.5);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...BLUE);
+            doc.text('Esta cotización tiene una validez de 8 días calendario a partir de la fecha de emisión.', pw / 2, y, { align: 'center' });
+            y += 6;
+        }
+
         doc.setFontSize(6.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...GRAY);
