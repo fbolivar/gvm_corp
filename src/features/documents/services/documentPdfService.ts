@@ -31,10 +31,6 @@ export interface DianResolutionPdfInfo {
     end_date: string;
 }
 
-function fmt(n: number): string {
-    return n.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function fmtInt(n: number): string {
     return n.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
@@ -48,6 +44,41 @@ function fmtDate(iso: string | null | undefined): string {
     return `${dd}/${mm}/${yyyy}`;
 }
 
+// El IVA de una línea: tax_config puede venir como array [{rate}] o como objeto.
+function lineIvaRate(line: { tax_config?: unknown }): number {
+    const tc = line.tax_config as unknown;
+    const first = Array.isArray(tc) ? tc[0] : tc;
+    const r = Number((first as { rate?: number; iva?: number })?.rate ?? (first as { iva?: number })?.iva ?? 0);
+    return Number.isFinite(r) ? r : 0;
+}
+
+// Carga una imagen (logo) como dataURL para incrustarla en el PDF.
+async function loadLogo(url: string): Promise<{ data: string; format: string; w: number; h: number } | null> {
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) return null;
+        const blob = await resp.blob();
+        const data: string = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onloadend = () => resolve(r.result as string);
+            r.onerror = reject;
+            r.readAsDataURL(blob);
+        });
+        const dim = await new Promise<{ w: number; h: number }>((resolve) => {
+            const im = new Image();
+            im.onload = () => resolve({ w: im.naturalWidth, h: im.naturalHeight });
+            im.onerror = () => resolve({ w: 0, h: 0 });
+            im.src = data;
+        });
+        if (!dim.w || !dim.h) return null;
+        const mime = data.substring(data.indexOf('/') + 1, data.indexOf(';'));
+        const format = mime.toUpperCase() === 'JPG' ? 'JPEG' : mime.toUpperCase();
+        return { data, format, w: dim.w, h: dim.h };
+    } catch {
+        return null;
+    }
+}
+
 export const documentPdfService = {
     async generatePdf(
         document: Document,
@@ -56,14 +87,10 @@ export const documentPdfService = {
     ) {
         const doc = new jsPDF('p', 'mm', 'letter');
         const pw = doc.internal.pageSize.width;
-        const M = 8; // margin
-        const CW = pw - M * 2; // content width
+        const M = 10;
+        const CW = pw - M * 2;
 
-        const company = tenant || {
-            name: 'EMPRESA S.A.S',
-            nit: '000000000',
-            dv: '0',
-        };
+        const company = tenant || { name: 'EMPRESA S.A.S', nit: '000000000', dv: '0' } as TenantPdfInfo;
 
         const docTypeLabels: Record<string, string> = {
             'INVOICE': 'Factura Electrónica De Venta No',
@@ -79,113 +106,120 @@ export const documentPdfService = {
         };
 
         // =====================================================
-        // 1. HEADER: Logo | Company Info | Invoice No + Res
+        // 1. HEADER: Logo | Company Info | Doc No + Resolución
         // =====================================================
         let y = M;
-        const headerH = 38;
+        const headerH = 44;
 
-        // Outer border
         doc.setDrawColor(...BLUE);
         doc.setLineWidth(0.5);
         doc.rect(M, y, CW, headerH);
 
-        // Left: Logo area
-        const logoW = 38;
-        doc.setDrawColor(...BLUE);
+        const logoW = 48;
         doc.line(M + logoW, y, M + logoW, y + headerH);
 
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        const initials = company.name.split(' ').filter(w => w.length > 1).map(w => w[0]).join('').slice(0, 4);
-        doc.text(initials, M + logoW / 2, y + 18, { align: 'center' });
-        doc.setFontSize(5);
-        doc.setTextColor(...GRAY);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Logo Empresa', M + logoW / 2, y + 24, { align: 'center' });
+        // Logo (imagen real si existe; si no, iniciales)
+        let logoDrawn = false;
+        if (company.logo_url) {
+            const logo = await loadLogo(company.logo_url);
+            if (logo) {
+                const boxW = logoW - 8;
+                const boxH = headerH - 10;
+                const ratio = Math.min(boxW / logo.w, boxH / logo.h);
+                const w = logo.w * ratio;
+                const h = logo.h * ratio;
+                const lx = M + (logoW - w) / 2;
+                const ly = y + (headerH - h) / 2;
+                try {
+                    doc.addImage(logo.data, logo.format, lx, ly, w, h);
+                    logoDrawn = true;
+                } catch { /* fallback abajo */ }
+            }
+        }
+        if (!logoDrawn) {
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...BLUE);
+            const initials = company.name.split(' ').filter(w => w.length > 1).map(w => w[0]).join('').slice(0, 4);
+            doc.text(initials, M + logoW / 2, y + 22, { align: 'center' });
+            doc.setFontSize(7);
+            doc.setTextColor(...GRAY);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Logo Empresa', M + logoW / 2, y + 30, { align: 'center' });
+        }
 
-        // Right: Invoice number box
-        const rightW = 56;
+        const rightW = 62;
         const rightX = pw - M - rightW;
-        doc.setDrawColor(...BLUE);
         doc.line(rightX, y, rightX, y + headerH);
 
-        // Center: Company info
+        // Center: Company info (más grande)
         const centerX = M + logoW + 1;
         const centerW = rightX - centerX - 1;
+        const cMid = centerX + centerW / 2;
 
-        doc.setFontSize(8);
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...BLACK);
-        doc.text(company.name.toUpperCase(), centerX + centerW / 2, y + 6, { align: 'center' });
+        const nameLines = doc.splitTextToSize(company.name.toUpperCase(), centerW - 4);
+        let ly = y + 7;
+        for (const nl of nameLines.slice(0, 2)) {
+            doc.text(nl, cMid, ly, { align: 'center' });
+            ly += 5;
+        }
 
-        doc.setFontSize(5);
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...GRAY);
+        ly += 0.5;
+        doc.text('RESPONSABLES DE IVA - NO SOMOS AGENTES DE RETENCIÓN', cMid, ly, { align: 'center' }); ly += 3.5;
 
-        const infoLines = [
-            'RESPONSABLES DE IVA - NO SOMOS AGENTES DE RETENCIÓN DE IVA',
-            'NO SOMOS GRANDES CONTRIBUYENTES NI AUTORRETENEDORES',
-        ];
-        let ly = y + 10;
-        for (const line of infoLines) {
-            doc.text(line, centerX + centerW / 2, ly, { align: 'center' });
-            ly += 3;
-        }
+        doc.setFontSize(7.5);
+        doc.setTextColor(...BLACK);
         if (company.address) {
-            doc.text(`Sede principal: ${company.address}${company.city ? ', ' + company.city : ''}`, centerX + centerW / 2, ly, { align: 'center' });
-            ly += 3;
+            const loc = `${company.address}${company.city ? ', ' + company.city : ''}${company.department ? ', ' + company.department : ''}`;
+            doc.text(loc, cMid, ly, { align: 'center' }); ly += 3.8;
         }
-        if (company.phone) {
-            doc.text(`Tel: ${company.phone}`, centerX + centerW / 2, ly, { align: 'center' });
-            ly += 3;
-        }
-        if (company.email) {
-            doc.text(`Email: ${company.email}`, centerX + centerW / 2, ly, { align: 'center' });
-        }
+        if (company.phone) { doc.text(`Tel: ${company.phone}`, cMid, ly, { align: 'center' }); ly += 3.8; }
+        if (company.email) { doc.text(`Email: ${company.email}`, cMid, ly, { align: 'center' }); ly += 3.8; }
 
-        // NIT at bottom of center
-        doc.setFontSize(7);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...BLACK);
-        doc.text(`NIT. ${company.nit}  - ${company.dv}`, centerX + centerW / 2, y + 35, { align: 'center' });
+        doc.text(`NIT. ${company.nit} - ${company.dv}`, cMid, y + headerH - 3, { align: 'center' });
 
-        // Right column: Invoice label + number + resolution
-        doc.setFontSize(6);
+        // Right: Doc label + number + resolution
+        const rMid = rightX + rightW / 2;
+        doc.setFontSize(8.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...BLACK);
         const docLabel = docTypeLabels[document.doc_type] || 'Documento No';
-        const lblLines = doc.splitTextToSize(docLabel, rightW - 6);
-        doc.text(lblLines, rightX + rightW / 2, y + 5, { align: 'center' });
+        doc.text(doc.splitTextToSize(docLabel, rightW - 6), rMid, y + 6, { align: 'center' });
 
         const prefix = resolution?.prefix || '';
-        const numStr = prefix ? `${prefix}   No.   ${document.number}` : `No.   ${document.number}`;
-        doc.setFontSize(11);
-        doc.text(numStr, rightX + rightW / 2, y + 15, { align: 'center' });
+        const numStr = prefix ? `${prefix} No. ${document.number}` : `No. ${document.number}`;
+        doc.setFontSize(15);
+        doc.text(numStr, rMid, y + 18, { align: 'center' });
 
         if (resolution) {
-            doc.setFontSize(4.5);
+            doc.setFontSize(5.5);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(...GRAY);
             const rl = [
-                `Documento Oficial de Autorización de`,
-                `Numeración Facturación Electrónica No.`,
-                `${resolution.resolution_number} que habilita desde ${resolution.start_range} hasta`,
-                `${resolution.end_range}. Vence ${fmtDate(resolution.end_date)}`,
+                `Autorización de Numeración`,
+                `Facturación Electrónica No. ${resolution.resolution_number}`,
+                `Desde ${resolution.start_range} hasta ${resolution.end_range}`,
+                `Vence ${fmtDate(resolution.end_date)}`,
             ];
-            let ry = y + 20;
-            for (const r of rl) {
-                doc.text(r, rightX + rightW / 2, ry, { align: 'center' });
-                ry += 2.8;
-            }
+            let ry = y + 24;
+            for (const r of rl) { doc.text(r, rMid, ry, { align: 'center' }); ry += 3.2; }
         }
 
-        y += headerH + 1;
+        y += headerH + 1.5;
 
         // =====================================================
-        // 2. CLIENT INFO (blue-tinted background)
+        // 2. CLIENT INFO
         // =====================================================
-        const cH = 28;
+        const cH = 32;
         doc.setFillColor(...BLUE_LIGHT);
         doc.rect(M, y, CW, cH, 'F');
         doc.setDrawColor(...BLUE);
@@ -193,129 +227,66 @@ export const documentPdfService = {
         doc.rect(M, y, CW, cH);
 
         const half = CW / 2;
-        // Horizontal grid lines
-        doc.line(M, y + 9, M + CW, y + 9);
-        doc.line(M, y + 18, M + CW, y + 18);
-        // Vertical center
-        doc.line(M + half, y, M + half, y + 18);
+        doc.line(M, y + 8, M + CW, y + 8);
+        doc.line(M, y + 16, M + CW, y + 16);
+        doc.line(M, y + 24, M + CW, y + 24);
+        doc.line(M + half, y, M + half, y + 24);
 
-        const P = 1.5; // cell padding
-        doc.setFontSize(5.5);
+        const P = 2;
+        const LBL = 7;     // label font
+        const VAL = 8.5;   // value font
 
-        // Row 1 Left: CLIENTE + NIT
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('CLIENTE', M + P, y + 3.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.setFontSize(6);
-        doc.text(document.party?.legal_name || '', M + 18, y + 3.5);
+        const label = (t: string, x: number, yy: number) => {
+            doc.setFontSize(LBL); doc.setFont('helvetica', 'bold'); doc.setTextColor(...BLUE);
+            doc.text(t, x, yy);
+        };
+        const value = (t: string, x: number, yy: number) => {
+            doc.setFontSize(VAL); doc.setFont('helvetica', 'normal'); doc.setTextColor(...BLACK);
+            doc.text(t || '', x, yy);
+        };
 
-        doc.setFontSize(5.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('NIT', M + P, y + 7);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        const cNit = document.party?.doc_number || '';
-        const cDv = (document.party as Record<string, unknown>)?.dv as string || '';
-        doc.text(`${cNit}${cDv ? ' ' + cDv : ''}`, M + 18, y + 7);
+        // Left column
+        label('CLIENTE', M + P, y + 5.5); value(document.party?.legal_name || '', M + 24, y + 5.5);
+        label('NIT', M + P, y + 13.5); value(`${document.party?.doc_number || ''}`, M + 24, y + 13.5);
+        label('DIRECCIÓN', M + P, y + 21.5);
+        value(((document.party as Record<string, unknown>)?.address as string) || '', M + 28, y + 21.5);
+        label('CIUDAD', M + P, y + 29.5);
+        value(((document.party as Record<string, unknown>)?.city as string) || '', M + 24, y + 29.5);
 
-        // Row 1 Right: POR CONCEPTO DE + OBSERVACIÓN
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('POR CONCEPTO DE', M + half + P, y + 3.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        const cpt = document.notes_public || '';
-        doc.text(cpt.substring(0, 60), M + half + 32, y + 3.5);
+        // Right column
+        label('POR CONCEPTO DE', M + half + P, y + 5.5);
+        value((document.notes_public || '').substring(0, 45), M + half + 38, y + 5.5);
+        label('TELÉFONO', M + half + P, y + 13.5); value(document.party?.phone || '', M + half + 28, y + 13.5);
+        label('FECHA', M + half + P, y + 21.5); value(fmtDate(document.issue_date), M + half + 28, y + 21.5);
+        label('FORMA DE PAGO', M + half + P, y + 29.5); value('Contado', M + half + 38, y + 29.5);
 
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('OBSERVACION', M + half + P, y + 7);
-
-        // Row 2: DIRECCIÓN | CIUDAD | TELÉFONO
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('DIRECCIÓN', M + P, y + 12.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.text((document.party as Record<string, unknown>)?.address as string || '', M + 22, y + 12.5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('CIUDAD', M + 65, y + 12.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.text((document.party as Record<string, unknown>)?.city as string || '', M + 80, y + 12.5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('TELÉFONO', M + half + P, y + 12.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.text(document.party?.phone || '', M + half + 20, y + 12.5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('FECHA FACTURA', M + half + P, y + 16);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.text(fmtDate(document.issue_date), M + half + 28, y + 16);
-
-        // Row 3: FECHA FACTURA | VENCIMIENTO | FORMA PAGO | VENDEDOR
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('FECHA FACTURA', M + P, y + 21.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.text(fmtDate(document.issue_date), M + 30, y + 21.5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('FECHA VENCIMIENTO', M + 50, y + 21.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.text(fmtDate(document.due_date), M + 80, y + 21.5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('FORMA DE PAGO', M + P, y + 25.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...BLACK);
-        doc.text('Contado', M + 30, y + 25.5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('VENDEDOR', M + half + P, y + 21.5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...BLUE);
-        doc.text('SUCURSAL', M + half + 50, y + 21.5);
-
-        y += cH + 1;
+        y += cH + 2;
 
         // =====================================================
-        // 3. ITEMS TABLE
+        // 3. ITEMS TABLE (sin Código / Lote / Fecha)
         // =====================================================
-        const tHead = [['Item', 'Código', 'Descripción', 'Lote', 'Fecha\nVenci', 'Cantidad', 'U Med', 'Vr Unitario', 'IVA', 'Vr IVA', 'Dcto%', 'Total']];
+        const tHead = [['Item', 'Descripción', 'Cantidad', 'U Med', 'Vr Unitario', 'IVA', 'Vr IVA', 'Dcto%', 'Total']];
 
+        let calcSubtotal = 0;
+        let calcTaxes = 0;
         const tBody = (document.lines || []).map((line, i) => {
-            const iva = Number(line.tax_config?.rate ?? line.tax_config?.iva ?? 0);
-            const ivaAmt = Number(line.unit_price) * Number(line.qty) * (iva / 100);
+            const qty = Number(line.qty) || 0;
+            const price = Number(line.unit_price) || 0;
+            const base = qty * price;
+            const iva = lineIvaRate(line);
+            const ivaAmt = base * (iva / 100);
+            calcSubtotal += base;
+            calcTaxes += ivaAmt;
             return [
                 String(i + 1),
-                line.product_id?.substring(0, 12) || '',
                 line.description || '',
-                '',
-                '',
-                fmtInt(Number(line.qty)),
+                fmtInt(qty),
                 'Und.',
-                fmtInt(Number(line.unit_price)),
+                fmtInt(price),
                 `${iva}%`,
                 fmtInt(ivaAmt),
                 '0',
-                fmtInt(Number(line.line_total)),
+                fmtInt(Number(line.line_total) || base + ivaAmt),
             ];
         });
 
@@ -324,8 +295,8 @@ export const documentPdfService = {
             head: tHead,
             body: tBody,
             styles: {
-                fontSize: 5.5,
-                cellPadding: 1.5,
+                fontSize: 8,
+                cellPadding: 2.2,
                 font: 'helvetica',
                 textColor: [...BLACK] as [number, number, number],
                 lineColor: [...BLUE] as [number, number, number],
@@ -335,91 +306,80 @@ export const documentPdfService = {
                 fillColor: [...BLUE] as [number, number, number],
                 textColor: [...WHITE] as [number, number, number],
                 fontStyle: 'bold',
-                fontSize: 5,
+                fontSize: 7.5,
                 halign: 'center',
                 valign: 'middle',
-                cellPadding: 2,
+                cellPadding: 2.5,
             },
             columnStyles: {
-                0: { halign: 'center', cellWidth: 8 },
-                1: { cellWidth: 18 },
-                2: { cellWidth: 40 },
+                0: { halign: 'center', cellWidth: 12 },
+                1: { cellWidth: 'auto' },
+                2: { halign: 'right', cellWidth: 20 },
                 3: { halign: 'center', cellWidth: 14 },
-                4: { halign: 'center', cellWidth: 16 },
-                5: { halign: 'right', cellWidth: 14 },
-                6: { halign: 'center', cellWidth: 10 },
-                7: { halign: 'right', cellWidth: 20 },
-                8: { halign: 'center', cellWidth: 10 },
-                9: { halign: 'right', cellWidth: 16 },
-                10: { halign: 'center', cellWidth: 10 },
-                11: { halign: 'right', cellWidth: 24 },
+                4: { halign: 'right', cellWidth: 24 },
+                5: { halign: 'center', cellWidth: 14 },
+                6: { halign: 'right', cellWidth: 22 },
+                7: { halign: 'center', cellWidth: 14 },
+                8: { halign: 'right', cellWidth: 28 },
             },
             margin: { left: M, right: M },
             theme: 'grid',
         });
 
-        y = (doc as any).lastAutoTable?.finalY || y + 30;
+        y = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || y + 30;
 
-        // Status stamp
         if (document.status === 'VOIDED') {
-            doc.setFontSize(8);
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(...BLACK);
-            doc.text('********** ANULADA **********', pw / 2, y + 4, { align: 'center' });
-            y += 7;
+            doc.text('********** ANULADA **********', pw / 2, y + 5, { align: 'center' });
+            y += 9;
         }
 
-        y += 2;
+        y += 3;
 
         // =====================================================
-        // 4. TOTALS + VALOR EN LETRAS
+        // 4. TOTALS + VALOR EN LETRAS (IVA calculado desde líneas)
         // =====================================================
-        const subtotal = Number(document.subtotal) || 0;
-        const taxes = Number(document.taxes) || 0;
-        const total = Number(document.total) || 0;
+        const subtotal = calcSubtotal || Number(document.subtotal) || 0;
+        const taxes = calcTaxes || Number(document.taxes) || 0;
+        const total = subtotal + taxes;
 
-        const leftW = CW * 0.52;
-        const rW = CW * 0.48;
+        const leftW = CW * 0.5;
+        const rW = CW * 0.5;
         const rX = M + leftW;
 
         // Left: Total items + Valor en letras
         doc.setDrawColor(...BLUE);
         doc.setLineWidth(0.3);
-
-        // Row: Total items / Valor en Letras header
         doc.setFillColor(...BLUE_LIGHT);
-        doc.rect(M, y, leftW, 5.5, 'FD');
-        doc.setFontSize(5.5);
+        doc.rect(M, y, leftW, 7, 'FD');
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...BLUE);
-        doc.text('Total Item', M + P, y + 3.5);
+        doc.text('Total Item', M + P, y + 4.5);
         doc.setTextColor(...BLACK);
-        doc.text(String(document.lines?.length || 0), M + 20, y + 3.5);
+        doc.text(String(document.lines?.length || 0), M + 24, y + 4.5);
         doc.setTextColor(...BLUE);
-        doc.text('Valor en Letras', M + 35, y + 3.5);
+        doc.text('Valor en Letras', M + 40, y + 4.5);
 
-        // Valor en letras content
-        doc.rect(M, y + 5.5, leftW, 8, 'D');
-        doc.setFontSize(5);
+        doc.rect(M, y + 7, leftW, 13, 'D');
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...BLACK);
-        const letras = numberToWords(total);
-        const lLines = doc.splitTextToSize(letras, leftW - 4);
-        doc.text(lLines, M + P, y + 9);
+        const lLines = doc.splitTextToSize(numberToWords(total), leftW - 4);
+        doc.text(lLines, M + P, y + 11.5);
 
         // Right: Totals table
         const totals = [
-            { label: 'SUBTOTAL', value: fmt(subtotal), bold: false },
-            { label: 'DESCUENTO', value: fmt(0), bold: false },
-            { label: 'IVA', value: fmt(taxes), bold: false },
-            { label: 'TOTAL DE LA OPERACIÓN', value: fmt(total), bold: true },
-            { label: 'RETEFUENTE', value: fmt(0), bold: false },
-            { label: 'RETEIVA', value: fmt(0), bold: false },
-            { label: 'RETEICA', value: fmt(0), bold: false },
-            { label: 'TOTAL MENOS RETENCIONES', value: fmt(total), bold: true },
+            { label: 'SUBTOTAL', value: fmtInt(subtotal), bold: false },
+            { label: 'DESCUENTO', value: fmtInt(0), bold: false },
+            { label: 'IVA', value: fmtInt(taxes), bold: false },
+            { label: 'TOTAL DE LA OPERACIÓN', value: fmtInt(total), bold: true },
+            { label: 'TOTAL A PAGAR', value: fmtInt(total), bold: true },
         ];
 
-        const rH = 3.4;
+        const rH = 5;
         let tY = y;
         for (const t of totals) {
             doc.setDrawColor(...BLUE);
@@ -430,100 +390,72 @@ export const documentPdfService = {
             } else {
                 doc.rect(rX, tY, rW, rH);
             }
-            doc.setFontSize(5.5);
+            doc.setFontSize(t.bold ? 8.5 : 8);
             doc.setFont('helvetica', t.bold ? 'bold' : 'normal');
             doc.setTextColor(...BLACK);
-            doc.text(t.label, rX + P, tY + 2.5);
-            doc.text(t.value, rX + rW - P, tY + 2.5, { align: 'right' });
+            doc.text(t.label, rX + P, tY + 3.4);
+            doc.text(t.value, rX + rW - P, tY + 3.4, { align: 'right' });
             tY += rH;
         }
 
-        y = Math.max(y + 14, tY) + 4;
+        y = Math.max(y + 20, tY) + 5;
 
         // =====================================================
         // 5. LEGAL NOTICE
         // =====================================================
-        doc.setFontSize(5);
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...GRAY);
-        doc.text(
-            'LA PRESENTE FACTURA DE VENTA ELECTRÓNICA SE ASEMEJA EN TODOS SUS EFECTOS LEGALES A UNA LETRA DE CAMBIO',
-            pw / 2, y, { align: 'center' }
-        );
-        doc.text(
-            'ART. 774 DEL CÓDIGO DE COMERCIO SEGÚN LEY 1231 DE JULIO 17 DEL 2008',
-            pw / 2, y + 3, { align: 'center' }
-        );
-        y += 7;
+        doc.text('LA PRESENTE SE ASEMEJA EN TODOS SUS EFECTOS LEGALES A UNA LETRA DE CAMBIO (ART. 774 C.CO, LEY 1231/2008)', pw / 2, y, { align: 'center' });
+        y += 6;
 
-        // Bank accounts + Contact info (two columns)
-        const bankW = CW * 0.52;
-        const ctW = CW * 0.48;
+        // Contacto / cuentas
+        const bankW = CW * 0.5;
+        const ctW = CW * 0.5;
         const ctX = M + bankW;
-
         doc.setFillColor(...BLUE_LIGHT);
-        doc.rect(M, y, bankW, 16, 'F');
+        doc.rect(M, y, bankW, 18, 'F');
         doc.setDrawColor(...BLUE);
         doc.setLineWidth(0.3);
-        doc.rect(M, y, bankW, 16);
-        doc.rect(ctX, y, ctW, 16);
+        doc.rect(M, y, bankW, 18);
+        doc.rect(ctX, y, ctW, 18);
 
-        // Bank info
-        doc.setFontSize(5);
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...BLUE);
-        doc.text(`Favor consignar a las cuentas bancarias a nombre de ${company.name}`, M + P, y + 3.5);
+        doc.text(`Datos de ${company.name}`, M + P, y + 5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...BLACK);
-        doc.text('Consulte cuentas bancarias con el área administrativa', M + P, y + 8);
-        if (company.phone) doc.text(`Tel: ${company.phone}`, M + P, y + 12);
+        doc.text('Consulte cuentas bancarias con el área administrativa', M + P, y + 10);
 
-        // Contact info
-        doc.setFontSize(5);
         doc.setTextColor(...BLACK);
-        let ccY = y + 3.5;
-        if (company.address) {
-            doc.text(`${company.address}${company.city ? ' - ' + company.city : ''}`, ctX + P, ccY);
-            ccY += 3.5;
-        }
-        if (company.phone) {
-            doc.text(`Teléfono: ${company.phone}`, ctX + P, ccY);
-            ccY += 3.5;
-        }
-        if (company.email) {
-            doc.text(`Email: ${company.email}`, ctX + P, ccY);
-        }
+        let ccY = y + 5;
+        if (company.address) { doc.text(`${company.address}${company.city ? ' - ' + company.city : ''}`, ctX + P, ccY); ccY += 4.5; }
+        if (company.phone) { doc.text(`Teléfono: ${company.phone}`, ctX + P, ccY); ccY += 4.5; }
+        if (company.email) { doc.text(`Email: ${company.email}`, ctX + P, ccY); }
 
-        y += 18;
+        y += 20;
 
         // =====================================================
-        // 6. CUFE / Electronic Document Footer
+        // 6. CUFE
         // =====================================================
         if (document.electronic_document?.cufe) {
             doc.setDrawColor(...BLUE);
             doc.setLineWidth(0.3);
-            doc.rect(M, y, CW, 14);
-
-            doc.setFontSize(5.5);
+            doc.rect(M, y, CW, 16);
+            doc.setFontSize(7);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(...BLUE);
-            doc.text('Representación Gráfica de la Factura de Venta Electrónica', M + P, y + 4);
-
+            doc.text('Representación Gráfica de la Factura Electrónica', M + P, y + 5);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(...BLACK);
+            doc.setFontSize(6.5);
+            doc.text(`Fecha y Hora de Generación: ${new Date().toLocaleString('es-CO')}`, M + P, y + 9.5);
             doc.setFontSize(5);
-            doc.text(`Fecha y Hora de Generación: ${new Date().toLocaleString('es-CO')}`, M + P, y + 7.5);
-            doc.text(`Medios de Pago: Acuerdo mutuo`, M + P, y + 10.5);
-
-            // CUFE
-            doc.setFontSize(4);
             doc.setTextColor(...GRAY);
-            doc.text(`CUFE: ${document.electronic_document.cufe}`, M + P, y + 13);
+            doc.text(`CUFE: ${document.electronic_document.cufe}`, M + P, y + 13.5);
         }
 
-        // =====================================================
-        // SAVE FILE
-        // =====================================================
         const docNum = document.number || 'SIN-NUMERO';
         doc.save(`${document.doc_type}_${docNum}.pdf`);
     }
