@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { drawBrandHeader, PDF_PRIMARY, PDF_SOFT, type PdfCompany } from '@/shared/lib/pdfKit';
 
 export interface ReportHeaderOptions {
     title: string;
@@ -39,80 +40,19 @@ export const pdfReportService = {
      */
     async createBaseReport(options: ReportHeaderOptions): Promise<jsPDF> {
         const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.width;
-
-        // --- INDUSTRIAL DESIGN ELEMENTS V3 ---
-        const primaryColor = [15, 23, 42]; // Slate 900
-        const accentColor = [79, 70, 229];  // Indigo 600
-        const lightGray = [248, 250, 252]; // Slate 50
-        const darkGray = [30, 41, 59];    // Slate 800
-
-        // 1. Header Background (Industrial Slate)
-        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.rect(0, 0, pageWidth, 45, 'F');
-
-        // 2. Vertical Side Stripe (Industrial Accent)
-        doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.rect(0, 0, 4, 297, 'F');
-
-        // 3. Logo & Company Identity
-        let textStartX = 14;
-        if (options.logoUrl) {
-            try {
-                const logoBase64 = await this.loadImage(options.logoUrl);
-                doc.addImage(logoBase64, 'PNG', 14, 8, 25, 25, undefined, 'FAST');
-                textStartX = 45; // Shift text to the right when logo is present
-            } catch (e) {
-                console.warn("Logo could not be loaded, skipping.");
-            }
-        }
-
-        // Company Name
-        doc.setFontSize(20);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255, 255, 255);
-        doc.text(options.companyName.toUpperCase(), textStartX, 20);
-
-        // Nit & Info (Under Company Name)
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(148, 163, 184); // Slate 400
-        const companyInfoLines = [];
-        if (options.companyNit) companyInfoLines.push(`NIT: ${options.companyNit}`);
-        if (options.companyAddress) companyInfoLines.push(options.companyAddress);
-        if (options.companyPhone) companyInfoLines.push(`TEL: ${options.companyPhone}`);
-
-        doc.text(companyInfoLines.join('  |  '), textStartX, 26);
-        doc.text("SISTEMA DE GESTIÓN EMPRESARIAL V3.0", textStartX, 31);
-
-        // 4. Report Label Badge (Right aligned)
-        const titleText = options.title.toUpperCase();
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        const titleWidth = doc.getTextWidth(titleText);
-
-        // Badge Container
-        doc.setFillColor(darkGray[0], darkGray[1], darkGray[2]);
-        doc.roundedRect(pageWidth - titleWidth - 25, 12, titleWidth + 20, 10, 2, 2, 'F');
-
-        doc.setTextColor(255, 255, 255);
-        doc.text(titleText, pageWidth - 15, 18.5, { align: 'right' });
-
-        // Period & Date
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.text(`PERIODO: ${options.period}`, pageWidth - 15, 28, { align: 'right' });
-
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(148, 163, 184);
-        doc.text(`Generado: ${format(new Date(), "PPpp", { locale: es })}`, pageWidth - 15, 33, { align: 'right' });
-
-        // Decorative Line Under Header
-        doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.setLineWidth(1);
-        doc.line(0, 45, pageWidth, 45);
-
+        const company: PdfCompany = {
+            name: options.companyName,
+            nit: options.companyNit,
+            address: options.companyAddress,
+            phone: options.companyPhone,
+            logo_url: options.logoUrl,
+        };
+        await drawBrandHeader(doc, {
+            company,
+            title: options.title,
+            subtitle: `Periodo: ${options.period}  ·  Generado: ${format(new Date(), 'PPp', { locale: es })}`,
+            margin: 14,
+        });
         return doc;
     },
 
@@ -126,7 +66,7 @@ export const pdfReportService = {
             startY: 55,
             head: [['CÓDIGO', 'CUENTA MAESTRA', 'SALDO ANTERIOR', 'DÉBITOS', 'CRÉDITOS', 'NUEVO SALDO']],
             body: data.map(row => [
-                { content: row.code, styles: { fontStyle: 'bold', textColor: [79, 70, 229] } },
+                { content: row.code, styles: { fontStyle: 'bold', textColor: PDF_PRIMARY } },
                 row.name.toUpperCase(),
                 { content: row.initial_balance?.toLocaleString('es-CO', { minimumFractionDigits: 2 }) || '0', styles: { halign: 'right' } },
                 { content: row.debits?.toLocaleString('es-CO', { minimumFractionDigits: 2 }) || '0', styles: { halign: 'right' } },
@@ -134,8 +74,8 @@ export const pdfReportService = {
                 { content: row.final_balance?.toLocaleString('es-CO', { minimumFractionDigits: 2 }) || '0', styles: { halign: 'right', fontStyle: 'bold' } }
             ]),
             styles: { fontSize: 7, cellPadding: 4, font: 'helvetica' },
-            headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-            alternateRowStyles: { fillColor: [248, 250, 252] },
+            headStyles: { fillColor: PDF_PRIMARY, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+            alternateRowStyles: { fillColor: PDF_SOFT },
             margin: { left: 14, right: 14 },
             didDrawPage: (data: any) => {
                 const str = `Página ${doc.getNumberOfPages()} | Reporte de Integridad V3`;
@@ -158,7 +98,7 @@ export const pdfReportService = {
         sections.forEach((section) => {
             autoTable(doc, {
                 startY: currentY,
-                head: [[{ content: section.title.toUpperCase(), colSpan: 2, styles: { fillColor: [79, 70, 229] } }, { content: 'LIQUIDACIÓN', styles: { halign: 'right', fillColor: [79, 70, 229] } }]],
+                head: [[{ content: section.title.toUpperCase(), colSpan: 2, styles: { fillColor: PDF_PRIMARY } }, { content: 'LIQUIDACIÓN', styles: { halign: 'right', fillColor: PDF_PRIMARY } }]],
                 body: section.rows.map(row => [
                     row.code || '',
                     row.name.toUpperCase() || '',
@@ -206,7 +146,7 @@ export const pdfReportService = {
                 { content: totalCredit.toLocaleString('es-CO', { minimumFractionDigits: 2 }), styles: { halign: 'right' } }
             ]],
             theme: 'grid',
-            headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 7, cellPadding: 3 },
+            headStyles: { fillColor: PDF_PRIMARY, textColor: 255, fontStyle: 'bold', fontSize: 7, cellPadding: 3 },
             bodyStyles: { fontSize: 6.5 },
             footStyles: { fillColor: [241, 245, 249], textColor: 0, fontStyle: 'bold', fontSize: 7.5 },
             margin: { left: 14, right: 14 }
@@ -222,9 +162,9 @@ export const pdfReportService = {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.width;
 
-        const primaryColor = [15, 23, 42];
-        const accentColor = [79, 70, 229];
-        const lightGray = [248, 250, 252];
+        const primaryColor = PDF_PRIMARY;
+        const accentColor = PDF_PRIMARY;
+        const lightGray = PDF_SOFT;
 
         // Industrial Header Background
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -289,7 +229,7 @@ export const pdfReportService = {
                 { content: i.account_name.toUpperCase(), styles: { fontStyle: 'bold' } },
                 { content: i.base_amount.toLocaleString('es-CO', { minimumFractionDigits: 2 }), styles: { halign: 'right' } },
                 { content: `${i.rate}%`, styles: { halign: 'center' } },
-                { content: i.tax_amount.toLocaleString('es-CO', { minimumFractionDigits: 2 }), styles: { halign: 'right', fontStyle: 'bold', textColor: [79, 70, 229] } }
+                { content: i.tax_amount.toLocaleString('es-CO', { minimumFractionDigits: 2 }), styles: { halign: 'right', fontStyle: 'bold', textColor: PDF_PRIMARY } }
             ]),
             foot: [[
                 { content: 'TOTAL RETENIDO CONSOLIDADO', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } as any },
@@ -336,7 +276,7 @@ export const pdfReportService = {
             startY: 55,
             head: [['ID SKU', 'PRODUCTO / ESPECIFICACIÓN', 'CATEGORÍA', 'STOCK FÍSICO', 'COSTO UNIT.', 'VALOR TOTAL']],
             body: data.map(row => [
-                { content: row.sku, styles: { fontStyle: 'bold', textColor: [79, 70, 229] } },
+                { content: row.sku, styles: { fontStyle: 'bold', textColor: PDF_PRIMARY } },
                 row.name.toUpperCase(),
                 row.category?.toUpperCase() || 'N/A',
                 { content: row.stock?.toString() || '0', styles: { halign: 'center' } },
@@ -344,8 +284,8 @@ export const pdfReportService = {
                 { content: row.total_value?.toLocaleString('es-CO', { minimumFractionDigits: 2 }) || '0', styles: { halign: 'right', fontStyle: 'bold' } }
             ]),
             styles: { fontSize: 7, cellPadding: 4, font: 'helvetica' },
-            headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-            alternateRowStyles: { fillColor: [248, 250, 252] },
+            headStyles: { fillColor: PDF_PRIMARY, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+            alternateRowStyles: { fillColor: PDF_SOFT },
             margin: { left: 14, right: 14 }
         });
 
@@ -405,7 +345,7 @@ export const pdfReportService = {
                 { content: `$${data.amount.toLocaleString('es-CO')}`, styles: { halign: 'right', fontStyle: 'bold' } }
             ]],
             theme: 'grid',
-            headStyles: { fillColor: [15, 23, 42], fontSize: 8, fontStyle: 'bold' },
+            headStyles: { fillColor: PDF_PRIMARY, fontSize: 8, fontStyle: 'bold' },
             styles: { fontSize: 8, cellPadding: 5 }
         });
 
@@ -427,7 +367,7 @@ export const pdfReportService = {
                     { content: `$${Number(w.applied_amount).toLocaleString('es-CO')}`, styles: { halign: 'right', fontStyle: 'bold' } }
                 ]),
                 theme: 'striped',
-                headStyles: { fillColor: [79, 70, 229], fontSize: 7.5 },
+                headStyles: { fillColor: PDF_PRIMARY, fontSize: 7.5 },
                 styles: { fontSize: 7, cellPadding: 3 }
             });
         }
