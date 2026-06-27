@@ -2,7 +2,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { pdfReportService, type ReportHeaderOptions } from '@/features/accounting/services/pdfReportService';
+import { type ReportHeaderOptions } from '@/features/accounting/services/pdfReportService';
+import { drawBrandHeader, type PdfCompany } from '@/shared/lib/pdfKit';
 import type { ITAsset, ITMaintenanceSchedule } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS, CONDITION_LABELS } from '../types';
 
@@ -15,8 +16,8 @@ interface AssetReportKPIs {
 
 // ── Corporate color palette ──
 const COLORS = {
-    primary: [15, 23, 42] as [number, number, number],       // Slate 900
-    accent: [79, 70, 229] as [number, number, number],       // Indigo 600
+    primary: [0, 150, 230] as [number, number, number],      // #0096E6 azul corporativo
+    accent: [16, 185, 129] as [number, number, number],      // esmeralda
     dark: [30, 41, 59] as [number, number, number],          // Slate 800
     muted: [148, 163, 184] as [number, number, number],      // Slate 400
     light: [248, 250, 252] as [number, number, number],      // Slate 50
@@ -44,72 +45,20 @@ export const technologyPdfService = {
      * Row 2 (h=14): Report title bar (full-width accent)
      */
     async buildHeader(doc: jsPDF, options: ReportHeaderOptions): Promise<number> {
-        const pw = doc.internal.pageSize.width;
-
-        // ── Row 1: Company bar ──
-        doc.setFillColor(...COLORS.primary);
-        doc.rect(0, 0, pw, 38, 'F');
-
-        // Side stripe
-        doc.setFillColor(...COLORS.accent);
-        doc.rect(0, 0, 4, 297, 'F');
-
-        // Logo
-        let tx = 14;
-        if (options.logoUrl) {
-            try {
-                const b64 = await pdfReportService.loadImage(options.logoUrl);
-                doc.addImage(b64, 'PNG', 14, 6, 22, 22, undefined, 'FAST');
-                tx = 42;
-            } catch { /* skip */ }
-        }
-
-        // Company name — clamp to max width to prevent overflow
-        const maxNameWidth = pw - tx - 70; // leave room for period badge
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...COLORS.white);
-
-        // Try font 16 first, shrink if needed
-        let fontSize = 16;
-        doc.setFontSize(fontSize);
-        while (doc.getTextWidth(options.companyName.toUpperCase()) > maxNameWidth && fontSize > 10) {
-            fontSize -= 0.5;
-            doc.setFontSize(fontSize);
-        }
-        doc.text(options.companyName.toUpperCase(), tx, 17);
-
-        // Sub-info line
-        doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...COLORS.muted);
-        const info: string[] = [];
-        if (options.companyNit) info.push(`NIT: ${options.companyNit}`);
-        if (options.companyAddress) info.push(options.companyAddress);
-        if (options.companyPhone) info.push(`TEL: ${options.companyPhone}`);
-        if (info.length) doc.text(info.join('  |  '), tx, 23);
-        doc.text('SISTEMA DE GESTION EMPRESARIAL V3.0', tx, 28);
-
-        // Period badge (right)
-        doc.setFillColor(...COLORS.dark);
-        doc.roundedRect(pw - 62, 8, 50, 22, 2, 2, 'F');
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...COLORS.accent);
-        doc.text(options.period.toUpperCase(), pw - 37, 17, { align: 'center' });
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...COLORS.muted);
-        doc.text(format(new Date(), 'PPpp', { locale: es }), pw - 37, 24, { align: 'center' });
-
-        // ── Row 2: Report title bar (accent) ──
-        doc.setFillColor(...COLORS.accent);
-        doc.rect(0, 38, pw, 13, 'F');
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...COLORS.white);
-        doc.text(options.title.toUpperCase(), pw / 2, 46.5, { align: 'center' });
-
-        return 58; // content starts after header
+        const company: PdfCompany = {
+            name: options.companyName,
+            nit: options.companyNit,
+            address: options.companyAddress,
+            phone: options.companyPhone,
+            logo_url: options.logoUrl,
+        };
+        const y = await drawBrandHeader(doc, {
+            company,
+            title: options.title,
+            subtitle: `Periodo: ${options.period}  ·  Generado: ${format(new Date(), 'PPp', { locale: es })}`,
+            margin: 14,
+        });
+        return y + 2;
     },
 
     async generateAssetReport(

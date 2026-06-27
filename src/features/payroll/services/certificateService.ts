@@ -37,11 +37,11 @@ function buildBase(doc: jsPDF, title: string, data: CertificateData): number {
     const today = data.today ?? new Date().toISOString().split('T')[0];
 
     // Header background
-    doc.setFillColor(15, 23, 42);
+    doc.setFillColor(0, 150, 230);
     doc.rect(0, 0, W, 42, 'F');
 
     // Accent stripe
-    doc.setFillColor(79, 70, 229);
+    doc.setFillColor(0, 150, 230);
     doc.rect(0, 0, 4, 297, 'F');
 
     // Company name
@@ -62,7 +62,7 @@ function buildBase(doc: jsPDF, title: string, data: CertificateData): number {
     doc.text(fmtDate(today), W - 14, 18, { align: 'right' });
 
     // Title bar
-    doc.setFillColor(79, 70, 229);
+    doc.setFillColor(0, 150, 230);
     doc.rect(4, 44, W - 4, 14, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -80,7 +80,7 @@ function addSignature(doc: jsPDF, data: CertificateData, y: number): void {
 
     // Signature block
     const sigY = y + 30;
-    doc.setDrawColor(15, 23, 42);
+    doc.setDrawColor(0, 150, 230);
     doc.setLineWidth(0.3);
     doc.line(14, sigY, 100, sigY);
 

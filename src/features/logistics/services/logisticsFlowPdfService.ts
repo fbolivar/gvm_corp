@@ -2,8 +2,8 @@ import jsPDF from 'jspdf';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 const COLORS = {
-    primary: [15, 23, 42] as [number, number, number],    // Slate 900
-    accent: [79, 70, 229] as [number, number, number],    // Indigo 600
+    primary: [0, 150, 230] as [number, number, number],    // Slate 900
+    accent: [16, 185, 129] as [number, number, number],    // Indigo 600
     dark: [30, 41, 59] as [number, number, number],
     muted: [100, 116, 139] as [number, number, number],
     light: [241, 245, 249] as [number, number, number],

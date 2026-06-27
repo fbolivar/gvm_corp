@@ -174,7 +174,7 @@ function generateLicensePDF(license: TenantLicense): void {
   })
 
   // ── Header background ──
-  doc.setFillColor(15, 23, 42)
+  doc.setFillColor(0, 150, 230)
   doc.rect(0, 0, W, 50, 'F')
 
   // ── Accent left stripe ──
@@ -292,7 +292,7 @@ function generateLicensePDF(license: TenantLicense): void {
 
   // ── Signature line ──
   const sigY = Math.max(y + 20, 230)
-  doc.setDrawColor(15, 23, 42)
+  doc.setDrawColor(0, 150, 230)
   doc.setLineWidth(0.3)
   doc.line(margin, sigY, margin + 80, sigY)
   doc.setFont('helvetica', 'bold')

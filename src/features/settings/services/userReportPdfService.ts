@@ -6,8 +6,8 @@ const COLORS = {
     ink: [17, 17, 17] as [number, number, number],
     dark: [60, 60, 60] as [number, number, number],
     mid: [107, 114, 128] as [number, number, number],
-    grayHeader: [30, 41, 59] as [number, number, number],   // slate-800
-    grayBandLight: [241, 245, 249] as [number, number, number],
+    grayHeader: [0, 150, 230] as [number, number, number],   // #0096E6 azul corporativo
+    grayBandLight: [233, 244, 252] as [number, number, number],
     line: [203, 213, 225] as [number, number, number],
     white: [255, 255, 255] as [number, number, number],
 }

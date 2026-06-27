@@ -5,10 +5,11 @@ import autoTable from 'jspdf-autotable';
 const COLORS = {
     black: [17, 17, 17] as [number, number, number],
     dark: [60, 60, 60] as [number, number, number],
-    grayHeader: [217, 217, 217] as [number, number, number],   // #d9d9d9
-    grayDark: [122, 122, 122] as [number, number, number],     // #7a7a7a
-    greenBand: [232, 239, 229] as [number, number, number],    // #e8efe5 (caja número)
-    greenNumber: [45, 138, 78] as [number, number, number],    // #2d8a4e (año)
+    grayHeader: [233, 244, 252] as [number, number, number],   // azul muy suave (sub-encabezados)
+    grayDark: [0, 150, 230] as [number, number, number],       // #0096E6 azul corporativo (bandas)
+    greenBand: [233, 244, 252] as [number, number, number],    // azul suave (caja número)
+    greenNumber: [0, 150, 230] as [number, number, number],    // #0096E6 (año / acento)
+    brand: [0, 150, 230] as [number, number, number],          // #0096E6
     white: [255, 255, 255] as [number, number, number],
     muted: [107, 114, 128] as [number, number, number],
 };
@@ -299,12 +300,12 @@ export const logisticsPdfService = {
                 textColor: COLORS.black,
             },
             headStyles: {
-                fillColor: COLORS.grayHeader,
-                textColor: COLORS.black,
+                fillColor: COLORS.brand,
+                textColor: COLORS.white,
                 fontStyle: 'bold',
                 fontSize: 7.5,
                 halign: 'left',
-                lineColor: COLORS.black,
+                lineColor: COLORS.brand,
                 lineWidth: 0.2,
             },
             columnStyles: {

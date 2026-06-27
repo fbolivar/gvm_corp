@@ -37,7 +37,7 @@ export function PayrollSlipButton({
             const margin = 18
 
             // ── HEADER BAR ────────────────────────────────────────
-            doc.setFillColor(15, 23, 42)   // slate-900
+            doc.setFillColor(0, 150, 230)   // slate-900
             doc.rect(0, 0, pageW, 38, 'F')
 
             doc.setTextColor(255, 255, 255)

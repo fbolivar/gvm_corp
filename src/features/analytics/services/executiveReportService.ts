@@ -12,7 +12,7 @@ export const executiveReportService = {
             format: 'a4'
         });
 
-        const primaryColor = [99, 102, 241]; // Indigo-600
+        const primaryColor = [0, 150, 230]; // Indigo-600
         const textColor = [15, 23, 42]; // Slate-900
         const secondaryTextColor = [100, 116, 139]; // Slate-500
         const lightBg = [248, 250, 252]; // Slate-50
