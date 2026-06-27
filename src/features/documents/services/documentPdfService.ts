@@ -99,7 +99,7 @@ export const documentPdfService = {
         const CW = pw - M * 2;
 
         const company = tenant || { name: 'EMPRESA S.A.S', nit: '000000000', dv: '0' } as TenantPdfInfo;
-        const PRIMARY = hexToRgb(company.primary_color, [79, 70, 229]);   // indigo
+        const PRIMARY: RGB = [0, 150, 230];   // #0096E6 — azul corporativo GVM
         const ACCENT = hexToRgb(company.accent_color, [16, 185, 129]);    // esmeralda
         const PRIMARY_SOFT: RGB = [
             Math.round(PRIMARY[0] + (255 - PRIMARY[0]) * 0.88),
