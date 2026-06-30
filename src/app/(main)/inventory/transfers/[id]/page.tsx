@@ -23,6 +23,8 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { TransferDetailActions } from '@/features/warehouse-transfers/components/TransferDetailActions';
 import { PrintWarehouseEntryButton } from '@/features/warehouse-transfers/components/PrintWarehouseEntryButton';
+import { TransferPdfButton } from '@/features/warehouse-transfers/components/TransferPdfButton';
+import { settingsService } from '@/features/settings/services/settingsService';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Detalle Traslado — GVM Corp' };
@@ -225,6 +227,14 @@ export default async function TransferDetailPage({
     } catch {
         redirect('/inventory/transfers');
     }
+
+    const tenant = await settingsService.getTenantInfo(supabase);
+    const company = {
+        name: tenant?.name ?? 'GVM S.A.S',
+        nit: tenant?.nit, dv: tenant?.dv,
+        address: tenant?.address, city: tenant?.city, department: tenant?.department,
+        phone: tenant?.phone, email: tenant?.email, logo_url: tenant?.logo_url,
+    };
 
     const status = transfer.status as TransferStatus;
     const cfg = STATUS_MAP[status] ?? STATUS_MAP.DRAFT;
@@ -619,7 +629,10 @@ export default async function TransferDetailPage({
 
             {/* ── Action Buttons ───────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <PrintWarehouseEntryButton transferId={transfer.id!} />
+                <div className="flex items-center gap-2">
+                    <TransferPdfButton transfer={transfer} company={company} />
+                    <PrintWarehouseEntryButton transferId={transfer.id!} />
+                </div>
                 <TransferDetailActions transfer={transfer} />
             </div>
         </div>
