@@ -173,6 +173,26 @@ export const logisticsService = {
         return true;
     },
 
+    /** Edita los datos de un despacho/remisión (transportadora, guía, flete, notas). */
+    async updateShipment(
+        supabase: SupabaseClient,
+        shipmentId: string,
+        fields: { carrier_id?: string | null; tracking_number?: string | null; freight_cost?: number; notes?: string | null }
+    ) {
+        const updates: Record<string, unknown> = {};
+        if ('carrier_id' in fields) updates.carrier_id = fields.carrier_id || null;
+        if ('tracking_number' in fields) updates.tracking_number = fields.tracking_number ?? null;
+        if ('freight_cost' in fields) updates.freight_cost = Number(fields.freight_cost) || 0;
+        if ('notes' in fields) updates.notes = fields.notes ?? null;
+
+        const { error } = await supabase
+            .from('logistics_shipments')
+            .update(updates)
+            .eq('id', shipmentId);
+        if (error) throw error;
+        return true;
+    },
+
     async getShipmentDetails(supabase: SupabaseClient, shipmentId: string) {
         // Paso 1: Shipment + relaciones con FK válidas
         const { data, error } = await supabase

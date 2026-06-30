@@ -24,7 +24,10 @@ import {
     ArrowRight,
     RefreshCw,
     DollarSign,
-    Users
+    Users,
+    Pencil,
+    X,
+    Save
 } from "lucide-react"
 
 interface Props {
@@ -90,9 +93,14 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     const [tenant, setTenant] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
+    const [carriers, setCarriers] = useState<any[]>([])
+    const [editing, setEditing] = useState(false)
+    const [saving, setSaving] = useState(false)
+    const [form, setForm] = useState({ carrier_id: '', tracking_number: '', freight_cost: 0, notes: '' })
 
     useEffect(() => {
         if (shipmentId) {
+            setEditing(false)
             loadDetails()
         }
     }, [shipmentId])
@@ -100,16 +108,41 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     async function loadDetails() {
         setLoading(true)
         try {
-            const [shipmentData, tenantData] = await Promise.all([
+            const [shipmentData, tenantData, carrierList] = await Promise.all([
                 logisticsService.getShipmentDetails(supabase, shipmentId!),
                 loadTenantInfo(),
+                logisticsService.getCarriers(supabase).catch(() => []),
             ])
             setShipment(shipmentData)
             setTenant(tenantData)
+            setCarriers(carrierList || [])
+            if (shipmentData) {
+                setForm({
+                    carrier_id: shipmentData.carrier_id ?? '',
+                    tracking_number: shipmentData.tracking_number ?? '',
+                    freight_cost: Number(shipmentData.freight_cost) || 0,
+                    notes: shipmentData.notes ?? '',
+                })
+            }
         } catch (error) {
             console.error(error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleSaveEdit = async () => {
+        if (!shipment) return
+        setSaving(true)
+        try {
+            await logisticsService.updateShipment(supabase, shipment.id, form)
+            await loadDetails()
+            onUpdate()
+            setEditing(false)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setSaving(false)
         }
     }
 
@@ -322,6 +355,83 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                             </div>
 
                             <div className="pt-6 sm:pt-8 border-t border-slate-200 space-y-4">
+                                {editing ? (
+                                    <div className="space-y-3 bg-white rounded-2xl border border-slate-100 p-4 shadow-sm text-left">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Editar remisión</p>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Transportadora</label>
+                                            <select
+                                                value={form.carrier_id}
+                                                onChange={(e) => setForm(f => ({ ...f, carrier_id: e.target.value }))}
+                                                className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                            >
+                                                <option value="">Interno / sin transportadora</option>
+                                                {carriers.map((c) => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Nº Guía</label>
+                                            <input
+                                                value={form.tracking_number}
+                                                onChange={(e) => setForm(f => ({ ...f, tracking_number: e.target.value }))}
+                                                className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Costo flete</label>
+                                            <input
+                                                type="number"
+                                                value={form.freight_cost}
+                                                onChange={(e) => setForm(f => ({ ...f, freight_cost: Number(e.target.value) }))}
+                                                className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 text-right focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Notas / Observaciones</label>
+                                            <textarea
+                                                value={form.notes}
+                                                onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
+                                                rows={2}
+                                                className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 pt-1">
+                                            <Button
+                                                onClick={handleSaveEdit}
+                                                disabled={saving}
+                                                className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-10 font-black uppercase text-[9px] tracking-widest gap-2"
+                                            >
+                                                {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Guardar
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setEditing(false)
+                                                    if (shipment) setForm({
+                                                        carrier_id: shipment.carrier_id ?? '',
+                                                        tracking_number: shipment.tracking_number ?? '',
+                                                        freight_cost: Number(shipment.freight_cost) || 0,
+                                                        notes: shipment.notes ?? '',
+                                                    })
+                                                }}
+                                                className="rounded-lg h-10 px-3 text-[9px] font-black uppercase tracking-widest"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setEditing(true)}
+                                        className="w-full rounded-xl sm:rounded-2xl h-11 font-black uppercase text-[9px] sm:text-[10px] tracking-widest gap-2 border-slate-200 text-slate-600 hover:text-primary"
+                                    >
+                                        <Pencil className="h-4 w-4" /> Editar remisión
+                                    </Button>
+                                )}
+
                                 <Button
                                     onClick={handleDownloadPdf}
                                     className="w-full bg-slate-900 hover:bg-black text-white rounded-xl sm:rounded-2xl h-12 sm:h-14 font-black uppercase text-[9px] sm:text-[10px] tracking-widest gap-3 shadow-active transition-all active:scale-95"
