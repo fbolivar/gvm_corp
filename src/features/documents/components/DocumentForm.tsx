@@ -607,19 +607,35 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                     </div>
                                                 </div>
 
-                                                {/* IVA por línea — editable */}
-                                                <div className="col-span-6 md:col-span-2 space-y-1">
-                                                    <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">IVA</label>
-                                                    <select
-                                                        value={getLineTaxRate(form.watch(`lines.${index}`) ?? {}, products)}
-                                                        onChange={(e) => form.setValue(`lines.${index}.tax_config`, [{ rate: Number(e.target.value), type: 'IVA', name: 'IVA' }])}
-                                                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                                    >
-                                                        <option value={0}>0% IVA</option>
-                                                        <option value={5}>5% IVA</option>
-                                                        <option value={19}>19% IVA</option>
-                                                    </select>
-                                                </div>
+                                                {/* IVA por línea — FIJO según el producto (no editable).
+                                                    Para ítems de texto libre (sin producto del catálogo) sí se puede elegir. */}
+                                                {(() => {
+                                                    const lineRate = getLineTaxRate(form.watch(`lines.${index}`) ?? {}, products);
+                                                    const hasProduct = !!form.watch(`lines.${index}.product_id`);
+                                                    return (
+                                                        <div className="col-span-6 md:col-span-2 space-y-1">
+                                                            <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">IVA</label>
+                                                            {hasProduct ? (
+                                                                <div
+                                                                    title="El IVA se toma del producto y no se puede modificar"
+                                                                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 flex items-center text-sm font-semibold text-slate-700 cursor-not-allowed select-none"
+                                                                >
+                                                                    {lineRate}% IVA
+                                                                </div>
+                                                            ) : (
+                                                                <select
+                                                                    value={lineRate}
+                                                                    onChange={(e) => form.setValue(`lines.${index}.tax_config`, [{ rate: Number(e.target.value), type: 'IVA', name: 'IVA' }])}
+                                                                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                                                >
+                                                                    <option value={0}>0% IVA</option>
+                                                                    <option value={5}>5% IVA</option>
+                                                                    <option value={19}>19% IVA</option>
+                                                                </select>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
 
                                                 {/* Total + Delete */}
                                                 <div className="col-span-6 md:col-span-2 space-y-1">
