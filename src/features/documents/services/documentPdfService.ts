@@ -240,7 +240,7 @@ export const documentPdfService = {
         // =====================================================
         // TABLA DE ÍTEMS
         // =====================================================
-        const tHead = [['#', 'Descripción', 'Cant.', 'U. Med', 'Vr Unitario', 'IVA', 'Vr IVA', 'Dcto %', 'Total']];
+        const tHead = [['#', 'Código', 'Descripción', 'Cant.', 'U. Med', 'Vr Unitario', 'IVA', 'Vr IVA', 'Dcto %', 'Total']];
 
         let calcSubtotal = 0;
         let calcTaxes = 0;
@@ -252,8 +252,11 @@ export const documentPdfService = {
             const ivaAmt = base * (iva / 100);
             calcSubtotal += base;
             calcTaxes += ivaAmt;
+            const prod = (line as { product?: { sku?: string } | { sku?: string }[] | null }).product;
+            const sku = (Array.isArray(prod) ? prod[0]?.sku : prod?.sku) || '';
             return [
                 String(i + 1),
+                sku,
                 line.description || '',
                 fmtInt(qty),
                 'Und.',
@@ -289,15 +292,16 @@ export const documentPdfService = {
             },
             alternateRowStyles: { fillColor: SOFT as unknown as [number, number, number] },
             columnStyles: {
-                0: { halign: 'center', cellWidth: 9 },
-                1: { cellWidth: 'auto' },
-                2: { halign: 'right', cellWidth: 17 },
-                3: { halign: 'center', cellWidth: 14 },
-                4: { halign: 'right', cellWidth: 24 },
-                5: { halign: 'center', cellWidth: 13 },
-                6: { halign: 'right', cellWidth: 22 },
-                7: { halign: 'center', cellWidth: 14 },
-                8: { halign: 'right', cellWidth: 27, fontStyle: 'bold' },
+                0: { halign: 'center', cellWidth: 8 },
+                1: { cellWidth: 22, fontStyle: 'bold' },
+                2: { cellWidth: 'auto' },
+                3: { halign: 'right', cellWidth: 15 },
+                4: { halign: 'center', cellWidth: 13 },
+                5: { halign: 'right', cellWidth: 22 },
+                6: { halign: 'center', cellWidth: 12 },
+                7: { halign: 'right', cellWidth: 20 },
+                8: { halign: 'center', cellWidth: 13 },
+                9: { halign: 'right', cellWidth: 25, fontStyle: 'bold' },
             },
             margin: { left: M, right: M },
             theme: 'grid',

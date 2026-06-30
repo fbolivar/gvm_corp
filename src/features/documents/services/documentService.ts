@@ -57,7 +57,7 @@ export const documentService = {
     async getDocumentById(client: SupabaseClient, id: string) {
         const { data, error } = await client
             .from('documents')
-            .select('*, lines:document_lines(*), party:parties(*), warehouse:warehouses(id, name, code), electronic_document:electronic_documents(*)')
+            .select('*, lines:document_lines(*, product:products(sku, name)), party:parties(*), warehouse:warehouses(id, name, code), electronic_document:electronic_documents(*)')
             .eq('id', id)
             .single();
 
