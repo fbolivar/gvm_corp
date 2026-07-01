@@ -19,6 +19,7 @@ import {
     Calendar,
     FileOutput,
     Pencil,
+    Warehouse,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/shared/lib/utils"
@@ -145,6 +146,7 @@ export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOr
                         <tr className="border-b border-slate-100 bg-slate-50/60">
                             <th scope="col" className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pedido #</th>
                             <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cliente</th>
+                            <th scope="col" className="hidden lg:table-cell px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Bodega</th>
                             <th scope="col" className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
                             <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                             <th scope="col" className="px-4 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total</th>
@@ -166,6 +168,14 @@ export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOr
                                     {order.party?.doc_number && (
                                         <p className="text-[10px] text-slate-400 mt-0.5">{order.party.doc_number}</p>
                                     )}
+                                </td>
+                                <td className="hidden lg:table-cell px-4 py-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <Warehouse className="h-3 w-3 text-slate-300 shrink-0" />
+                                        <span className="text-[11px] font-medium text-slate-600 truncate max-w-[140px]">
+                                            {order.warehouse?.name || '—'}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td className="hidden md:table-cell px-4 py-4">
                                     <div className="flex items-center gap-1.5 text-slate-500">

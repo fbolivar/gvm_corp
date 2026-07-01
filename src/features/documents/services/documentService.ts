@@ -17,7 +17,7 @@ export const documentService = {
             }
         }
 
-        let query = client.from('documents').select('*, party:parties(legal_name, doc_number)', { count: 'exact' });
+        let query = client.from('documents').select('*, party:parties(legal_name, doc_number), warehouse:warehouses(name)', { count: 'exact' });
 
         if (filters.search) {
             if (partyIdFilter && partyIdFilter.length > 0) {
