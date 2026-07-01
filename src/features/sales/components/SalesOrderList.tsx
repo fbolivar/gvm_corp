@@ -27,6 +27,7 @@ import { convertDocumentAction } from "../convertActions"
 import { confirmSalesOrderAction } from "@/features/documents/actions"
 import { toast } from "sonner"
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { formatLocalDate } from "@/shared/lib/dateFmt"
 
 interface SalesOrderListProps {
     orders: Document[]
@@ -55,16 +56,8 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatDate(dateStr: string | null | undefined) {
-    if (!dateStr) return '—'
-    try {
-        return new Date(dateStr).toLocaleDateString('es-CO', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        })
-    } catch {
-        return dateStr
-    }
+    // Usa parseo local para no correr la fecha un día (bug UTC en fechas de solo día).
+    return formatLocalDate(dateStr)
 }
 
 export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOrderListProps) {

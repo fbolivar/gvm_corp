@@ -20,6 +20,7 @@ import { useConfirm } from "@/shared/hooks/useConfirm"
 import { DataTable, DataTableColumn } from "@/shared/components/ui/data-table"
 import { StatusBadge, statusToTone } from "@/shared/components/ui/status-badge"
 import { format } from "date-fns"
+import { parseLocalDate } from "@/shared/lib/dateFmt"
 
 interface SalesInvoiceListProps {
     invoices: Document[]
@@ -94,10 +95,10 @@ export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
             key: "issue_date",
             header: "Fecha emisión",
             width: "130px",
-            sortValue: (row) => (row.issue_date ? new Date(row.issue_date) : null),
+            sortValue: (row) => parseLocalDate(row.issue_date),
             accessor: (row) => (
                 <span className="text-xs font-medium text-slate-500">
-                    {row.issue_date ? format(new Date(row.issue_date), "dd MMM yyyy") : "—"}
+                    {row.issue_date ? format(parseLocalDate(row.issue_date)!, "dd MMM yyyy") : "—"}
                 </span>
             ),
         },
@@ -105,16 +106,16 @@ export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
             key: "due_date",
             header: "Vencimiento",
             width: "130px",
-            sortValue: (row) => (row.due_date ? new Date(row.due_date) : null),
+            sortValue: (row) => parseLocalDate(row.due_date),
             accessor: (row) => {
-                const due = row.due_date ? new Date(row.due_date) : null
+                const due = parseLocalDate(row.due_date)
                 const isOverdue = due && due < today && row.status !== "ACCEPTED" && row.status !== "VOIDED"
                 return (
                     <span className={cn(
                         "text-xs font-semibold",
                         isOverdue ? "text-rose-600" : "text-slate-500"
                     )}>
-                        {due ? format(due, "dd MMM yyyy") : row.issue_date ? format(new Date(row.issue_date), "dd MMM yyyy") : "—"}
+                        {due ? format(due, "dd MMM yyyy") : row.issue_date ? format(parseLocalDate(row.issue_date)!, "dd MMM yyyy") : "—"}
                         {isOverdue && (
                             <span className="ml-1 text-[9px] font-black uppercase tracking-wider text-rose-500">
                                 Vencida

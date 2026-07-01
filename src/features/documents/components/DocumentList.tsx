@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
+import { parseLocalDate } from "@/shared/lib/dateFmt"
 import {
     FileText,
     Loader2,
@@ -188,10 +189,10 @@ export function DocumentList({ documents }: DocumentListProps) {
             header: "Fecha",
             align: "left",
             width: "130px",
-            sortValue: (row) => (row.issue_date ? new Date(row.issue_date) : null),
+            sortValue: (row) => parseLocalDate(row.issue_date),
             accessor: (row) => (
                 <span className="text-xs font-medium text-slate-500">
-                    {row.issue_date ? format(new Date(row.issue_date), "MMM dd, yyyy") : "-"}
+                    {row.issue_date ? format(parseLocalDate(row.issue_date)!, "MMM dd, yyyy") : "-"}
                 </span>
             ),
         },
