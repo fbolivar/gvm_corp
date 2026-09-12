@@ -43,7 +43,7 @@ export function AgingChart({ buckets, topDebtors, title = "Distribución Cartera
     const totalAmount = buckets.reduce((s, b) => s + b.amount, 0)
 
     return (
-        <div className="bg-white rounded-[3.5rem] shadow-premium border border-slate-50 p-10 space-y-10">
+        <div className="bg-white rounded-[3.5rem] shadow-premium border border-slate-50 p-6 md:p-10 space-y-6 md:space-y-10">
             <div className="flex items-center gap-4">
                 <div className="h-1 w-6 bg-primary rounded-full" />
                 <h3 className="text-lg font-black italic uppercase tracking-tighter text-slate-950">{title}</h3>
@@ -52,7 +52,7 @@ export function AgingChart({ buckets, topDebtors, title = "Distribución Cartera
                 </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-10 items-center">
                 {/* Pie Chart */}
                 <div className="h-60">
                     <ResponsiveContainer width="100%" height="100%">
@@ -121,7 +121,7 @@ export function AgingChart({ buckets, topDebtors, title = "Distribución Cartera
                                     tickLine={false}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
-                                <Bar dataKey="amount" fill="#6366f1" radius={[0, 6, 6, 0]} animationDuration={1200} />
+                                <Bar dataKey="amount" fill="#0096E6" radius={[0, 6, 6, 0]} animationDuration={1200} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

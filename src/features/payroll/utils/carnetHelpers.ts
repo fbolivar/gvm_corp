@@ -40,6 +40,33 @@ export function contractLabel(type: string | null | undefined): string {
     return CONTRACT_LABELS[type] ?? CONTRACT_LABELS[type.toUpperCase()] ?? DEFAULT_CARGO
 }
 
+/** Conectores que van en minúscula en Title Case español (salvo al inicio). */
+const ES_MINOR = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'en', 'a', 'con', 'para'])
+
+/** Title Case en español: "ANALISTA DE COMPRAS" → "Analista de Compras". */
+export function toTitleCaseEs(s: string): string {
+    return (s || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((w, i) => (i > 0 && ES_MINOR.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+}
+
+/**
+ * Cargo a mostrar en el carnet. Prioriza el rol real del empleado (p. ej.
+ * "ANALISTA DE COMPRAS" → "Analista de Compras"); si no hay rol, cae a la
+ * etiqueta del tipo de contrato para no dejar el carnet vacío.
+ */
+export function resolveCargo(
+    roleName: string | null | undefined,
+    contractType?: string | null,
+): string {
+    const r = roleName?.trim()
+    if (r) return toTitleCaseEs(r)
+    return contractLabel(contractType)
+}
+
 export interface PartyRow {
     legal_name?: string | null
     doc_number?: string | null

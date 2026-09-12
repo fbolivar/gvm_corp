@@ -255,7 +255,7 @@ export default async function TaxMediaPage({
             </div>
 
             {/* KPI row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-8 group hover:translate-y-[-4px] transition-all">
                     <div className="space-y-4">
                         <div className="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
@@ -327,8 +327,8 @@ export default async function TaxMediaPage({
 
             {/* Formato 1001 table */}
             <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
-                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-                    <div>
+                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                    <div className="min-w-0">
                         <div className="flex items-center gap-3 mb-1">
                             <Badge className="bg-amber-100 text-amber-700 border-none text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-lg">
                                 Formato 1001

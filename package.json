@@ -9,7 +9,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "audit:schema": "node scripts/audit-schema.mjs",
+    "preflight": "npm run typecheck && npm run audit:schema && npm run test"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",
@@ -52,8 +54,9 @@
     "recharts": "^3.7.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "tus-js-client": "^4.3.1",
     "uuid": "^13.0.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },

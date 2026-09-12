@@ -129,9 +129,9 @@ export default function NewRecurringInvoiceClient({ parties }: Props) {
 
             {/* Lines */}
             <div className="bg-white rounded-[3rem] p-10 shadow-premium space-y-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Líneas de Servicio / Producto</h2>
-                    <Button type="button" onClick={addLine} variant="outline" className="h-10 px-5 rounded-xl border-slate-200 text-indigo-600 font-black text-[10px] uppercase tracking-widest">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h2 className="min-w-0 text-lg font-black text-slate-900 uppercase tracking-tight">Líneas de Servicio / Producto</h2>
+                    <Button type="button" onClick={addLine} variant="outline" className="h-10 px-5 rounded-xl border-slate-200 text-indigo-600 font-black text-[10px] uppercase tracking-widest shrink-0">
                         <Plus className="h-4 w-4 mr-1.5" /> Agregar
                     </Button>
                 </div>
@@ -151,7 +151,7 @@ export default function NewRecurringInvoiceClient({ parties }: Props) {
                                 <input className={INPUT_CLASS} placeholder="Descripción del servicio o producto" value={line.description} onChange={e => updateLine(i, 'description', e.target.value)} />
                             </div>
                             <div className="col-span-5 md:col-span-2">
-                                <input type="number" min="0.001" step="0.01" className={`${INPUT_CLASS} text-right`} value={line.qty} onChange={e => updateLine(i, 'qty', Number(e.target.value))} />
+                                <input type="number" min="0.001" step="any" className={`${INPUT_CLASS} text-right`} value={line.qty} onChange={e => updateLine(i, 'qty', Number(e.target.value))} />
                             </div>
                             <div className="col-span-6 md:col-span-3">
                                 <input type="number" min="0" step="100" className={`${INPUT_CLASS} text-right`} placeholder="0" value={line.unit_price || ''} onChange={e => updateLine(i, 'unit_price', Number(e.target.value))} />

@@ -13,9 +13,12 @@ export const productService = {
         while (true) {
             const { data, error } = await client
                 .from('products')
-                .select('id, sku, name, selling_price, cost, tax_category, status, type, uom, min_stock')
+                .select('id, sku, barcode, name, selling_price, cost, tax_category, status, type, uom, min_stock, min_margin, enforce_margin')
                 .eq('status', 'ACTIVE')
+                // 'id' desempata: 'name' no es único y sin orden total determinista
+                // range() puede saltarse filas entre páginas.
                 .order('name')
+                .order('id')
                 .range(offset, offset + pageSize - 1)
 
             if (error) {
@@ -34,7 +37,7 @@ export const productService = {
         let query = client.from('products').select('*', { count: 'exact' });
 
         if (filters.search) {
-            query = query.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`);
+            query = query.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`);
         }
 
         if (filters.type) {
@@ -50,7 +53,7 @@ export const productService = {
         // Run RPC + count query in parallel
         const countQuery = client.from('products').select('id', { count: 'exact', head: true });
         if (filters.search) {
-            countQuery.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`);
+            countQuery.or(`name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`);
         }
         if (filters.type) countQuery.eq('type', filters.type);
         if (filters.status) countQuery.eq('status', filters.status);

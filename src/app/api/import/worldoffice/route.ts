@@ -37,18 +37,79 @@ interface ImportTableResult {
 }
 
 // ─── Auth guard ───────────────────────────────────────────────────────────────
+// Este importador escribe en el tenant de GVM vía service role. Debe exigir:
+//  1) usuario autenticado,
+//  2) que sea ADMIN del tenant GVM (o platform admin),
+// para que un usuario cualquiera (o de otro tenant) no pueda dispararlo.
 
-async function requireAuth(): Promise<void> {
+async function requireAdmin(): Promise<void> {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
+
+  const admin = createAdminClient()
+
+  // Platform admin → permitido
+  const { data: prof } = await admin.from('profiles').select('is_platform_admin').eq('id', user.id).maybeSingle()
+  if (prof?.is_platform_admin) return
+
+  // Debe ser miembro (admin) del tenant GVM
+  const { data: ut } = await admin
+    .from('user_tenants')
+    .select('role, role_id')
+    .eq('user_id', user.id)
+    .eq('tenant_id', TENANT_ID)
+    .maybeSingle()
+  if (!ut) throw new Error('Forbidden')
+  if (['admin', 'owner'].includes((ut.role as string) || '')) return
+  if (ut.role_id) {
+    const { data: roleRow } = await admin.from('app_roles').select('name').eq('id', ut.role_id).maybeSingle()
+    if (['SUPER ADMINISTRADOR', 'ADMINISTRADOR'].includes((roleRow?.name as string) || '')) return
+    // SEGURIDAD (auditoría 2026-07-16): antes bastaba `can_edit`, que por datos
+    // corruptos tenían 38 de 40 usuarios (hasta CONDUCTOR y APRENDIZ SENA), así
+    // que este import masivo quedaba abierto a casi toda la empresa. Ahora se
+    // exige can_admin real sobre 'settings'.
+    const { data: perm } = await admin
+      .from('role_permissions')
+      .select('can_admin, can_view')
+      .eq('role_id', ut.role_id)
+      .eq('module_key', 'settings')
+      .maybeSingle()
+    if (perm?.can_admin && perm?.can_view) return
+  }
+  // Excepción explícita por persona (misma lista que la gestión de equipo).
+  const { data: teamAdmin } = await admin
+    .from('team_admins')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .eq('tenant_id', TENANT_ID)
+    .maybeSingle()
+  if (teamAdmin) return
+
+  throw new Error('Forbidden')
+}
+
+// ─── Allowlist de hosts (anti-SSRF) ─────────────────────────────────────────────
+// Solo se permite conectar al servidor WorldOffice conocido (o los definidos en
+// WORLDOFFICE_ALLOWED_HOSTS). Impide usar la app como proxy hacia hosts internos.
+function assertAllowedHost(server?: string): void {
+  const host = (server || DEFAULT_SERVER).trim()
+  const allow = new Set<string>([
+    DEFAULT_SERVER,
+    ...(process.env.WORLDOFFICE_ALLOWED_HOSTS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ])
+  if (!allow.has(host)) {
+    throw new Error(`Servidor no permitido: "${host}". Configura WORLDOFFICE_ALLOWED_HOSTS si es un host válido.`)
+  }
 }
 
 // ─── SQL Server config builder ────────────────────────────────────────────────
 
 function buildMssqlConfig(params: ConnectionParams): sql.config {
+  assertAllowedHost(params.server)
   const base: sql.config = {
     server: params.server || DEFAULT_SERVER,
     port: params.port || DEFAULT_PORT,
@@ -200,7 +261,7 @@ async function batchUpsert(
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAuth()
+    await requireAdmin()
     const body = await req.json()
     const { action } = body
 
@@ -214,6 +275,9 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : 'Error desconocido'
     if (message === 'Unauthorized') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    if (message === 'Forbidden') {
+      return NextResponse.json({ error: 'No tienes permisos para importar (requiere rol administrativo de GVM)' }, { status: 403 })
     }
     console.error('[worldoffice] Error:', err)
     return NextResponse.json({ error: message }, { status: 500 })

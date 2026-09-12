@@ -185,7 +185,7 @@ export default async function ProfitAndLossPage({
                             const delta = calcDelta(current, previous);
                             const isImprovement = positiveGood ? delta >= 0 : delta <= 0;
                             return (
-                                <div key={label} className="grid grid-cols-4 items-center gap-4 py-4">
+                                <div key={label} className="grid grid-cols-2 md:grid-cols-4 items-center gap-4 py-4">
                                     <span className="text-xs font-semibold text-slate-600">{label}</span>
                                     <div>
                                         <p className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Actual</p>

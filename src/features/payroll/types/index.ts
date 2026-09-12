@@ -80,6 +80,18 @@ export const employeeSchema = z.object({
     transport_allowance: z.boolean().default(true),
     risk_level: z.string().default('1'),
 
+    // Afiliaciones de seguridad social (se imprimen en el frente del carnet)
+    eps_name: z.string().optional().nullable(),
+    arl_name: z.string().optional().nullable(),
+
+    // Novedades de nómina fijas (montos mensuales)
+    commissions: z.coerce.number().min(0).default(0),            // Comisiones de ventas
+    collection_commissions: z.coerce.number().min(0).default(0), // Comisiones de recaudo
+    additional_allowances: z.coerce.number().min(0).default(0),  // Auxilios adicionales
+    mobility_allowance: z.coerce.number().min(0).default(0),     // Auxilio de rodamiento
+    non_salary_bonus: z.coerce.number().min(0).default(0),       // Bonos NO salariales
+    salary_bonus: z.coerce.number().min(0).default(0),           // Bonos salariales
+
     payment_method: z.string().default('CASH'),
     bank_name: z.string().optional().nullable(),
     bank_account_type: z.string().optional().nullable(),

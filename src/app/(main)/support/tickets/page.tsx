@@ -15,6 +15,19 @@ import {
 import Link from "next/link";
 import { TicketStatusBadge } from "@/features/support/components/TicketStatusBadge";
 
+const PRIORITY_LABEL: Record<string, string> = {
+    CRITICAL: 'Crítica', HIGH: 'Alta', MEDIUM: 'Media', LOW: 'Baja',
+};
+
+function fmtDate(d?: string | null): string {
+    if (!d) return '—';
+    try {
+        return new Date(d).toLocaleDateString('es-CO', {
+            day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Bogota',
+        });
+    } catch { return '—'; }
+}
+
 export default async function TicketsPage() {
     const supabase = await createClient();
     const tenant = await settingsService.getTenantInfo(supabase);
@@ -67,7 +80,9 @@ export default async function TicketsPage() {
                     <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{tickets.length} tickets</span>
                     <div className="flex items-center gap-1.5 bg-indigo-50 px-2.5 py-0.5 rounded-full">
                         <Clock className="h-3 w-3 text-indigo-600" />
-                        <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wide">SLA Activo</span>
+                        <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wide">
+                            {tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} activos
+                        </span>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -95,7 +110,7 @@ export default async function TicketsPage() {
                         href={`/support/tickets/${ticket.id}`}
                         className="block bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-200 group"
                     >
-                        <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-50">
+                        <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-50">
                             <div className="p-5 flex-1 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -140,13 +155,14 @@ export default async function TicketsPage() {
                                         <p className="text-xs font-bold text-slate-900 truncate">{ticket.assigned_user?.full_name || 'Sin asignar'}</p>
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1 px-0.5">
-                                        <span>SLA</span>
-                                        <span className="text-indigo-600">85%</span>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Creado</p>
+                                        <p className="text-xs font-bold text-slate-900">{fmtDate(ticket.created_at)}</p>
                                     </div>
-                                    <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-indigo-500 rounded-full w-[85%]" />
+                                    <div className="space-y-0.5 text-right">
+                                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Prioridad</p>
+                                        <p className="text-xs font-bold text-slate-900">{PRIORITY_LABEL[ticket.priority] ?? ticket.priority}</p>
                                     </div>
                                 </div>
                             </div>

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { documentService } from '@/features/documents/services/documentService';
 import { VendorBillList } from '@/features/purchasing/components/VendorBillList';
+import { getAttachmentCounts } from '@/features/documents/services/attachmentCountService';
 import { Button } from "@/shared/components/ui/button"
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { Plus, FileCheck, Banknote, TrendingDown, Receipt } from "lucide-react"
@@ -24,6 +25,11 @@ export default async function VendorBillsPage() {
     ]);
 
     const bills = billsResult.data || [];
+    // Conteo de soportes de la página (una sola consulta, no una por fila).
+    const attachmentCounts = await getAttachmentCounts(
+        supabase,
+        bills.map((d) => d.id!).filter(Boolean)
+    );
     const totalAP = bills.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
     const pendingCount = bills.filter(b => b.status === 'DRAFT').length;
 
@@ -77,7 +83,7 @@ export default async function VendorBillsPage() {
                     </span>
                 </div>
                 <CardContent className="p-0">
-                    <VendorBillList bills={bills} />
+                    <VendorBillList bills={bills} attachmentCounts={attachmentCounts} />
                 </CardContent>
             </Card>
         </div>

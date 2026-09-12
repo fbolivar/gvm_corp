@@ -25,8 +25,8 @@ export default async function VendorPortalPage() {
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
                     <Users className="h-24 w-24 text-white" />
                 </div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
-                    <div className="space-y-4">
+                <div className="relative z-10 flex flex-col md:flex-row flex-wrap justify-between items-start md:items-end gap-6 lg:gap-10">
+                    <div className="space-y-4 min-w-0">
                         <div className="flex items-center gap-3">
                             <div className="h-2 w-8 bg-amber-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-amber-400">Gestión de Proveedores</span>
@@ -45,7 +45,7 @@ export default async function VendorPortalPage() {
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 {[
                     { label: 'Proveedores Activos', value: activeVendors,  icon: Users,         color: 'text-amber-600',  bg: 'bg-amber-50' },
                     { label: 'Total Proveedores',   value: vendors.length, icon: Search,        color: 'text-slate-600',  bg: 'bg-slate-50' },
@@ -78,7 +78,7 @@ export default async function VendorPortalPage() {
                     {vendors.map(vendor => (
                         <Link key={vendor.id} href={`/vendor-portal/${vendor.id}`} className="group block">
                             <div className="bg-white rounded-[2.5rem] p-8 shadow-premium border border-transparent hover:border-amber-100 hover:shadow-active transition-all duration-500">
-                                <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
                                     {/* Icon + Info */}
                                     <div className="flex items-start gap-6 flex-1 min-w-0">
                                         <div className="h-16 w-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center text-slate-400 shrink-0 group-hover:bg-amber-500 group-hover:text-white transition-all duration-500">

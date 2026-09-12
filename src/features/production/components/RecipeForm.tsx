@@ -41,7 +41,7 @@ export function RecipeForm({ products, initialData, onSubmit, isLoading }: Recip
 
     return (
         <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-1000 max-w-6xl mx-auto pb-20">
-            <div className="grid gap-10 lg:grid-cols-12 items-start">
+            <div className="grid gap-6 lg:gap-10 lg:grid-cols-12 items-start">
                 {/* 🏷️ RECIPE HEADER INFO */}
                 <Card className="lg:col-span-5 rounded-[2.5rem] bg-white border-none shadow-premium overflow-hidden group">
                     <CardHeader className="p-8 bg-slate-50/50 border-b border-slate-50">

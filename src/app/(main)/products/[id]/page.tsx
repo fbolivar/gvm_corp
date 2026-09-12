@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { productService } from '@/features/products/services/productService';
+import { getProductTaxPermissionAction } from '@/features/products/actions';
 import EditProductClient from './client';
 import { notFound } from 'next/navigation';
 
@@ -23,9 +24,17 @@ export default async function EditProductPage({ params }: PageProps) {
             notFound();
         }
 
+        const canEditTax = await getProductTaxPermissionAction();
+
+        const [{ data: priceLists }, { data: items }] = await Promise.all([
+            supabase.from('price_lists').select('id, name, is_default').order('is_default', { ascending: false }).order('name'),
+            supabase.from('price_list_items').select('price_list_id, unit_price').eq('product_id', id),
+        ]);
+        const priceItems: Record<string, number> = Object.fromEntries((items ?? []).map((i: { price_list_id: string; unit_price: number }) => [i.price_list_id, Number(i.unit_price)]));
+
         return (
             <div className="pb-20">
-                <EditProductClient product={product} movements={movements || []} />
+                <EditProductClient product={product} movements={movements || []} canEditTax={canEditTax} priceLists={priceLists || []} priceItems={priceItems} />
                 <div className="mt-8">
                     <AuditTrail
                         client={supabase}

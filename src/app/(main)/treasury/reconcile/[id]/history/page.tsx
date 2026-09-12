@@ -30,7 +30,10 @@ export default async function ReconcileHistoryPage({ params }: Props) {
         settingsService.getTenantInfo(supabase),
         supabase
             .from('bank_statements')
-            .select('id, status, start_date, end_date, opening_balance, closing_balance, created_at, matched_count, unmatched_count')
+            // matched_count / unmatched_count NO existen en bank_statements: pedirlas
+            // hacía fallar la consulta entera y el historial salía vacío. Se calculan
+            // abajo desde las líneas del extracto.
+            .select('id, status, start_date, end_date, opening_balance, closing_balance, created_at')
             .eq('account_id', accountId)
             .order('created_at', { ascending: false })
             .limit(50),
@@ -39,7 +42,28 @@ export default async function ReconcileHistoryPage({ params }: Props) {
     const account = accountRes.data;
     if (!account) redirect('/treasury/reconcile');
 
-    const statements = statementsRes.data ?? [];
+    const baseStatements = statementsRes.data ?? [];
+
+    // Conteo real de líneas cruzadas / sin cruzar por extracto.
+    const matchCounts: Record<string, { matched: number; unmatched: number }> = {};
+    if (baseStatements.length > 0) {
+        const { data: lines } = await supabase
+            .from('bank_statement_lines')
+            .select('statement_id, transaction_id')
+            .in('statement_id', baseStatements.map(s => s.id));
+        for (const l of lines ?? []) {
+            const key = l.statement_id as string;
+            matchCounts[key] ??= { matched: 0, unmatched: 0 };
+            if (l.transaction_id) matchCounts[key].matched++;
+            else matchCounts[key].unmatched++;
+        }
+    }
+
+    const statements = baseStatements.map(s => ({
+        ...s,
+        matched_count: matchCounts[s.id]?.matched ?? null,
+        unmatched_count: matchCounts[s.id]?.unmatched ?? null,
+    }));
     const completed = statements.filter(s => s.status === 'COMPLETED').length;
     const pending = statements.filter(s => s.status === 'DRAFT').length;
 

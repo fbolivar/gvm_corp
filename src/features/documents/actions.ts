@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { documentService } from "./services/documentService";
 import { Document, documentSchema } from "./types";
+import { checkMarginViolations } from "./marginGuard";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -14,6 +15,9 @@ export async function createDocumentAction(data: Document) {
     if (!parsed.success) {
         return { error: "Datos inválidos: " + JSON.stringify(parsed.error.format()) };
     }
+
+    const marginError = await checkMarginViolations(supabase, parsed.data as any);
+    if (marginError) return { error: marginError };
 
     try {
         // Backend recalculation of totals is handled in service/API usually, 
@@ -143,6 +147,195 @@ export async function confirmSalesOrderAction(id: string): Promise<{ error?: str
 
     revalidatePath('/sales/orders');
     revalidatePath('/logistics');
+    return {};
+}
+
+/**
+ * Marca (o desmarca) un pedido de venta como FACTURADO manualmente, sin crear una
+ * factura en el sistema. Útil cuando la facturación se hace por fuera (ej. WorldOffice)
+ * y solo se necesita dejar constancia en el pedido para verificación.
+ * Marcar: → ACCEPTED (se muestra como "Facturado"). Desmarcar: → SENT (Confirmado).
+ */
+export async function markSalesOrderInvoicedAction(
+    id: string,
+    invoiced: boolean,
+    invoiceNumbers?: string[]
+): Promise<{ error?: string }> {
+    const supabase = await createClient();
+
+    try {
+        const { data: doc, error: selErr } = await supabase
+            .from('documents')
+            .select('id, status, doc_type')
+            .eq('id', id)
+            .single();
+
+        if (selErr || !doc) return { error: 'Pedido no encontrado' };
+        if (doc.doc_type !== 'SALES_ORDER') return { error: 'Solo aplica a pedidos de venta' };
+
+        const newStatus = invoiced ? 'ACCEPTED' : 'SENT';
+        // Al marcar se guardan las facturas indicadas; al desmarcar se limpian
+        // para no dejar números colgando de un pedido que ya no está facturado.
+        const numbers = invoiced ? normalizeInvoiceNumbers(invoiceNumbers) : null;
+
+        const { error: updErr } = await supabase
+            .from('documents')
+            .update({ status: newStatus, invoice_numbers: numbers })
+            .eq('id', id);
+
+        if (updErr) return { error: updErr.message };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : 'Error desconocido' };
+    }
+
+    revalidatePath('/sales/orders');
+    revalidatePath(`/documents/${id}`);
+    return {};
+}
+
+/** Normaliza la lista de facturas: recorta, quita vacíos y duplicados. */
+function normalizeInvoiceNumbers(list?: string[]): string[] | null {
+    const clean = (list ?? [])
+        .map(n => (n ?? '').trim())
+        .filter(Boolean)
+        .map(n => n.toUpperCase());
+    const unique = [...new Set(clean)];
+    return unique.length > 0 ? unique : null;
+}
+
+/**
+ * Actualiza SOLO los números de factura de un pedido ya facturado, sin tocar el
+ * estado (para corregir o agregar una FEV después de haberlo marcado).
+ */
+export async function updateInvoiceNumbersAction(
+    id: string,
+    invoiceNumbers: string[]
+): Promise<{ error?: string }> {
+    const supabase = await createClient();
+
+    try {
+        const { data: doc, error: selErr } = await supabase
+            .from('documents')
+            .select('id, doc_type, status')
+            .eq('id', id)
+            .single();
+
+        if (selErr || !doc) return { error: 'Pedido no encontrado' };
+        if (doc.doc_type !== 'SALES_ORDER') return { error: 'Solo aplica a pedidos de venta' };
+        if (doc.status !== 'ACCEPTED') {
+            return { error: 'El pedido debe estar marcado como facturado para registrar sus facturas.' };
+        }
+
+        const { error: updErr } = await supabase
+            .from('documents')
+            .update({ invoice_numbers: normalizeInvoiceNumbers(invoiceNumbers) })
+            .eq('id', id);
+
+        if (updErr) return { error: updErr.message };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : 'Error desconocido' };
+    }
+
+    revalidatePath('/sales/orders');
+    revalidatePath(`/documents/${id}`);
+    return {};
+}
+
+/**
+ * Guarda las observaciones finales de un pedido de venta ya cerrado.
+ * Solo aplica a SALES_ORDER en estado ACCEPTED (Facturado) — es el cierre del ciclo.
+ * Enviar texto vacío borra la observación.
+ */
+export async function saveFinalNotesAction(id: string, notes: string): Promise<{ error?: string }> {
+    const supabase = await createClient();
+
+    const clean = (notes ?? '').trim();
+    if (clean.length > 2000) {
+        return { error: 'Las observaciones finales no pueden superar 2.000 caracteres.' };
+    }
+
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { error: 'Sesión expirada. Vuelve a iniciar sesión.' };
+
+        const { data: doc, error: selErr } = await supabase
+            .from('documents')
+            .select('id, status, doc_type')
+            .eq('id', id)
+            .single();
+
+        if (selErr || !doc) return { error: 'Pedido no encontrado' };
+        if (doc.doc_type !== 'SALES_ORDER') return { error: 'Solo aplica a pedidos de venta' };
+        if (doc.status !== 'ACCEPTED') {
+            return { error: 'Las observaciones finales solo se registran cuando el pedido ya está facturado.' };
+        }
+
+        const { error: updErr } = await supabase
+            .from('documents')
+            .update({
+                final_notes: clean || null,
+                final_notes_at: clean ? new Date().toISOString() : null,
+                final_notes_by: clean ? user.id : null,
+            })
+            .eq('id', id);
+
+        if (updErr) return { error: updErr.message };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : 'Error desconocido' };
+    }
+
+    revalidatePath(`/documents/${id}`);
+    revalidatePath('/sales/orders');
+    return {};
+}
+
+/**
+ * Anula un pedido de venta (soft cancel): DRAFT|SENT → VOIDED.
+ * Reemplaza al borrado físico para NO dejar huecos en el consecutivo: el pedido
+ * queda en la lista marcado como ANULADO conservando su número. No aplica si ya
+ * está facturado (ACCEPTED), firmado en DIAN, o tiene documentos vinculados.
+ */
+export async function voidSalesOrderAction(id: string): Promise<{ error?: string }> {
+    const supabase = await createClient();
+
+    try {
+        const { data: doc, error: selErr } = await supabase
+            .from('documents')
+            .select('id, status, doc_type, number')
+            .eq('id', id)
+            .single();
+
+        if (selErr || !doc) return { error: 'Pedido no encontrado' };
+        if (doc.doc_type !== 'SALES_ORDER') return { error: 'Solo se pueden anular pedidos de venta' };
+        if (doc.status === 'VOIDED') return { error: 'El pedido ya está anulado' };
+        if (doc.status !== 'DRAFT' && doc.status !== 'SENT') {
+            return { error: `No se puede anular un pedido en estado ${doc.status}. Si está facturado, primero desmárcalo como facturado.` };
+        }
+
+        // No anular si tiene documentos vinculados (remisión/factura generada desde el pedido)
+        const { data: children } = await supabase
+            .from('documents')
+            .select('number, doc_type')
+            .eq('parent_id', id)
+            .limit(5);
+        if (children && children.length > 0) {
+            const list = children.map(c => `${c.doc_type} #${c.number || 's/n'}`).join(', ');
+            return { error: `No se puede anular: hay ${children.length} documento(s) vinculado(s) (${list}). Gestiona primero esos documentos.` };
+        }
+
+        const { error: updErr } = await supabase
+            .from('documents')
+            .update({ status: 'VOIDED' })
+            .eq('id', id);
+        if (updErr) return { error: updErr.message };
+    } catch (error: unknown) {
+        return { error: error instanceof Error ? error.message : 'Error desconocido' };
+    }
+
+    revalidatePath('/sales/orders');
+    revalidatePath('/logistics');
+    revalidatePath('/documents');
+    revalidatePath(`/documents/${id}`);
     return {};
 }
 

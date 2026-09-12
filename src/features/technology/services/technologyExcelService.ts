@@ -51,7 +51,7 @@ export const technologyExcelService = {
         wb.creator = 'GVM ERP V3';
         wb.created = new Date();
 
-        const ws = wb.addWorksheet('Activos IT', {
+        const ws = wb.addWorksheet('Activos Corporativos', {
             properties: { defaultColWidth: 16 },
         });
 

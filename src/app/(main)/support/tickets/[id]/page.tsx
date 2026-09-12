@@ -3,23 +3,45 @@ import { supportService } from "@/features/support/services/supportService";
 import { Button } from "@/shared/components/ui/button";
 import {
     ChevronLeft,
-    Share2,
-    MoreHorizontal,
     FileText,
     Package,
     Calendar,
     Hash,
-    Clock,
+    Flag,
+    Tag,
     MessageSquare,
     History as HistoryIcon
 } from "lucide-react";
 import Link from "next/link";
 import { TicketStatusBadge } from "@/features/support/components/TicketStatusBadge";
+import { TicketStatusControl } from "@/features/support/components/TicketStatusControl";
+import { TicketAssignControl } from "@/features/support/components/TicketAssignControl";
 import { TicketInteractions } from "@/features/support/components/TicketInteractions";
 import { Customer360Panel } from "@/features/support/components/Customer360Panel";
 import { notFound } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { TicketAuditLog } from "@/features/support/components/TicketAuditLog";
+
+const PRIORITY_INFO: Record<string, { label: string; cls: string }> = {
+    CRITICAL: { label: 'Prioridad Crítica', cls: 'bg-rose-50 text-rose-600' },
+    HIGH: { label: 'Prioridad Alta', cls: 'bg-amber-50 text-amber-600' },
+    MEDIUM: { label: 'Prioridad Media', cls: 'bg-indigo-50 text-indigo-600' },
+    LOW: { label: 'Prioridad Baja', cls: 'bg-emerald-50 text-emerald-600' },
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+    TECHNICAL: 'Técnico', BILLING: 'Facturación', RMA: 'Devolución (RMA)',
+    LOGISTICS: 'Logística', OTHER: 'Otro',
+};
+
+function fmtDate(d: string | null | undefined): string {
+    if (!d) return '—';
+    try {
+        return new Date(d).toLocaleDateString('es-CO', {
+            day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Bogota',
+        });
+    } catch { return '—'; }
+}
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -44,12 +66,8 @@ export default async function TicketDetailPage({ params }: PageProps) {
                 </Button>
 
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" className="h-9 w-9 p-0 rounded-xl border-slate-100 shadow-sm hover:bg-slate-50">
-                        <Share2 className="h-3.5 w-3.5 text-slate-400" />
-                    </Button>
-                    <Button variant="outline" className="h-9 w-9 p-0 rounded-xl border-slate-100 shadow-sm hover:bg-slate-50">
-                        <MoreHorizontal className="h-3.5 w-3.5 text-slate-400" />
-                    </Button>
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:block">Estado</span>
+                    <TicketStatusControl ticketId={ticket.id} currentStatus={ticket.status} />
                 </div>
             </div>
 
@@ -63,9 +81,11 @@ export default async function TicketDetailPage({ params }: PageProps) {
                                 {ticket.category}
                             </span>
                             <TicketStatusBadge status={ticket.status} />
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 rounded-lg">
-                                <Clock className="h-3 w-3 text-rose-600" />
-                                <span className="text-[10px] font-semibold text-rose-600 uppercase tracking-wider">SLA Critico</span>
+                            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${(PRIORITY_INFO[ticket.priority] ?? PRIORITY_INFO.MEDIUM).cls}`}>
+                                <Flag className="h-3 w-3" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wider">
+                                    {(PRIORITY_INFO[ticket.priority] ?? PRIORITY_INFO.MEDIUM).label}
+                                </span>
                             </div>
                         </div>
 
@@ -169,27 +189,43 @@ export default async function TicketDetailPage({ params }: PageProps) {
                     {/* Ticket Metadata */}
                     <div className="bg-white border border-slate-100 rounded-2xl shadow-sm">
                         <div className="p-5 pb-3">
-                            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Propiedades Ticket</h3>
+                            <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Propiedades del Ticket</h3>
                         </div>
                         <div className="px-5 pb-5 space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Calendar className="h-3 w-3" /> Vencimiento
+                                    <Calendar className="h-3 w-3" /> Creado
                                 </span>
-                                <span className="text-xs font-bold text-slate-900">22 Mar 2026</span>
+                                <span className="text-xs font-bold text-slate-900">{fmtDate(ticket.created_at)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Hash className="h-3 w-3" /> Proyecto
+                                    <Flag className="h-3 w-3" /> Prioridad
                                 </span>
-                                <span className="text-xs font-bold text-slate-900 line-clamp-1">GVM-CORE-V2</span>
+                                <span className="text-xs font-bold text-slate-900">
+                                    {(PRIORITY_INFO[ticket.priority] ?? PRIORITY_INFO.MEDIUM).label.replace('Prioridad ', '')}
+                                </span>
                             </div>
-                            <div className="pt-4 border-t border-slate-50">
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Ubicacion Solicitud</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
-                                    <span className="text-xs font-bold text-slate-800">Sede Principal - Bogota</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Tag className="h-3 w-3" /> Categoría
+                                </span>
+                                <span className="text-xs font-bold text-slate-900">{CATEGORY_LABELS[ticket.category] ?? ticket.category}</span>
+                            </div>
+                            {ticket.sla_deadline && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Calendar className="h-3 w-3" /> Vencimiento SLA
+                                    </span>
+                                    <span className="text-xs font-bold text-slate-900">{fmtDate(ticket.sla_deadline)}</span>
                                 </div>
+                            )}
+                            <div className="pt-4 border-t border-slate-50">
+                                <TicketAssignControl
+                                    ticketId={ticket.id}
+                                    currentAssignedTo={ticket.assigned_to ?? null}
+                                    currentName={ticket.assigned_user?.full_name}
+                                />
                             </div>
                         </div>
                     </div>

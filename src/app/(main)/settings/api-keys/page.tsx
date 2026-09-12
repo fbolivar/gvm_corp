@@ -12,7 +12,9 @@ export default async function ApiKeysSettingsPage() {
 
     const { data: apiKeys } = await supabase
         .from('api_keys')
-        .select('id, name, prefix, scopes, is_active, created_at, last_used_at')
+        // `key_prefix` es el nombre real de la columna; se expone como `prefix`
+        // al componente (con `prefix` a secas la consulta fallaba y la lista salía vacía).
+        .select('id, name, prefix:key_prefix, scopes, is_active, created_at, last_used_at')
         .order('created_at', { ascending: false });
 
     return (

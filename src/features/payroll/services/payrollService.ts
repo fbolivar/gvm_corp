@@ -12,7 +12,9 @@ import {
 export const PAYROLL_CONSTANTS = {
     ANUAL_UVT: 49449, // Proyectada o real 2026
     SMLV_2026: 1450000,
-    TRANSPORT_ALLOWANCE_2026: 175000,
+    // Auxilio de transporte 2026. Lo consumen certificados laborales, liquidación
+    // de nómina, provisiones y costo del empleador: es un solo valor legal.
+    TRANSPORT_ALLOWANCE_2026: 249095,
 
     // Employee Rates
     HEALTH_RATE_EMPLOYEE: 0.04,
@@ -152,7 +154,11 @@ export const payrollService = {
 
         // 2. Auxilio de Transporte
         if (employee.transport_allowance && baseSalary <= (PAYROLL_CONSTANTS.SMLV_2026 * 2)) {
-            const transportProportional = (PAYROLL_CONSTANTS.TRANSPORT_ALLOWANCE_2026 / 30) * daysWorked;
+            // Se redondea al peso: la nómina colombiana no maneja centavos y, sin
+            // esto, un mes completo daba 249.094,99999 en vez del auxilio exacto.
+            const transportProportional = Math.round(
+                (PAYROLL_CONSTANTS.TRANSPORT_ALLOWANCE_2026 / 30) * daysWorked
+            );
             concepts.push({
                 name: 'Auxilio de Transporte',
                 type: 'EARNING',

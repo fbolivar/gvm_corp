@@ -256,8 +256,8 @@ export default async function DashboardPage() {
 
                 {/* Low Stock Alert */}
                 {kpis.lowStockProducts > 0 && (
-                    <div className="mt-6 surface-card bg-amber-50/60 border-amber-200 p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
+                    <div className="mt-6 surface-card bg-amber-50/60 border-amber-200 p-5 flex flex-col md:flex-row flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
                             <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
                                 <AlertCircle className="h-5 w-5" />
                             </div>

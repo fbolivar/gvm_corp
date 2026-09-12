@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ChangePasswordForm } from './ChangePasswordForm'
 import { KeyRound, ShieldCheck, Lock } from 'lucide-react'
 import Image from 'next/image'
+import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
     title: 'Cambio de contraseña · GVM Corp',
@@ -27,6 +28,7 @@ export default async function ChangePasswordPage() {
 
     return (
         <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 p-6">
+            <Toaster richColors position="top-center" closeButton />
             <div className="w-full max-w-md">
                 {/* Logo */}
                 <div className="flex flex-col items-center mb-10">

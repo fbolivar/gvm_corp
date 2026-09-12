@@ -104,13 +104,13 @@ export const vendorPortalService = {
                 .eq('id', partyId)
                 .single(),
             client.from('documents')
-                .select('id, number, doc_type, status, issue_date, due_date, total, notes')
+                .select('id, number, doc_type, status, issue_date, due_date, total, notes:notes_public')
                 .eq('doc_type', 'PURCHASE_ORDER')
                 .eq('party_id', partyId)
                 .order('issue_date', { ascending: false })
                 .limit(30),
             client.from('documents')
-                .select('id, number, doc_type, status, issue_date, due_date, total, notes')
+                .select('id, number, doc_type, status, issue_date, due_date, total, notes:notes_public')
                 .eq('doc_type', 'VENDOR_BILL')
                 .eq('party_id', partyId)
                 .order('issue_date', { ascending: false })

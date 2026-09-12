@@ -3,13 +3,18 @@
 import { useState, useTransition } from 'react';
 import { reviewOvertimeRequest } from '../actions';
 import { OvertimeRequest } from '../types';
-import { Clock, CheckCircle2, XCircle, User, Calendar, AlignLeft, Loader2, ChevronDown } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, User, Calendar, AlignLeft, Loader2, ChevronDown, FileDown } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
+import { toast } from 'sonner';
+import type { PdfCompany } from '@/shared/lib/pdfKit';
 
 interface Props {
     pendingRequests: OvertimeRequest[];
     allRequests: OvertimeRequest[];
+    /** Datos de la empresa para el encabezado del PDF. */
+    company?: PdfCompany;
+    generatedBy?: string;
 }
 
 function ReviewCard({ req }: { req: OvertimeRequest }) {
@@ -162,9 +167,94 @@ function ReviewCard({ req }: { req: OvertimeRequest }) {
     );
 }
 
-export function OvertimeApprovalPanel({ pendingRequests, allRequests }: Props) {
+type HistoryFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
+const FILTERS: { key: HistoryFilter; label: string; active: string }[] = [
+    { key: 'ALL', label: 'Todas', active: 'bg-slate-900 text-white' },
+    { key: 'PENDING', label: 'Pendientes', active: 'bg-amber-500 text-white' },
+    { key: 'APPROVED', label: 'Aprobadas', active: 'bg-emerald-500 text-white' },
+    { key: 'REJECTED', label: 'Rechazadas', active: 'bg-rose-500 text-white' },
+];
+
+export function OvertimeApprovalPanel({ pendingRequests, allRequests, company, generatedBy }: Props) {
     const [showAll, setShowAll] = useState(false);
-    const displayAll = showAll ? allRequests : allRequests.slice(0, 5);
+    const [filter, setFilter] = useState<HistoryFilter>('ALL');
+    const [downloading, setDownloading] = useState(false);
+    // Rango de fechas del historial (vacío = todo). Se aplica a la tabla Y al PDF.
+    const [from, setFrom] = useState('');
+    const [to, setTo] = useState('');
+
+    /** Al elegir un mes se llena el rango completo de ese mes. */
+    function selectMonth(value: string) {
+        if (!value) { setFrom(''); setTo(''); return; }
+        const [y, m] = value.split('-').map(Number);
+        const last = new Date(y, m, 0).getDate();
+        setFrom(`${value}-01`);
+        setTo(`${value}-${String(last).padStart(2, '0')}`);
+        setShowAll(false);
+    }
+
+    const inRange = (r: OvertimeRequest) => {
+        const d = String(r.date ?? '');
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+    };
+
+    const byDate = allRequests.filter(inRange);
+    const filtered = filter === 'ALL' ? byDate : byDate.filter(r => r.status === filter);
+    const displayAll = showAll ? filtered : filtered.slice(0, 5);
+    // Los contadores respetan el rango de fechas seleccionado.
+    const countBy = (k: HistoryFilter) =>
+        k === 'ALL' ? byDate.length : byDate.filter(r => r.status === k).length;
+
+    /** Mes actualmente seleccionado (vacío si el rango no calza con un mes exacto). */
+    const monthValue = (() => {
+        if (!from || !to) return '';
+        const [y, m] = from.split('-').map(Number);
+        const last = new Date(y, m, 0).getDate();
+        return from.endsWith('-01') && to === `${from.slice(0, 7)}-${String(last).padStart(2, '0')}`
+            ? from.slice(0, 7) : '';
+    })();
+
+    /** Texto del periodo para el encabezado del PDF y el nombre del archivo. */
+    function rangeLabel() {
+        if (monthValue) {
+            const [y, m] = monthValue.split('-').map(Number);
+            const nombre = new Date(y, m - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+            return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+        }
+        if (from && to) return `${from} a ${to}`;
+        if (from) return `Desde ${from}`;
+        if (to) return `Hasta ${to}`;
+        return 'Todo el historial';
+    }
+
+    // Exporta EXACTAMENTE lo que se está viendo según el filtro (para contabilidad
+    // normalmente: "Aprobadas").
+    async function handleDownloadPdf() {
+        if (downloading) return;
+        if (filtered.length === 0) {
+            toast.error('No hay solicitudes para exportar con este filtro');
+            return;
+        }
+        setDownloading(true);
+        try {
+            const { generateOvertimeReportPdf } = await import('../services/overtimeReportPdfService');
+            await generateOvertimeReportPdf({
+                company: company ?? { name: 'GVM S.A.S' },
+                requests: filtered,
+                filterLabel: FILTERS.find(f => f.key === filter)?.label ?? 'Todas',
+                rangeLabel: rangeLabel(),
+                generatedBy,
+            });
+            toast.success('Reporte descargado');
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'No se pudo generar el PDF');
+        } finally {
+            setDownloading(false);
+        }
+    }
 
     return (
         <div className="space-y-8">
@@ -197,14 +287,84 @@ export function OvertimeApprovalPanel({ pendingRequests, allRequests }: Props) {
             {/* All requests history */}
             {allRequests.length > 0 && (
                 <section className="space-y-4">
-                    <h2 className="text-sm font-bold text-slate-900">Historial Completo</h2>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h2 className="text-sm font-bold text-slate-900">Historial Completo</h2>
+                        {/* Periodo: mes completo o rango libre. Aplica a la tabla y al PDF. */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mes</label>
+                            <input
+                                type="month"
+                                value={monthValue}
+                                onChange={e => selectMonth(e.target.value)}
+                                className="h-9 px-2 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-600"
+                            />
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Desde</label>
+                            <input
+                                type="date"
+                                value={from}
+                                onChange={e => { setFrom(e.target.value); setShowAll(false); }}
+                                className="h-9 px-2 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-600"
+                            />
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hasta</label>
+                            <input
+                                type="date"
+                                value={to}
+                                onChange={e => { setTo(e.target.value); setShowAll(false); }}
+                                className="h-9 px-2 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-600"
+                            />
+                            {(from || to) && (
+                                <button
+                                    onClick={() => { setFrom(''); setTo(''); setShowAll(false); }}
+                                    className="h-9 px-3 rounded-xl text-[11px] font-semibold text-slate-500 border border-slate-200 hover:bg-slate-50"
+                                >
+                                    Todo el historial
+                                </button>
+                            )}
+                        </div>
+                        {/* Filtro por estado — se mantiene en una línea y envuelve en móvil */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {FILTERS.map(f => (
+                                <button
+                                    key={f.key}
+                                    onClick={() => { setFilter(f.key); setShowAll(false); }}
+                                    className={cn(
+                                        "h-9 px-3 rounded-xl text-[11px] font-semibold transition-colors border",
+                                        filter === f.key
+                                            ? `${f.active} border-transparent`
+                                            : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                                    )}
+                                >
+                                    {f.label}
+                                    <span className={cn(
+                                        "ml-1.5 tabular-nums",
+                                        filter === f.key ? "text-white/70" : "text-slate-400"
+                                    )}>
+                                        {countBy(f.key)}
+                                    </span>
+                                </button>
+                            ))}
+                            <Button
+                                onClick={handleDownloadPdf}
+                                disabled={downloading}
+                                variant="outline"
+                                className="h-9 px-4 rounded-xl text-[11px] font-semibold border-slate-200 text-slate-600 hover:bg-slate-50 gap-1.5"
+                            >
+                                {downloading
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <FileDown className="h-3.5 w-3.5" />}
+                                PDF
+                            </Button>
+                        </div>
+                    </div>
 
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
                                 <tr className="border-b border-slate-100">
                                     <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Empleado</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Fecha</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 min-w-[240px]">Observación</th>
                                     <th className="text-right px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Horas</th>
                                     <th className="text-right px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Estado</th>
                                 </tr>
@@ -222,10 +382,27 @@ export function OvertimeApprovalPanel({ pendingRequests, allRequests }: Props) {
                                     return (
                                         <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-5 py-3 font-bold text-slate-800">{name}</td>
-                                            <td className="px-5 py-3 text-slate-500">{req.date}</td>
-                                            <td className="px-5 py-3 text-right font-bold text-amber-600 font-mono tabular-nums">{req.hours}h</td>
-                                            <td className="px-5 py-3 text-right">
-                                                <span className={cn("inline-block px-2.5 py-1 rounded-lg text-[10px] font-semibold", s.cls)}>
+                                            <td className="px-5 py-3 text-slate-500 whitespace-nowrap">{req.date}</td>
+                                            {/* Observación del empleado + nota de quien revisó */}
+                                            <td className="px-5 py-3 align-top max-w-[340px]">
+                                                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap break-words">
+                                                    {req.reason?.trim() || <span className="text-slate-300">Sin observación</span>}
+                                                </p>
+                                                {req.reviewer_notes?.trim() && (
+                                                    <p className={cn(
+                                                        "mt-1.5 text-[11px] leading-relaxed whitespace-pre-wrap break-words rounded-lg px-2 py-1",
+                                                        req.status === 'REJECTED'
+                                                            ? "bg-rose-50 text-rose-700"
+                                                            : "bg-slate-50 text-slate-600"
+                                                    )}>
+                                                        <span className="font-semibold">Revisión: </span>
+                                                        {req.reviewer_notes}
+                                                    </p>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-3 text-right font-bold text-amber-600 font-mono tabular-nums align-top">{req.hours}h</td>
+                                            <td className="px-5 py-3 text-right align-top">
+                                                <span className={cn("inline-block px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap", s.cls)}>
                                                     {s.label}
                                                 </span>
                                             </td>
@@ -234,14 +411,23 @@ export function OvertimeApprovalPanel({ pendingRequests, allRequests }: Props) {
                                 })}
                             </tbody>
                         </table>
+                        </div>
 
-                        {allRequests.length > 5 && (
+                        {filtered.length === 0 && (
+                            <div className="py-10 text-center">
+                                <p className="text-xs text-slate-400">
+                                    No hay solicitudes {FILTERS.find(f => f.key === filter)?.label.toLowerCase()}.
+                                </p>
+                            </div>
+                        )}
+
+                        {filtered.length > 5 && (
                             <div className="border-t border-slate-100 p-3 text-center">
                                 <button
                                     onClick={() => setShowAll(!showAll)}
                                     className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 hover:text-slate-600 transition-colors"
                                 >
-                                    {showAll ? 'Ver menos' : `Ver todos (${allRequests.length})`}
+                                    {showAll ? 'Ver menos' : `Ver todas (${filtered.length})`}
                                     <ChevronDown className={cn("h-3 w-3 transition-transform", showAll && 'rotate-180')} />
                                 </button>
                             </div>

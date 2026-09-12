@@ -266,7 +266,10 @@ export function BarcodeScanner() {
                     warehouse_id: warehouse.id,
                     type,
                     qty: Number(qty),
-                    reason: `Escaner: ${type === "IN" ? "Entrada" : "Salida"}`,
+                    // `reason` no existe en inventory_movements: el INSERT fallaba
+                    // siempre y el escáner nunca registró un movimiento. El origen
+                    // se deja en ref_doc_type, que sí es una columna real.
+                    ref_doc_type: 'SCANNER',
                     occurred_at: new Date().toISOString()
                 })
 

@@ -10,10 +10,13 @@ import {
   Info,
   CheckCircle2,
   AlertCircle,
+  X,
+  Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   createAnnouncementAction,
+  updateAnnouncementAction,
   deleteAnnouncementAction,
   type Announcement,
 } from '@/features/super-admin/services/superAdminService'
@@ -28,6 +31,14 @@ const severityMeta: Record<Announcement['severity'], { label: string; cls: strin
   critical: { label: 'Crítico', cls: 'bg-rose-50 text-rose-700 ring-rose-200/60', Icon: AlertCircle },
 }
 
+// Estilos idénticos al banner real que ve el usuario en la app (AnnouncementsBanner).
+const bannerCls: Record<Announcement['severity'], string> = {
+  info: 'bg-sky-50 border-sky-200 text-sky-900',
+  success: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+  warning: 'bg-amber-50 border-amber-200 text-amber-900',
+  critical: 'bg-rose-50 border-rose-200 text-rose-900',
+}
+
 function fmtDate(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -37,6 +48,8 @@ export function AnnouncementsClient({ initialAnnouncements }: { initialAnnouncem
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  // null = creando; string = editando ese anuncio
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
@@ -48,21 +61,55 @@ export function AnnouncementsClient({ initialAnnouncements }: { initialAnnouncem
     setTargetPlans(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])
   }
 
-  const handleCreate = async () => {
+  const resetForm = () => {
+    setTitle(''); setBody(''); setSeverity('info'); setTargetPlans([]); setExpiresAt('')
+    setEditingId(null); setShowForm(false)
+  }
+
+  // Convierte un timestamp (fin de día Bogotá) a 'YYYY-MM-DD' local para el input date.
+  const toDateInput = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }) : ''
+
+  const startEdit = (a: Announcement) => {
+    setEditingId(a.id)
+    setTitle(a.title)
+    setBody(a.body)
+    setSeverity(a.severity)
+    setTargetPlans(a.target_plans ?? [])
+    setExpiresAt(toDateInput(a.expires_at))
+    setShowForm(true)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleSubmit = async () => {
     if (!title.trim() || !body.trim()) return toast.error('Título y mensaje requeridos')
     setLoading(true)
-    const res = await createAnnouncementAction({
+    const payload = {
       title: title.trim(),
       body: body.trim(),
       severity,
       target_plans: targetPlans.length > 0 ? targetPlans : null,
       expires_at: expiresAt || null,
-    })
+    }
+    const res = editingId
+      ? await updateAnnouncementAction(editingId, payload)
+      : await createAnnouncementAction(payload)
     setLoading(false)
-    if (!res.success) return toast.error(res.error || 'Error al crear')
-    toast.success('Anuncio publicado')
-    setTitle(''); setBody(''); setSeverity('info'); setTargetPlans([]); setExpiresAt('')
-    setShowForm(false)
+    if (!res.success) {
+      const raw = res.error || 'Error desconocido'
+      const permiso = /permission|policy|row-level|denied|platform admin/i.test(raw)
+      return toast.error(
+        permiso
+          ? 'No se pudo guardar: tu cuenta no tiene permisos de Platform Admin.'
+          : `No se pudo guardar el anuncio: ${raw}`
+      )
+    }
+    toast.success(editingId ? '✅ Anuncio actualizado' : '✅ Anuncio publicado', {
+      description: targetPlans.length > 0
+        ? `Visible para planes: ${targetPlans.join(', ')}.`
+        : 'Visible para todos los planes.',
+    })
+    resetForm()
     router.refresh()
   }
 
@@ -89,7 +136,7 @@ export function AnnouncementsClient({ initialAnnouncements }: { initialAnnouncem
         </div>
         <button
           type="button"
-          onClick={() => setShowForm(s => !s)}
+          onClick={() => (showForm ? resetForm() : setShowForm(true))}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800"
         >
           <Plus className="w-4 h-4" />
@@ -99,7 +146,9 @@ export function AnnouncementsClient({ initialAnnouncements }: { initialAnnouncem
 
       {showForm && (
         <section className="bg-white border border-slate-200 rounded-xl p-5 mb-6">
-          <h2 className="text-base font-semibold text-slate-900 mb-4">Crear anuncio</h2>
+          <h2 className="text-base font-semibold text-slate-900 mb-4">
+            {editingId ? 'Editar anuncio' : 'Crear anuncio'}
+          </h2>
           <div className="space-y-4">
             <div>
               <label htmlFor="ann-title" className="block text-xs font-medium text-slate-600 mb-1">Título</label>
@@ -169,21 +218,44 @@ export function AnnouncementsClient({ initialAnnouncements }: { initialAnnouncem
               </div>
             </div>
 
+            {/* Vista previa: así se verá el banner en la app del usuario */}
+            <div>
+              <span className="block text-xs font-medium text-slate-600 mb-1">Vista previa (como lo verá el usuario)</span>
+              {(() => {
+                const PreviewIcon = severityMeta[severity].Icon
+                return (
+                  <div className={`flex items-start gap-3 px-4 py-3 rounded-lg border ${bannerCls[severity]}`}>
+                    <PreviewIcon className="w-4 h-4 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold">{title.trim() || 'Título del anuncio'}</p>
+                      <p className="text-xs mt-0.5 whitespace-pre-line opacity-90">{body.trim() || 'El mensaje del anuncio aparecerá aquí.'}</p>
+                    </div>
+                    <X className="w-3.5 h-3.5 shrink-0 opacity-50" />
+                  </div>
+                )
+              })()}
+              <p className="text-[10px] text-slate-400 mt-1">
+                Aparece arriba del contenido en la app de los usuarios (no en esta consola). Cada usuario puede descartarlo con la X.
+              </p>
+            </div>
+
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                onClick={handleCreate}
+                onClick={handleSubmit}
                 disabled={loading}
                 className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50"
               >
-                {loading ? 'Publicando...' : 'Publicar anuncio'}
+                {loading
+                  ? (editingId ? 'Guardando...' : 'Publicando...')
+                  : (editingId ? 'Guardar cambios' : 'Publicar anuncio')}
               </button>
             </div>
           </div>
@@ -233,14 +305,24 @@ export function AnnouncementsClient({ initialAnnouncements }: { initialAnnouncem
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(a.id)}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
-                    title="Eliminar anuncio"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(a)}
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Editar anuncio"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(a.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Eliminar anuncio"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             )

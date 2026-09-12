@@ -1,7 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Employee } from '../types';
 import { Party } from '@/features/parties/types';
-import { resolvePartyRow, resolveEmployeeName, type PartyRow } from '../utils/carnetHelpers';
 
 export const employeeService = {
     async getEmployees(client: SupabaseClient) {
@@ -16,42 +15,22 @@ export const employeeService = {
     },
 
     /**
-     * Empleados activos con nombre resuelto (party → profiles → "Sin nombre"),
-     * para selectores de asignación. Consulta normal (segura por RLS); reemplaza
-     * el uso de execute_sql_internal.
+     * Empleados activos (id + nombre) para selectores de asignación.
+     *
+     * Usa la RPC get_employee_options() en vez de leer `employees` directamente:
+     * desde la protección de salarios (2026-07-16) la RLS de `employees` solo
+     * deja ver la ficha completa a quien tiene el módulo de Nómina. Módulos como
+     * Activos Corporativos necesitan el picker sin exponer salarios, y la RPC
+     * devuelve únicamente id + nombre.
      */
     async getActiveEmployeesForSelect(client: SupabaseClient): Promise<{ id: string; party: { legal_name: string } }[]> {
-        type Row = { id: string; user_id: string | null; parties: PartyRow | PartyRow[] | null };
-        const { data: emps } = await client
-            .from('employees')
-            .select('id, user_id, parties(legal_name)')
-            .eq('status', 'ACTIVE');
-        if (!emps) return [];
-
-        const rows = emps as unknown as Row[];
-        const noPartyUserIds = rows
-            .filter(e => !resolvePartyRow(e.parties)?.legal_name)
-            .map(e => e.user_id)
-            .filter(Boolean) as string[];
-
-        const profileMap: Record<string, string> = {};
-        if (noPartyUserIds.length > 0) {
-            const { data: profiles } = await client
-                .from('profiles')
-                .select('id, full_name')
-                .in('id', noPartyUserIds);
-            (profiles || []).forEach((p: { id: string; full_name: string | null }) => {
-                profileMap[p.id] = p.full_name || '';
-            });
+        const { data, error } = await client.rpc('get_employee_options');
+        if (error) {
+            console.error('[payroll] getActiveEmployeesForSelect:', error.message);
+            return [];
         }
-
-        return rows
-            .map(e => {
-                const party = resolvePartyRow(e.parties);
-                const name = resolveEmployeeName(party, e.user_id ? profileMap[e.user_id] : undefined);
-                return { id: e.id, party: { legal_name: name } };
-            })
-            .sort((a, b) => a.party.legal_name.localeCompare(b.party.legal_name));
+        return ((data || []) as { id: string; legal_name: string }[])
+            .map(e => ({ id: e.id, party: { legal_name: e.legal_name || 'Sin nombre' } }));
     },
 
     async getEmployeeById(client: SupabaseClient, id: string) {
@@ -76,29 +55,18 @@ export const employeeService = {
         return data as Employee | null;
     },
 
-    // Helper to get tenant with MULTIPLE FALLBACKS
+    // Resuelve el tenant del usuario. Sin fallbacks inseguros: si el RPC no lo
+    // resuelve, se aborta con error en vez de arriesgar crear datos en la empresa
+    // equivocada (antes caía al "primer tenant" o a un UUID quemado).
     async getTenantId(client: SupabaseClient) {
         const { data: rpcData, error: rpcError } = await client.rpc('get_my_tenant_id');
 
-        if (!rpcError && rpcData) {
-            return rpcData;
+        if (rpcError || !rpcData) {
+            console.error("getTenantId: no se pudo resolver el tenant del usuario.", rpcError);
+            throw new Error("No se pudo determinar la empresa del usuario. Vuelve a iniciar sesión e inténtalo de nuevo.");
         }
-        console.warn("getTenantId: RPC failed/null. Data:", rpcData, "Error:", rpcError);
 
-        // 2. Fallback: Get first tenant (For dev/MVP)
-        const { data: tenantData, error: tenantError } = await client
-            .from('tenants')
-            .select('id')
-            .limit(1)
-            .maybeSingle();
-
-        if (tenantData?.id) {
-            return tenantData.id;
-        }
-        console.error("getTenantId: DB Fallback failed.", tenantError);
-
-        // 3. Emergency Fallback: Hardcoded ID (Known valid Tenant from previous query)
-        return '134320f0-20ef-4a56-8087-050d517c8282';
+        return rpcData as string;
     },
 
     async createEmployee(client: SupabaseClient, employee: Employee & { party: Party }) {
@@ -169,6 +137,12 @@ export const employeeService = {
                 salary: employee.salary,
                 transport_allowance: employee.transport_allowance ?? true,
                 risk_level: employee.risk_level || '1',
+                commissions: employee.commissions ?? 0,
+                collection_commissions: employee.collection_commissions ?? 0,
+                additional_allowances: employee.additional_allowances ?? 0,
+                mobility_allowance: employee.mobility_allowance ?? 0,
+                non_salary_bonus: employee.non_salary_bonus ?? 0,
+                salary_bonus: employee.salary_bonus ?? 0,
                 payment_method: employee.payment_method || 'CASH',
                 bank_name: employee.bank_name || null,
                 bank_account_type: employee.bank_account_type || null,
@@ -227,6 +201,14 @@ export const employeeService = {
                 salary: employee.salary,
                 transport_allowance: employee.transport_allowance,
                 risk_level: employee.risk_level,
+                eps_name: employee.eps_name?.trim() || null,
+                arl_name: employee.arl_name?.trim() || null,
+                commissions: employee.commissions ?? 0,
+                collection_commissions: employee.collection_commissions ?? 0,
+                additional_allowances: employee.additional_allowances ?? 0,
+                mobility_allowance: employee.mobility_allowance ?? 0,
+                non_salary_bonus: employee.non_salary_bonus ?? 0,
+                salary_bonus: employee.salary_bonus ?? 0,
                 payment_method: employee.payment_method,
                 bank_name: employee.bank_name,
                 bank_account_type: employee.bank_account_type,

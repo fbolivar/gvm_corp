@@ -1,66 +1,51 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
-import { BankStatementImportForm } from "@/features/treasury/components/BankStatementImportForm"
-import { treasuryService } from "@/features/treasury/services/treasuryService"
-import { createClient } from "@/lib/supabase/client"
+import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
-import { useToast } from "@/shared/hooks/use-toast"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+import { BankFileImporter } from "@/features/treasury/components/BankFileImporter"
+import { createClient } from "@/lib/supabase/client"
 import { VisualReportHeader } from "@/features/accounting/components/VisualReportHeader"
 import { settingsService, TenantInfo } from "@/features/settings/services/settingsService"
+import { Button } from "@/shared/components/ui/button"
 
 export default function NewBankStatementPage() {
     const params = useParams()
-    const router = useRouter()
-    const { toast } = useToast()
     const supabase = createClient()
-    const [isLoading, setIsLoading] = useState(false)
-    const [tenant, setTenant] = useState<TenantInfo | null>(null)
     const accountId = params.id as string
+    const [tenant, setTenant] = useState<TenantInfo | null>(null)
+    const [accountName, setAccountName] = useState<string>("")
 
     useEffect(() => {
-        const loadTenant = async () => {
-            const data = await settingsService.getTenantInfo(supabase)
-            setTenant(data)
+        const load = async () => {
+            const [t, acc] = await Promise.all([
+                settingsService.getTenantInfo(supabase),
+                supabase.from('treasury_accounts').select('name, bank_name').eq('id', accountId).maybeSingle(),
+            ])
+            setTenant(t)
+            if (acc.data) setAccountName([acc.data.bank_name, acc.data.name].filter(Boolean).join(' · '))
         }
-        loadTenant()
-    }, [])
-
-    const handleSubmit = async (statement: any, lines: any[]) => {
-        setIsLoading(true)
-        try {
-            const newStmt = await treasuryService.createBankStatement(supabase, statement, lines)
-            toast({
-                title: "Protocolo de Carga Finalizado",
-                description: "El extracto ha sido inyectado al sistema. Iniciando fase de conciliación...",
-            })
-            router.push(`/treasury/reconcile/${accountId}/match/${newStmt.id}`)
-        } catch (error: any) {
-            toast({
-                title: "Falla de Protocolo",
-                description: error.message,
-                variant: "destructive"
-            })
-        } finally {
-            setIsLoading(false)
-        }
-    }
+        load()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [accountId])
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] p-8 md:p-12 space-y-12">
-            <VisualReportHeader
-                title="Carga de Extracto"
-                subtitle="Protocolo de inyección de datos bancarios"
-                tenant={tenant}
-            />
-
-            <div className="max-w-[1600px] mx-auto">
-                <BankStatementImportForm
-                    accountId={accountId}
-                    onSubmit={handleSubmit}
-                    isLoading={isLoading}
-                />
+        <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" asChild className="h-10 w-10 rounded-xl">
+                    <Link href="/treasury/reconcile"><ArrowLeft className="h-4 w-4" /></Link>
+                </Button>
+                <div className="flex-1">
+                    <VisualReportHeader
+                        title="Cargar extracto bancario"
+                        subtitle="Sube el archivo del banco y crúzalo contra el libro auxiliar"
+                        tenant={tenant}
+                    />
+                </div>
             </div>
+
+            <BankFileImporter accountId={accountId} accountName={accountName} />
         </div>
     )
 }

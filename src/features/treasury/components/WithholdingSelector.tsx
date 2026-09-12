@@ -8,6 +8,7 @@ import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Plus, Trash2, ShieldAlert, Percent, Calculator, ChevronDown } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface WithholdingLine {
     withholding_id: string
@@ -133,15 +134,17 @@ export function WithholdingSelector({ baseAmount, onChange }: Props) {
                                 </div>
 
                                 <div className="pt-2 md:pt-6">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => removeLine(index)}
-                                        className="h-10 w-10 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                    <Hint label="Eliminar" side="left">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeLine(index)}
+                                            className="h-10 w-10 text-rose-500/50 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </Hint>
                                 </div>
                             </div>
                         )

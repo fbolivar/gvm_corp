@@ -138,8 +138,8 @@ export default function DianPayrollDashboard() {
     return (
         <div className="p-10 space-y-10 max-w-[1400px] mx-auto animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2">
+            <div className="flex flex-col md:flex-row flex-wrap md:items-center justify-between gap-6">
+                <div className="space-y-2 min-w-0">
                     <Link href="/payroll" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-primary transition-colors mb-4">
                         <ChevronLeft className="h-4 w-4" /> Volver a Nómina
                     </Link>

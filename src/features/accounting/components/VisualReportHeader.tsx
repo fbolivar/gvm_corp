@@ -18,7 +18,7 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
 
     return (
         <div className="surface-card p-5 md:p-6 print:shadow-none print:border-slate-300">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 lg:gap-5 min-w-0">
                 {/* Company block */}
                 <div className="flex items-start gap-4 min-w-0 flex-1">
                     {tenant.logo_url ? (
@@ -40,7 +40,7 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
                         <p className="text-xs text-slate-500 tabular-nums">
                             NIT {tenant.nit}-{tenant.dv}
                         </p>
-                        <div className="hidden md:flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-1">
+                        <div className="hidden lg:flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-1">
                             {tenant.address && (
                                 <span className="inline-flex items-center gap-1">
                                     <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
@@ -70,15 +70,15 @@ export function VisualReportHeader({ title, subtitle, tenant }: Props) {
                 </div>
 
                 {/* Report block */}
-                <div className="shrink-0 md:text-right md:pl-5 md:border-l md:border-slate-200">
+                <div className="min-w-0 lg:shrink-0 lg:max-w-[45%] lg:text-right lg:pl-5 lg:border-l lg:border-slate-200 border-t border-slate-100 pt-3 lg:pt-0 lg:border-t-0">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         Reporte
                     </p>
-                    <h1 className="text-lg md:text-xl font-bold text-slate-900 mt-0.5">
+                    <h1 className="text-lg md:text-xl font-bold text-slate-900 mt-0.5 break-words">
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>
+                        <p className="text-sm text-slate-500 mt-0.5 break-words">{subtitle}</p>
                     )}
                     <p className="inline-flex items-center gap-1.5 text-xs text-slate-500 mt-2">
                         <Calendar className="h-3 w-3" />

@@ -8,6 +8,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Azul corporativo GVM (#0096E6). Redefinimos la escala `indigo` — que
+        // era el color primario de facto en toda la app — para que TODOS los
+        // `indigo-*` existentes rendericen en el azul de marca. `indigo-600`
+        // (el de los botones) queda exactamente en #0096E6.
+        indigo: {
+          50: "#E9F6FE",
+          100: "#CFEEFD",
+          200: "#A3DDFB",
+          300: "#6BCAF8",
+          400: "#2FB2F1",
+          500: "#0FA1EC",
+          600: "#0096E6",
+          700: "#0777B8",
+          800: "#0B5F93",
+          900: "#124F78",
+          950: "#0B3150",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -51,7 +68,7 @@ const config: Config = {
       },
       boxShadow: {
         'premium': '0 20px 50px rgba(0,0,0,0.05)',
-        'active': '0 10px 25px -5px rgba(78, 103, 235, 0.3)',
+        'active': '0 10px 25px -5px rgba(0, 150, 230, 0.3)',
       }
     },
   },

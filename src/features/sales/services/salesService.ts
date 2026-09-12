@@ -82,5 +82,70 @@ export const salesService = {
         // Por ahora lo dejamos como está.
 
         return createdDoc.id;
-    }
+    },
+
+    /**
+     * Duplica un pedido de venta en un NUEVO borrador independiente (mismos ítems),
+     * para que el comercial lo ajuste y lo vuelva a confirmar sin re-digitar todo.
+     * No enlaza (parent_id) ni copia número/estado/datos de emisión del original.
+     */
+    async duplicateSalesOrder(client: SupabaseClient, sourceDocId: string): Promise<string> {
+        const { data: src, error: fetchError } = await client
+            .from('documents')
+            .select('*, lines:document_lines(*)')
+            .eq('id', sourceDocId)
+            .single();
+        if (fetchError) throw fetchError;
+        if (!src) throw new Error('Pedido no encontrado');
+        if (src.doc_type !== 'SALES_ORDER') throw new Error('Solo se pueden duplicar pedidos de venta');
+
+        const newDoc: Record<string, unknown> = {
+            tenant_id: src.tenant_id,
+            doc_type: 'SALES_ORDER',
+            // number: se deja sin asignar → el trigger de numeración pone el nuevo consecutivo
+            party_id: src.party_id,
+            issue_date: new Date().toISOString().split('T')[0],
+            due_date: src.due_date,
+            currency: src.currency,
+            subtotal: src.subtotal,
+            taxes: src.taxes,
+            total: src.total,
+            status: 'DRAFT',
+            notes_public: src.notes_public,
+            notes_internal: `Duplicado del pedido ${src.number ?? ''}`.trim(),
+            // Solo se incluyen si la columna existe/tiene valor (evita insertar columnas inexistentes)
+            ...(src.warehouse_id ? { warehouse_id: src.warehouse_id } : {}),
+            ...(src.expected_delivery_date ? { expected_delivery_date: src.expected_delivery_date } : {}),
+            ...(src.salesperson_id ? { salesperson_id: src.salesperson_id } : {}),
+        };
+
+        const { data: createdDoc, error: insertError } = await client
+            .from('documents')
+            .insert(newDoc)
+            .select()
+            .single();
+        if (insertError) throw insertError;
+
+        const newLines = (src.lines ?? []).map((line: any) => {
+            const qty = Number(line.qty) || 0;
+            const price = Number(line.unit_price) || 0;
+            return {
+                tenant_id: src.tenant_id,
+                document_id: createdDoc.id,
+                product_id: line.product_id,
+                warehouse_id: line.warehouse_id,
+                description: line.description,
+                qty: line.qty,
+                unit_price: line.unit_price,
+                line_total: line.line_total && Number(line.line_total) > 0 ? line.line_total : qty * price,
+                tax_config: line.tax_config,
+            };
+        });
+        if (newLines.length > 0) {
+            const { error: linesError } = await client.from('document_lines').insert(newLines);
+            if (linesError) throw linesError;
+        }
+
+        return createdDoc.id;
+    },
 };

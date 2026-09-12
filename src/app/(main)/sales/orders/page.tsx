@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/shared/lib/fetchAllRows';
 import { documentService } from '@/features/documents/services/documentService';
+import { settingsService } from '@/features/settings/services/settingsService';
 import { SalesOrderList } from '@/features/sales/components/SalesOrderList';
 import { SalesOrderFiltersBar } from '@/features/sales/components/SalesOrderFiltersBar';
+import { DocumentExportButton } from '@/features/sales/components/DocumentExportButton';
 import { Button } from '@/shared/components/ui/button';
 import { Plus, ShoppingCart, Clock, PackageCheck, DollarSign, FileBarChart } from 'lucide-react';
 import Link from 'next/link';
@@ -26,9 +29,17 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     const sp = await searchParams;
     const page    = Math.max(1, Number(sp.page) || 1);
     const search  = sp.search?.trim() || undefined;
-    const status  = sp.status?.trim() || undefined;
+    const rawStatus = sp.status?.trim() || undefined;
+    // Los pedidos anulados conservan su consecutivo y quedaban en la lista: tras
+    // el incidente de duplicados del 2026-08-31 la primera pantalla eran 24 filas
+    // ANULADO seguidas. Por defecto se ocultan; siguen a un clic con el filtro
+    // "Anulado", y "Todos (incluye anulados)" muestra la lista completa.
+    const showAll = rawStatus === 'ALL';
+    const status  = showAll ? undefined : rawStatus;
+    const hideVoided = !status;
     const from    = sp.from?.trim() || undefined;
     const to      = sp.to?.trim() || undefined;
+    const warehouse = sp.warehouse?.trim() || undefined;
 
     const { data: orders, count } = await documentService.getDocuments(supabase, {
         page,
@@ -36,15 +47,36 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         type: 'SALES_ORDER' as never,
         search,
         status: status as never,
+        hide_voided: hideVoided,
+        warehouse_id: warehouse,
         start_date: from,
         end_date: to,
     });
 
+    // Bodegas para el filtro
+    const { data: warehousesData } = await supabase
+        .from('warehouses')
+        .select('id, name')
+        .order('name');
+    const warehouses = (warehousesData ?? []) as { id: string; name: string }[];
+
+    const tenant = await settingsService.getTenantInfo(supabase);
+    const company = {
+        name: tenant?.name || 'GVM S.A.S',
+        nit: tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : null,
+        address: [tenant?.address, tenant?.city].filter(Boolean).join(', ') || null,
+        phone: tenant?.phone ?? null,
+        logoUrl: tenant?.logo_url ?? null,
+    };
+
     // KPIs del total real (sin paginación) — query rápida sin select de columnas
+    // Los KPIs miden actividad real: un pedido anulado no es un pedido. Incluirlos
+    // inflaba "Total Pedidos" y hundía el % de cumplimiento.
     const { count: totalCount } = await supabase
         .from('documents')
         .select('id', { count: 'exact', head: true })
-        .eq('doc_type', 'SALES_ORDER');
+        .eq('doc_type', 'SALES_ORDER')
+        .neq('status', 'VOIDED');
 
     const { count: pendingCount } = await supabase
         .from('documents')
@@ -58,14 +90,21 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         .eq('doc_type', 'SALES_ORDER')
         .eq('status', 'ACCEPTED');
 
-    const { data: pendingVolData } = await supabase
-        .from('documents')
-        .select('total')
-        .eq('doc_type', 'SALES_ORDER')
-        .in('status', ['DRAFT', 'SENT'])
-        .limit(5000);
+    // Paginado: PostgREST corta en 1.000 filas en silencio, así que un
+    // `.limit(5000)` haría que este KPI se quedara corto sin avisar en cuanto
+    // haya más de mil pedidos pendientes.
+    const pendingVolData = await fetchAllRows<{ total: number | null }>(
+        ({ from, to }) => supabase
+            .from('documents')
+            .select('total')
+            .eq('doc_type', 'SALES_ORDER')
+            .in('status', ['DRAFT', 'SENT'])
+            .order('id')
+            .range(from, to),
+        { label: 'orders:volumen-pendiente' },
+    );
 
-    const totalVolumePending = (pendingVolData ?? []).reduce((acc, d) => acc + Number(d.total || 0), 0);
+    const totalVolumePending = pendingVolData.reduce((acc, d) => acc + Number(d.total || 0), 0);
     const total = totalCount ?? 0;
     const fulfillment = total > 0 ? Math.round(((completedCount ?? 0) / total) * 100) : 0;
     const totalPages = Math.ceil((count ?? 0) / PER_PAGE);
@@ -96,6 +135,17 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                                     <Plus className="h-3.5 w-3.5" /> Nuevo pedido
                                 </Link>
                             </Button>
+                            <DocumentExportButton
+                                source="documents"
+                                docType="SALES_ORDER"
+                                filters={{ search, status, hide_voided: hideVoided, warehouse_id: warehouse, start_date: from, end_date: to }}
+                                company={company}
+                                opts={{
+                                    title: 'PEDIDOS DE VENTA', partyLabel: 'Cliente', fileLabel: 'Pedidos', sheetName: 'Pedidos',
+                                    showInvoice: true,
+                                    statusLabels: { DRAFT: 'Borrador', SENT: 'Confirmado', ACCEPTED: 'Facturado', VOIDED: 'Anulado', REJECTED: 'Rechazado' },
+                                }}
+                            />
                             <Button variant="outline" asChild className="h-9 rounded-xl text-xs font-semibold gap-2">
                                 <Link href="/sales">Dashboard Ventas</Link>
                             </Button>
@@ -121,9 +171,11 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                 {/* Filtros */}
                 <SalesOrderFiltersBar
                     defaultSearch={search}
-                    defaultStatus={status}
+                    defaultStatus={rawStatus}
+                    defaultWarehouse={warehouse}
                     defaultFrom={from}
                     defaultTo={to}
+                    warehouses={warehouses}
                 />
 
                 {/* Listado */}
@@ -146,7 +198,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
                             orders={orders}
                             page={page}
                             totalPages={totalPages}
-                            baseParams={{ search, status, from, to }}
+                            baseParams={{ search, status, warehouse, from, to }}
                         />
                     </CardContent>
                 </Card>

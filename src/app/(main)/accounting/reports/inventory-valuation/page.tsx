@@ -188,7 +188,7 @@ export default async function InventoryValuationPage({
             </Card>
 
             {/* 🛡️ BOTTOM INFRASTRUCTURE pods */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-10">
                 <div className="bg-slate-900 p-10 rounded-[2.5rem] text-white shadow-active relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-10 opacity-[0.05] pointer-events-none group-hover:rotate-12 transition-transform">
                         <Zap className="h-20 w-20" />
@@ -206,12 +206,12 @@ export default async function InventoryValuationPage({
                     </div>
                 </div>
 
-                <div className="bg-white p-10 rounded-[2.5rem] shadow-premium flex flex-col md:flex-row items-center justify-between gap-10 border border-slate-50 group">
-                    <div className="flex items-center gap-8">
-                        <div className="h-14 w-14 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 shadow-inner">
+                <div className="bg-white p-10 rounded-[2.5rem] shadow-premium flex flex-col lg:flex-row items-center justify-between gap-10 border border-slate-50 group">
+                    <div className="flex items-center gap-8 min-w-0">
+                        <div className="h-14 w-14 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 shadow-inner shrink-0">
                             <Info className="h-8 w-8" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 min-w-0">
                             <h5 className="text-slate-900 font-black text-lg uppercase tracking-tight">Sincronía Contable</h5>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Cruce automático con la cuenta 1435: <span className="text-indigo-400">Verificada</span></p>
                         </div>

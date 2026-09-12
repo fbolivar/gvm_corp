@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { productService } from '@/features/products/services/productService';
 import { ProductList } from '@/features/products/components/ProductList';
 import { ProductFilters, ProductTypeEnum, ProductStatusEnum } from '@/features/products/types';
-import { TrendingUp, AlertTriangle, Layers, Zap, Package, Plus } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Layers, Zap, Package, Plus, ScanBarcode, DollarSign } from 'lucide-react';
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -97,12 +97,26 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                     { label: 'Productos' },
                 ]}
                 actions={
-                    <Button asChild size="sm" className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs gap-2">
-                        <Link href="/products/new">
-                            <Plus className="h-3.5 w-3.5" />
-                            Nuevo producto
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" size="sm" className="h-9 px-4 rounded-xl text-xs gap-2 border-slate-200 text-slate-600 hover:bg-slate-50">
+                            <Link href="/products/import-prices">
+                                <DollarSign className="h-3.5 w-3.5" />
+                                Cargar precios
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm" className="h-9 px-4 rounded-xl text-xs gap-2 border-slate-200 text-slate-600 hover:bg-slate-50">
+                            <Link href="/products/import-barcodes">
+                                <ScanBarcode className="h-3.5 w-3.5" />
+                                Cargar códigos
+                            </Link>
+                        </Button>
+                        <Button asChild size="sm" className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs gap-2">
+                            <Link href="/products/new">
+                                <Plus className="h-3.5 w-3.5" />
+                                Nuevo producto
+                            </Link>
+                        </Button>
+                    </div>
                 }
             />
 

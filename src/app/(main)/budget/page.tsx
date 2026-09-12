@@ -80,7 +80,7 @@ export default async function BudgetPage() {
                                     className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label htmlFor="budget-year" className="block text-xs font-medium text-slate-700 mb-1.5">Año</label>
                                     <input
@@ -167,7 +167,7 @@ export default async function BudgetPage() {
                                             <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0" />
                                         </div>
 
-                                        <div className="mt-4 grid grid-cols-3 gap-3">
+                                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                                             <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 p-3">
                                                 <div className="flex items-center gap-1.5 mb-0.5">
                                                     <TrendingUp className="h-3 w-3 text-emerald-600" />

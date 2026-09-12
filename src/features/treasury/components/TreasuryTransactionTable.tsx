@@ -46,6 +46,7 @@ interface TreasuryTransactionTableProps {
 
 import { pdfReportService } from "@/features/accounting/services/pdfReportService"
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { Hint } from "@/shared/components/ui/hint"
 
 export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTransactionTableProps) {
 
@@ -86,6 +87,7 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
 
     return (
         <div className="bg-white rounded-[2.5rem] shadow-premium overflow-hidden border border-slate-50">
+            <div className="overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent border-slate-50 h-16">
@@ -222,14 +224,16 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
                                     {/* Actions */}
                                     <TableCell className="pr-8 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-10 w-10 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm"
-                                                onClick={() => handlePrintVoucher(tx)}
-                                            >
-                                                <Printer className="h-5 w-5" />
-                                            </Button>
+                                            <Hint label="Imprimir comprobante" side="top">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-10 w-10 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                                                    onClick={() => handlePrintVoucher(tx)}
+                                                >
+                                                    <Printer className="h-5 w-5" />
+                                                </Button>
+                                            </Hint>
 
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -264,6 +268,7 @@ export function TreasuryTransactionTable({ transactions, tenant }: TreasuryTrans
                     )}
                 </TableBody>
             </Table>
+            </div>
         {ConfirmDialogEl}
         </div>
     )

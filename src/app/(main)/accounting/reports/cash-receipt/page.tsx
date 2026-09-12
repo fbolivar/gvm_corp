@@ -155,8 +155,8 @@ function ListView({ transactions }: { transactions: TreasuryTransaction[] }) {
             </div>
 
             {/* KPI Strip */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 px-1">
-                <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 px-1">
+                <div className="flex flex-col min-w-0">
                     <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">
                         Total Recibos Recientes
                     </span>
@@ -173,7 +173,7 @@ function ListView({ transactions }: { transactions: TreasuryTransaction[] }) {
 
             {/* Transaction grid */}
             {transactions.length === 0 ? (
-                <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-20 flex flex-col items-center justify-center gap-6">
+                <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-8 md:p-20 flex flex-col items-center justify-center gap-6">
                     <div className="h-20 w-20 rounded-[2rem] bg-slate-50 flex items-center justify-center">
                         <Receipt className="h-10 w-10 text-slate-200" />
                     </div>

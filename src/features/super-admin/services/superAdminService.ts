@@ -361,15 +361,57 @@ export async function createAnnouncementAction(input: {
   expires_at: string | null
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    await requirePlatformAdmin()
+    const actorId = await requirePlatformAdmin()
     const supabase = await createClient()
+    // La fecha de expiración viene como 'YYYY-MM-DD' del input date. Se interpreta
+    // como FIN de ese día en hora Colombia (UTC-5); si no, "expira hoy" quedaría
+    // vencido a la medianoche UTC (inicio del día) y el anuncio nunca se vería.
+    const expiresAt = input.expires_at
+      ? `${String(input.expires_at).slice(0, 10)}T23:59:59-05:00`
+      : null
     const { error } = await supabase.from('platform_announcements').insert({
       title: input.title,
       body: input.body,
       severity: input.severity,
       target_plans: input.target_plans,
-      expires_at: input.expires_at,
+      expires_at: expiresAt,
+      created_by: actorId,
     })
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/super-admin/announcements')
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error' }
+  }
+}
+
+export async function updateAnnouncementAction(
+  id: string,
+  input: {
+    title: string
+    body: string
+    severity: 'info' | 'warning' | 'critical' | 'success'
+    target_plans: string[] | null
+    expires_at: string | null
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requirePlatformAdmin()
+    const supabase = await createClient()
+    // Misma interpretación de expiración que al crear: fin del día en hora Colombia.
+    const expiresAt = input.expires_at
+      ? `${String(input.expires_at).slice(0, 10)}T23:59:59-05:00`
+      : null
+    const { error } = await supabase
+      .from('platform_announcements')
+      .update({
+        title: input.title,
+        body: input.body,
+        severity: input.severity,
+        target_plans: input.target_plans,
+        expires_at: expiresAt,
+      })
+      .eq('id', id)
     if (error) return { success: false, error: error.message }
     revalidatePath('/super-admin/announcements')
     return { success: true }

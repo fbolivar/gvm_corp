@@ -8,6 +8,7 @@ import { RotateCcw, ArrowLeft, Save, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { createPurchaseReturnAction } from "../actions/purchaseReturnActions"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface VendorBill {
     id: string
@@ -84,16 +85,18 @@ export function PurchaseReturnForm({ vendorBills }: Props) {
                 </div>
                 <div className="relative z-10 space-y-4">
                     <div className="flex items-center gap-3">
-                        <Button
-                            asChild
-                            variant="ghost"
-                            size="icon"
-                            className="h-10 w-10 rounded-xl text-white/40 hover:text-white hover:bg-white/10"
-                        >
-                            <Link href="/purchasing/returns">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Link>
-                        </Button>
+                        <Hint label="Volver" side="top">
+                            <Button
+                                asChild
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 rounded-xl text-white/40 hover:text-white hover:bg-white/10"
+                            >
+                                <Link href="/purchasing/returns">
+                                    <ArrowLeft className="h-5 w-5" />
+                                </Link>
+                            </Button>
+                        </Hint>
                         <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/30">Compras</span>
                     </div>
                     <h1 className="text-3xl font-black tracking-tight uppercase">Nueva Devolución</h1>
@@ -131,7 +134,7 @@ export function PurchaseReturnForm({ vendorBills }: Props) {
                         <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest">
                             Factura Seleccionada
                         </p>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <p className="text-xs text-slate-500">Número</p>
                                 <p className="text-sm font-bold text-slate-900">{selectedBill.number}</p>

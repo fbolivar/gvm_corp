@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { completeTrainingAction } from '../actions';
+import { useRouter } from 'next/navigation';
+import { completeTrainingAction, rescheduleTrainingAction, getProgramVideoUrlAction } from '../actions';
 import { TrainingRecord, CATEGORY_CONFIG, TRAINING_STATUS } from '../types';
 import {
     CheckCircle2,
@@ -13,6 +14,9 @@ import {
     AlertCircle,
     GraduationCap,
     ChevronDown,
+    CalendarClock,
+    PlayCircle,
+    X,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
@@ -28,15 +32,57 @@ interface CompleteFormState {
 }
 
 function RecordRow({ record }: { record: TrainingRecord }) {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [showComplete, setShowComplete] = useState(false);
     const [form, setForm] = useState<CompleteFormState>({ score: '', certificate_number: '', notes: '' });
     const [result, setResult] = useState<{ success?: boolean; error?: string } | null>(null);
     const [done, setDone] = useState(false);
 
+    // Reprogramación de fecha
+    const [showReschedule, setShowReschedule] = useState(false);
+    const [newDate, setNewDate] = useState(record.scheduled_date ?? '');
+    const [currentDate, setCurrentDate] = useState(record.scheduled_date ?? '');
+    const [rescheduling, setRescheduling] = useState(false);
+    // Ver video del programa
+    const [openingVideo, setOpeningVideo] = useState(false);
+
     const employeeName = record.employee?.party?.legal_name ?? 'Empleado';
     const programName = record.program?.name ?? 'Programa';
     const programCategory = record.program?.category ?? '';
+    const hasVideo = Boolean(record.program?.video_url || record.program?.video_path);
+
+    function handleReschedule() {
+        setResult(null);
+        if (!newDate) { setResult({ error: 'Selecciona una fecha' }); return; }
+        setRescheduling(true);
+        startTransition(async () => {
+            try {
+                const res = await rescheduleTrainingAction(record.id!, newDate);
+                if (res.success) {
+                    setCurrentDate(newDate);
+                    setShowReschedule(false);
+                    router.refresh();
+                } else {
+                    setResult({ error: res.error || 'No se pudo reprogramar' });
+                }
+            } finally {
+                setRescheduling(false);
+            }
+        });
+    }
+
+    async function handleViewVideo() {
+        if (!record.program?.id) return;
+        setOpeningVideo(true);
+        try {
+            const res = await getProgramVideoUrlAction(record.program.id);
+            if (res.url) window.open(res.url, '_blank', 'noopener,noreferrer');
+            else setResult({ error: res.error || 'No se pudo abrir el video' });
+        } finally {
+            setOpeningVideo(false);
+        }
+    }
     const categoryConfig = CATEGORY_CONFIG[programCategory];
     const statusConfig = TRAINING_STATUS[record.status] ?? { label: record.status, className: 'bg-slate-50 text-slate-500 border border-slate-100' };
 
@@ -93,7 +139,7 @@ function RecordRow({ record }: { record: TrainingRecord }) {
                     {/* Date */}
                     <div className="hidden sm:flex items-center gap-1.5 shrink-0">
                         <CalendarDays className="h-3 w-3 text-slate-400" />
-                        <span className="text-[10px] text-slate-400">{record.scheduled_date}</span>
+                        <span className="text-[10px] text-slate-400">{currentDate}</span>
                     </div>
 
                     {/* Score */}
@@ -109,6 +155,45 @@ function RecordRow({ record }: { record: TrainingRecord }) {
                         {displayStatus.label}
                     </span>
 
+                    {/* La marcó el propio empleado desde su portal */}
+                    {record.self_completed_at && (
+                        <span
+                            title={`El empleado la marcó como vista el ${new Date(record.self_completed_at).toLocaleString('es-CO')}`}
+                            className="hidden lg:inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-semibold bg-violet-50 text-violet-600 border border-violet-100 shrink-0"
+                        >
+                            <User className="h-2.5 w-2.5" /> Vista por el empleado
+                        </span>
+                    )}
+
+                    {/* Ver video (si el programa tiene material) */}
+                    {hasVideo && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleViewVideo}
+                            disabled={openingVideo}
+                            title="Ver video de la capacitación"
+                            className="h-8 px-3 rounded-xl text-xs font-semibold border-indigo-100 text-indigo-700 hover:bg-indigo-50 gap-1.5 shrink-0"
+                        >
+                            {openingVideo ? <Loader2 className="h-3 w-3 animate-spin" /> : <PlayCircle className="h-3 w-3" />}
+                            <span className="hidden sm:inline">Video</span>
+                        </Button>
+                    )}
+
+                    {/* Reprogramar fecha (solo si sigue pendiente) */}
+                    {record.status === 'SCHEDULED' && !done && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setShowReschedule(v => !v); setNewDate(currentDate); setResult(null); }}
+                            title="Cambiar la fecha de programación"
+                            className="h-8 px-3 rounded-xl text-xs font-semibold border-blue-100 text-blue-700 hover:bg-blue-50 gap-1.5 shrink-0"
+                        >
+                            <CalendarClock className="h-3 w-3" />
+                            <span className="hidden md:inline">Fecha</span>
+                        </Button>
+                    )}
+
                     {/* Complete button */}
                     {record.status === 'SCHEDULED' && !done && (
                         <Button
@@ -123,6 +208,47 @@ function RecordRow({ record }: { record: TrainingRecord }) {
                         </Button>
                     )}
                 </div>
+
+                {/* Inline reschedule form */}
+                {showReschedule && record.status === 'SCHEDULED' && !done && (
+                    <div className="mt-3 ml-11 bg-blue-50/50 rounded-xl border border-blue-100 p-4 space-y-3">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                            Reprogramar fecha de capacitación
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <input
+                                type="date"
+                                value={newDate}
+                                onChange={e => setNewDate(e.target.value)}
+                                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                            />
+                            <Button
+                                size="sm"
+                                onClick={handleReschedule}
+                                disabled={rescheduling || !newDate || newDate === currentDate}
+                                className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-semibold gap-1.5"
+                            >
+                                {rescheduling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CalendarClock className="h-3.5 w-3.5" />}
+                                Guardar fecha
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setShowReschedule(false); setResult(null); }}
+                                disabled={rescheduling}
+                                className="h-9 px-4 rounded-xl text-xs font-semibold gap-1.5"
+                            >
+                                <X className="h-3.5 w-3.5" /> Cancelar
+                            </Button>
+                        </div>
+                        {result?.error && (
+                            <div className="flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-100 px-3 py-2">
+                                <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                                <p className="text-[10px] font-bold text-rose-600">{result.error}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Inline complete form */}
                 {showComplete && record.status === 'SCHEDULED' && !done && (

@@ -32,6 +32,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { MoneyInput } from "@/shared/components/ui/money-input";
 import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
@@ -397,8 +398,8 @@ export default function NewOrderClient({ parties, products, warehouses }: Props)
             {/* ── PRODUCT LINES CARD ─────────────────────────────────────── */}
             <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
                 <CardHeader className="p-10 pb-4">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <CardTitle className="min-w-0 text-2xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
                             <div className="h-12 w-12 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-active">
                                 <ShoppingCart className="h-6 w-6" />
                             </div>
@@ -612,7 +613,7 @@ function LineRow({ index, form, products, currency, onProductSelect, onRemove }:
                 <div>
                     <Input
                         type="number"
-                        step="0.01"
+                        step="any"
                         min="0.01"
                         placeholder="Cant."
                         {...form.register(`lines.${index}.qty`, { valueAsNumber: true })}
@@ -622,12 +623,10 @@ function LineRow({ index, form, products, currency, onProductSelect, onRemove }:
 
                 {/* Unit cost */}
                 <div>
-                    <Input
-                        type="number"
-                        step="1"
-                        min="0"
+                    <MoneyInput
+                        value={Number(unitCost)}
+                        onChange={(n) => form.setValue(`lines.${index}.unit_cost`, n, { shouldDirty: true, shouldValidate: true })}
                         placeholder="Costo"
-                        {...form.register(`lines.${index}.unit_cost`, { valueAsNumber: true })}
                         className="h-12 text-right bg-white border-none rounded-xl font-bold text-slate-900 shadow-inner focus:ring-4 focus:ring-primary/5 text-sm tabular-nums"
                     />
                 </div>

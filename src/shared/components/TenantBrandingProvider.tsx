@@ -87,7 +87,7 @@ function shade(hex: string, lightness: number): string {
 
 function applyBranding(b: TenantBranding) {
   const root = document.documentElement
-  const primary = b.primary_color || '#6366f1'
+  const primary = b.primary_color || '#0096E6'
   const accent = b.accent_color || '#10b981'
 
   // Set CSS variables

@@ -195,9 +195,9 @@ export default async function CashFlowPage({
             />
 
             {/* Summary Strip */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 px-1">
-                <div className="flex items-center gap-8">
-                    <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 px-1">
+                <div className="flex items-center gap-8 min-w-0">
+                    <div className="flex flex-col min-w-0">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] leading-none mb-3">Variación Neta del Efectivo</span>
                         <div className="flex items-center gap-4">
                             <h2 className={cn(
@@ -353,8 +353,8 @@ export default async function CashFlowPage({
                 <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none">
                     <DollarSign className="h-20 w-20" />
                 </div>
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div className="space-y-2">
+                <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+                    <div className="space-y-2 min-w-0">
                         <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.5em]">Variación Neta Total del Efectivo</p>
                         <h2 className="text-3xl md:text-4xl font-black tracking-tight">
                             {isPositive ? '+' : '-'}{fmt(netCashChange)}
@@ -405,12 +405,12 @@ export default async function CashFlowPage({
             </Card>
 
             {/* Footnote */}
-            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="flex items-center gap-8">
-                    <div className="h-16 w-16 bg-white rounded-3xl flex items-center justify-center text-slate-300 shadow-premium border border-slate-50">
+            <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-center justify-between gap-10">
+                <div className="flex items-center gap-8 min-w-0">
+                    <div className="h-16 w-16 bg-white rounded-3xl flex items-center justify-center text-slate-300 shadow-premium border border-slate-50 shrink-0">
                         <Info className="h-8 w-8" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                         <h5 className="text-slate-900 font-black text-sm uppercase italic tracking-tight">Método: Directo</h5>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
                             Estado preparado bajo el método directo conforme a NIC 7 / NIIF para el periodo seleccionado.

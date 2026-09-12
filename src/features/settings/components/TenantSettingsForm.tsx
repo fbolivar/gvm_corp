@@ -94,7 +94,7 @@ export function TenantSettingsForm({ initialData }: Props) {
                     <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
                         <Building2 className="h-20 w-20 text-white" />
                     </div>
-                    <CardContent className="p-8 md:p-12 relative z-10 flex flex-col md:flex-row items-center gap-10">
+                    <CardContent className="p-8 md:p-12 relative z-10 flex flex-col lg:flex-row items-center gap-5 lg:gap-10">
                         <div className="relative group/logo">
                             <div className="h-40 w-40 rounded-[2.5rem] bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden shadow-inner group-hover/logo:border-primary/50 transition-all">
                                 {initialData?.logo_url ? (
@@ -185,8 +185,8 @@ export function TenantSettingsForm({ initialData }: Props) {
                             )}
                         </div>
 
-                        <div className="grid grid-cols-4 gap-4">
-                            <div className="col-span-3 space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div className="sm:col-span-3 space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">NIT</Label>
                                 <Input
                                     {...form.register("nit")}

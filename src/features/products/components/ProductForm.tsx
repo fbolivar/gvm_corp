@@ -1,8 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { productSchema, Product, TAX_LABELS, UOM_OPTIONS } from "../types"
+import { productSchema, Product, TAX_LABELS, UOM_OPTIONS, PRODUCT_CLASSIFICATIONS } from "../types"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
@@ -13,13 +14,29 @@ import {
     AlertTriangle, FileText, Percent, Boxes, PiggyBank, ScanBarcode
 } from "lucide-react"
 
+interface PriceListLite { id: string; name: string; is_default: boolean }
+
 interface ProductFormProps {
     initialData?: Product
-    onSubmit: (data: Product) => Promise<void>
+    onSubmit: (data: Product, prices?: Record<string, number>) => Promise<void>
     isLoading?: boolean
+    canEditTax?: boolean
+    priceLists?: PriceListLite[]
+    priceItems?: Record<string, number>
 }
 
-export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormProps) {
+export function ProductForm({ initialData, onSubmit, isLoading, canEditTax = false, priceLists = [], priceItems = {} }: ProductFormProps) {
+    const [listPrices, setListPrices] = useState<Record<string, string>>(() => {
+        const init: Record<string, string> = {}
+        for (const l of priceLists) if (!l.is_default && priceItems[l.id] != null) init[l.id] = String(priceItems[l.id])
+        return init
+    })
+
+    const submitWithPrices = (data: Product) => {
+        const numeric: Record<string, number> = {}
+        for (const [k, v] of Object.entries(listPrices)) if (v !== '' && isFinite(Number(v))) numeric[k] = Number(v)
+        return onSubmit(data, numeric)
+    }
     const form = useForm<Product>({
         resolver: zodResolver(productSchema) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         defaultValues: initialData || {
@@ -36,6 +53,10 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
             min_stock: 0,
             is_fixed_asset: false,
             asset_category: null,
+            classification: 'Producto',
+            product_group: '',
+            min_margin: 0,
+            enforce_margin: false,
         }
     })
 
@@ -43,7 +64,7 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
     const watchIsFixedAsset = form.watch('is_fixed_asset')
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6"> {/* eslint-disable-line @typescript-eslint/no-explicit-any */}
+        <form onSubmit={form.handleSubmit(submitWithPrices as any)} className="space-y-6"> {/* eslint-disable-line @typescript-eslint/no-explicit-any */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Informacion General */}
@@ -187,14 +208,8 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
                                 <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                     <Percent className="h-3 w-3" /> Categoria IVA
                                 </Label>
-                                {initialData ? (
-                                    // Edición: IVA fijo, no modificable
-                                    <div className="w-full h-9 px-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-sm flex items-center gap-2 cursor-not-allowed select-none">
-                                        <span className="flex-1">{TAX_LABELS[initialData.tax_category as keyof typeof TAX_LABELS] ?? initialData.tax_category}</span>
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fijo</span>
-                                    </div>
-                                ) : (
-                                    // Creación: seleccionable
+                                {canEditTax ? (
+                                    // Usuario autorizado: puede fijar/editar el IVA (crear o editar)
                                     <select
                                         {...form.register('tax_category')}
                                         className="w-full h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 outline-none text-sm"
@@ -203,7 +218,111 @@ export function ProductForm({ initialData, onSubmit, isLoading }: ProductFormPro
                                             <option key={k} value={k}>{TAX_LABELS[k]}</option>
                                         ))}
                                     </select>
+                                ) : (
+                                    // No autorizado: IVA fijo (controlado por administración)
+                                    <div className="w-full h-9 px-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-sm flex items-center gap-2 cursor-not-allowed select-none">
+                                        <span className="flex-1">
+                                            {TAX_LABELS[(initialData?.tax_category ?? 'IVA_19') as keyof typeof TAX_LABELS]}
+                                        </span>
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fijo</span>
+                                    </div>
                                 )}
+                                {!canEditTax && (
+                                    <p className="text-[10px] text-slate-400">El IVA lo administra el área autorizada</p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {priceLists.length > 0 && (
+                        <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl overflow-hidden">
+                            <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                                <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <DollarSign className="h-4 w-4 text-emerald-600" />
+                                    Listas de Precios
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {priceLists.map(l => (
+                                    <div key={l.id} className="space-y-1.5">
+                                        <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                            {l.name}{l.is_default ? ' · = precio de venta' : ''}
+                                        </Label>
+                                        {l.is_default ? (
+                                            <div className="h-9 px-3 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 text-sm flex items-center justify-end font-mono tabular-nums">
+                                                ${Number(form.watch('selling_price') || 0).toLocaleString('es-CO')}
+                                            </div>
+                                        ) : (
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
+                                                <Input
+                                                    type="number"
+                                                    step="1"
+                                                    min="0"
+                                                    value={listPrices[l.id] ?? ''}
+                                                    onChange={(e) => setListPrices(p => ({ ...p, [l.id]: e.target.value }))}
+                                                    className="h-9 pl-6 bg-slate-50 border-slate-200 font-mono text-sm text-right"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl overflow-hidden">
+                        <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                            <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                <Tag className="h-4 w-4 text-indigo-600" />
+                                Clasificación y Margen
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Tag className="h-3 w-3 text-indigo-500" /> Clasificación
+                                </Label>
+                                <select
+                                    {...form.register('classification')}
+                                    className="w-full h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 outline-none text-sm"
+                                >
+                                    {PRODUCT_CLASSIFICATIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Boxes className="h-3 w-3 text-slate-400" /> Grupo / Línea
+                                </Label>
+                                <Input
+                                    {...form.register('product_group')}
+                                    className="h-9 bg-slate-50 border-slate-200 text-sm"
+                                    placeholder="Ej: Bebederos"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Percent className="h-3 w-3 text-emerald-500" /> Utilidad estimada (%)
+                                </Label>
+                                <Input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    {...form.register('min_margin', { valueAsNumber: true })}
+                                    className="h-9 bg-slate-50 border-slate-200 font-mono text-sm"
+                                    placeholder="0"
+                                />
+                                <p className="text-[10px] text-slate-400">Margen mínimo sobre el costo</p>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <AlertTriangle className="h-3 w-3 text-rose-500" /> Verificar en facturación
+                                </Label>
+                                <label className="flex items-center gap-2 h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                                    <input type="checkbox" {...form.register('enforce_margin')} className="h-4 w-4 accent-indigo-600" />
+                                    <span className="text-xs text-slate-600">No permitir vender por debajo del margen</span>
+                                </label>
                             </div>
                         </CardContent>
                     </Card>

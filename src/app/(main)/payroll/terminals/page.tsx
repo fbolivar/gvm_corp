@@ -41,7 +41,7 @@ export default async function TerminalsPage() {
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
                         <Monitor className="h-5 w-5" />

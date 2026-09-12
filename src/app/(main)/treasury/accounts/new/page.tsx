@@ -73,13 +73,15 @@ export default function NewAccountPage() {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] p-8 md:p-12 space-y-12 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                <VisualReportHeader
-                    title="Vincular Nodo Financiero"
-                    subtitle="Protocolo de Expansión de Liquidez"
-                    tenant={tenant}
-                />
-                <Button variant="outline" asChild className="h-12 border-slate-200 bg-white text-slate-400 hover:text-slate-900 rounded-2xl shadow-sm px-6 font-black text-[10px] uppercase tracking-widest self-start md:self-center">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div className="min-w-0 flex-1">
+                    <VisualReportHeader
+                        title="Vincular Nodo Financiero"
+                        subtitle="Protocolo de Expansión de Liquidez"
+                        tenant={tenant}
+                    />
+                </div>
+                <Button variant="outline" asChild className="h-12 border-slate-200 bg-white text-slate-400 hover:text-slate-900 rounded-2xl shadow-sm px-6 font-black text-[10px] uppercase tracking-widest self-start lg:self-center">
                     <Link href="/treasury">
                         <ArrowLeft className="h-4 w-4 mr-2" /> Abortar
                     </Link>

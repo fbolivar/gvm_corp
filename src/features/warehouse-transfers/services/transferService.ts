@@ -7,6 +7,13 @@ import {
     ReceiveTransferLine,
 } from '../types';
 import { inventoryService } from '@/features/inventory/services/inventoryService';
+import {
+    validateReceipt,
+    nextTransferStatus,
+    normalizeLot,
+    ReceiptDraft,
+    TransferLineState,
+} from '../utils/receiptValidation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,8 +58,8 @@ export const transferService = {
                 from_warehouse:warehouses!from_warehouse_id(name),
                 to_warehouse:warehouses!to_warehouse_id(name),
                 lines:warehouse_transfer_lines(
-                    id, transfer_id, product_id, qty, qty_received, notes,
-                    product:products(name, sku)
+                    id, transfer_id, product_id, description, qty, qty_received, notes,
+                    product:products(name, sku, tax_category, cost)
                 )
             `)
             .order('created_at', { ascending: false });
@@ -93,8 +100,12 @@ export const transferService = {
                 from_warehouse:warehouses!from_warehouse_id(name),
                 to_warehouse:warehouses!to_warehouse_id(name),
                 lines:warehouse_transfer_lines(
-                    id, transfer_id, product_id, qty, qty_received, notes,
-                    product:products(name, sku)
+                    id, transfer_id, product_id, description, qty, qty_received, notes,
+                    product:products(name, sku, tax_category, cost)
+                ),
+                receipts:warehouse_transfer_receipts(
+                    id, transfer_line_id, product_id, lot_number, expiration_date, qty, received_at,
+                    receiver:profiles(full_name)
                 )
             `)
             .eq('id', id)
@@ -113,11 +124,12 @@ export const transferService = {
         transfer: WarehouseTransfer
     ): Promise<{ id: string; transfer_number: string }> {
         const tenant_id = await this.getTenantId(client);
+        const { data: { user } } = await client.auth.getUser();
         const { lines, ...header } = transfer;
 
         const { data: created, error: headerError } = await client
             .from('warehouse_transfers')
-            .insert({ ...header, tenant_id, status: 'DRAFT' as TransferStatus })
+            .insert({ ...header, tenant_id, created_by: user?.id ?? null, status: 'DRAFT' as TransferStatus })
             .select('id, transfer_number')
             .single();
 
@@ -125,7 +137,8 @@ export const transferService = {
 
         const lineData = lines.map((l) => ({
             transfer_id: created.id,
-            product_id: l.product_id,
+            product_id: l.product_id || null, // null = ítem de solicitud (texto libre)
+            description: l.description?.trim() || null,
             qty: l.qty,
             qty_received: 0,
             notes: l.notes ?? null,
@@ -141,8 +154,73 @@ export const transferService = {
     },
 
     /**
-     * Sends a DRAFT transfer to IN_TRANSIT.
-     * Creates OUT inventory movements from the source warehouse for each line.
+     * Updates a DRAFT transfer (header + lines). Only DRAFT transfers can be edited,
+     * ya que aún no han movido inventario. Las líneas se reemplazan por completo.
+     */
+    async updateTransfer(
+        client: SupabaseClient,
+        id: string,
+        transfer: WarehouseTransfer
+    ): Promise<{ id: string; transfer_number: string }> {
+        const existing = await this.getTransferById(client, id);
+        if (existing.status !== 'DRAFT') {
+            throw new Error(
+                `Solo se pueden editar traslados en estado BORRADOR. Estado actual: "${existing.status}"`
+            );
+        }
+
+        const { lines, ...header } = transfer;
+        const now = new Date().toISOString();
+
+        // Actualiza solo los campos editables del encabezado
+        const { data: updated, error: headerError } = await client
+            .from('warehouse_transfers')
+            .update({
+                from_warehouse_id: header.from_warehouse_id,
+                to_warehouse_id: header.to_warehouse_id,
+                notes: header.notes ?? null,
+                updated_at: now,
+            })
+            .eq('id', id)
+            .eq('status', 'DRAFT')
+            .select('id, transfer_number')
+            .single();
+
+        if (headerError) throw headerError;
+
+        // Reemplaza las líneas: borra las actuales e inserta las nuevas.
+        // Seguro en DRAFT porque no hay movimientos de inventario asociados.
+        const { error: delError } = await client
+            .from('warehouse_transfer_lines')
+            .delete()
+            .eq('transfer_id', id);
+
+        if (delError) throw delError;
+
+        const lineData = lines.map((l) => ({
+            transfer_id: id,
+            product_id: l.product_id || null,
+            description: l.description?.trim() || null,
+            qty: l.qty,
+            qty_received: 0,
+            notes: l.notes ?? null,
+        }));
+
+        const { error: linesError } = await client
+            .from('warehouse_transfer_lines')
+            .insert(lineData);
+
+        if (linesError) throw linesError;
+
+        return { id: updated.id, transfer_number: updated.transfer_number };
+    },
+
+    /**
+     * Envía un traslado BORRADOR a EN TRÁNSITO.
+     *
+     * El inventario NO se toca aquí: sale de la bodega de origen cuando el
+     * destino confirma la recepción, para que las unidades nunca desaparezcan
+     * del sistema mientras la mercancía viaja. Ver `receiveTransfer`.
      */
     async sendTransfer(client: SupabaseClient, id: string): Promise<void> {
         const transfer = await this.getTransferById(client, id);
@@ -158,33 +236,6 @@ export const transferService = {
         const { data: { user } } = await client.auth.getUser();
         if (!user) throw new Error('No autorizado');
 
-        // Create OUT movements for each line from source warehouse
-        const movementErrors: string[] = [];
-        for (const line of transfer.lines) {
-            try {
-                const avgCost = await inventoryService.getAvgCost(
-                    client,
-                    line.product_id,
-                    transfer.from_warehouse_id
-                );
-
-                await inventoryService.createMovement(client, {
-                    product_id: line.product_id,
-                    warehouse_id: transfer.from_warehouse_id,
-                    type: 'OUT',
-                    qty: line.qty,
-                    cost: avgCost,
-                    occurred_at: now,
-                    ref_doc_type: 'WAREHOUSE_TRANSFER',
-                    ref_doc_id: id,
-                });
-            } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : 'Error desconocido';
-                movementErrors.push(`Producto ${line.product_id.substring(0, 8)}: ${msg}`);
-                console.error(`[transferService.sendTransfer] Movement error for product ${line.product_id}:`, err);
-            }
-        }
-
         // Update header status to IN_TRANSIT
         const { error: updateError } = await client
             .from('warehouse_transfers')
@@ -198,106 +249,166 @@ export const transferService = {
             .eq('status', 'DRAFT');
 
         if (updateError) throw updateError;
-
-        if (movementErrors.length > 0) {
-            throw new Error(
-                `Traslado enviado con advertencias. Algunos movimientos fallaron: ${movementErrors.join('; ')}`
-            );
-        }
     },
 
     /**
-     * Receives an IN_TRANSIT transfer at the destination warehouse.
-     * Updates qty_received per line and creates IN inventory movements at the target warehouse.
-     * Sets status to RECEIVED once all lines are fully received.
+     * Registra la recepción de un traslado EN TRÁNSITO, renglón por renglón.
+     *
+     * Cada renglón trae lote, vencimiento y cantidad. Por cada uno se mueve el
+     * inventario de las dos bodegas: SALE del origen y ENTRA al destino. Ese es
+     * el único momento en que un traslado toca el stock — al enviar no se
+     * descuenta nada, así la mercancía en tránsito sigue contabilizada.
+     *
+     * El lote se crea en la bodega de destino si no existía; el trigger
+     * `adjust_lot_on_movement` ajusta sus unidades a partir de los movimientos.
      */
     async receiveTransfer(
         client: SupabaseClient,
         id: string,
-        lines: ReceiveTransferLine[]
-    ): Promise<void> {
+        drafts: ReceiptDraft[]
+    ): Promise<{ warnings: string[] }> {
         const transfer = await this.getTransferById(client, id);
 
         if (transfer.status !== 'IN_TRANSIT') {
             throw new Error(
-                `Solo se pueden recibir traslados en estado EN_TRÁNSITO. Estado actual: "${transfer.status}"`
+                `Solo se pueden recibir traslados en estado EN TRÁNSITO. Estado actual: "${transfer.status}"`
             );
         }
 
         const { data: { user } } = await client.auth.getUser();
         if (!user) throw new Error('No autorizado');
 
+        // Qué productos manejan lote: los que ya tienen alguno registrado. Para
+        // esos el lote es obligatorio; para el resto es opcional.
+        const productIds = transfer.lines.map(l => l.product_id).filter((v): v is string => !!v);
+        const lotTracked = new Set<string>();
+        if (productIds.length > 0) {
+            const { data: existingLots } = await client
+                .from('product_lots')
+                .select('product_id')
+                .in('product_id', productIds);
+            (existingLots ?? []).forEach((l: { product_id: string }) => lotTracked.add(l.product_id));
+        }
+
+        const lineStates: TransferLineState[] = transfer.lines.map(l => ({
+            line_id: l.id!,
+            label: l.product?.name ?? l.description ?? 'Producto',
+            product_id: l.product_id ?? null,
+            qty: Number(l.qty),
+            qty_received: Number(l.qty_received ?? 0),
+            requires_lot: !!l.product_id && lotTracked.has(l.product_id),
+        }));
+
+        const validation = validateReceipt(drafts, lineStates);
+        if (!validation.ok) {
+            throw new Error(validation.errors.join('\n'));
+        }
+
         const now = new Date().toISOString();
-        const activeLines = lines.filter((l) => l.qty_received > 0);
+        const warnings: string[] = [];
 
-        if (activeLines.length === 0) {
-            throw new Error('Debe recibir al menos un artículo con cantidad mayor a cero');
-        }
+        for (const receipt of validation.receipts) {
+            const line = transfer.lines.find(l => l.id === receipt.line_id);
+            if (!line) continue;
 
-        // Update qty_received for each provided line
-        for (const rl of activeLines) {
-            const { error } = await client
-                .from('warehouse_transfer_lines')
-                .update({ qty_received: rl.qty_received })
-                .eq('id', rl.line_id)
-                .eq('transfer_id', id);
-
-            if (error) {
-                console.error(`[transferService.receiveTransfer] Line update error for ${rl.line_id}:`, error);
-            }
-        }
-
-        // Create IN movements for each received line at destination warehouse
-        const movementErrors: string[] = [];
-        for (const rl of activeLines) {
-            const transferLine = transfer.lines.find((l) => l.id === rl.line_id);
-            if (!transferLine) continue;
+            const lotNumber = normalizeLot(receipt.lot_number);
+            let lotIdTo: string | null = null;
+            let lotIdFrom: string | null = null;
 
             try {
-                // Use original source avg cost at time of send as the cost basis
-                const avgCost = await inventoryService.getAvgCost(
-                    client,
-                    transferLine.product_id,
-                    transfer.from_warehouse_id
-                );
+                if (line.product_id) {
+                    if (lotNumber) {
+                        lotIdTo = await this.resolveLot(client, {
+                            productId: line.product_id,
+                            warehouseId: transfer.to_warehouse_id,
+                            lotNumber,
+                            expirationDate: receipt.expiration_date ?? null,
+                        });
+                        // En origen solo se usa el lote si ya existía: no se crea
+                        // un lote en la bodega de la que la mercancía está saliendo.
+                        lotIdFrom = await this.findLot(client, {
+                            productId: line.product_id,
+                            warehouseId: transfer.from_warehouse_id,
+                            lotNumber,
+                        });
+                    }
 
-                await inventoryService.createMovement(client, {
-                    product_id: transferLine.product_id,
-                    warehouse_id: transfer.to_warehouse_id,
-                    type: 'IN',
-                    qty: rl.qty_received,
-                    cost: avgCost,
-                    occurred_at: now,
-                    ref_doc_type: 'WAREHOUSE_TRANSFER',
-                    ref_doc_id: id,
-                });
+                    const avgCost = await inventoryService.getAvgCost(
+                        client,
+                        line.product_id,
+                        transfer.from_warehouse_id
+                    );
+
+                    // Salida de la bodega de origen
+                    await inventoryService.createMovement(client, {
+                        product_id: line.product_id,
+                        warehouse_id: transfer.from_warehouse_id,
+                        type: 'OUT',
+                        qty: receipt.qty,
+                        cost: avgCost,
+                        occurred_at: now,
+                        ref_doc_type: 'WAREHOUSE_TRANSFER',
+                        ref_doc_id: id,
+                        ...(lotIdFrom ? { lot_id: lotIdFrom } : {}),
+                    });
+
+                    // Entrada a la bodega de destino
+                    await inventoryService.createMovement(client, {
+                        product_id: line.product_id,
+                        warehouse_id: transfer.to_warehouse_id,
+                        type: 'IN',
+                        qty: receipt.qty,
+                        cost: avgCost,
+                        occurred_at: now,
+                        ref_doc_type: 'WAREHOUSE_TRANSFER',
+                        ref_doc_id: id,
+                        ...(lotIdTo ? { lot_id: lotIdTo } : {}),
+                    });
+                }
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'Error desconocido';
-                movementErrors.push(`Producto ${transferLine.product_id.substring(0, 8)}: ${msg}`);
-                console.error(
-                    `[transferService.receiveTransfer] Movement error for product ${transferLine.product_id}:`,
-                    err
-                );
+                const label = line.product?.name ?? line.description ?? 'Producto';
+                warnings.push(`${label}: el inventario no se pudo mover (${msg}).`);
+                console.error('[transferService.receiveTransfer] movimiento:', err);
+            }
+
+            const { error: receiptError } = await client
+                .from('warehouse_transfer_receipts')
+                .insert({
+                    transfer_id: id,
+                    transfer_line_id: receipt.line_id,
+                    product_id: line.product_id ?? null,
+                    lot_number: lotNumber,
+                    expiration_date: receipt.expiration_date || null,
+                    qty: receipt.qty,
+                    lot_id_to: lotIdTo,
+                    lot_id_from: lotIdFrom,
+                    received_by: user.id,
+                    received_at: now,
+                });
+
+            if (receiptError) {
+                console.error('[transferService.receiveTransfer] recepción:', receiptError);
+                throw new Error('No se pudo guardar el detalle de la recepción: ' + receiptError.message);
             }
         }
 
-        // Determine new status based on received quantities
-        const { data: updatedLines } = await client
-            .from('warehouse_transfer_lines')
-            .select('qty, qty_received')
-            .eq('transfer_id', id);
+        // Acumula lo recibido en la línea: la recepción puede ser parcial y
+        // repetirse varios días.
+        for (const [lineId, qty] of Object.entries(validation.totalsByLine)) {
+            const state = lineStates.find(l => l.line_id === lineId);
+            if (!state) continue;
+            const { error } = await client
+                .from('warehouse_transfer_lines')
+                .update({ qty_received: state.qty_received + qty })
+                .eq('id', lineId)
+                .eq('transfer_id', id);
+            if (error) console.error('[transferService.receiveTransfer] línea:', error.message);
+        }
 
-        const allReceived = updatedLines?.every(
-            (l) => Number(l.qty_received) >= Number(l.qty)
-        );
+        const newStatus = nextTransferStatus(lineStates, validation.totalsByLine);
 
-        const newStatus: TransferStatus = allReceived ? 'RECEIVED' : 'IN_TRANSIT';
-
-        const updatePayload: Record<string, unknown> = {
-            status: newStatus,
-            updated_at: now,
-        };
-
+        const updatePayload: Record<string, unknown> = { status: newStatus, updated_at: now };
         if (newStatus === 'RECEIVED') {
             updatePayload.received_by = user.id;
             updatePayload.received_at = now;
@@ -310,11 +421,65 @@ export const transferService = {
 
         if (updateError) throw updateError;
 
-        if (movementErrors.length > 0) {
-            throw new Error(
-                `Recepción registrada con advertencias. Algunos movimientos fallaron: ${movementErrors.join('; ')}`
-            );
+        return { warnings };
+    },
+
+    /** Busca un lote por número en una bodega. Devuelve null si no existe. */
+    async findLot(
+        client: SupabaseClient,
+        args: { productId: string; warehouseId: string; lotNumber: string }
+    ): Promise<string | null> {
+        const { data } = await client
+            .from('product_lots')
+            .select('id')
+            .eq('product_id', args.productId)
+            .eq('warehouse_id', args.warehouseId)
+            .ilike('lot_number', args.lotNumber)
+            .limit(1)
+            .maybeSingle();
+        return data?.id ?? null;
+    },
+
+    /**
+     * Devuelve el lote de la bodega destino, creándolo si es la primera vez que
+     * llega. Si ya existía y ahora traen vencimiento, se completa ese dato.
+     */
+    async resolveLot(
+        client: SupabaseClient,
+        args: { productId: string; warehouseId: string; lotNumber: string; expirationDate: string | null }
+    ): Promise<string | null> {
+        const existing = await this.findLot(client, args);
+
+        if (existing) {
+            if (args.expirationDate) {
+                await client
+                    .from('product_lots')
+                    .update({ expiration_date: args.expirationDate })
+                    .eq('id', existing);
+            }
+            return existing;
         }
+
+        const { data, error } = await client
+            .from('product_lots')
+            .insert({
+                product_id: args.productId,
+                warehouse_id: args.warehouseId,
+                lot_number: args.lotNumber,
+                expiration_date: args.expirationDate,
+                // El trigger adjust_lot_on_movement suma las unidades del
+                // movimiento de entrada: el lote nace en cero.
+                qty: 0,
+                status: 'ACTIVE',
+            })
+            .select('id')
+            .single();
+
+        if (error) {
+            console.error('[transferService.resolveLot]', error.message);
+            return null;
+        }
+        return data.id;
     },
 
     /**

@@ -153,7 +153,7 @@ export function AuditLogList({ logs }: Props) {
                             ))}
 
                             {logs.length === 0 && (
-                                <div className="p-20 text-center flex flex-col items-center justify-center opacity-50">
+                                <div className="p-8 md:p-20 text-center flex flex-col items-center justify-center opacity-50">
                                     <div className="h-20 w-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6">
                                         <LayoutList className="h-10 w-10 text-slate-300" />
                                     </div>

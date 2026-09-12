@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { logisticsService } from "../services/logisticsService"
 import { ShipmentStatus } from "../types"
 import { Button } from "@/shared/components/ui/button"
 import { Badge } from "@/shared/components/ui/badge"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 import {
     Dialog,
     DialogContent,
@@ -94,9 +96,21 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState(false)
     const [carriers, setCarriers] = useState<any[]>([])
+    const [warehouses, setWarehouses] = useState<any[]>([])
     const [editing, setEditing] = useState(false)
     const [saving, setSaving] = useState(false)
-    const [form, setForm] = useState({ carrier_id: '', tracking_number: '', freight_cost: 0, notes: '' })
+    const [includePrice, setIncludePrice] = useState(true)
+    const [form, setForm] = useState({
+        carrier_id: '',
+        warehouse_id: '',
+        tracking_number: '',
+        freight_cost: 0,
+        status: '',
+        shipped_at: '',
+        delivered_at: '',
+        delivered_by_name: '',
+        notes: '',
+    })
 
     useEffect(() => {
         if (shipmentId) {
@@ -108,24 +122,33 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
     async function loadDetails() {
         setLoading(true)
         try {
-            const [shipmentData, tenantData, carrierList] = await Promise.all([
+            const [shipmentData, tenantData, carrierList, warehouseList] = await Promise.all([
                 logisticsService.getShipmentDetails(supabase, shipmentId!),
                 loadTenantInfo(),
                 logisticsService.getCarriers(supabase).catch(() => []),
+                supabase.from('warehouses').select('id, name').order('name').then((r: { data: unknown[] | null }) => r.data ?? []),
             ])
             setShipment(shipmentData)
             setTenant(tenantData)
             setCarriers(carrierList || [])
+            setWarehouses(warehouseList || [])
             if (shipmentData) {
                 setForm({
                     carrier_id: shipmentData.carrier_id ?? '',
+                    warehouse_id: shipmentData.warehouse_id ?? '',
                     tracking_number: shipmentData.tracking_number ?? '',
                     freight_cost: Number(shipmentData.freight_cost) || 0,
+                    status: shipmentData.status ?? '',
+                    // timestamptz → yyyy-MM-dd para el input date
+                    shipped_at: shipmentData.shipped_at ? String(shipmentData.shipped_at).slice(0, 10) : '',
+                    delivered_at: shipmentData.delivered_at ? String(shipmentData.delivered_at).slice(0, 10) : '',
+                    delivered_by_name: shipmentData.delivered_by_name ?? '',
                     notes: shipmentData.notes ?? '',
                 })
             }
         } catch (error) {
             console.error(error)
+            toast.error("No se pudo cargar el detalle del despacho")
         } finally {
             setLoading(false)
         }
@@ -139,8 +162,10 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
             await loadDetails()
             onUpdate()
             setEditing(false)
+            toast.success("Cambios guardados")
         } catch (error) {
             console.error(error)
+            toast.error(error instanceof Error ? error.message : "No se pudieron guardar los cambios")
         } finally {
             setSaving(false)
         }
@@ -167,8 +192,10 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
             await logisticsService.updateShipmentStatus(supabase, shipment.id, newStatus)
             await loadDetails()
             onUpdate()
+            toast.success("Estado del despacho actualizado")
         } catch (error) {
             console.error(error)
+            toast.error(error instanceof Error ? error.message : "No se pudo actualizar el estado")
         } finally {
             setUpdating(false)
         }
@@ -176,7 +203,7 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
 
     const handleDownloadPdf = () => {
         if (!shipment) return
-        const url = `/print/shipment-remision?id=${shipment.id}`
+        const url = `/print/shipment-remision?id=${shipment.id}${includePrice ? '' : '&precios=0'}`
         const width = 900
         const height = 1100
         const screenLeft = typeof window !== "undefined" ? window.screenLeft ?? 0 : 0
@@ -372,6 +399,31 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                             </select>
                                         </div>
                                         <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Bodega de origen</label>
+                                            <select
+                                                value={form.warehouse_id}
+                                                onChange={(e) => setForm(f => ({ ...f, warehouse_id: e.target.value }))}
+                                                className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                            >
+                                                <option value="">Sin bodega</option>
+                                                {warehouses.map((w) => (
+                                                    <option key={w.id} value={w.id}>{w.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Estado</label>
+                                            <select
+                                                value={form.status}
+                                                onChange={(e) => setForm(f => ({ ...f, status: e.target.value }))}
+                                                className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                            >
+                                                {(Object.keys(STATUS_LABELS) as ShipmentStatus[]).map((s) => (
+                                                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
                                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Nº Guía</label>
                                             <input
                                                 value={form.tracking_number}
@@ -386,6 +438,35 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                                 value={form.freight_cost}
                                                 onChange={(e) => setForm(f => ({ ...f, freight_cost: Number(e.target.value) }))}
                                                 className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 text-right focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Fecha despacho</label>
+                                                <input
+                                                    type="date"
+                                                    value={form.shipped_at}
+                                                    onChange={(e) => setForm(f => ({ ...f, shipped_at: e.target.value }))}
+                                                    className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Fecha entrega</label>
+                                                <input
+                                                    type="date"
+                                                    value={form.delivered_at}
+                                                    onChange={(e) => setForm(f => ({ ...f, delivered_at: e.target.value }))}
+                                                    className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Recibido por</label>
+                                            <input
+                                                value={form.delivered_by_name}
+                                                onChange={(e) => setForm(f => ({ ...f, delivered_by_name: e.target.value }))}
+                                                placeholder="Nombre de quien recibe"
+                                                className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
                                             />
                                         </div>
                                         <div className="space-y-1">
@@ -405,21 +486,28 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                             >
                                                 {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Guardar
                                             </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setEditing(false)
-                                                    if (shipment) setForm({
-                                                        carrier_id: shipment.carrier_id ?? '',
-                                                        tracking_number: shipment.tracking_number ?? '',
-                                                        freight_cost: Number(shipment.freight_cost) || 0,
-                                                        notes: shipment.notes ?? '',
-                                                    })
-                                                }}
-                                                className="rounded-lg h-10 px-3 text-[9px] font-black uppercase tracking-widest"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
+                                            <Hint label="Cancelar edición" side="top">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setEditing(false)
+                                                        if (shipment) setForm({
+                                                            carrier_id: shipment.carrier_id ?? '',
+                                                            warehouse_id: shipment.warehouse_id ?? '',
+                                                            tracking_number: shipment.tracking_number ?? '',
+                                                            freight_cost: Number(shipment.freight_cost) || 0,
+                                                            status: shipment.status ?? '',
+                                                            shipped_at: shipment.shipped_at ? String(shipment.shipped_at).slice(0, 10) : '',
+                                                            delivered_at: shipment.delivered_at ? String(shipment.delivered_at).slice(0, 10) : '',
+                                                            delivered_by_name: shipment.delivered_by_name ?? '',
+                                                            notes: shipment.notes ?? '',
+                                                        })
+                                                    }}
+                                                    className="rounded-lg h-10 px-3 text-[9px] font-black uppercase tracking-widest"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </Hint>
                                         </div>
                                     </div>
                                 ) : (
@@ -432,6 +520,17 @@ export function ShipmentDetailModal({ shipmentId, onClose, onUpdate }: Props) {
                                     </Button>
                                 )}
 
+                                <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={includePrice}
+                                        onChange={(e) => setIncludePrice(e.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary/30"
+                                    />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                        Incluir precios en la remisión
+                                    </span>
+                                </label>
                                 <Button
                                     onClick={handleDownloadPdf}
                                     className="w-full bg-slate-900 hover:bg-black text-white rounded-xl sm:rounded-2xl h-12 sm:h-14 font-black uppercase text-[9px] sm:text-[10px] tracking-widest gap-3 shadow-active transition-all active:scale-95"

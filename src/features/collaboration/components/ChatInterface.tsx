@@ -5,8 +5,10 @@ import {
     useState,
     useRef,
     useCallback,
+    useMemo,
     type KeyboardEvent,
 } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { chatService } from "../services/chatService";
 import { ChatChannel, ChatMessage, ChatMember } from "../types";
@@ -16,19 +18,15 @@ import {
     Hash,
     Search,
     MessageSquare,
-    Circle,
     Loader2,
     Smile,
-    Zap,
     Plus,
     ArrowLeft,
     Lock,
     Globe,
     X,
     CheckCheck,
-    ShieldCheck,
     Users,
-    ChevronRight,
 } from "lucide-react";
 import {
     Popover,
@@ -44,17 +42,25 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
-import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
+import { Hint } from "@/shared/components/ui/hint";
 import { format, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface DirectoryMember {
+    user_id: string;
+    full_name: string;
+    role?: string | null;
+    email?: string | null;
+}
+
 interface Props {
     userId: string;
     userFullName: string;
     tenantId: string;
+    members?: DirectoryMember[];
 }
 
 interface SenderCache {
@@ -73,17 +79,35 @@ function formatMessageTime(iso: string): string {
 function getInitials(name: string): string {
     return name
         .split(" ")
+        .filter(Boolean)
         .map((n) => n[0])
         .slice(0, 2)
         .join("")
         .toUpperCase();
 }
 
+// Color determinista por usuario para el avatar (tema claro)
+const AVATAR_COLORS = [
+    "bg-indigo-100 text-indigo-700",
+    "bg-emerald-100 text-emerald-700",
+    "bg-amber-100 text-amber-700",
+    "bg-sky-100 text-sky-700",
+    "bg-rose-100 text-rose-700",
+    "bg-violet-100 text-violet-700",
+    "bg-teal-100 text-teal-700",
+    "bg-orange-100 text-orange-700",
+];
+function avatarColor(id: string): string {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
 const QUICK_REACTIONS = ["👍", "❤️", "🔥", "😂", "😮", "🚀"];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ChatInterface({ userId, userFullName, tenantId }: Props) {
+export function ChatInterface({ userId, userFullName, tenantId, members = [] }: Props) {
     const supabase = createClient();
 
     // State
@@ -104,6 +128,8 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
     const [creatingChannel, setCreatingChannel] = useState(false);
     // Mobile: show sidebar (true) or messages (false)
     const [showSidebar, setShowSidebar] = useState(true);
+    // Sidebar tab: personas | canales
+    const [sidebarTab, setSidebarTab] = useState<"people" | "channels">("people");
     // Online presence (shared hook)
     const onlineUsers = useOnlinePresence(tenantId, userId, userFullName);
     // Channel members
@@ -145,17 +171,12 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
         try {
             const data = await chatService.getChannels(supabase);
             setChannels(data);
-
-            if (data.length > 0 && !activeChannel) {
-                setActiveChannel(data[0]);
-                setShowSidebar(false);
-            }
         } catch (err) {
             console.error("loadChannels:", err);
         } finally {
             setLoadingChannels(false);
         }
-    }, [supabase, activeChannel]);
+    }, [supabase]);
 
     // ── Load messages for a channel ───────────────────────────────────────────
 
@@ -165,7 +186,6 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
             try {
                 const data = await chatService.getMessages(supabase, channelId);
 
-                // Pre-warm sender cache
                 const unknownIds = data
                     .filter((m) => m.sender_id !== userId && !m.sender?.full_name)
                     .map((m) => m.sender_id)
@@ -200,8 +220,8 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
 
     const loadChannelMembers = useCallback(
         async (channelId: string) => {
-            const members = await chatService.getChannelMembers(supabase, channelId);
-            setChannelMembers(members);
+            const mem = await chatService.getChannelMembers(supabase, channelId);
+            setChannelMembers(mem);
         },
         [supabase]
     );
@@ -226,7 +246,7 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
         [supabase, userId]
     );
 
-    // ── Realtime subscription ─────────────────────────────────────────────────
+    // ── Realtime subscription (messages + typing) ─────────────────────────────
 
     useEffect(() => {
         if (!activeChannel) return;
@@ -234,7 +254,15 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
         loadMessages(activeChannel.id);
         loadChannelMembers(activeChannel.id);
 
-        // Messages channel
+        // Al abrir el chat, marca leídas sus notificaciones de la campana.
+        supabase
+            .from("app_notifications")
+            .update({ is_read: true })
+            .eq("user_id", userId)
+            .eq("link", `/collaboration?c=${activeChannel.id}`)
+            .eq("is_read", false)
+            .then(() => {});
+
         const msgChannel = supabase
             .channel(`messages:${activeChannel.id}`)
             .on(
@@ -248,7 +276,6 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
                 async (payload: { new: unknown }) => {
                     const incoming = payload.new as ChatMessage;
 
-                    // Resolve sender name for the incoming message
                     if (incoming.sender_id !== userId) {
                         const name = await resolveSenderName(incoming.sender_id);
                         incoming.sender = { full_name: name };
@@ -257,13 +284,11 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
                     }
 
                     setMessages((prev) => {
-                        // If we have an optimistic message from this sender, replace it
                         const optId = lastOptimisticIdRef.current;
                         if (optId && incoming.sender_id === userId) {
                             lastOptimisticIdRef.current = null;
                             return prev.map((m) => (m.id === optId ? incoming : m));
                         }
-                        // Deduplicate
                         if (prev.some((m) => m.id === incoming.id)) return prev;
                         return [...prev, incoming];
                     });
@@ -287,7 +312,6 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
 
         realtimeChannelRef.current = msgChannel;
 
-        // Presence channel for typing indicators
         const presenceKey = `presence:collab:${activeChannel.id}`;
         const presenceCh = supabase
             .channel(presenceKey)
@@ -305,11 +329,7 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
             .subscribe(async (status: string) => {
                 if (status === "SUBSCRIBED") {
                     presenceChannelRef.current = presenceCh;
-                    await presenceCh.track({
-                        id: userId,
-                        name: userFullName,
-                        is_typing: false,
-                    });
+                    await presenceCh.track({ id: userId, name: userFullName, is_typing: false });
                 }
             });
 
@@ -339,18 +359,10 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
 
     const handleTyping = useCallback(() => {
         if (!presenceChannelRef.current) return;
-        presenceChannelRef.current.track({
-            id: userId,
-            name: userFullName,
-            is_typing: true,
-        });
+        presenceChannelRef.current.track({ id: userId, name: userFullName, is_typing: true });
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => {
-            presenceChannelRef.current?.track({
-                id: userId,
-                name: userFullName,
-                is_typing: false,
-            });
+            presenceChannelRef.current?.track({ id: userId, name: userFullName, is_typing: false });
         }, 2500);
     }, [userId, userFullName]);
 
@@ -363,10 +375,8 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
         setNewMessage("");
         setSending(true);
 
-        // Auto-join if not yet a member
         await ensureMember(activeChannel.id);
 
-        // Optimistic update
         const optimisticId = `opt-${Date.now()}`;
         lastOptimisticIdRef.current = optimisticId;
         const optimistic: ChatMessage = {
@@ -385,17 +395,13 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
             await chatService.sendMessage(supabase, activeChannel.id, text);
         } catch (err) {
             console.error("sendMessage:", err);
-            // Revert optimistic on error
             lastOptimisticIdRef.current = null;
             setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
             setNewMessage(text);
+            toast.error("No se pudo enviar el mensaje");
         } finally {
             setSending(false);
-            presenceChannelRef.current?.track({
-                id: userId,
-                name: userFullName,
-                is_typing: false,
-            });
+            presenceChannelRef.current?.track({ id: userId, name: userFullName, is_typing: false });
             inputRef.current?.focus();
         }
     }, [newMessage, activeChannel, sending, userId, userFullName, supabase, ensureMember]);
@@ -423,46 +429,69 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
 
     // ── Create channel ────────────────────────────────────────────────────────
 
-    const handleCreateChannel = useCallback(
-        async () => {
-            const name = newChannelName.trim();
-            if (!name || creatingChannel) return;
+    const handleCreateChannel = useCallback(async () => {
+        const name = newChannelName.trim();
+        if (!name || creatingChannel) return;
 
-            setCreatingChannel(true);
+        setCreatingChannel(true);
+        try {
+            const { data: ch, error } = await supabase
+                .from("chat_channels")
+                .insert({
+                    name,
+                    description: newChannelDesc.trim() || null,
+                    type: newChannelPrivate ? "private" : "public",
+                    tenant_id: tenantId,
+                    created_by: userId,
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            await supabase
+                .from("chat_channel_members")
+                .insert({ channel_id: ch.id, user_id: userId });
+
+            setChannels((prev) => [...prev, ch as ChatChannel]);
+            setActiveChannel(ch as ChatChannel);
+            setSidebarTab("channels");
+            setShowSidebar(false);
+            setShowCreateModal(false);
+            setNewChannelName("");
+            setNewChannelDesc("");
+            setNewChannelPrivate(false);
+        } catch (err) {
+            console.error("createChannel:", err);
+            toast.error("No se pudo crear el canal");
+        } finally {
+            setCreatingChannel(false);
+        }
+    }, [newChannelName, newChannelDesc, newChannelPrivate, userId, tenantId, supabase, creatingChannel]);
+
+    // ── Iniciar mensaje directo con un usuario ────────────────────────────────
+
+    const startDirectMessage = useCallback(
+        async (otherId: string, otherName: string) => {
+            if (!otherId || otherId === userId || !tenantId) return;
             try {
-                const { data: ch, error } = await supabase
-                    .from("chat_channels")
-                    .insert({
-                        name,
-                        description: newChannelDesc.trim() || null,
-                        type: newChannelPrivate ? "private" : "public",
-                        tenant_id: tenantId,
-                        created_by: userId,
-                    })
-                    .select()
-                    .single();
-
-                if (error) throw error;
-
-                // Add creator as member
-                await supabase
-                    .from("chat_channel_members")
-                    .insert({ channel_id: ch.id, user_id: userId });
-
-                setChannels((prev) => [...prev, ch as ChatChannel]);
-                setActiveChannel(ch as ChatChannel);
+                const ch = await chatService.openDirectChannel(supabase, {
+                    me: userId,
+                    meName: userFullName,
+                    other: otherId,
+                    otherName,
+                    tenantId,
+                });
+                setChannels((prev) => (prev.some((c) => c.id === ch.id) ? prev : [ch, ...prev]));
+                setActiveChannel(ch);
                 setShowSidebar(false);
-                setShowCreateModal(false);
-                setNewChannelName("");
-                setNewChannelDesc("");
-                setNewChannelPrivate(false);
+                setShowMembers(false);
             } catch (err) {
-                console.error("createChannel:", err);
-            } finally {
-                setCreatingChannel(false);
+                console.error("startDirectMessage:", err);
+                toast.error("No se pudo abrir la conversación");
             }
         },
-        [newChannelName, newChannelDesc, newChannelPrivate, userId, tenantId, supabase, creatingChannel]
+        [userId, userFullName, tenantId, supabase]
     );
 
     // ── Select channel (mobile-aware) ─────────────────────────────────────────
@@ -473,754 +502,544 @@ export function ChatInterface({ userId, userFullName, tenantId }: Props) {
         setShowMembers(false);
     }, []);
 
-    // ── Filtered channels ─────────────────────────────────────────────────────
+    // ─── Derived ──────────────────────────────────────────────────────────────
 
-    const filteredChannels = channels.filter((ch) =>
-        (ch.name ?? "").toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredChannels = useMemo(
+        () => channels.filter((ch) => (ch.name ?? "").toLowerCase().includes(searchQuery.toLowerCase())),
+        [channels, searchQuery]
     );
 
-    // ─── Render helpers ───────────────────────────────────────────────────────
+    // Directorio: excluye al usuario actual, ordena online primero, filtra por búsqueda
+    const directory = useMemo(() => {
+        const q = searchQuery.toLowerCase();
+        return members
+            .filter((m) => m.user_id !== userId)
+            .filter((m) => !q || m.full_name.toLowerCase().includes(q) || (m.role ?? "").toLowerCase().includes(q))
+            .sort((a, b) => {
+                const ao = onlineUsers.has(a.user_id) ? 0 : 1;
+                const bo = onlineUsers.has(b.user_id) ? 0 : 1;
+                if (ao !== bo) return ao - bo;
+                return a.full_name.localeCompare(b.full_name, "es");
+            });
+    }, [members, userId, searchQuery, onlineUsers]);
+
+    const onlineDirCount = useMemo(
+        () => members.filter((m) => m.user_id !== userId && onlineUsers.has(m.user_id)).length,
+        [members, userId, onlineUsers]
+    );
 
     const typingNames = Object.values(typingUsers);
     const typingLabel =
         typingNames.length === 1
-            ? `${typingNames[0]} está escribiendo...`
+            ? `${typingNames[0]} está escribiendo…`
             : typingNames.length > 1
-            ? `${typingNames.join(", ")} están escribiendo...`
+            ? `${typingNames.join(", ")} están escribiendo…`
             : "";
 
-    const onlineCount = onlineUsers.size;
+    const channelIcon = (ch: ChatChannel) =>
+        ch.type === "direct" ? Users : ch.type === "private" ? Lock : Hash;
 
-    // ─── Loading screen ───────────────────────────────────────────────────────
-
-    if (loadingChannels) {
-        return (
-            <div className="flex flex-col items-center justify-center h-[70vh] gap-6">
-                <div className="h-20 w-20 rounded-[2rem] bg-slate-950 flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                    <Loader2 className="h-10 w-10 animate-spin text-indigo-400" />
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 italic">
-                    Sincronizando canales...
-                </p>
-            </div>
-        );
-    }
-
-    // ─── Main render ──────────────────────────────────────────────────────────
+    // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
-        <>
-            {/* ═══ CREATE CHANNEL MODAL ═══════════════════════════════════════ */}
-            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-                <DialogContent className="bg-slate-950 border border-white/10 rounded-[2.5rem] max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-white font-black italic tracking-tight text-xl">
-                            Nuevo Canal
-                        </DialogTitle>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">
-                            Crea un nodo de comunicacion
-                        </p>
-                    </DialogHeader>
-
-                    <form onSubmit={(e) => { e.preventDefault(); handleCreateChannel(); }} className="space-y-4 mt-2">
-                        <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">
-                                Nombre del canal
-                            </label>
-                            <Input
-                                value={newChannelName}
-                                onChange={(e) => setNewChannelName(e.target.value)}
-                                placeholder="ej. ventas-equipo"
-                                className="bg-white/5 border-white/10 text-white rounded-2xl h-12 font-bold placeholder:text-slate-600 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/30"
-                                maxLength={50}
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">
-                                Descripcion (opcional)
-                            </label>
-                            <Input
-                                value={newChannelDesc}
-                                onChange={(e) => setNewChannelDesc(e.target.value)}
-                                placeholder="Para que se usa este canal..."
-                                className="bg-white/5 border-white/10 text-white rounded-2xl h-12 font-bold placeholder:text-slate-600 focus-visible:ring-indigo-500/40 focus-visible:border-indigo-500/30"
-                                maxLength={120}
-                            />
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => setNewChannelPrivate((v) => !v)}
-                            className={cn(
-                                "w-full flex items-center gap-4 px-5 py-4 rounded-2xl border transition-all duration-300",
-                                newChannelPrivate
-                                    ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300"
-                                    : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
-                            )}
-                        >
-                            {newChannelPrivate ? (
-                                <Lock className="h-5 w-5 shrink-0" />
-                            ) : (
-                                <Globe className="h-5 w-5 shrink-0" />
-                            )}
-                            <div className="text-left">
-                                <p className="font-black text-xs">
-                                    {newChannelPrivate ? "Canal Privado" : "Canal Publico"}
-                                </p>
-                                <p className="text-[9px] uppercase tracking-widest mt-0.5 opacity-60">
-                                    {newChannelPrivate
-                                        ? "Solo miembros invitados pueden unirse"
-                                        : "Cualquier miembro del equipo puede ver este canal"}
-                                </p>
-                            </div>
-                        </button>
-
-                        <div className="flex gap-3 pt-2">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                className="flex-1 h-12 rounded-2xl text-slate-400 hover:bg-white/5 hover:text-white font-black text-xs"
-                                onClick={() => setShowCreateModal(false)}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={!newChannelName.trim() || creatingChannel}
-                                className="flex-1 h-12 rounded-2xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all duration-300 disabled:opacity-40"
-                            >
-                                {creatingChannel ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    "Crear Canal"
-                                )}
-                            </Button>
-                        </div>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            {/* ═══ MAIN CHAT LAYOUT ═══════════════════════════════════════════ */}
-            <div className="flex h-[60vh] md:h-[calc(100vh-14rem)] rounded-2xl md:rounded-[3.5rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-slate-800 bg-slate-950">
-
-                {/* ══ SIDEBAR ════════════════════════════════════════════════ */}
-                <div
-                    className={cn(
-                        "flex flex-col bg-slate-950 transition-all duration-300",
-                        "md:w-80 md:border-r md:border-white/5 md:relative md:flex",
-                        showSidebar
-                            ? "absolute inset-0 z-20 w-full flex"
-                            : "hidden md:flex"
-                    )}
-                >
-                    {/* Sidebar header */}
-                    <div className="p-5 border-b border-white/5 flex items-center gap-3">
-                        <div className="relative flex-1 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
-                            <Input
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Buscar canales..."
-                                className="pl-11 h-11 bg-white/5 border-white/5 rounded-2xl text-xs font-bold text-white placeholder:text-slate-600 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/30"
-                                aria-label="Buscar canales"
-                            />
-                        </div>
-                        <Button
-                            onClick={() => setShowCreateModal(true)}
-                            className="h-11 w-11 shrink-0 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white border border-indigo-500/20 hover:border-indigo-500 transition-all duration-300 p-0"
-                            aria-label="Crear nuevo canal"
-                        >
-                            <Plus className="h-5 w-5" />
-                        </Button>
+        <div className="flex h-[72vh] min-h-[520px] rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+            {/* ══════════════════ SIDEBAR ══════════════════ */}
+            <aside
+                className={cn(
+                    "w-full md:w-80 md:shrink-0 border-r border-slate-200 flex flex-col bg-slate-50/60",
+                    showSidebar ? "flex" : "hidden md:flex"
+                )}
+            >
+                {/* Search */}
+                <div className="p-3 border-b border-slate-100">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Buscar personas o canales…"
+                            className="h-9 pl-9 bg-white border-slate-200 text-sm rounded-xl"
+                        />
                     </div>
+                </div>
 
-                    {/* Online users indicator */}
-                    <div className="px-5 py-3 border-b border-white/5">
-                        <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
-                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-400">
-                                {onlineCount} en linea
-                            </span>
-                        </div>
-                        {onlineCount > 0 && (
-                            <div className="flex -space-x-2 mt-2">
-                                {Array.from(onlineUsers.values()).slice(0, 8).map((user) => (
-                                    <div key={user.id} className="relative" title={user.name}>
-                                        <Avatar className="h-7 w-7 rounded-lg border-2 border-slate-950">
-                                            <AvatarFallback className="bg-indigo-500/20 text-indigo-300 text-[8px] font-black rounded-lg">
-                                                {getInitials(user.name)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-950" />
-                                    </div>
-                                ))}
-                                {onlineCount > 8 && (
-                                    <div className="h-7 w-7 rounded-lg bg-white/10 border-2 border-slate-950 flex items-center justify-center">
-                                        <span className="text-[8px] font-black text-slate-400">+{onlineCount - 8}</span>
-                                    </div>
-                                )}
+                {/* Tabs */}
+                <div className="px-3 pt-3 flex items-center gap-1">
+                    {([
+                        { key: "people", label: "Personas", count: onlineDirCount },
+                        { key: "channels", label: "Canales", count: null },
+                    ] as const).map((t) => (
+                        <button
+                            key={t.key}
+                            type="button"
+                            onClick={() => setSidebarTab(t.key)}
+                            className={cn(
+                                "flex items-center gap-2 px-3 h-8 rounded-lg text-xs font-semibold transition-colors",
+                                sidebarTab === t.key
+                                    ? "bg-indigo-600 text-white"
+                                    : "text-slate-500 hover:bg-slate-100"
+                            )}
+                        >
+                            {t.label}
+                            {t.key === "people" && t.count > 0 && (
+                                <span
+                                    className={cn(
+                                        "inline-flex items-center gap-1 text-[10px] font-bold",
+                                        sidebarTab === t.key ? "text-emerald-200" : "text-emerald-600"
+                                    )}
+                                >
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                    {t.count}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {/* PEOPLE TAB */}
+                {sidebarTab === "people" && (
+                    <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+                        {directory.length === 0 ? (
+                            <div className="py-12 text-center text-slate-400">
+                                <Users className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                                <p className="text-xs">Sin otros usuarios en la empresa</p>
                             </div>
+                        ) : (
+                            directory.map((m) => {
+                                const online = onlineUsers.has(m.user_id);
+                                return (
+                                    <button
+                                        key={m.user_id}
+                                        type="button"
+                                        onClick={() => startDirectMessage(m.user_id, m.full_name)}
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white hover:shadow-sm text-left transition-all"
+                                        title={`Chatear con ${m.full_name}`}
+                                    >
+                                        <div className="relative shrink-0">
+                                            <Avatar className="h-9 w-9 rounded-xl">
+                                                <AvatarFallback className={cn("text-[11px] font-bold rounded-xl", avatarColor(m.user_id))}>
+                                                    {getInitials(m.full_name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span
+                                                className={cn(
+                                                    "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white",
+                                                    online ? "bg-emerald-500" : "bg-slate-300"
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-slate-800 truncate">{m.full_name}</p>
+                                            <p className="text-[11px] text-slate-400 truncate">
+                                                {m.role || "—"}{online ? " · En línea" : ""}
+                                            </p>
+                                        </div>
+                                        <MessageSquare className="h-4 w-4 text-slate-300 shrink-0" />
+                                    </button>
+                                );
+                            })
                         )}
                     </div>
+                )}
 
-                    {/* Channel list */}
-                    <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-                        <p className="px-4 text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 mb-3 italic">
-                            Nodos Activos — {filteredChannels.length}
-                        </p>
+                {/* CHANNELS TAB */}
+                {sidebarTab === "channels" && (
+                    <div className="flex-1 overflow-y-auto p-2">
+                        <div className="flex items-center justify-between px-2 py-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                {filteredChannels.length} canal{filteredChannels.length === 1 ? "" : "es"}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(true)}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
+                            >
+                                <Plus className="h-3.5 w-3.5" /> Nuevo
+                            </button>
+                        </div>
 
-                        {filteredChannels.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 gap-4">
-                                <div className="h-16 w-16 rounded-[1.5rem] bg-white/5 flex items-center justify-center">
-                                    <MessageSquare className="h-8 w-8 text-slate-700" />
-                                </div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 text-center">
-                                    {searchQuery ? "Sin resultados" : "Sin canales aun"}
-                                </p>
+                        {loadingChannels ? (
+                            <div className="py-10 flex justify-center">
+                                <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
+                            </div>
+                        ) : filteredChannels.length === 0 ? (
+                            <div className="py-10 text-center text-slate-400">
+                                <MessageSquare className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                                <p className="text-xs mb-3">{searchQuery ? "Sin resultados" : "Aún no hay canales"}</p>
                                 {!searchQuery && (
                                     <button
                                         onClick={() => setShowCreateModal(true)}
-                                        className="text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors"
+                                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
                                     >
                                         + Crear primer canal
                                     </button>
                                 )}
                             </div>
                         ) : (
-                            <div className="space-y-1">
-                                {filteredChannels.map((channel) => {
-                                    const isActive = activeChannel?.id === channel.id;
-                                    const isPrivate = channel.type === "private";
+                            <div className="space-y-0.5">
+                                {filteredChannels.map((ch) => {
+                                    const Icon = channelIcon(ch);
+                                    const isActive = activeChannel?.id === ch.id;
                                     return (
                                         <button
-                                            key={channel.id}
-                                            onClick={() => selectChannel(channel)}
+                                            key={ch.id}
+                                            onClick={() => selectChannel(ch)}
                                             className={cn(
-                                                "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group text-left",
-                                                isActive
-                                                    ? "bg-indigo-500/10 border border-indigo-500/20"
-                                                    : "hover:bg-white/5 border border-transparent"
+                                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all",
+                                                isActive ? "bg-indigo-600 text-white shadow-sm" : "text-slate-700 hover:bg-white hover:shadow-sm"
                                             )}
                                         >
                                             <div
                                                 className={cn(
-                                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0",
-                                                    isActive
-                                                        ? "bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)] rotate-6"
-                                                        : "bg-white/5 text-slate-600 group-hover:bg-white/10 group-hover:text-slate-400"
+                                                    "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                                    isActive ? "bg-white/15" : "bg-slate-100"
                                                 )}
                                             >
-                                                {isPrivate ? (
-                                                    <Lock className="h-4 w-4" />
-                                                ) : (
-                                                    <Hash className="h-5 w-5" />
-                                                )}
+                                                <Icon className={cn("h-4 w-4", isActive ? "text-white" : "text-slate-500")} />
                                             </div>
-                                            <div className="flex-1 overflow-hidden">
-                                                <p
-                                                    className={cn(
-                                                        "font-black text-sm truncate italic tracking-tight transition-colors",
-                                                        isActive
-                                                            ? "text-white"
-                                                            : "text-slate-400 group-hover:text-slate-200"
-                                                    )}
-                                                >
-                                                    {channel.name ?? "Canal"}
-                                                </p>
-                                                {channel.description && (
-                                                    <p className="text-[9px] text-slate-600 font-bold truncate uppercase tracking-widest">
-                                                        {channel.description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            {isActive && (
-                                                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399] shrink-0" />
-                                            )}
+                                            <span className="text-sm font-semibold truncate flex-1">{ch.name}</span>
                                         </button>
                                     );
                                 })}
                             </div>
                         )}
                     </div>
+                )}
+            </aside>
 
-                    {/* Sidebar footer */}
-                    <div className="p-4 border-t border-white/5">
-                        <div className="flex items-center gap-3 px-4 py-3 bg-white/5 rounded-2xl">
-                            <div className="relative shrink-0">
-                                <Avatar className="h-8 w-8 rounded-xl">
-                                    <AvatarFallback className="bg-indigo-500/20 text-indigo-300 text-[10px] font-black rounded-xl">
-                                        {getInitials(userFullName)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-950" />
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <p className="text-xs font-black text-slate-300 truncate italic">
-                                    {userFullName}
-                                </p>
-                                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                                    <Circle className="h-1.5 w-1.5 fill-current" />
-                                    En linea
-                                </p>
-                            </div>
-                            <ShieldCheck className="h-4 w-4 text-indigo-400/60 shrink-0" />
+            {/* ══════════════════ MAIN ══════════════════ */}
+            <section className={cn("flex-1 min-w-0 flex-col bg-white", showSidebar ? "hidden md:flex" : "flex")}>
+                {!activeChannel ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center px-6 text-slate-400">
+                        <div className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
+                            <MessageSquare className="h-8 w-8 text-slate-300" />
                         </div>
+                        <p className="text-sm font-semibold text-slate-600">Selecciona una persona o canal</p>
+                        <p className="text-xs mt-1">Toca a un compañero en “Personas” para chatear en directo.</p>
                     </div>
-                </div>
-
-                {/* ══ MESSAGES AREA ══════════════════════════════════════════ */}
-                <div
-                    className={cn(
-                        "flex-1 flex flex-col bg-slate-900/50 min-w-0",
-                        !showSidebar ? "flex" : "hidden md:flex"
-                    )}
-                >
-                    {activeChannel ? (
-                        <>
-                            {/* Channel header */}
-                            <div className="h-20 px-6 md:px-8 border-b border-white/5 flex items-center justify-between bg-slate-950/60 backdrop-blur-md shrink-0">
-                                <div className="flex items-center gap-3 md:gap-4">
-                                    {/* Mobile back button */}
-                                    <button
-                                        onClick={() => setShowSidebar(true)}
-                                        className="md:hidden h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all shrink-0"
-                                        aria-label="Volver a canales"
-                                    >
-                                        <ArrowLeft className="h-5 w-5" />
-                                    </button>
-
-                                    <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shrink-0">
-                                        {activeChannel.type === "private" ? (
-                                            <Lock className="h-5 w-5" />
-                                        ) : (
-                                            <Hash className="h-6 w-6" />
-                                        )}
-                                    </div>
-                                    <div className="overflow-hidden">
-                                        <h3 className="font-black text-white italic tracking-tight text-base md:text-lg leading-none truncate">
-                                            {activeChannel.name}
-                                        </h3>
-                                        <p className="text-[9px] font-black text-slate-500 flex items-center gap-1.5 mt-1 uppercase tracking-[0.3em]">
-                                            {channelMembers.length} miembros
-                                            <span className="text-emerald-400 flex items-center gap-1">
-                                                <Circle className="h-1.5 w-1.5 fill-current" />
-                                                {channelMembers.filter((m) => onlineUsers.has(m.user_id)).length} en linea
-                                            </span>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => setShowMembers((v) => !v)}
-                                        className={cn(
-                                            "h-10 rounded-xl border transition-all duration-300 px-3 gap-2",
-                                            showMembers
-                                                ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
-                                                : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white"
-                                        )}
-                                        aria-label="Ver miembros"
-                                    >
-                                        <Users className="h-4 w-4" />
-                                        <span className="text-[9px] font-black uppercase tracking-widest hidden md:inline">
-                                            Miembros
-                                        </span>
-                                    </Button>
-                                    <Badge className="bg-white/5 border border-white/10 text-slate-400 text-[9px] font-black uppercase tracking-[0.3em] px-3 md:px-4 py-2 rounded-full shrink-0">
-                                        <Zap className="h-3 w-3 mr-2 text-indigo-400" />
-                                        Realtime
-                                    </Badge>
-                                </div>
-                            </div>
-
-                            {/* Content area: Messages + Members panel */}
-                            <div className="flex-1 flex overflow-hidden">
-                                {/* Messages list */}
-                                <div
-                                    className="flex-1 overflow-y-auto p-5 md:p-8 space-y-1"
-                                    aria-label="Mensajes del canal"
-                                    aria-live="polite"
+                ) : (
+                    <>
+                        {/* Header */}
+                        <div className="h-14 px-4 flex items-center gap-3 border-b border-slate-100 shrink-0">
+                            <Hint label="Volver" side="top">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSidebar(true)}
+                                    className="md:hidden h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100"
                                 >
+                                    <ArrowLeft className="h-4 w-4" />
+                                </button>
+                            </Hint>
+                            <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                                {(() => {
+                                    const Icon = channelIcon(activeChannel);
+                                    return <Icon className="h-4 w-4 text-slate-500" />;
+                                })()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-slate-900 truncate">{activeChannel.name}</p>
+                                <p className="text-[11px] text-slate-400">
+                                    {channelMembers.length} miembro{channelMembers.length === 1 ? "" : "s"}
+                                    {typingLabel ? ` · ${typingLabel}` : ""}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowMembers((s) => !s)}
+                                className={cn(
+                                    "h-9 px-3 rounded-lg inline-flex items-center gap-1.5 text-xs font-semibold transition-colors",
+                                    showMembers ? "bg-indigo-50 text-indigo-600" : "text-slate-500 hover:bg-slate-100"
+                                )}
+                            >
+                                <Users className="h-4 w-4" /> <span className="hidden sm:inline">Miembros</span>
+                            </button>
+                        </div>
+
+                        <div className="flex-1 min-h-0 flex">
+                            {/* Messages */}
+                            <div className="flex-1 min-w-0 flex flex-col">
+                                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
                                     {loadingMessages ? (
-                                        <div className="flex items-center justify-center py-20">
-                                            <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+                                        <div className="h-full flex items-center justify-center">
+                                            <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
                                         </div>
                                     ) : messages.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-20 gap-5">
-                                            <div className="h-20 w-20 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center">
-                                                <MessageSquare className="h-10 w-10 text-slate-700" />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="font-black italic text-base text-white/20 uppercase tracking-tight">
-                                                    Canal vacio
-                                                </p>
-                                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] mt-1">
-                                                    Se el primero en enviar un mensaje
-                                                </p>
-                                            </div>
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                                            <MessageSquare className="h-8 w-8 mb-2 text-slate-200" />
+                                            <p className="text-sm font-medium">Aún no hay mensajes</p>
+                                            <p className="text-xs">Sé el primero en escribir.</p>
                                         </div>
                                     ) : (
-                                        <>
-                                            {messages.map((message, idx) => {
-                                                const isMe = message.sender_id === userId;
-                                                const prevMsg = messages[idx - 1];
-                                                const isSameAuthor =
-                                                    prevMsg?.sender_id === message.sender_id;
-                                                const showAvatar = !isSameAuthor || idx === 0;
+                                        messages.map((message, idx) => {
+                                            const isMe = message.sender_id === userId;
+                                            const prevMsg = messages[idx - 1];
+                                            const showAvatar = prevMsg?.sender_id !== message.sender_id || idx === 0;
+                                            const senderName = isMe
+                                                ? "Tú"
+                                                : message.sender?.full_name || senderCache[message.sender_id] || "Usuario";
+                                            const isOptimistic = message.id.startsWith("opt-");
 
-                                                const senderName = isMe
-                                                    ? "Tú"
-                                                    : message.sender?.full_name ||
-                                                      senderCache[message.sender_id] ||
-                                                      "Usuario";
+                                            const grouped = message.reactions?.reduce((acc: Record<string, number>, r) => {
+                                                acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+                                                return acc;
+                                            }, {});
 
-                                                const isOptimistic = message.id.startsWith("opt-");
-                                                const senderOnline = onlineUsers.has(message.sender_id);
-
-                                                return (
-                                                    <div
-                                                        key={message.id}
-                                                        className={cn(
-                                                            "flex gap-3 group",
-                                                            isMe ? "flex-row-reverse" : "flex-row",
-                                                            !showAvatar ? "mt-0.5" : "mt-4"
+                                            return (
+                                                <div
+                                                    key={message.id}
+                                                    className={cn(
+                                                        "flex gap-2.5 group",
+                                                        isMe ? "flex-row-reverse" : "flex-row",
+                                                        showAvatar ? "mt-3" : "mt-0.5"
+                                                    )}
+                                                >
+                                                    <div className="w-8 shrink-0">
+                                                        {showAvatar && !isMe && (
+                                                            <Avatar className="h-8 w-8 rounded-lg">
+                                                                <AvatarFallback className={cn("text-[10px] font-bold rounded-lg", avatarColor(message.sender_id))}>
+                                                                    {getInitials(senderName)}
+                                                                </AvatarFallback>
+                                                            </Avatar>
                                                         )}
-                                                    >
-                                                        {/* Avatar */}
-                                                        <div className="shrink-0 w-10">
-                                                            {showAvatar && (
-                                                                <div className="relative">
-                                                                    <Avatar className="h-10 w-10 rounded-xl border border-white/10 shadow-sm">
-                                                                        <AvatarFallback
+                                                    </div>
+
+                                                    <div className={cn("flex flex-col gap-1 max-w-[78%]", isMe ? "items-end" : "items-start")}>
+                                                        {showAvatar && (
+                                                            <div className={cn("flex items-center gap-2 px-1", isMe && "flex-row-reverse")}>
+                                                                <span className="text-xs font-semibold text-slate-700">{senderName}</span>
+                                                                <span className="text-[10px] text-slate-400">{formatMessageTime(message.created_at)}</span>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="relative group/msg">
+                                                            <div
+                                                                className={cn(
+                                                                    "px-3.5 py-2 rounded-2xl text-sm leading-relaxed break-words",
+                                                                    isMe
+                                                                        ? "bg-indigo-600 text-white rounded-tr-sm"
+                                                                        : "bg-slate-100 text-slate-800 rounded-tl-sm",
+                                                                    isOptimistic && "opacity-60"
+                                                                )}
+                                                            >
+                                                                {message.content}
+                                                                {isMe && !isOptimistic && (
+                                                                    <CheckCheck className="inline-block h-3 w-3 ml-1.5 text-indigo-200 align-middle" />
+                                                                )}
+                                                            </div>
+
+                                                            {/* Reaction picker (hover) */}
+                                                            <div
+                                                                className={cn(
+                                                                    "absolute -top-2 opacity-0 group-hover/msg:opacity-100 transition-opacity",
+                                                                    isMe ? "-left-9" : "-right-9"
+                                                                )}
+                                                            >
+                                                                <Popover>
+                                                                    <PopoverTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-7 w-7 rounded-lg bg-white border border-slate-200 shadow-sm text-slate-400 hover:text-slate-700"
+                                                                            aria-label="Reaccionar"
+                                                                        >
+                                                                            <Smile className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent
+                                                                        side={isMe ? "left" : "right"}
+                                                                        className="w-auto p-1.5 rounded-xl"
+                                                                    >
+                                                                        <div className="flex gap-0.5">
+                                                                            {QUICK_REACTIONS.map((emoji) => (
+                                                                                <button
+                                                                                    key={emoji}
+                                                                                    onClick={() => handleReaction(message.id, emoji)}
+                                                                                    className="p-1.5 hover:bg-slate-100 rounded-lg text-lg hover:scale-125 transition-transform"
+                                                                                    aria-label={`Reaccionar con ${emoji}`}
+                                                                                >
+                                                                                    {emoji}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Reactions display */}
+                                                        {grouped && Object.keys(grouped).length > 0 && (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {Object.entries(grouped).map(([emoji, count]) => {
+                                                                    const reacted = message.reactions?.some(
+                                                                        (r) => r.emoji === emoji && r.user_id === userId
+                                                                    );
+                                                                    return (
+                                                                        <button
+                                                                            key={emoji}
+                                                                            onClick={() => handleReaction(message.id, emoji)}
                                                                             className={cn(
-                                                                                "text-[10px] font-black rounded-xl",
-                                                                                isMe
-                                                                                    ? "bg-indigo-500/30 text-indigo-200"
-                                                                                    : "bg-white/10 text-slate-400"
+                                                                                "inline-flex items-center gap-1 px-2 h-6 rounded-full text-xs border transition-colors",
+                                                                                reacted
+                                                                                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                                                                                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                                                                             )}
                                                                         >
-                                                                            {getInitials(senderName)}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    {/* Online dot */}
-                                                                    {senderOnline && (
-                                                                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-slate-900" />
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Bubble */}
-                                                        <div
-                                                            className={cn(
-                                                                "flex flex-col gap-1 max-w-[70%]",
-                                                                isMe ? "items-end" : "items-start"
-                                                            )}
-                                                        >
-                                                            {showAvatar && (
-                                                                <div
-                                                                    className={cn(
-                                                                        "flex items-center gap-2",
-                                                                        isMe && "flex-row-reverse"
-                                                                    )}
-                                                                >
-                                                                    <span className="font-black text-white/70 text-xs italic">
-                                                                        {senderName}
-                                                                    </span>
-                                                                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">
-                                                                        {formatMessageTime(message.created_at)}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-
-                                                            <div className="relative group/msg">
-                                                                <div
-                                                                    className={cn(
-                                                                        "px-4 py-3 rounded-2xl text-sm font-medium leading-relaxed transition-all duration-300",
-                                                                        isMe
-                                                                            ? "bg-indigo-500 text-white rounded-tr-sm shadow-[0_4px_20px_rgba(99,102,241,0.2)]"
-                                                                            : "bg-white/5 text-slate-300 rounded-tl-sm border border-white/5 hover:bg-white/[0.08]",
-                                                                        isOptimistic && "opacity-60"
-                                                                    )}
-                                                                >
-                                                                    {message.content}
-
-                                                                    {/* Delivered indicator */}
-                                                                    {isMe && !isOptimistic && (
-                                                                        <CheckCheck className="inline-block h-3 w-3 ml-2 text-indigo-200 opacity-70" />
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Reaction button (hover) */}
-                                                                <div
-                                                                    className={cn(
-                                                                        "absolute top-1 opacity-0 group-hover/msg:opacity-100 transition-all duration-200",
-                                                                        isMe ? "-left-11" : "-right-11"
-                                                                    )}
-                                                                >
-                                                                    <Popover>
-                                                                        <PopoverTrigger asChild>
-                                                                            <Button
-                                                                                variant="ghost"
-                                                                                size="icon"
-                                                                                className="h-8 w-8 rounded-xl bg-slate-950 border border-white/10 shadow-lg hover:bg-white/10 text-slate-500 hover:text-white"
-                                                                                aria-label="Agregar reaccion"
-                                                                            >
-                                                                                <Smile className="h-4 w-4" />
-                                                                            </Button>
-                                                                        </PopoverTrigger>
-                                                                        <PopoverContent
-                                                                            side={isMe ? "left" : "right"}
-                                                                            className="w-auto p-1.5 rounded-2xl bg-slate-950 border border-white/10 shadow-2xl"
-                                                                        >
-                                                                            <div className="flex gap-0.5">
-                                                                                {QUICK_REACTIONS.map((emoji) => (
-                                                                                    <button
-                                                                                        key={emoji}
-                                                                                        onClick={() =>
-                                                                                            handleReaction(message.id, emoji)
-                                                                                        }
-                                                                                        className="p-2 hover:bg-white/10 rounded-xl transition-all text-lg hover:scale-125 active:scale-90"
-                                                                                        aria-label={`Reaccionar con ${emoji}`}
-                                                                                    >
-                                                                                        {emoji}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        </PopoverContent>
-                                                                    </Popover>
-                                                                </div>
+                                                                            <span>{emoji}</span>
+                                                                            <span className="font-semibold">{count}</span>
+                                                                        </button>
+                                                                    );
+                                                                })}
                                                             </div>
-
-                                                            {/* Reactions display */}
-                                                            {message.reactions && message.reactions.length > 0 && (
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {Object.entries(
-                                                                        message.reactions.reduce(
-                                                                            (
-                                                                                acc: Record<string, number>,
-                                                                                curr
-                                                                            ) => {
-                                                                                acc[curr.emoji] =
-                                                                                    (acc[curr.emoji] || 0) + 1;
-                                                                                return acc;
-                                                                            },
-                                                                            {}
-                                                                        )
-                                                                    ).map(([emoji, count]) => {
-                                                                        const reacted =
-                                                                            message.reactions?.some(
-                                                                                (r) =>
-                                                                                    r.user_id === userId &&
-                                                                                    r.emoji === emoji
-                                                                            ) ?? false;
-                                                                        return (
-                                                                            <button
-                                                                                key={emoji}
-                                                                                onClick={() =>
-                                                                                    handleReaction(message.id, emoji)
-                                                                                }
-                                                                                className={cn(
-                                                                                    "flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-bold transition-all hover:scale-110 active:scale-90",
-                                                                                    reacted
-                                                                                        ? "bg-indigo-500/20 border-indigo-500/30 text-indigo-300"
-                                                                                        : "bg-white/5 border-white/10 text-slate-500 hover:border-white/20"
-                                                                                )}
-                                                                            >
-                                                                                <span>{emoji}</span>
-                                                                                <span>{count}</span>
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                                        )}
                                                     </div>
-                                                );
-                                            })}
-                                            <div ref={messagesEndRef} />
-                                        </>
+                                                </div>
+                                            );
+                                        })
                                     )}
+                                    <div ref={messagesEndRef} />
                                 </div>
 
-                                {/* ══ MEMBERS PANEL ═════════════════════════════════ */}
-                                {showMembers && (
-                                    <div className="w-64 border-l border-white/5 bg-slate-950/80 flex flex-col shrink-0 hidden md:flex">
-                                        <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                                            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">
-                                                Miembros — {channelMembers.length}
-                                            </p>
-                                            <button
-                                                onClick={() => setShowMembers(false)}
-                                                className="h-6 w-6 rounded-lg flex items-center justify-center text-slate-600 hover:text-slate-400 hover:bg-white/5 transition-all"
-                                            >
-                                                <ChevronRight className="h-4 w-4" />
-                                            </button>
-                                        </div>
-
-                                        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                                            {/* Online members first */}
-                                            {channelMembers
-                                                .sort((a, b) => {
-                                                    const aOnline = onlineUsers.has(a.user_id) ? 0 : 1;
-                                                    const bOnline = onlineUsers.has(b.user_id) ? 0 : 1;
-                                                    return aOnline - bOnline;
-                                                })
-                                                .map((member) => {
-                                                    const isOnline = onlineUsers.has(member.user_id);
-                                                    const memberName =
-                                                        member.user_id === userId
-                                                            ? `${userFullName} (Tú)`
-                                                            : member.profile?.full_name || "Usuario";
-                                                    return (
-                                                        <div
-                                                            key={member.user_id}
-                                                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all"
-                                                        >
-                                                            <div className="relative shrink-0">
-                                                                <Avatar className="h-8 w-8 rounded-lg">
-                                                                    <AvatarFallback
-                                                                        className={cn(
-                                                                            "text-[9px] font-black rounded-lg",
-                                                                            isOnline
-                                                                                ? "bg-emerald-500/20 text-emerald-300"
-                                                                                : "bg-white/5 text-slate-600"
-                                                                        )}
-                                                                    >
-                                                                        {getInitials(memberName)}
-                                                                    </AvatarFallback>
-                                                                </Avatar>
-                                                                <div
-                                                                    className={cn(
-                                                                        "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-950",
-                                                                        isOnline ? "bg-emerald-400" : "bg-slate-600"
-                                                                    )}
-                                                                />
-                                                            </div>
-                                                            <div className="flex-1 overflow-hidden">
-                                                                <p className="text-xs font-bold text-slate-300 truncate">
-                                                                    {memberName}
-                                                                </p>
-                                                                <p
-                                                                    className={cn(
-                                                                        "text-[8px] font-black uppercase tracking-widest",
-                                                                        isOnline ? "text-emerald-400" : "text-slate-600"
-                                                                    )}
-                                                                >
-                                                                    {isOnline ? "En linea" : "Desconectado"}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Message input */}
-                            <div className="p-4 md:p-6 border-t border-white/5 bg-slate-950/80 backdrop-blur-md shrink-0">
-                                {/* Typing indicator */}
+                                {/* Typing */}
                                 {typingLabel && (
-                                    <div className="mb-3 px-4 flex items-center gap-2">
-                                        <div className="flex gap-1">
+                                    <div className="px-5 pb-1 flex items-center gap-2">
+                                        <span className="flex gap-1">
                                             <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
                                             <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
                                             <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full animate-bounce" />
-                                        </div>
-                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] italic">
-                                            {typingLabel}
-                                        </p>
+                                        </span>
+                                        <span className="text-[11px] text-slate-400">{typingLabel}</span>
                                     </div>
                                 )}
 
-                                <div
-                                    className={cn(
-                                        "bg-white/5 rounded-[2rem] border p-2 flex items-center gap-2 transition-all duration-300",
-                                        "focus-within:border-indigo-500/30 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.08)]",
-                                        "border-white/10"
-                                    )}
-                                >
-                                    <Input
-                                        ref={inputRef}
-                                        className="border-none focus-visible:ring-0 shadow-none font-bold text-sm placeholder:text-slate-600 text-white bg-transparent"
-                                        placeholder={`Escribe en #${activeChannel.name ?? "canal"}...`}
-                                        value={newMessage}
-                                        onChange={(e) => {
-                                            setNewMessage(e.target.value);
-                                            handleTyping();
-                                        }}
-                                        onKeyDown={handleKeyDown}
-                                        disabled={sending}
-                                        aria-label="Campo de mensaje"
-                                    />
-
-                                    {newMessage.trim() && (
-                                        <button
-                                            onClick={() => setNewMessage("")}
-                                            className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-400 hover:bg-white/5 transition-all shrink-0"
-                                            aria-label="Limpiar mensaje"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    )}
-
-                                    <Button
-                                        onClick={handleSend}
-                                        disabled={!newMessage.trim() || sending}
-                                        className={cn(
-                                            "h-12 w-12 rounded-xl shrink-0 transition-all duration-300 active:scale-90 p-0",
-                                            newMessage.trim() && !sending
-                                                ? "bg-indigo-500 hover:bg-indigo-400 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]"
-                                                : "bg-white/5 text-slate-600"
-                                        )}
-                                        aria-label="Enviar mensaje"
-                                    >
-                                        {sending ? (
-                                            <Loader2 className="h-5 w-5 animate-spin" />
-                                        ) : (
-                                            <Send className="h-5 w-5" />
-                                        )}
-                                    </Button>
+                                {/* Input */}
+                                <div className="p-3 border-t border-slate-100 shrink-0">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            ref={inputRef}
+                                            value={newMessage}
+                                            onChange={(e) => {
+                                                setNewMessage(e.target.value);
+                                                handleTyping();
+                                            }}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder={`Mensaje en ${activeChannel.name}…`}
+                                            className="h-11 rounded-xl bg-slate-50 border-slate-200 text-sm"
+                                        />
+                                        <Hint label="Enviar mensaje" side="top">
+                                            <Button
+                                                onClick={handleSend}
+                                                disabled={sending || !newMessage.trim()}
+                                                className="h-11 w-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 p-0 shrink-0"
+                                                aria-label="Enviar"
+                                            >
+                                                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                            </Button>
+                                        </Hint>
+                                    </div>
                                 </div>
                             </div>
-                        </>
-                    ) : (
-                        /* Empty state — no channel selected */
-                        <div className="flex-1 flex flex-col items-center justify-center gap-6">
-                            <div className="h-24 w-24 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center justify-center">
-                                <MessageSquare className="h-12 w-12 text-slate-700" />
-                            </div>
-                            <div className="text-center space-y-2">
-                                <p className="font-black italic text-xl text-white/20 uppercase tracking-tight">
-                                    Terminal de Comunicacion
-                                </p>
-                                <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">
-                                    Selecciona un canal para iniciar transmision
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setShowCreateModal(true)}
-                                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 transition-all duration-300 font-black text-xs uppercase tracking-widest"
-                            >
-                                <Plus className="h-4 w-4" />
-                                Crear canal
-                            </button>
-                            {/* Mobile: show sidebar button */}
-                            <button
-                                onClick={() => setShowSidebar(true)}
-                                className="md:hidden flex items-center gap-2 text-[10px] font-black text-slate-600 hover:text-slate-400 uppercase tracking-widest transition-colors"
-                            >
-                                <ArrowLeft className="h-4 w-4" />
-                                Ver canales
-                            </button>
+
+                            {/* Members panel */}
+                            {showMembers && (
+                                <div className="w-60 border-l border-slate-100 bg-slate-50/60 flex-col hidden lg:flex">
+                                    <div className="h-12 px-4 flex items-center justify-between border-b border-slate-100">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                            Miembros — {channelMembers.length}
+                                        </span>
+                                        <Hint label="Cerrar panel" side="top">
+                                            <button onClick={() => setShowMembers(false)} className="text-slate-400 hover:text-slate-600">
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </Hint>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+                                        {channelMembers.map((member) => {
+                                            const online = onlineUsers.has(member.user_id);
+                                            const isSelf = member.user_id === userId;
+                                            const memberName = isSelf ? `${userFullName} (Tú)` : member.profile?.full_name || "Usuario";
+                                            return (
+                                                <div
+                                                    key={member.user_id}
+                                                    onClick={isSelf ? undefined : () => startDirectMessage(member.user_id, member.profile?.full_name || "Usuario")}
+                                                    title={isSelf ? undefined : `Chatear con ${memberName}`}
+                                                    className={cn(
+                                                        "flex items-center gap-2.5 px-2 py-2 rounded-lg",
+                                                        isSelf ? "" : "hover:bg-white cursor-pointer"
+                                                    )}
+                                                >
+                                                    <div className="relative shrink-0">
+                                                        <Avatar className="h-7 w-7 rounded-lg">
+                                                            <AvatarFallback className={cn("text-[9px] font-bold rounded-lg", avatarColor(member.user_id))}>
+                                                                {getInitials(memberName)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white", online ? "bg-emerald-500" : "bg-slate-300")} />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-slate-700 truncate">{memberName}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            </div>
-        </>
+                    </>
+                )}
+            </section>
+
+            {/* ══════════════════ CREATE CHANNEL MODAL ══════════════════ */}
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+                <DialogContent className="sm:max-w-[440px] rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Nuevo canal</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={(e) => { e.preventDefault(); handleCreateChannel(); }} className="space-y-4 mt-2">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-600">Nombre del canal</label>
+                            <Input
+                                value={newChannelName}
+                                onChange={(e) => setNewChannelName(e.target.value)}
+                                placeholder="ej. logística, ventas-bogotá…"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-slate-600">Descripción (opcional)</label>
+                            <Input
+                                value={newChannelDesc}
+                                onChange={(e) => setNewChannelDesc(e.target.value)}
+                                placeholder="¿De qué trata el canal?"
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setNewChannelPrivate((p) => !p)}
+                            className={cn(
+                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-colors",
+                                newChannelPrivate ? "border-indigo-200 bg-indigo-50" : "border-slate-200 hover:bg-slate-50"
+                            )}
+                        >
+                            <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", newChannelPrivate ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500")}>
+                                {newChannelPrivate ? <Lock className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold text-slate-800">{newChannelPrivate ? "Privado" : "Público"}</p>
+                                <p className="text-[11px] text-slate-500">
+                                    {newChannelPrivate ? "Solo los miembros invitados pueden verlo" : "Todo el equipo puede unirse"}
+                                </p>
+                            </div>
+                        </button>
+                        <div className="flex justify-end gap-2 pt-1">
+                            <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={creatingChannel || !newChannelName.trim()} className="bg-indigo-600 hover:bg-indigo-700">
+                                {creatingChannel ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear canal"}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }

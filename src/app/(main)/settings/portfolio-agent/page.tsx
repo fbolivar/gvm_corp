@@ -88,7 +88,7 @@ export default function PortfolioAgentPage() {
 
             {metrics && <PortfolioAgentMetrics metrics={metrics} />}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-16">
                 {/* Columna Izquierda: Actividad (8/12) */}
                 <div className="lg:col-span-8 space-y-16">
                     <PortfolioAgentActivity
@@ -98,11 +98,11 @@ export default function PortfolioAgentPage() {
 
                     <Card className="bg-slate-900 border-none overflow-hidden relative group">
                         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                        <CardContent className="p-12 relative z-10 flex flex-col md:flex-row items-center gap-10">
-                            <div className="bg-white/10 p-6 rounded-full backdrop-blur-xl">
+                        <CardContent className="p-6 md:p-12 relative z-10 flex flex-col md:flex-row items-center gap-6 lg:gap-10">
+                            <div className="bg-white/10 p-6 rounded-full backdrop-blur-xl shrink-0">
                                 <Brain className="w-16 h-16 text-indigo-400" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-4">¿Cómo funciona el agente?</h2>
                                 <p className="text-indigo-200/70 font-medium text-lg leading-relaxed">
                                     Portfolio IQ analiza diariamente tus facturas de venta. Si detecta una mora superior a tus <span className="text-white font-black italic underline decoration-indigo-500 underline-offset-4">días de gracia</span>, el sistema activará una <span className="text-white font-black italic">Acción de Cobro</span> automática enviando recordatorios y escalando los casos según el riesgo del deudor.

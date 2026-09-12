@@ -1,20 +1,28 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { createProductAction } from '@/features/products/actions'
+import { createProductAction, getProductTaxPermissionAction } from '@/features/products/actions'
+import { getPriceListsAction } from '@/features/import/priceImportAction'
 import { ProductForm } from '@/features/products/components/ProductForm'
 import { Button } from '@/shared/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 
 export default function NewProductPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
+    const [canEditTax, setCanEditTax] = useState(false)
+    const [priceLists, setPriceLists] = useState<{ id: string; name: string; is_default: boolean }[]>([])
 
-    const handleSubmit = async (data: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    useEffect(() => {
+        getProductTaxPermissionAction().then(setCanEditTax).catch(() => {})
+        getPriceListsAction().then(setPriceLists).catch(() => {})
+    }, [])
+
+    const handleSubmit = async (data: any, prices?: Record<string, number>) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         setIsLoading(true)
-        const result = await createProductAction(data)
+        const result = await createProductAction(data, prices)
         setIsLoading(false)
         if (result?.error) toast.error(`Error: ${result.error}`)
     }
@@ -36,7 +44,7 @@ export default function NewProductPage() {
                 </div>
             </div>
 
-            <ProductForm onSubmit={handleSubmit} isLoading={isLoading} />
+            <ProductForm onSubmit={handleSubmit} isLoading={isLoading} canEditTax={canEditTax} priceLists={priceLists} />
         </div>
     )
 }

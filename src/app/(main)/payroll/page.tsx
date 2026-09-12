@@ -5,6 +5,7 @@ import { settingsService } from '@/features/settings/services/settingsService';
 import { PayrollDashboard } from '@/features/payroll/components/PayrollDashboard';
 import { OvertimeApprovalPanel } from '@/features/payroll/components/OvertimeApprovalPanel';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { DownloadManualButton } from '@/features/payroll/components/DownloadManualButton';
 import { OvertimeRequest } from '@/features/payroll/types';
 import { redirect } from 'next/navigation';
 
@@ -50,6 +51,12 @@ export default async function PayrollPage() {
                 subtitle="Liquidaciones, RRHH y gestion de talento humano"
                 tenant={tenant}
             />
+            <div className="flex justify-end -mt-4">
+                <DownloadManualButton
+                    companyName={tenant?.name || 'Mi Empresa'}
+                    logoUrl={tenant?.logo_url || null}
+                />
+            </div>
             <PayrollDashboard stats={stats} />
             <OvertimeApprovalPanel
                 pendingRequests={pendingOvertimeRequests}

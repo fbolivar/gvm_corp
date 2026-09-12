@@ -153,7 +153,7 @@ export function SocialSecurityContent() {
                 <h2 className="text-sm font-bold text-slate-900">Detalle por Colaborador</h2>
 
                 {consolidatedData?.settlements.length === 0 && (
-                    <Card className="rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+                    <Card className="rounded-2xl border border-slate-100 shadow-sm p-6 md:p-12 text-center">
                         <Users className="h-8 w-8 text-slate-200 mx-auto mb-3" />
                         <p className="text-xs text-slate-400">No hay empleados activos</p>
                     </Card>

@@ -12,6 +12,9 @@ export const trainingProgramSchema = z.object({
     category: TrainingCategoryEnum,
     duration_hours: z.number().positive(),
     is_mandatory: z.boolean().default(false),
+    video_url: z.string().optional().nullable(),
+    video_path: z.string().optional().nullable(),
+    video_name: z.string().optional().nullable(),
     created_at: z.string().optional(),
 });
 
@@ -28,6 +31,8 @@ export const trainingRecordSchema = z.object({
     status: TrainingStatusEnum.default('SCHEDULED'),
     certificate_number: z.string().optional().nullable(),
     notes: z.string().optional().nullable(),
+    /** Fecha en que el empleado la marcó como vista desde su portal (null = la completó RRHH). */
+    self_completed_at: z.string().optional().nullable(),
     created_at: z.string().optional(),
     program: trainingProgramSchema.optional(),
     employee: z.object({ id: z.string(), party: z.object({ legal_name: z.string() }).optional() }).optional(),

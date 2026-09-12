@@ -15,8 +15,8 @@ export default async function NewMovementPage() {
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
                     <h1 className="text-2xl font-bold tracking-tight text-slate-900">Nuevo Movimiento</h1>
                     <p className="text-xs text-slate-400 mt-1">Registrar entrada o salida de inventario</p>
                 </div>

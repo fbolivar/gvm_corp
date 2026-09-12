@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
@@ -13,10 +13,16 @@ import {
     ChevronRight,
     Zap,
     X,
-    Send
+    Send,
+    Paperclip,
 } from "lucide-react";
 import Link from "next/link";
-import { helpService } from "@/features/help/services/helpService";
+import {
+    submitSupportTicketAction,
+    getMySupportTicketsAction,
+    type SupportTicketRow,
+} from "@/features/help/actions";
+import { SupportTicketsList } from "@/features/help/components/SupportTicketsList";
 import { toast } from "sonner";
 import {
     Dialog,
@@ -29,11 +35,60 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { useI18n } from "@/shared/stores/useLanguageStore";
 
+const PRIORITY_OPTIONS = [
+    { v: "low", l: "Baja" },
+    { v: "medium", l: "Media" },
+    { v: "high", l: "Alta" },
+    { v: "critical", l: "Crítica" },
+];
+
+const CATEGORY_OPTIONS = [
+    { v: "application", l: "Aplicación" },
+    { v: "software", l: "Software" },
+    { v: "access", l: "Accesos" },
+    { v: "email", l: "Correo" },
+    { v: "security", l: "Seguridad" },
+    { v: "service_request", l: "Solicitud de servicio" },
+    { v: "development", l: "Desarrollo" },
+    { v: "billing", l: "Facturación" },
+    { v: "support", l: "Soporte" },
+    { v: "other", l: "Otro" },
+];
+
+const fieldSelectClass =
+    "w-full h-14 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-900 appearance-none outline-none focus:ring-4 focus:ring-primary/5 cursor-pointer";
+
 export default function HelpPage() {
     const { t } = useI18n();
     const [isTicketOpen, setIsTicketOpen] = useState(false);
-    const [ticketData, setTicketData] = useState({ subject: "", description: "" });
+    const [ticketData, setTicketData] = useState({
+        subject: "",
+        description: "",
+        priority: "medium",
+        category: "application",
+    });
+    const [screenshot, setScreenshot] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const fileRef = useRef<HTMLInputElement>(null);
+
+    const [tickets, setTickets] = useState<SupportTicketRow[]>([]);
+    const [loadingTickets, setLoadingTickets] = useState(true);
+
+    const reloadTickets = useCallback(async () => {
+        setLoadingTickets(true);
+        try {
+            const rows = await getMySupportTicketsAction();
+            setTickets(rows);
+        } catch {
+            /* silencioso: la lista es secundaria */
+        } finally {
+            setLoadingTickets(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        reloadTickets();
+    }, [reloadTickets]);
 
     const handleSubmitTicket = async () => {
         if (!ticketData.subject || !ticketData.description) {
@@ -43,12 +98,37 @@ export default function HelpPage() {
 
         setSubmitting(true);
         try {
-            // In a real scenario, we'd pass the supabase client here
-            // For now, the service mocks success
-            const res = await helpService.submitTicket({} as any, ticketData);
-            toast.success(`${t.help.success_ticket}: ${res.id}`);
+            const fd = new FormData();
+            fd.append("subject", ticketData.subject);
+            fd.append("description", ticketData.description);
+            fd.append("priority", ticketData.priority);
+            fd.append("category", ticketData.category);
+            fd.append("page_url", document.referrer || window.location.href);
+            fd.append("user_agent", navigator.userAgent);
+            if (screenshot) fd.append("screenshot", screenshot);
+
+            const res = await submitSupportTicketAction(fd);
+
+            if (!res.success) {
+                toast.error(res.error || t.help.error_ticket);
+                return;
+            }
+
+            if (res.warning) {
+                toast.warning(res.warning);
+            } else {
+                toast.success(
+                    res.ticket_number
+                        ? `Caso enviado a soporte (#${res.ticket_number})`
+                        : t.help.success_ticket
+                );
+            }
+
             setIsTicketOpen(false);
-            setTicketData({ subject: "", description: "" });
+            setTicketData({ subject: "", description: "", priority: "medium", category: "application" });
+            setScreenshot(null);
+            if (fileRef.current) fileRef.current.value = "";
+            reloadTickets();
         } catch (error: any) {
             toast.error(t.help.error_ticket + ": " + error.message);
         } finally {
@@ -144,6 +224,9 @@ export default function HelpPage() {
                 </div>
             </div>
 
+            {/* Mis casos de soporte */}
+            <SupportTicketsList tickets={tickets} loading={loadingTickets} onRefresh={reloadTickets} />
+
             {/* Ticket Dialog */}
             <Dialog open={isTicketOpen} onOpenChange={setIsTicketOpen}>
                 <DialogContent className="sm:max-w-xl rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
@@ -175,6 +258,33 @@ export default function HelpPage() {
                             />
                         </div>
 
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Prioridad</label>
+                                <select
+                                    value={ticketData.priority}
+                                    onChange={(e) => setTicketData({ ...ticketData, priority: e.target.value })}
+                                    className={fieldSelectClass}
+                                >
+                                    {PRIORITY_OPTIONS.map((p) => (
+                                        <option key={p.v} value={p.v}>{p.l}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categoría</label>
+                                <select
+                                    value={ticketData.category}
+                                    onChange={(e) => setTicketData({ ...ticketData, category: e.target.value })}
+                                    className={fieldSelectClass}
+                                >
+                                    {CATEGORY_OPTIONS.map((c) => (
+                                        <option key={c.v} value={c.v}>{c.l}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.help.description}</label>
                             <Textarea
@@ -183,6 +293,30 @@ export default function HelpPage() {
                                 placeholder={t.help.description_placeholder}
                                 className="min-h-[150px] bg-slate-50 border-none rounded-2xl font-medium p-4"
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Captura de pantalla (opcional)</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    ref={fileRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => setScreenshot(e.target.files?.[0] ?? null)}
+                                    className="hidden"
+                                    id="support-screenshot"
+                                />
+                                <label
+                                    htmlFor="support-screenshot"
+                                    className="inline-flex items-center gap-2 h-11 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-bold cursor-pointer transition-all"
+                                >
+                                    <Paperclip className="h-4 w-4" />
+                                    {screenshot ? "Cambiar imagen" : "Adjuntar imagen"}
+                                </label>
+                                {screenshot && (
+                                    <span className="text-xs font-medium text-slate-500 truncate max-w-[220px]">{screenshot.name}</span>
+                                )}
+                            </div>
                         </div>
 
                         <div className="bg-blue-50 p-4 rounded-2xl flex items-center gap-4">

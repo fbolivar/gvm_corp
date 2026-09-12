@@ -113,7 +113,7 @@ function ListView({ orders }: ListViewProps) {
 
             {/* Cards grid */}
             {orders.length === 0 ? (
-                <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-16 text-center">
+                <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-6 md:p-16 text-center">
                     <ClipboardList className="h-14 w-14 text-slate-200 mx-auto mb-5" />
                     <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
                         Sin órdenes de compra registradas

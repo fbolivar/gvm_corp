@@ -8,6 +8,7 @@ import { useState } from "react"
 import { Scale, X, Layers } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import type { Dimension, DimensionValue } from "@/features/accounting/services/dimensionService"
+import { Hint } from "@/shared/components/ui/hint"
 
 export interface DimensionOption {
     dimension: Dimension;
@@ -108,21 +109,22 @@ export function ReportingFilters({ dimensions }: ReportingFiltersProps) {
                 <Button onClick={handleApply} size="sm" className="h-9 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold">
                     Generar
                 </Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setShowCompare(!showCompare)}
-                    className={cn(
-                        "h-9 w-9 rounded-lg shrink-0",
-                        showCompare
-                            ? "bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100"
-                            : "text-slate-400 hover:bg-slate-50"
-                    )}
-                    title="Comparar con periodo anterior"
-                >
-                    <Scale className="h-4 w-4" />
-                </Button>
+                <Hint label="Comparar con periodo anterior" side="top">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setShowCompare(!showCompare)}
+                        className={cn(
+                            "h-9 w-9 rounded-lg shrink-0",
+                            showCompare
+                                ? "bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100"
+                                : "text-slate-400 hover:bg-slate-50"
+                        )}
+                    >
+                        <Scale className="h-4 w-4" />
+                    </Button>
+                </Hint>
             </div>
 
             {showCompare && (
@@ -151,15 +153,17 @@ export function ReportingFilters({ dimensions }: ReportingFiltersProps) {
                             className="h-9 bg-white border-indigo-200 text-xs"
                         />
                     </div>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowCompare(false)}
-                        className="text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 h-9 w-9 rounded-lg self-end"
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
+                    <Hint label="Cerrar comparación" side="top">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowCompare(false)}
+                            className="text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 h-9 w-9 rounded-lg self-end"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </Hint>
                 </div>
             )}
         </div>

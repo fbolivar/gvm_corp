@@ -45,7 +45,7 @@ export function PLChart({ categories, totalIncome, totalExpenses, netProfit }: P
     const summaryData = [
         { name: 'Ingresos', value: totalIncome, color: '#10b981' },
         { name: 'Egresos', value: totalExpenses, color: '#ef4444' },
-        { name: 'Utilidad', value: Math.abs(netProfit), color: netProfit >= 0 ? '#6366f1' : '#f97316' },
+        { name: 'Utilidad', value: Math.abs(netProfit), color: netProfit >= 0 ? '#0096E6' : '#f97316' },
     ]
 
     return (

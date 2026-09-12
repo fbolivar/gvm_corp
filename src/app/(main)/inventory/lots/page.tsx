@@ -170,7 +170,7 @@ export default async function LotsPage() {
             />
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {kpis.map((kpi) => (
                     <Card key={kpi.label} className="border border-slate-100 bg-white shadow-sm rounded-2xl">
                         <CardContent className="p-5 space-y-3">

@@ -168,7 +168,7 @@ export const crmService = {
     async getActivities(client: SupabaseClient, opportunityId: string) {
         const { data, error } = await client
             .from('crm_opportunity_activities')
-            .select('*, profiles:user_id (full_name, email)')
+            .select('*, profiles:crm_opportunity_activities_user_profile_fkey (full_name, email)')
             .eq('opportunity_id', opportunityId)
             .order('created_at', { ascending: false })
             .limit(50);

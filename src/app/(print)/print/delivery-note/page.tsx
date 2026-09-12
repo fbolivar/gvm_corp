@@ -11,6 +11,9 @@ interface DocumentLine {
     qty: number;
     product_id?: string | null;
     products?: { name?: string; sku?: string } | null;
+    unit_price?: number | null;
+    line_total?: number | null;
+    tax_config?: unknown;
 }
 
 interface Party {
@@ -54,15 +57,28 @@ function computeAccountingCode(name?: string): string {
     return `411${firstToken.toUpperCase().slice(0, 10)}`;
 }
 
+// IVA de una línea: tax_config puede venir como array [{rate}] u objeto.
+function lineIvaRate(line: { tax_config?: unknown }): number {
+    const tc = line.tax_config as unknown;
+    const first = Array.isArray(tc) ? tc[0] : tc;
+    const r = Number((first as { rate?: number; iva?: number })?.rate ?? (first as { iva?: number })?.iva ?? 0);
+    return Number.isFinite(r) ? r : 0;
+}
+
+function fmtCOP(value: number): string {
+    return `$${Number(value || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
+}
+
 export const dynamic = 'force-dynamic';
 
 export default async function DeliveryNotePage({
     searchParams,
 }: {
-    searchParams: Promise<{ id?: string }>;
+    searchParams: Promise<{ id?: string; precios?: string }>;
 }) {
     const supabase = await createClient();
     const params = await searchParams;
+    const showPrices = params.precios === '1';
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
@@ -120,6 +136,20 @@ export default async function DeliveryNotePage({
     const party = doc.party as Party | null;
     const lines = (doc.document_lines ?? []) as DocumentLine[];
     const totalQty = lines.reduce((s, l) => s + (Number(l.qty) || 0), 0);
+
+    // Cálculo de precios/IVA por línea (solo se usa cuando showPrices)
+    const priced = lines.map((l) => {
+        const qty = Number(l.qty) || 0;
+        const price = Number(l.unit_price) || 0;
+        const base = qty * price;
+        const iva = lineIvaRate(l);
+        const ivaAmt = base * (iva / 100);
+        const total = Number(l.line_total) || base + ivaAmt;
+        return { line: l, qty, price, base, iva, ivaAmt, total };
+    });
+    const subtotal = priced.reduce((s, p) => s + p.base, 0);
+    const ivaTotal = priced.reduce((s, p) => s + p.ivaAmt, 0);
+    const grandTotal = subtotal + ivaTotal;
 
     // Display number sin prefix REM- (REMISIÓN No.-05911)
     const displayNumber = (doc.number || '').replace(/^REM-/i, '') || '—';
@@ -235,60 +265,116 @@ export default async function DeliveryNotePage({
                     </div>
                 </div>
 
-                {/* NOTA (span completo, con borde) — solo si hay contenido real */}
-                {(doc.notes_public || doc.notes_internal) && (
+                {/* NOTA (span completo) — solo las públicas; las internas NO se imprimen */}
+                {doc.notes_public && (
                     <div className="border border-slate-300 rounded-sm px-3 py-1.5 mb-3 text-[10.5px]">
-                        {doc.notes_public || doc.notes_internal}
+                        {doc.notes_public}
                     </div>
                 )}
 
                 {/* TABLA */}
-                <table className="rm-table mb-0 text-[11px]">
-                    <thead>
-                        <tr>
-                            <th className="text-left font-normal w-[48%]">Descripción</th>
-                            <th className="text-center font-normal w-[17%]">Peso / Vol.</th>
-                            <th className="text-center font-normal w-[17%]">Cantidad pedida</th>
-                            <th className="text-center font-normal w-[18%]">Cantidad a enviar</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {lines.map((line, idx) => {
-                            const prodLabel = line.products?.sku
-                                ? `${line.products.sku} - ${line.description || line.products.name || ''}`
-                                : (line.description || line.products?.name || '—');
-                            return (
-                                <tr key={line.id || idx}>
-                                    <td className="align-top">{prodLabel}</td>
-                                    <td className="text-center align-top"></td>
-                                    <td className="text-center align-top tabular-nums">
-                                        {Number(line.qty).toLocaleString('es-CO')}
-                                    </td>
-                                    <td className="text-center align-top tabular-nums">
-                                        {Number(line.qty).toLocaleString('es-CO')}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                        {/* Filas vacías — dinámicas para llenar pero CABER en 1 página A4 */}
-                        {Array.from({ length: Math.max(0, 12 - lines.length) }).map((_, i) => (
-                            <tr key={`empty-${i}`} className="rm-empty">
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                {showPrices ? (
+                    /* ── Variante CON precios e IVA ── */
+                    <table className="rm-table mb-0 text-[11px]">
+                        <thead>
+                            <tr>
+                                <th className="text-left font-normal w-[40%]">Descripción</th>
+                                <th className="text-center font-normal w-[8%]">Cant.</th>
+                                <th className="text-right font-normal w-[15%]">Vr. Unitario</th>
+                                <th className="text-center font-normal w-[8%]">IVA</th>
+                                <th className="text-right font-normal w-[14%]">Vr. IVA</th>
+                                <th className="text-right font-normal w-[15%]">Total</th>
                             </tr>
-                        ))}
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td className="text-center font-bold">Total</td>
-                            <td></td>
-                            <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
-                            <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        </thead>
+                        <tbody>
+                            {priced.map(({ line, qty, price, iva, ivaAmt, total }, idx) => {
+                                const prodLabel = line.products?.sku
+                                    ? `${line.products.sku} - ${line.description || line.products.name || ''}`
+                                    : (line.description || line.products?.name || '—');
+                                return (
+                                    <tr key={line.id || idx}>
+                                        <td className="align-top">{prodLabel}</td>
+                                        <td className="text-center align-top tabular-nums">{qty.toLocaleString('es-CO')}</td>
+                                        <td className="text-right align-top tabular-nums">{fmtCOP(price)}</td>
+                                        <td className="text-center align-top tabular-nums">{iva}%</td>
+                                        <td className="text-right align-top tabular-nums">{fmtCOP(ivaAmt)}</td>
+                                        <td className="text-right align-top tabular-nums">{fmtCOP(total)}</td>
+                                    </tr>
+                                );
+                            })}
+                            {Array.from({ length: Math.max(0, 10 - lines.length) }).map((_, i) => (
+                                <tr key={`empty-${i}`} className="rm-empty">
+                                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td className="text-right font-semibold" colSpan={4}>Subtotal</td>
+                                <td></td>
+                                <td className="text-right font-semibold tabular-nums">{fmtCOP(subtotal)}</td>
+                            </tr>
+                            <tr>
+                                <td className="text-right font-semibold" colSpan={4}>IVA</td>
+                                <td></td>
+                                <td className="text-right font-semibold tabular-nums">{fmtCOP(ivaTotal)}</td>
+                            </tr>
+                            <tr>
+                                <td className="text-right font-bold" colSpan={4}>Total</td>
+                                <td></td>
+                                <td className="text-right font-bold tabular-nums">{fmtCOP(grandTotal)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                ) : (
+                    /* ── Variante hoja de envío (sin precios) ── */
+                    <table className="rm-table mb-0 text-[11px]">
+                        <thead>
+                            <tr>
+                                <th className="text-left font-normal w-[48%]">Descripción</th>
+                                <th className="text-center font-normal w-[17%]">Peso / Vol.</th>
+                                <th className="text-center font-normal w-[17%]">Cantidad pedida</th>
+                                <th className="text-center font-normal w-[18%]">Cantidad a enviar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {lines.map((line, idx) => {
+                                const prodLabel = line.products?.sku
+                                    ? `${line.products.sku} - ${line.description || line.products.name || ''}`
+                                    : (line.description || line.products?.name || '—');
+                                return (
+                                    <tr key={line.id || idx}>
+                                        <td className="align-top">{prodLabel}</td>
+                                        <td className="text-center align-top"></td>
+                                        <td className="text-center align-top tabular-nums">
+                                            {Number(line.qty).toLocaleString('es-CO')}
+                                        </td>
+                                        <td className="text-center align-top tabular-nums">
+                                            {Number(line.qty).toLocaleString('es-CO')}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {/* Filas vacías — dinámicas para llenar pero CABER en 1 página A4 */}
+                            {Array.from({ length: Math.max(0, 12 - lines.length) }).map((_, i) => (
+                                <tr key={`empty-${i}`} className="rm-empty">
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td className="text-center font-bold">Total</td>
+                                <td></td>
+                                <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
+                                <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                )}
 
                 {/* FIRMA */}
                 <div className="mt-2 text-[10.5px] leading-[1.55]">

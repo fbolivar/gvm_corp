@@ -202,8 +202,8 @@ export function ExecutiveDashboard() {
                                 <AreaChart data={cashFlow}>
                                     <defs>
                                         <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                            <stop offset="5%" stopColor="#0096E6" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#0096E6" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -228,14 +228,14 @@ export function ExecutiveDashboard() {
                                             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
                                             padding: '0.75rem',
                                         }}
-                                        itemStyle={{ color: '#6366f1', fontWeight: 600, fontSize: '11px' }}
+                                        itemStyle={{ color: '#0096E6', fontWeight: 600, fontSize: '11px' }}
                                         labelStyle={{ color: '#334155', fontWeight: 600, marginBottom: '0.25rem' }}
                                         labelFormatter={(label) => format(new Date(label), 'PPP', { locale: dateLocale })}
                                     />
                                     <Area
                                         type="monotone"
                                         dataKey="balance"
-                                        stroke="#6366f1"
+                                        stroke="#0096E6"
                                         strokeWidth={3}
                                         fillOpacity={1}
                                         fill="url(#colorBalance)"
@@ -268,7 +268,7 @@ export function ExecutiveDashboard() {
                         </div>
                     </CardHeader>
                     <CardContent className="p-5">
-                        <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Liquidez Inmediata</p>
                                 <p className="text-lg font-bold text-slate-900 tabular-nums">${(summary?.liquidity_metrics?.immediate_liquidity || 0).toLocaleString('es-CO')}</p>
@@ -423,7 +423,7 @@ export function ExecutiveDashboard() {
                     </CardHeader>
                     <CardContent className="p-5 pt-0 space-y-4">
                         {/* Bot Metrics */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="bg-white/5 p-3 rounded-xl border border-white/10">
                                 <p className="text-[9px] font-semibold text-indigo-200 uppercase tracking-wider mb-1">Acciones de Cobro</p>
                                 <div className="flex items-center gap-2">
@@ -456,7 +456,7 @@ export function ExecutiveDashboard() {
                                             animationDuration={1200}
                                         >
                                             {agingData.map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={['#fff', '#818cf8', '#6366f1', '#4f46e5', '#3730a3'][index % 5]} />
+                                                <Cell key={`cell-${index}`} fill={['#fff', '#6BCAF8', '#0096E6', '#0069A8', '#124F78'][index % 5]} />
                                             ))}
                                         </Pie>
                                         <Tooltip

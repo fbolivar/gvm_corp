@@ -74,7 +74,7 @@ export function PaymentReportsClient({ initialReports }: Props) {
     return (
         <div className="space-y-10">
             {/* KPI Strip */}
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <button
                     onClick={() => setFilter(filter === 'PENDING' ? 'ALL' : 'PENDING')}
                     className={cn(

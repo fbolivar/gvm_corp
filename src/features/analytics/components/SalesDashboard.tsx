@@ -62,8 +62,8 @@ function truncate(text: string, max: number): string {
 }
 
 const CLIENT_GRADIENT = [
-    '#6366f1', '#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd',
-    '#818cf8', '#6d28d9', '#7c3aed', '#5b21b6', '#4c1d95',
+    '#0096E6', '#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd',
+    '#6BCAF8', '#6d28d9', '#7c3aed', '#5b21b6', '#4c1d95',
 ];
 
 const SEMAPHORE_BG: Record<KpiSemaphore['color'], string> = {
@@ -307,7 +307,7 @@ export function SalesDashboard({ monthlySales, topClients }: Props) {
                                 <Bar
                                     dataKey="currentYear"
                                     name="currentYear"
-                                    fill="#6366f1"
+                                    fill="#0096E6"
                                     radius={[6, 6, 0, 0]}
                                     maxBarSize={40}
                                 />

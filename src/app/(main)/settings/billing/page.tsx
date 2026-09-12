@@ -21,8 +21,8 @@ export default async function BillingPage() {
                     <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] overflow-hidden relative group">
                         <Zap className="absolute -bottom-10 -right-10 h-20 w-20 text-white/5 rotate-12 transition-transform duration-700 group-hover:scale-110" />
                         <CardContent className="p-12 relative z-10">
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                                <div className="space-y-4">
+                            <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-8">
+                                <div className="space-y-4 min-w-0">
                                     <div className="flex items-center gap-3">
                                         <Sparkles className="h-5 w-5 text-amber-400" />
                                         <span className="text-[10px] font-black uppercase tracking-widest leading-none">Tu Plan Actual</span>

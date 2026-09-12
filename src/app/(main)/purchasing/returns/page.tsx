@@ -64,8 +64,8 @@ export default async function PurchaseReturnsPage() {
                 <div className="absolute top-0 right-0 p-8 opacity-[0.04] pointer-events-none">
                     <RotateCcw className="h-48 w-48" />
                 </div>
-                <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-2">
+                <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                    <div className="min-w-0 space-y-2">
                         <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/30">Compras</span>
                         <h1 className="text-3xl font-black tracking-tight uppercase">Devoluciones</h1>
                         <p className="text-white/40 text-xs font-bold">
@@ -86,7 +86,7 @@ export default async function PurchaseReturnsPage() {
 
             {/* Empty State */}
             {purchaseReturns.length === 0 ? (
-                <div className="bg-white rounded-[2.5rem] p-16 text-center shadow-premium border border-slate-50">
+                <div className="bg-white rounded-[2.5rem] p-8 md:p-16 text-center shadow-premium border border-slate-50">
                     <FileX className="h-12 w-12 mx-auto text-slate-200 mb-4" />
                     <p className="text-sm font-bold text-slate-400 mb-1">No hay devoluciones registradas</p>
                     <p className="text-xs text-slate-300 mb-6">Crea una devolución contra una factura de proveedor</p>

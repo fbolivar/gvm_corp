@@ -106,8 +106,8 @@ export default function ValuationPage() {
             />
 
             {/* 📊 INDUSTRIAL STRIP (Global Metrics) */}
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10 px-1">
-                <div className="flex flex-wrap items-center gap-16">
+            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 lg:gap-10 px-1">
+                <div className="flex flex-wrap items-center gap-6 md:gap-10 lg:gap-16">
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Capital Mobiliario</span>
                         <div className="flex items-center gap-6">
@@ -129,19 +129,19 @@ export default function ValuationPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative w-72">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative w-64 max-w-full">
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                         <Input
                             placeholder="Buscar SKU..."
-                            className="h-14 pl-12 bg-white border-none rounded-2xl font-bold text-slate-900 placeholder:text-slate-200 focus-visible:ring-4 focus-visible:ring-primary/5 shadow-premium"
+                            className="h-11 pl-12 bg-white border-none rounded-xl font-bold text-slate-900 placeholder:text-slate-200 focus-visible:ring-4 focus-visible:ring-primary/5 shadow-premium"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <Button
                         variant="outline"
-                        className="h-14 px-8 rounded-2xl border-none bg-slate-900 text-white font-black hover:bg-slate-800 transition-all shadow-active gap-3"
+                        className="h-11 px-4 rounded-xl border-none bg-slate-900 text-white font-black hover:bg-slate-800 transition-all shadow-active gap-3"
                         onClick={async () => await pdfReportService.generateInventoryValuation(
                             data.map(r => ({
                                 sku: r.sku,
@@ -165,8 +165,8 @@ export default function ValuationPage() {
                         <Download className="h-4 w-4 text-indigo-400" />
                         PDF PREMIUM
                     </Button>
-                    <div className="h-14 border-l border-slate-100 mx-1 hidden md:block" />
-                    <Button variant="outline" asChild className="h-14 px-8 rounded-2xl border-none bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-all shadow-active">
+                    <div className="h-8 border-l border-slate-100 mx-1 hidden md:block" />
+                    <Button variant="outline" asChild className="h-11 px-4 rounded-xl border-none bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-all shadow-active">
                         <Link href="/inventory" className="flex items-center gap-2">
                             <ArrowLeft className="h-4 w-4" />
                             DASHBOARD
@@ -263,22 +263,22 @@ export default function ValuationPage() {
 
             {/* Industrial Table */}
             <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
-                    <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-1">
+                    <div className="flex items-center gap-4 min-w-0">
+                        <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shrink-0">
                             <Package className="h-5 w-5" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <h2 className="text-2xl font-black text-slate-900 tracking-tight italic">Libro de Valoración</h2>
                             <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Detalle por Artículo (Auditado)</p>
                         </div>
                     </div>
 
-                    <div className="relative w-full md:w-96">
+                    <div className="relative w-full lg:w-96">
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                         <Input
                             placeholder="Filtrar por nombre o SKU..."
-                            className="h-14 pl-12 bg-white border-none rounded-2xl font-bold text-slate-900 placeholder:text-slate-200 focus-visible:ring-4 focus-visible:ring-primary/5 shadow-premium"
+                            className="h-11 pl-12 bg-white border-none rounded-xl font-bold text-slate-900 placeholder:text-slate-200 focus-visible:ring-4 focus-visible:ring-primary/5 shadow-premium"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />

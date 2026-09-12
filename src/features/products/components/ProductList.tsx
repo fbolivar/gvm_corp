@@ -19,6 +19,7 @@ import { Badge } from "@/shared/components/ui/badge"
 import { cn } from "@/shared/lib/utils"
 import { DataTable, DataTableColumn } from "@/shared/components/ui/data-table"
 import { StatusBadge, statusToTone } from "@/shared/components/ui/status-badge"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface ProductListProps {
     initialData: Product[]
@@ -176,16 +177,18 @@ export function ProductList({ initialData, totalCount, currentPage, perPage }: P
             width: "60px",
             accessor: (row) => (
                 <div onClick={(e) => e.stopPropagation()}>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-md text-slate-300 hover:text-indigo-600 hover:bg-indigo-50"
-                        asChild
-                    >
-                        <Link href={`/products/${row.id}`}>
-                            <Edit3 className="h-3.5 w-3.5" />
-                        </Link>
-                    </Button>
+                    <Hint label="Editar" side="top">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-md text-slate-300 hover:text-indigo-600 hover:bg-indigo-50"
+                            asChild
+                        >
+                            <Link href={`/products/${row.id}`}>
+                                <Edit3 className="h-3.5 w-3.5" />
+                            </Link>
+                        </Button>
+                    </Hint>
                 </div>
             ),
         },

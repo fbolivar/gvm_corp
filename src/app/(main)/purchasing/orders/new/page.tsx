@@ -29,7 +29,7 @@ export default async function NewOrderPage() {
                     <ShoppingBag className="h-96 w-96" />
                 </div>
 
-                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-12">
+                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 lg:gap-12">
                     <div className="space-y-6">
                         <div className="flex items-center gap-4">
                             <div className="h-10 w-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20 rotate-6 group-hover:rotate-0 transition-transform">

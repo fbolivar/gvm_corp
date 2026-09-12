@@ -1,7 +1,24 @@
 import { z } from 'zod';
 
 // ── Enums ──
-export const IT_ASSET_CATEGORIES = ['DESKTOP', 'LAPTOP', 'MOBILE', 'TABLET', 'PRINTER', 'NETWORK', 'OTHER'] as const;
+// Categorías de Activos Corporativos (el ENUM de BD conserva además valores
+// heredados DESKTOP/LAPTOP/TABLET/NETWORK, ocultos de la UI por compatibilidad).
+export const IT_ASSET_CATEGORIES = [
+    'COMPUTER',
+    'MONITOR',
+    'MOBILE',
+    'VEHICLE',
+    'PRINTER',
+    'SERVER',
+    'FURNITURE',
+    'TOOL',
+    'INDUSTRIAL',
+    'SOFTWARE_LICENSE',
+    'MEDICAL',
+    'IOT',
+    'INSURANCE',
+    'OTHER',
+] as const;
 export const IT_ASSET_STATUSES = ['AVAILABLE', 'ASSIGNED', 'IN_MAINTENANCE', 'RETIRED', 'LOST'] as const;
 export const IT_ASSET_CONDITIONS = ['NEW', 'GOOD', 'FAIR', 'POOR'] as const;
 export const IT_MAINTENANCE_TYPES = ['PREVENTIVE', 'CORRECTIVE'] as const;
@@ -51,6 +68,8 @@ export interface ITAssetAssignment {
     // joined
     employee?: { id: string; party: { legal_name: string } | null } | null;
     assigned_by_profile?: { full_name: string } | null;
+    /** Activo embebido (al consultar las asignaciones de un empleado). */
+    asset?: Pick<ITAsset, 'id' | 'asset_code' | 'name' | 'category' | 'brand' | 'model' | 'serial_number' | 'condition' | 'status'> | null;
 }
 
 export interface ITMaintenanceSchedule {
@@ -105,13 +124,20 @@ export const createMaintenanceSchema = z.object({
 
 // ── Label helpers ──
 export const CATEGORY_LABELS: Record<ITAssetCategory, string> = {
-    DESKTOP: 'Escritorio',
-    LAPTOP: 'Portátil',
-    MOBILE: 'Celular',
-    TABLET: 'Tablet',
-    PRINTER: 'Impresora',
-    NETWORK: 'Red',
-    OTHER: 'Otro',
+    COMPUTER: 'Computadores',
+    MONITOR: 'Monitores',
+    MOBILE: 'Celulares',
+    VEHICLE: 'Vehículos',
+    PRINTER: 'Impresoras',
+    SERVER: 'Servidores',
+    FURNITURE: 'Muebles',
+    TOOL: 'Herramientas',
+    INDUSTRIAL: 'Equipos industriales',
+    SOFTWARE_LICENSE: 'Licencias de software',
+    MEDICAL: 'Equipos médicos',
+    IOT: 'Activos IoT',
+    INSURANCE: 'Seguros',
+    OTHER: 'Otros',
 };
 
 export const STATUS_LABELS: Record<ITAssetStatus, string> = {

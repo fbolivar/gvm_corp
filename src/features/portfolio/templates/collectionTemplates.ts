@@ -6,7 +6,7 @@ export const collectionTemplates: Record<CollectionTone, any> = {
             subject: "Recordatorio de Pago: Factura {number} - {company}",
             body: `
                 <div style="font-family: sans-serif; padding: 20px; color: #334155;">
-                    <h2 style="color: #6366f1;">Hola, {name}</h2>
+                    <h2 style="color: #0096E6;">Hola, {name}</h2>
                     <p>Esperamos que estés teniendo un buen día.</p>
                     <p>Te escribimos de <strong>{company}</strong> para recordarte amablemente que la factura <strong>{number}</strong> por valor de <strong>{total}</strong> ha superado su fecha de vencimiento ({due_date}).</p>
                     <p>Entendemos que esto puede ser un descuido, por lo que te agradeceríamos si pudieras confirmar el estado del pago o realizarlo a la mayor brevedad posible.</p>
@@ -23,7 +23,7 @@ export const collectionTemplates: Record<CollectionTone, any> = {
             subject: "AVISO SEGUNDO: Factura pendiente de pago {number} - {company}",
             body: `
                 <div style="font-family: sans-serif; padding: 20px; color: #334155;">
-                    <h2 style="color: #6366f1;">Estimado(a) {name}</h2>
+                    <h2 style="color: #0096E6;">Estimado(a) {name}</h2>
                     <p>Notamos que aún no hemos recibido el pago de la factura <strong>{number}</strong>, la cual presenta un retraso de <strong>{days} días</strong>.</p>
                     <p>Para nosotros es muy importante mantener tu cuenta al día para evitar interrupciones en el servicio o cargos adicionales.</p>
                     <div style="margin: 30px 0; padding: 20px; background: #fff1f2; border-radius: 12px; border: 1px solid #fecdd3;">
@@ -52,7 +52,7 @@ export const collectionTemplates: Record<CollectionTone, any> = {
             subject: "¡Hola! Un pequeño recordatorio de {company} 😊",
             body: `
                 <div style="font-family: sans-serif; padding: 20px; color: #334155;">
-                    <h2 style="color: #6366f1;">¡Hola {name}! 👋</h2>
+                    <h2 style="color: #0096E6;">¡Hola {name}! 👋</h2>
                     <p>Esperamos que estés muy bien el día de hoy.</p>
                     <p>Pasamos por aquí solo para recordarte que tenemos la factura <strong>{number}</strong> pendiente de pago ({due_date}).</p>
                     <p>Sabemos que a veces el día a día nos hace olvidar pequeños detalles. ¿Podrías ayudarnos verificando si ya se realizó el pago?</p>
@@ -69,7 +69,7 @@ export const collectionTemplates: Record<CollectionTone, any> = {
             subject: "Seguimos pendientes de ti - Factura {number}",
             body: `
                 <div style="font-family: sans-serif; padding: 20px; color: #334155;">
-                    <h2 style="color: #6366f1;">{name}, ¿va todo bien?</h2>
+                    <h2 style="color: #0096E6;">{name}, ¿va todo bien?</h2>
                     <p>Notamos que la factura <strong>{number}</strong> aún no ha sido cancelada y ya lleva <strong>{days} días</strong> vencida.</p>
                     <p>Si tienes alguna dificultad con el pago o necesitas que revisemos algo juntos, por favor avísanos. ¡Queremos ayudarte!</p>
                     <div style="margin: 30px 0; padding: 20px; background: #fffbeb; border-radius: 12px; border: 1px solid #fde68a;">

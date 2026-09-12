@@ -88,6 +88,7 @@ export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
             </div>
 
             <div className="border rounded-xl overflow-hidden shadow-sm bg-white">
+                <div className="overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-slate-50">
                         <TableRow>
@@ -142,6 +143,7 @@ export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
                         ))}
                     </TableBody>
                 </Table>
+                </div>
             </div>
 
             {ConfirmDialogEl}
@@ -152,7 +154,7 @@ export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
                         <DialogDescription>Configure los detalles de numeración autorizados por la DIAN.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSave} className="grid gap-6 py-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Número de Resolución *</Label>
                                 <Input
@@ -172,7 +174,7 @@ export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label>Rango Inicial *</Label>
                                 <Input
@@ -202,7 +204,7 @@ export function DianResolutionsManager({ tenantId }: { tenantId: string }) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Fecha Inicio Vigencia *</Label>
                                 <Input

@@ -8,14 +8,18 @@ import { warehouseTransferSchema } from '../types';
 
 // ─── Validation schemas ────────────────────────────────────────────────────────
 
-const receiveLineSchema = z.object({
+// Un renglón recibido: qué lote llegó, cuándo vence y cuántas unidades.
+// Una misma línea del traslado puede aparecer en varios renglones (dos lotes).
+const receiptSchema = z.object({
     line_id: z.string().uuid(),
-    qty_received: z.number().min(0),
+    lot_number: z.string().trim().max(60).nullish(),
+    expiration_date: z.string().nullish(),
+    qty: z.coerce.number().min(0),
 });
 
 const receiveTransferSchema = z.object({
     id: z.string().uuid(),
-    lines: z.array(receiveLineSchema).min(1, 'Debe proporcionar al menos una línea'),
+    receipts: z.array(receiptSchema).min(1, 'Debe registrar al menos un renglón'),
 });
 
 // ─── Result type ───────────────────────────────────────────────────────────────
@@ -68,6 +72,42 @@ export async function createTransferAction(
 }
 
 /**
+ * Updates an existing DRAFT transfer (header + lines).
+ * Only DRAFT transfers can be edited; the service enforces the status guard.
+ */
+export async function updateTransferAction(
+    id: string,
+    formData: unknown
+): Promise<ActionResult> {
+    const idValidation = z.string().uuid().safeParse(id);
+    if (!idValidation.success) {
+        return { error: 'ID de traslado inválido' };
+    }
+
+    const parsed = warehouseTransferSchema.safeParse(formData);
+    if (!parsed.success) {
+        return { error: 'Datos inválidos: ' + JSON.stringify(parsed.error.flatten()) };
+    }
+
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: 'No autorizado. Inicie sesión para continuar.' };
+    }
+
+    try {
+        const result = await transferService.updateTransfer(supabase, id, parsed.data);
+        revalidateTransferPaths(id);
+        return { success: true, id: result.id, transfer_number: result.transfer_number };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        console.error('[updateTransferAction]', error);
+        return { error: message };
+    }
+}
+
+/**
  * Transitions a DRAFT transfer to IN_TRANSIT and creates OUT inventory movements
  * from the source warehouse for each transfer line.
  */
@@ -101,16 +141,16 @@ export async function sendTransferAction(id: string): Promise<ActionResult> {
 }
 
 /**
- * Receives an IN_TRANSIT transfer at the destination warehouse.
- * Creates IN inventory movements for each received line and updates qty_received.
+ * Registra la recepción de un traslado renglón por renglón (lote, vencimiento y
+ * cantidad). Mueve el inventario de la bodega de origen a la de destino.
  */
 export async function receiveTransferAction(
     id: string,
-    lines: Array<{ line_id: string; qty_received: number }>
+    receipts: Array<{ line_id: string; lot_number?: string | null; expiration_date?: string | null; qty: number }>
 ): Promise<ActionResult> {
-    const parsed = receiveTransferSchema.safeParse({ id, lines });
+    const parsed = receiveTransferSchema.safeParse({ id, receipts });
     if (!parsed.success) {
-        return { error: 'Datos inválidos: ' + JSON.stringify(parsed.error.flatten()) };
+        return { error: 'Revisa los datos de la recepción: ' + parsed.error.issues[0]?.message };
     }
 
     const supabase = await createClient();
@@ -121,19 +161,18 @@ export async function receiveTransferAction(
     }
 
     try {
-        await transferService.receiveTransfer(supabase, id, parsed.data.lines);
+        const { warnings } = await transferService.receiveTransfer(supabase, id, parsed.data.receipts);
         revalidateTransferPaths(id);
         revalidatePath('/inventory/movements');
-        return { success: true };
+        revalidatePath('/inventory/lots');
+        // La recepción quedó registrada aunque algún movimiento de inventario
+        // haya fallado: se avisa en vez de callarlo.
+        return warnings.length > 0
+            ? { success: true, error: warnings.join(' ') }
+            : { success: true };
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Error interno del servidor';
         console.error('[receiveTransferAction]', error);
-        // Partial success: receipt registered but some movements failed
-        if (message.includes('advertencias')) {
-            revalidateTransferPaths(id);
-            revalidatePath('/inventory/movements');
-            return { success: true, error: message };
-        }
         return { error: message };
     }
 }

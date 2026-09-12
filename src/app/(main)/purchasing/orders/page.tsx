@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { purchaseOrderService } from '@/features/purchasing/services/purchaseOrderService';
+import { settingsService } from '@/features/settings/services/settingsService';
+import { DocumentExportButton } from '@/features/sales/components/DocumentExportButton';
 import { POActionButtons } from '@/features/purchasing/components/POActionButtons';
 import { PurchaseOrderWithDetails, POStatus, POCurrency, formatPOCurrency } from '@/features/purchasing/types';
 import { Button } from '@/shared/components/ui/button';
@@ -70,10 +72,19 @@ export default async function PurchaseOrdersPage() {
 
     const defaultStats = { total: 0, pendingApproval: 0, inTransit: 0, totalCommitted: 0 };
 
-    const [orders, stats] = await Promise.all([
+    const [orders, stats, tenant] = await Promise.all([
         purchaseOrderService.getOrders(supabase).catch((): PurchaseOrderWithDetails[] => []),
         purchaseOrderService.getStats(supabase).catch(() => defaultStats),
+        settingsService.getTenantInfo(supabase),
     ]);
+
+    const company = {
+        name: tenant?.name || 'GVM S.A.S',
+        nit: tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : null,
+        address: [tenant?.address, tenant?.city].filter(Boolean).join(', ') || null,
+        phone: tenant?.phone ?? null,
+        logoUrl: tenant?.logo_url ?? null,
+    };
 
     const kpis = [
         { label: 'Total Ordenes', value: stats.total, icon: ClipboardList, color: 'text-slate-600', bg: 'bg-slate-100' },
@@ -94,11 +105,21 @@ export default async function PurchaseOrdersPage() {
                     { label: 'Órdenes' },
                 ]}
                 actions={
-                    <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
-                        <Link href="/purchasing/orders/new">
-                            <Plus className="h-3.5 w-3.5" /> Nueva OC
-                        </Link>
-                    </Button>
+                    <>
+                        <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
+                            <Link href="/purchasing/orders/new">
+                                <Plus className="h-3.5 w-3.5" /> Nueva OC
+                            </Link>
+                        </Button>
+                        <DocumentExportButton
+                            source="purchase"
+                            company={company}
+                            opts={{
+                                title: 'ÓRDENES DE COMPRA', partyLabel: 'Proveedor', fileLabel: 'Ordenes_Compra', sheetName: 'Órdenes de Compra',
+                                statusLabels: { DRAFT: 'Borrador', PENDING_APPROVAL: 'Pend. Aprobación', APPROVED: 'Aprobada', PARTIALLY_RECEIVED: 'Parcial', RECEIVED: 'Recibida', CANCELLED: 'Anulada' },
+                            }}
+                        />
+                    </>
                 }
             />
 

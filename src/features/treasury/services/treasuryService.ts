@@ -42,7 +42,8 @@ export const treasuryService = {
             .select(`
                 *,
                 party:parties(legal_name),
-                account:treasury_accounts(name, type)
+                account:treasury_accounts(name, type),
+                withholdings:transaction_withholdings(withholding_id, base_amount, applied_amount)
             `)
             .order('date', { ascending: false });
 
@@ -75,14 +76,26 @@ export const treasuryService = {
         return data;
     },
 
+    /**
+     * Retenciones configuradas. La tabla `tax_withholdings` NUNCA existió (esto
+     * lanzaba excepción si alguien lo llamaba): las retenciones viven hoy en
+     * `tax_configurations`, que es de donde se leen.
+     */
     async getTaxWithholdings(client: SupabaseClient) {
         const { data, error } = await client
-            .from('tax_withholdings')
-            .select('*')
+            .from('tax_configurations')
+            .select('id, tax_name, rate, account_code, tax_type, is_active')
             .eq('is_active', true)
-            .order('name');
+            .order('tax_name');
         if (error) throw error;
-        return data as TaxWithholding[];
+        return (data ?? []).map(r => ({
+            id: r.id,
+            name: r.tax_name,
+            rate: r.rate,
+            account_code: r.account_code,
+            type: r.tax_type,
+            is_active: r.is_active,
+        })) as unknown as TaxWithholding[];
     },
 
     /**
@@ -134,7 +147,12 @@ export const treasuryService = {
                 transaction_id: newTx.id,
                 ...w
             }));
-            await client.from('transaction_withholdings').insert(withholdingData);
+            // La tabla no existía y este insert fallaba en silencio (migración
+            // 20260812160000). Ahora se comprueba el error en vez de ignorarlo.
+            const { error: whError } = await client.from('transaction_withholdings').insert(withholdingData);
+            if (whError) {
+                console.error('[Treasury] No se pudo guardar el detalle de retenciones:', whError.message);
+            }
         }
 
         // 4. AUTOMATIC ACCOUNTING INTEGRATION
@@ -191,12 +209,11 @@ export const treasuryService = {
                             let withholdingName = config?.tax_name;
                             let withholdingRate = config?.rate || 0;
 
-                            // Fallback to legacy tax_withholdings if not found
+                            // Antes había aquí un fallback a `tax_withholdings`, tabla que no
+                            // existe: lanzaba excepción y tumbaba la contabilización de la
+                            // transacción. Sin configuración simplemente se omite la retención.
                             if (!config) {
-                                const { data: legacy } = await client.from('tax_withholdings').select('account_code, name, rate').eq('id', w.withholding_id).single();
-                                accountCode = legacy?.account_code;
-                                withholdingName = legacy?.name;
-                                withholdingRate = legacy?.rate || 0;
+                                console.warn(`[Treasury] Retención ${w.withholding_id} sin configuración en tax_configurations — se omite del asiento.`);
                             }
 
                             if (accountCode && withholdingName) {
@@ -358,7 +375,9 @@ export const treasuryService = {
 
         // 4. Reverse Accounting if integrated
         if (tx.accounting_entry_id) {
-            await client.from('accounting_entries').delete().eq('id', tx.accounting_entry_id);
+            // La tabla de asientos es `journal_entries` — `accounting_entries` no existe,
+            // así que el asiento quedaba huérfano al borrar la transacción.
+            await client.from('journal_entries').delete().eq('id', tx.accounting_entry_id);
         }
 
         return true;

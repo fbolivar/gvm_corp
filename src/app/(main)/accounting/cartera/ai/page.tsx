@@ -85,8 +85,8 @@ export default function PortfolioAIPage() {
     return (
         <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-5 duration-700">
             {/* 🤖 Header Premium */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="space-y-2">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 flex-wrap">
+                <div className="space-y-2 min-w-0">
                     <div className="flex items-center gap-3">
                         <Link href="/accounting/cartera" className="p-2 hover:bg-slate-100 rounded-full transition-colors group">
                             <ChevronLeft className="w-5 h-5 text-slate-400 group-hover:text-slate-900" />
@@ -99,7 +99,7 @@ export default function PortfolioAIPage() {
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-4 bg-white/50 backdrop-blur-md p-2 rounded-3xl border border-slate-200/60 shadow-sm">
+                <div className="flex items-center gap-4 bg-white/50 backdrop-blur-md p-2 rounded-3xl border border-slate-200/60 shadow-sm flex-wrap">
                     <div className="px-6 py-2">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status del Sistema</p>
                         <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export default function PortfolioAIPage() {
                 <TabsContent value="overview" className="space-y-10 focus-visible:outline-none outline-none">
                     <PortfolioAgentMetrics metrics={metrics} />
 
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 md:gap-10">
                         <div className="xl:col-span-2 space-y-10">
                             <DebtorRiskMatrix riskStats={metrics?.riskStats || []} />
 

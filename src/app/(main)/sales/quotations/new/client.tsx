@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { createSalesDocumentAction } from '@/features/sales/actions';
 import { Document } from "@/features/documents/types";
 import { Party } from "@/features/parties/types";
@@ -42,12 +43,19 @@ interface Props {
 
 export default function NewQuotationClient({ parties, products, warehouses = [], preSelectedProductId }: Props) {
     const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (data: Document) => {
-        const result = await createSalesDocumentAction(
-            { ...data, doc_type: 'QUOTATION' },
-            '/sales/quotations'
-        );
+        setLoading(true);
+        let result;
+        try {
+            result = await createSalesDocumentAction(
+                { ...data, doc_type: 'QUOTATION' },
+                '/sales/quotations'
+            );
+        } finally {
+            setLoading(false);
+        }
         if (result?.error) {
             toast.error(result.error);
             throw new Error(result.error);
@@ -80,6 +88,7 @@ export default function NewQuotationClient({ parties, products, warehouses = [],
             products={products}
             warehouses={warehouses}
             onSubmit={handleSubmit}
+            isLoading={loading}
             initialData={{
                 doc_type: 'QUOTATION',
                 status: 'DRAFT',

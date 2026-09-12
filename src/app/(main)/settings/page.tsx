@@ -108,7 +108,7 @@ export default function SettingsPage() {
                         </h1>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-center gap-6">
+                    <div className="flex flex-col md:flex-row flex-wrap md:items-center gap-6">
                         <div className="flex items-center gap-2 bg-indigo-500/10 px-4 py-1.5 rounded-xl border border-indigo-500/20">
                             <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
                             <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest italic leading-none">Engine Status: Optimized</span>

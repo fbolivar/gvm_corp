@@ -151,8 +151,8 @@ export default async function PayrollSummaryPage({
             </div>
 
             {/* Period navigator + export */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
+            <div className="flex flex-col md:flex-row flex-wrap md:items-center justify-between gap-4">
+                <div className="min-w-0">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Costo Total del Periodo</p>
                     <div className="flex items-baseline gap-3">
                         <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">{fmt(totalCost)}</span>
@@ -185,7 +185,7 @@ export default async function PayrollSummaryPage({
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                     { label: 'Empleados Activos', value: String(activeEmployees.length), icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                     { label: 'Total Devengado', value: fmt(totalEarnings), icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -224,7 +224,7 @@ export default async function PayrollSummaryPage({
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Desglose Costo Empresa</p>
                             <h3 className="text-sm font-bold text-slate-900 capitalize">{periodLabel}</h3>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
                                 <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Neto Empleados</p>
                                 <p className="text-sm font-bold text-blue-600 font-mono tabular-nums">{fmt(totalNetPay)}</p>

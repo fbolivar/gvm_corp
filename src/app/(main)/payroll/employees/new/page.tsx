@@ -18,8 +18,8 @@ export default async function NewEmployeePage() {
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 container mx-auto py-12 px-4">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="space-y-2">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1 flex-wrap">
+                <div className="space-y-2 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                         <Button asChild variant="ghost" className="h-8 w-8 p-0 rounded-lg text-slate-400 hover:text-primary">
                             <Link href="/payroll/employees">

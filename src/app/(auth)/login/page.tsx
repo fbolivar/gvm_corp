@@ -120,7 +120,7 @@ export default async function LoginPage() {
 
   // Tenant-specific login (with branding) OR generic app login (using platform config)
   const isTenantBranded = branding !== null
-  const primary = branding?.primary_color || '#4f46e5'
+  const primary = branding?.primary_color || '#0096E6'
   const accent = branding?.accent_color || '#10b981'
   const appName =
     branding?.app_name ||

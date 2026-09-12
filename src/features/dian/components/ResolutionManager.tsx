@@ -101,6 +101,7 @@ export function ResolutionManager({ resolutions }: Props) {
             )}
 
             <Card className="border-none shadow-premium overflow-hidden bg-white rounded-[2.5rem]">
+                <div className="overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="border-slate-50 hover:bg-transparent">
@@ -117,7 +118,12 @@ export function ResolutionManager({ resolutions }: Props) {
                                 <TableCell className="font-black text-primary pl-8 py-5">{res.prefix}</TableCell>
                                 <TableCell className="text-slate-700 font-semibold py-5">{res.from_number} — {res.to_number}</TableCell>
                                 <TableCell className="text-slate-500 text-sm py-5">
-                                    {new Date(res.expiry_date).toLocaleDateString('es-CO')}
+                                    {/* La fecha vive en valid_until / end_date; `expiry_date` no
+                                        existe y la columna salía siempre como "Invalid Date". */}
+                                    {(() => {
+                                        const raw = res.valid_until || res.end_date
+                                        return raw ? new Date(raw).toLocaleDateString('es-CO') : '—'
+                                    })()}
                                 </TableCell>
                                 <TableCell className="py-5">
                                     {res.is_active ? (
@@ -138,6 +144,7 @@ export function ResolutionManager({ resolutions }: Props) {
                         )}
                     </TableBody>
                 </Table>
+                </div>
             </Card>
         </div>
     )

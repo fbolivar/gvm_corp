@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ticketSchema, Ticket } from "../types";
+import { newTicketSchema, NewTicketInput, Ticket } from "../types";
 import { createTicketAction } from "../actions";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -22,14 +22,15 @@ interface Props {
     parties: Array<{ id: string; legal_name: string }>;
     documents: Array<{ id: string; number: string; doc_type: string }>;
     products: Array<{ id: string; name: string }>;
+    users?: Array<{ id: string; name: string }>;
 }
 
-export function NewTicketForm({ parties, documents, products }: Props) {
+export function NewTicketForm({ parties, documents, products, users = [] }: Props) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<Partial<Ticket>>({
-        resolver: zodResolver(ticketSchema.partial()),
+    const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<NewTicketInput>({
+        resolver: zodResolver(newTicketSchema) as any,
         defaultValues: {
             status: 'OPEN',
             priority: 'MEDIUM',
@@ -37,7 +38,7 @@ export function NewTicketForm({ parties, documents, products }: Props) {
         }
     });
 
-    const onSubmit = async (data: Partial<Ticket>) => {
+    const onSubmit = async (data: NewTicketInput) => {
         setIsSubmitting(true);
         const result = await createTicketAction(data);
         setIsSubmitting(false);
@@ -137,6 +138,7 @@ export function NewTicketForm({ parties, documents, products }: Props) {
                                         <option key={p.id} value={p.id} className="bg-slate-900">{p.legal_name}</option>
                                     ))}
                                 </select>
+                                {errors.party_id && <p className="text-[10px] text-rose-300 font-semibold px-0.5">{errors.party_id.message}</p>}
                             </div>
 
                             <div className="space-y-2">
@@ -175,6 +177,19 @@ export function NewTicketForm({ parties, documents, products }: Props) {
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-semibold text-white/40 uppercase tracking-wider px-0.5">Responsable (Opcional)</label>
+                                <select
+                                    {...register("assigned_to")}
+                                    className="w-full h-9 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-medium px-3 focus:ring-white/20 outline-none appearance-none cursor-pointer hover:bg-white/10 transition-all"
+                                >
+                                    <option value="" className="bg-slate-900">Sin asignar</option>
+                                    {users.map((u) => (
+                                        <option key={u.id} value={u.id} className="bg-slate-900">{u.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 

@@ -104,7 +104,7 @@ export function ARDetailDialog({ isOpen, onClose, bucket }: Props) {
                             </div>
                         </div>
                     ) : (
-                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar border rounded-2xl">
+                        <div className="max-h-[400px] overflow-auto custom-scrollbar border rounded-2xl">
                             <Table>
                                 <TableHeader className="bg-slate-50 sticky top-0 z-10">
                                     <TableRow className="border-none">

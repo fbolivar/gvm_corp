@@ -26,12 +26,37 @@ import {
     Loader2
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card"
+import { toast } from "sonner"
+
+// Sugerencias (datalist): el campo admite cualquier texto, no limita la captura.
+const EPS_OPTIONS = [
+    'SURA', 'NUEVA EPS', 'SANITAS', 'SALUD TOTAL', 'COMPENSAR', 'FAMISANAR',
+    'COOMEVA', 'MUTUAL SER', 'ALIANSALUD', 'CAPITAL SALUD', 'SAVIA SALUD', 'ASMET SALUD',
+]
+const ARL_OPTIONS = [
+    'POSITIVA', 'SURA', 'COLMENA SEGUROS', 'BOLÍVAR', 'LIBERTY', 'AXA COLPATRIA',
+    'EQUIDAD SEGUROS', 'MAPFRE', 'ALFA',
+]
 
 interface EmployeeFormProps {
     initialData?: Employee
     onSubmit: (data: Employee) => Promise<void>
     isLoading?: boolean
     linkedUserEmail?: string
+}
+
+/**
+ * Si la validación falla en un campo que no está en pantalla (por ejemplo un dato
+ * del tercero), el formulario se quedaba mudo al pulsar Guardar. Ahora se dice qué
+ * campo lo impide.
+ */
+function reportInvalid(errs: Record<string, unknown>) {
+    console.warn('[EmployeeForm] campos inválidos:', errs)
+    const campos = Object.entries(errs).flatMap(([k, v]) =>
+        v && typeof v === 'object' && !('message' in (v as object))
+            ? Object.keys(v as object).map(sub => `${k}.${sub}`)
+            : [k])
+    toast.error(`No se pudo guardar. Revisa: ${campos.join(', ')}`)
 }
 
 export function EmployeeForm({ initialData, onSubmit, isLoading, linkedUserEmail }: EmployeeFormProps) {
@@ -53,6 +78,12 @@ export function EmployeeForm({ initialData, onSubmit, isLoading, linkedUserEmail
             salary: 0,
             transport_allowance: true,
             risk_level: '1',
+            commissions: 0,
+            collection_commissions: 0,
+            additional_allowances: 0,
+            mobility_allowance: 0,
+            non_salary_bonus: 0,
+            salary_bonus: 0,
             payment_method: 'CASH',
             status: 'ACTIVE'
         }
@@ -69,7 +100,7 @@ export function EmployeeForm({ initialData, onSubmit, isLoading, linkedUserEmail
     }, [docNumber, docType, form])
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20 max-w-5xl mx-auto">
+        <form onSubmit={form.handleSubmit(onSubmit, reportInvalid)} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20 max-w-5xl mx-auto">
 
             {linkedUserEmail && (
                 <div className="flex items-center gap-3 p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
@@ -243,6 +274,36 @@ export function EmployeeForm({ initialData, onSubmit, isLoading, linkedUserEmail
                             </div>
                         </div>
 
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">EPS</Label>
+                            <div className="relative group/field">
+                                <Input
+                                    list="eps-options"
+                                    placeholder="Ej: SURA"
+                                    {...form.register('eps_name')}
+                                    className="h-14 pl-6 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all"
+                                />
+                                <datalist id="eps-options">
+                                    {EPS_OPTIONS.map(o => <option key={o} value={o} />)}
+                                </datalist>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">ARL</Label>
+                            <div className="relative group/field">
+                                <Input
+                                    list="arl-options"
+                                    placeholder="Ej: POSITIVA"
+                                    {...form.register('arl_name')}
+                                    className="h-14 pl-6 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all"
+                                />
+                                <datalist id="arl-options">
+                                    {ARL_OPTIONS.map(o => <option key={o} value={o} />)}
+                                </datalist>
+                            </div>
+                        </div>
+
                         <div className="flex items-center pt-8">
                             <div className="flex items-center space-x-4 bg-slate-50 p-5 rounded-2xl border-none w-full shadow-inner">
                                 <Checkbox
@@ -252,6 +313,75 @@ export function EmployeeForm({ initialData, onSubmit, isLoading, linkedUserEmail
                                     className="border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary h-6 w-6 rounded-lg transition-colors"
                                 />
                                 <Label htmlFor="transport_allowance" className="text-sm font-black text-slate-900 italic cursor-pointer selection:bg-none">Habilitar Auxilio de Transporte</Label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── NOVEDADES DE NÓMINA ─────────────────────────────────── */}
+                    <div className="pt-6 border-t border-slate-100 space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-1 w-6 bg-emerald-400 rounded-full" />
+                            <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                                Novedades de Nómina
+                                <span className="text-slate-300 normal-case font-bold ml-2">valores mensuales</span>
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Comisiones de ventas */}
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">Comisiones de ventas</Label>
+                                <div className="relative group/field">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
+                                    <Input type="number" min="0" step="1" {...form.register('commissions')} className="h-14 pl-14 bg-slate-50 border-none rounded-2xl font-black text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all tracking-tighter" />
+                                </div>
+                            </div>
+
+                            {/* Comisiones de recaudo */}
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">Comisiones de recaudo</Label>
+                                <div className="relative group/field">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
+                                    <Input type="number" min="0" step="1" {...form.register('collection_commissions')} className="h-14 pl-14 bg-slate-50 border-none rounded-2xl font-black text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all tracking-tighter" />
+                                </div>
+                            </div>
+
+                            {/* Auxilios adicionales */}
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">Auxilios adicionales</Label>
+                                <div className="relative group/field">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
+                                    <Input type="number" min="0" step="1" {...form.register('additional_allowances')} className="h-14 pl-14 bg-slate-50 border-none rounded-2xl font-black text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all tracking-tighter" />
+                                </div>
+                            </div>
+
+                            {/* Auxilio de rodamiento */}
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">Auxilio de rodamiento</Label>
+                                <div className="relative group/field">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
+                                    <Input type="number" min="0" step="1" {...form.register('mobility_allowance')} className="h-14 pl-14 bg-slate-50 border-none rounded-2xl font-black text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all tracking-tighter" />
+                                </div>
+                            </div>
+
+                            {/* Bonos salariales */}
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">Bonos salariales</Label>
+                                <div className="relative group/field">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
+                                    <Input type="number" min="0" step="1" {...form.register('salary_bonus')} className="h-14 pl-14 bg-slate-50 border-none rounded-2xl font-black text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all tracking-tighter" />
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold ml-5">Constituye salario (afecta aportes y prestaciones)</p>
+                            </div>
+
+                            {/* Bonos NO salariales */}
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5 block">Bonos NO salariales</Label>
+                                <div className="relative group/field">
+                                    <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within/field:text-primary transition-colors" />
+                                    <Input type="number" min="0" step="1" {...form.register('non_salary_bonus')} className="h-14 pl-14 bg-slate-50 border-none rounded-2xl font-black text-slate-900 focus-visible:ring-4 focus-visible:ring-primary/10 transition-all tracking-tighter" />
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold ml-5">No constituye salario</p>
                             </div>
                         </div>
                     </div>

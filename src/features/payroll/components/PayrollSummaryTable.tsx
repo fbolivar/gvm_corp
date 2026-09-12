@@ -78,8 +78,8 @@ export function PayrollSummaryTable({
 
     return (
         <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
+            <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
                     <h3 className="text-sm font-bold text-slate-900">Liquidacion Consolidada</h3>
                     <p className="text-xs text-slate-400">
                         Devengados, Deducciones, Neto, Costo Empresa — {periodLabel}

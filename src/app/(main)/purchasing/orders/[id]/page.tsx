@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { purchaseOrderService } from '@/features/purchasing/services/purchaseOrderService';
 import { POActionButtons } from '@/features/purchasing/components/POActionButtons';
+import { PurchaseOrderPdfButton } from '@/features/purchasing/components/PurchaseOrderPdfButton';
+import { settingsService } from '@/features/settings/services/settingsService';
 import { POStatus, POCurrency, formatPOCurrency } from '@/features/purchasing/types';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -367,6 +369,8 @@ export default async function PurchaseOrderDetailPage({
 
     if (!po) redirect('/purchasing/orders');
 
+    const tenant = await settingsService.getTenantInfo(supabase);
+
     const cfg = STATUS_MAP[po.status] ?? STATUS_MAP.DRAFT;
     const supplierName =
         (po.supplier as { legal_name?: string } | undefined)?.legal_name ?? 'Sin proveedor';
@@ -389,8 +393,8 @@ export default async function PurchaseOrderDetailPage({
     return (
         <div className="page-container space-y-8 pb-32 animate-in fade-in slide-in-from-bottom-6 duration-700">
 
-            {/* ── Back nav ────────────────────────────────────────────────────── */}
-            <div>
+            {/* ── Back nav + PDF ──────────────────────────────────────────────── */}
+            <div className="flex items-center justify-between gap-3">
                 <Link
                     href="/purchasing/orders"
                     className="inline-flex items-center gap-2 h-10 px-4 rounded-2xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 font-black text-[10px] uppercase tracking-widest transition-all"
@@ -398,6 +402,7 @@ export default async function PurchaseOrderDetailPage({
                     <ArrowLeft className="h-3.5 w-3.5" />
                     Volver a Órdenes
                 </Link>
+                <PurchaseOrderPdfButton order={po} tenant={tenant} />
             </div>
 
             {/* ── Edit Banner (DRAFT only) ───────────────────────────────────── */}

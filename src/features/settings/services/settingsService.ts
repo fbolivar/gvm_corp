@@ -12,6 +12,9 @@ export interface TeamMember {
     created_at: string;
     email: string;
     full_name: string;
+    has_employee?: boolean;
+    /** Autorizado a gestionar el equipo por excepción explícita (tabla team_admins). */
+    is_team_admin?: boolean;
 }
 
 export interface AppRole {
@@ -32,6 +35,7 @@ export interface RolePermission {
     module_key: string;
     can_view: boolean;
     can_edit: boolean;
+    can_admin?: boolean;
 }
 
 export interface Zone {
@@ -57,6 +61,10 @@ export interface TenantInfo {
     created_at: string;
     updated_at?: string;
     mail_config?: any;
+    // Responsable de RRHH que firma certificados laborales/ingresos
+    hr_manager_name?: string | null;
+    hr_manager_title?: string | null;
+    hr_signature_url?: string | null;
 }
 
 export interface DianResolution {
@@ -400,6 +408,21 @@ export const settingsService = {
             .order('name');
         if (error) throw error;
         return data || [];
+    },
+
+    /**
+     * Crea un rol nuevo. Usa la RPC `create_app_role` (SECURITY DEFINER) porque la
+     * RLS de app_roles solo deja escribir a is_system_admin(); la RPC autoriza con
+     * la misma regla que el resto de la gobernanza (can_manage_team, que incluye
+     * la excepción por persona de team_admins). El rol nace sin permisos.
+     */
+    async createAppRole(supabase: SupabaseClient, name: string, description?: string): Promise<AppRole> {
+        const { data, error } = await supabase.rpc('create_app_role', {
+            p_name: name,
+            p_description: description || null,
+        });
+        if (error) throw error;
+        return data as AppRole;
     },
 
     async getAppModules(supabase: SupabaseClient): Promise<AppModule[]> {

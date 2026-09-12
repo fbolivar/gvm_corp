@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
 import { useConfirm } from '@/shared/hooks/useConfirm';
+import { Hint } from '@/shared/components/ui/hint';
 
 const FREQ_LABELS: Record<string, string> = {
     WEEKLY: 'Semanal',
@@ -175,46 +176,49 @@ export function RecurringInvoiceList({ initialItems }: Props) {
                                 )}
 
                                 {item.status === 'ACTIVE' && (
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => handleStatus(item, 'PAUSED')}
-                                        disabled={!!isProcessing}
-                                        className="h-8 w-8 rounded-lg text-amber-500 hover:bg-amber-50"
-                                        title="Pausar"
-                                    >
-                                        {processingId === item.id + '-status'
-                                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                            : <Pause className="h-3.5 w-3.5" />}
-                                    </Button>
+                                    <Hint label="Pausar" side="top">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => handleStatus(item, 'PAUSED')}
+                                            disabled={!!isProcessing}
+                                            className="h-8 w-8 rounded-lg text-amber-500 hover:bg-amber-50"
+                                        >
+                                            {processingId === item.id + '-status'
+                                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                : <Pause className="h-3.5 w-3.5" />}
+                                        </Button>
+                                    </Hint>
                                 )}
 
                                 {item.status === 'PAUSED' && (
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => handleStatus(item, 'ACTIVE')}
-                                        disabled={!!isProcessing}
-                                        className="h-8 w-8 rounded-lg text-emerald-500 hover:bg-emerald-50"
-                                        title="Reanudar"
-                                    >
-                                        {processingId === item.id + '-status'
-                                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                            : <Play className="h-3.5 w-3.5" />}
-                                    </Button>
+                                    <Hint label="Reanudar" side="top">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => handleStatus(item, 'ACTIVE')}
+                                            disabled={!!isProcessing}
+                                            className="h-8 w-8 rounded-lg text-emerald-500 hover:bg-emerald-50"
+                                        >
+                                            {processingId === item.id + '-status'
+                                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                : <Play className="h-3.5 w-3.5" />}
+                                        </Button>
+                                    </Hint>
                                 )}
 
                                 {item.status !== 'CANCELLED' && (
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={() => handleStatus(item, 'CANCELLED')}
-                                        disabled={!!isProcessing}
-                                        className="h-8 w-8 rounded-lg text-rose-400 hover:bg-rose-50"
-                                        title="Cancelar"
-                                    >
-                                        <XCircle className="h-3.5 w-3.5" />
-                                    </Button>
+                                    <Hint label="Cancelar" side="top">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => handleStatus(item, 'CANCELLED')}
+                                            disabled={!!isProcessing}
+                                            className="h-8 w-8 rounded-lg text-rose-400 hover:bg-rose-50"
+                                        >
+                                            <XCircle className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </Hint>
                                 )}
                             </div>
                         </CardContent>

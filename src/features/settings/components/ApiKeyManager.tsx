@@ -209,7 +209,7 @@ export function ApiKeyManager({ apiKeys }: Props) {
             {/* Keys Table */}
             <div className="bg-white rounded-[2rem] shadow-premium border border-slate-50 overflow-hidden">
                 {apiKeys.length === 0 ? (
-                    <div className="p-16 text-center text-slate-300">
+                    <div className="p-8 md:p-16 text-center text-slate-300">
                         <Key className="h-10 w-10 mx-auto mb-3 opacity-50" />
                         <p className="text-xs font-bold uppercase tracking-widest">Sin API keys</p>
                         <p className="text-xs mt-1">Crea una key para conectar Power BI</p>

@@ -12,13 +12,13 @@ import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
 import { PrintLabelButton } from '@/features/products/components/PrintLabelButton';
 
-export default function EditProductClient({ product, movements }: { product: Product; movements?: any[] }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+export default function EditProductClient({ product, movements, canEditTax = false, priceLists = [], priceItems = {} }: { product: Product; movements?: any[]; canEditTax?: boolean; priceLists?: { id: string; name: string; is_default: boolean }[]; priceItems?: Record<string, number> }) { // eslint-disable-line @typescript-eslint/no-explicit-any
     const router = useRouter();
     const [activeTab, setActiveTab] = React.useState<'details' | 'kardex'>('details');
 
-    const handleSubmit = async (data: Product) => {
+    const handleSubmit = async (data: Product, prices?: Record<string, number>) => {
         const id = product.id!;
-        const result = await updateProductAction(id, data);
+        const result = await updateProductAction(id, data, prices);
         if (result?.error) {
             toast.error(`Error: ${result.error}`);
         }
@@ -85,7 +85,7 @@ export default function EditProductClient({ product, movements }: { product: Pro
             {/* Content */}
             <div>
                 {activeTab === 'details' && (
-                    <ProductForm initialData={product} onSubmit={handleSubmit} />
+                    <ProductForm initialData={product} onSubmit={handleSubmit} canEditTax={canEditTax} priceLists={priceLists} priceItems={priceItems} />
                 )}
                 {activeTab === 'kardex' && (
                     <ProductKardex movements={movements || []} />

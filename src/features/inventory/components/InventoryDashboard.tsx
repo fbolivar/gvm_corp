@@ -23,6 +23,7 @@ import { StockOverview } from './StockOverview';
 import { InventoryList } from './InventoryList';
 import { InventoryCharts } from './InventoryCharts';
 import { cn } from "@/shared/lib/utils";
+import { Hint } from "@/shared/components/ui/hint";
 
 interface Props {
     initialMovements: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -106,7 +107,7 @@ export function InventoryDashboard({
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl">
                     <CardContent className="p-5 space-y-3">
                         <div className="flex justify-between items-start">
@@ -194,11 +195,13 @@ export function InventoryDashboard({
                                         Movimientos Recientes
                                     </CardTitle>
                                 </div>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-slate-400 hover:text-indigo-600" asChild>
-                                    <Link href="/inventory/history">
-                                        <ArrowUpRight className="h-4 w-4" />
-                                    </Link>
-                                </Button>
+                                <Hint label="Ver historial completo" side="top">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-slate-400 hover:text-indigo-600" asChild>
+                                        <Link href="/inventory/history">
+                                            <ArrowUpRight className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </Hint>
                             </div>
                         </CardHeader>
                         <CardContent className="p-3">

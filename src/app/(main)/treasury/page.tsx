@@ -102,7 +102,7 @@ export default async function TreasuryPage() {
                 </Card>
 
                 {/* KPIs rápidos */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Card className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
                         <div className="flex items-center gap-2 mb-3">
                             <TrendingUp className="h-4 w-4 text-emerald-500" />
@@ -127,8 +127,8 @@ export default async function TreasuryPage() {
 
             {/* CUENTAS BANCARIAS */}
             <div className="space-y-5">
-                <div className="flex items-center justify-between">
-                    <div className="space-y-1">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
                         <h2 className="text-lg font-bold text-slate-900">Cuentas de Tesorería</h2>
                         <p className="text-xs text-slate-400">Cuentas bancarias y de caja vinculadas</p>
                     </div>

@@ -275,7 +275,9 @@ function createBusinessTools(tenantId: string) {
       execute: async () => {
         const { data: accounts } = await db
           .from('treasury_accounts')
-          .select('name, type, bank_name, currency, balance')
+          // `treasury_accounts` no tiene `currency`: con ese campo la consulta
+          // fallaba y el copiloto respondía "sin datos de tesorería".
+          .select('name, type, bank_name, balance')
           .eq('tenant_id', tenantId)
 
         const { data: txns } = await db

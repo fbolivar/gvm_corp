@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { trainingService } from '@/features/training/services/trainingService';
 import { ProgramForm } from '@/features/training/components/ProgramForm';
+import { ProgramList } from '@/features/training/components/ProgramList';
 import { TrainingRecordForm } from '@/features/training/components/TrainingRecordForm';
 import { TrainingRecordList } from '@/features/training/components/TrainingRecordList';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
@@ -45,6 +46,13 @@ export default async function TrainingPage() {
         name: emp.party?.legal_name ?? 'Sin nombre',
     }));
 
+    // Mapa programa → empleados que YA lo tienen asignado (para no repetir).
+    const assignedByProgram: Record<string, string[]> = {};
+    for (const r of records as Array<{ program_id?: string; employee_id?: string }>) {
+        if (!r.program_id || !r.employee_id) continue;
+        (assignedByProgram[r.program_id] ??= []).push(r.employee_id);
+    }
+
     const kpis = [
         { label: 'Total Programas', value: metrics.totalPrograms, icon: BookOpen, color: 'text-indigo-600', bg: 'bg-indigo-50' },
         { label: 'Programadas', value: scheduledCount, icon: CalendarDays, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -67,7 +75,7 @@ export default async function TrainingPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {kpis.map((kpi, i) => (
                     <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-3">
                         <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", kpi.bg, kpi.color)}>
@@ -81,12 +89,13 @@ export default async function TrainingPage() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div className="col-span-12 lg:col-span-4 space-y-4">
                     <ProgramForm />
                     <TrainingRecordForm programs={programs} employees={employeeList} />
                 </div>
-                <div className="col-span-12 lg:col-span-8">
+                <div className="col-span-12 lg:col-span-8 space-y-6">
+                    <ProgramList programs={programs} tenantId={tenant.id} employees={employeeList} assignedByProgram={assignedByProgram} />
                     <TrainingRecordList records={records} />
                 </div>
             </div>

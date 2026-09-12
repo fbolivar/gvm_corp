@@ -89,6 +89,15 @@ export const technologyService = {
         if (error) throw error;
     },
 
+    async deleteAsset(supabase: SupabaseClient, id: string): Promise<void> {
+        // Las asignaciones y mantenimientos se eliminan en cascada (FK ON DELETE CASCADE).
+        const { error } = await supabase
+            .from('it_assets')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+    },
+
     // ── Assignments ──
 
     async getAssignments(supabase: SupabaseClient, assetId: string): Promise<ITAssetAssignment[]> {
@@ -99,6 +108,21 @@ export const technologyService = {
             .order('assigned_at', { ascending: false });
         if (error) throw error;
         return data || [];
+    },
+
+    /**
+     * Activos actualmente EN PODER de un empleado (asignados y sin devolver).
+     * Alimenta la tarjeta "Mis activos" del portal del empleado (/my-payroll).
+     */
+    async getAssignmentsByEmployee(supabase: SupabaseClient, employeeId: string): Promise<ITAssetAssignment[]> {
+        const { data, error } = await supabase
+            .from('it_asset_assignments')
+            .select('*, asset:it_assets(id, asset_code, name, category, brand, model, serial_number, condition, status)')
+            .eq('employee_id', employeeId)
+            .is('returned_at', null)
+            .order('assigned_at', { ascending: false });
+        if (error) throw error;
+        return (data || []) as ITAssetAssignment[];
     },
 
     async getCurrentAssignment(supabase: SupabaseClient, assetId: string): Promise<ITAssetAssignment | null> {

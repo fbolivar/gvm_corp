@@ -39,7 +39,7 @@ export function MobileNav() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
                         className="text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg h-9 w-9"
                     >
                         <Search className="h-4 w-4" />

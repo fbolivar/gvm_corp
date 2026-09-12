@@ -252,7 +252,7 @@ export function InventoryMovementForm({ products, warehouses, onSubmit, isLoadin
                                     <Layers className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                     <Input
                                         type="number"
-                                        step="0.01"
+                                        step="any"
                                         {...form.register('qty', { valueAsNumber: true })}
                                         placeholder="0.00"
                                         className="h-9 pl-9 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus-visible:ring-1 focus-visible:ring-indigo-200"

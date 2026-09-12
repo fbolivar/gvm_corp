@@ -112,10 +112,10 @@ export function BudgetSpreadsheet({ budget: initialBudget, lines: initialLines, 
             {/* Header strip */}
             <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
                 <CardContent className="p-5">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-sm font-bold text-slate-900">{budget.name}</h2>
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 flex-wrap">
+                        <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <h2 className="text-sm font-bold text-slate-900 truncate">{budget.name}</h2>
                                 <Badge className={cn(
                                     "border-none text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5",
                                     si.color

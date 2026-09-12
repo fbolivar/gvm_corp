@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Eye, EyeOff, Lock, ArrowRight } from 'lucide-react'
+import { Loader2, Eye, EyeOff, Lock, ArrowRight, AlertCircle } from 'lucide-react'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Button } from '@/shared/components/ui/button'
@@ -29,6 +29,7 @@ export function ChangePasswordForm() {
     const [showNew, setShowNew] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
     const strength = strengthOf(newPassword)
     const match = confirmPassword.length > 0 && newPassword === confirmPassword
@@ -36,13 +37,14 @@ export function ChangePasswordForm() {
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault()
         if (isLoading) return
+        setErrorMsg(null)
 
         if (newPassword.length < 8) {
-            toast.error('La contraseña debe tener al menos 8 caracteres')
+            setErrorMsg('La contraseña debe tener al menos 8 caracteres')
             return
         }
         if (newPassword !== confirmPassword) {
-            toast.error('Las contraseñas no coinciden')
+            setErrorMsg('Las contraseñas no coinciden')
             return
         }
 
@@ -50,7 +52,9 @@ export function ChangePasswordForm() {
         try {
             const result = await changePasswordAction(newPassword, confirmPassword)
             if (!result.success) {
-                toast.error(result.error || 'No se pudo cambiar la contraseña')
+                const msg = result.error || 'No se pudo cambiar la contraseña'
+                setErrorMsg(msg)
+                toast.error(msg)
                 setIsLoading(false)
                 return
             }
@@ -61,6 +65,7 @@ export function ChangePasswordForm() {
             }, 800)
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Error inesperado'
+            setErrorMsg(msg)
             toast.error(msg)
             setIsLoading(false)
         }
@@ -78,7 +83,7 @@ export function ChangePasswordForm() {
                     <Input
                         type={showNew ? 'text' : 'password'}
                         value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        onChange={(e) => { setNewPassword(e.target.value); setErrorMsg(null) }}
                         placeholder="••••••••"
                         autoComplete="new-password"
                         className="h-12 pl-[3.25rem] pr-12 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 placeholder:text-slate-300 focus-visible:ring-2 focus-visible:ring-indigo-500/20"
@@ -141,6 +146,14 @@ export function ChangePasswordForm() {
                     </p>
                 )}
             </div>
+
+            {/* Error visible (no depende del toast) */}
+            {errorMsg && (
+                <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">
+                    <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                    <p className="text-xs font-bold text-rose-600 leading-snug">{errorMsg}</p>
+                </div>
+            )}
 
             {/* Submit */}
             <Button

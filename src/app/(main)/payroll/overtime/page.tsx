@@ -24,6 +24,14 @@ export default async function OvertimePage() {
         overtimeService.getAllRequests(supabase, tenant.id).catch(() => []),
     ]);
 
+    // Nombre de quien descarga el reporte (va en el PDF que se envía a contabilidad).
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .maybeSingle();
+    const generatedBy = profile?.full_name || profile?.email || user.email || undefined;
+
     const approvedCount = allRequests.filter(r => r.status === 'APPROVED').length;
     const rejectedCount = allRequests.filter(r => r.status === 'REJECTED').length;
     const totalHoursApproved = allRequests
@@ -52,7 +60,7 @@ export default async function OvertimePage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {kpis.map((kpi, i) => (
                     <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-3">
                         <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", kpi.bg, kpi.color)}>
@@ -69,6 +77,17 @@ export default async function OvertimePage() {
             <OvertimeApprovalPanel
                 pendingRequests={pendingRequests}
                 allRequests={allRequests}
+                company={{
+                    name: tenant.name || 'GVM S.A.S',
+                    nit: tenant.nit,
+                    dv: tenant.dv,
+                    address: tenant.address,
+                    city: tenant.city,
+                    phone: tenant.phone,
+                    email: tenant.email,
+                    logo_url: tenant.logo_url,
+                }}
+                generatedBy={generatedBy}
             />
         </div>
     );

@@ -81,7 +81,7 @@ export function BankReconciliationMatcher({ statementId }: Props) {
     }
 
     return (
-        <div className="grid gap-12 lg:grid-cols-2 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="grid gap-6 lg:gap-12 lg:grid-cols-2 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* Left: Statement Lines */}
             <div className="space-y-8">
                 <div className="flex items-center gap-4 px-1">
@@ -95,6 +95,7 @@ export function BankReconciliationMatcher({ statementId }: Props) {
                 </div>
 
                 <div className="bg-white rounded-[3rem] shadow-premium overflow-hidden border border-slate-50">
+                    <div className="overflow-x-auto">
                     <Table>
                         <TableHeader className="bg-slate-50/50">
                             <TableRow className="border-slate-100 hover:bg-transparent">
@@ -154,6 +155,7 @@ export function BankReconciliationMatcher({ statementId }: Props) {
                             ))}
                         </TableBody>
                     </Table>
+                    </div>
                 </div>
             </div>
 
@@ -208,7 +210,7 @@ export function BankReconciliationMatcher({ statementId }: Props) {
                         {/* Suggestions / Results */}
                         <div className="space-y-6">
                             {selectedLine.status === 'MATCHED' ? (
-                                <div className="p-16 bg-white rounded-[3rem] shadow-premium border border-slate-50 flex flex-col items-center justify-center text-center space-y-6">
+                                <div className="p-6 md:p-16 bg-white rounded-[3rem] shadow-premium border border-slate-50 flex flex-col items-center justify-center text-center space-y-6">
                                     <div className="h-20 w-20 rounded-[2rem] bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
                                         <ShieldCheck className="h-10 w-10 animate-pulse" />
                                     </div>
@@ -256,7 +258,7 @@ export function BankReconciliationMatcher({ statementId }: Props) {
                                             ))}
                                         </div>
                                     ) : !isLoading && (
-                                        <div className="p-16 bg-white rounded-[3rem] shadow-premium border border-slate-50 flex flex-col items-center justify-center text-center space-y-6">
+                                        <div className="p-6 md:p-16 bg-white rounded-[3rem] shadow-premium border border-slate-50 flex flex-col items-center justify-center text-center space-y-6">
                                             <div className="h-20 w-20 rounded-[2rem] bg-rose-50 flex items-center justify-center text-rose-500 shadow-sm border border-rose-100">
                                                 <XCircle className="h-10 w-10" />
                                             </div>
@@ -276,7 +278,7 @@ export function BankReconciliationMatcher({ statementId }: Props) {
                         </div>
                     </div>
                 ) : (
-                    <div className="h-[500px] flex flex-col items-center justify-center bg-white rounded-[3rem] border border-dashed border-slate-200 p-20 text-center space-y-8 shadow-inner shadow-slate-50/50">
+                    <div className="h-[500px] flex flex-col items-center justify-center bg-white rounded-[3rem] border border-dashed border-slate-200 p-8 md:p-20 text-center space-y-8 shadow-inner shadow-slate-50/50">
                         <div className="relative">
                             <Cpu className="h-24 w-24 text-slate-100 animate-pulse" />
                             <div className="absolute inset-0 bg-indigo-500/5 blur-3xl rounded-full" />

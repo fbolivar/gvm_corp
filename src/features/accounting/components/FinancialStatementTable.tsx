@@ -29,6 +29,7 @@ export function FinancialStatementTable({ title, rows, totalLabel, totalValue }:
                 </div>
             </CardHeader>
             <CardContent className="p-0">
+                <div className="overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-slate-950/20">
                         <TableRow className="border-slate-800 hover:bg-transparent">
@@ -53,6 +54,7 @@ export function FinancialStatementTable({ title, rows, totalLabel, totalValue }:
                         ))}
                     </TableBody>
                 </Table>
+                </div>
 
                 {/* Total Footer */}
                 <div className="bg-slate-950/40 border-t-2 border-slate-800 py-6 px-10 flex items-center justify-between">

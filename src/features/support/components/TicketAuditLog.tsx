@@ -33,6 +33,8 @@ export function TicketAuditLog({ logs }: Props) {
                 return { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', label: 'Creacion' };
             case 'UPDATE_STATUS':
                 return { icon: RotateCcw, color: 'text-indigo-500', bg: 'bg-indigo-50', label: 'Cambio de Estado' };
+            case 'ASSIGN':
+                return { icon: RotateCcw, color: 'text-blue-500', bg: 'bg-blue-50', label: 'Asignación' };
             case 'GENERATE_RMA':
                 return { icon: AlertCircle, color: 'text-amber-500', bg: 'bg-amber-50', label: 'RMA Generado' };
             case 'GENERATE_CREDIT_NOTE':
@@ -68,7 +70,7 @@ export function TicketAuditLog({ logs }: Props) {
                                 <div className="flex items-center justify-between gap-3">
                                     <p className="text-xs font-bold text-slate-900">
                                         {label} <span className="text-slate-300 font-medium px-1">·</span>
-                                        <span className="font-medium text-slate-500">{log.actor?.email || "Sistema"}</span>
+                                        <span className="font-medium text-slate-500">{log.actor?.full_name || "Sistema"}</span>
                                     </p>
                                     <time className="text-[10px] font-medium text-slate-300 uppercase tracking-wider shrink-0">
                                         {format(new Date(log.created_at), "dd MMM, HH:mm", { locale: es })}

@@ -13,6 +13,7 @@ import { TrendingDown, Trash2, Loader2, Package } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 import { useConfirm } from '@/shared/hooks/useConfirm';
+import { Hint } from '@/shared/components/ui/hint';
 
 const STATUS_LABELS: Record<string, string> = {
     ACTIVE: 'Activo', DISPOSED: 'Dado de Baja', FULLY_DEPRECIATED: 'Depreciado Total',
@@ -173,18 +174,19 @@ export function FixedAssetList({ initialAssets }: Props) {
                                     )}
 
                                     {asset.status !== 'DISPOSED' && (
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => handleDispose(asset)}
-                                            disabled={!!isProcessing}
-                                            className="h-9 w-9 rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600"
-                                            title="Dar de baja"
-                                        >
-                                            {processingId === asset.id + '-dispose'
-                                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                : <Trash2 className="h-3.5 w-3.5" />}
-                                        </Button>
+                                        <Hint label="Dar de baja" side="top">
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => handleDispose(asset)}
+                                                disabled={!!isProcessing}
+                                                className="h-9 w-9 rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600"
+                                            >
+                                                {processingId === asset.id + '-dispose'
+                                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    : <Trash2 className="h-3.5 w-3.5" />}
+                                            </Button>
+                                        </Hint>
                                     )}
                                 </div>
                             </div>

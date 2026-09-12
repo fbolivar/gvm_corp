@@ -8,6 +8,7 @@ import { Badge } from "@/shared/components/ui/badge"
 import { Trash2, Clock, Moon, Sun, Star, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface Props {
     schedules: WorkSchedule[]
@@ -36,7 +37,7 @@ export function ScheduleList({ schedules, assignmentCounts }: Props) {
         <div className="divide-y divide-slate-50">
             {ConfirmDialogEl}
             {schedules.length === 0 ? (
-                <div className="p-12 text-center">
+                <div className="p-6 md:p-12 text-center">
                     <Clock className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                     <p className="text-xs text-slate-400">No hay turnos configurados</p>
                 </div>
@@ -67,15 +68,17 @@ export function ScheduleList({ schedules, assignmentCounts }: Props) {
                             </div>
                         </div>
 
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(schedule.id, schedule.name)}
-                            disabled={isPending}
-                            className="h-8 w-8 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                        </Button>
+                        <Hint label="Eliminar" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(schedule.id, schedule.name)}
+                                disabled={isPending}
+                                className="h-8 w-8 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                            </Button>
+                        </Hint>
                     </div>
                 )
             })}

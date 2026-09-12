@@ -33,6 +33,12 @@ export const documentService = {
 
         if (filters.status) {
             query = query.eq('status', filters.status);
+        } else if (filters.hide_voided) {
+            query = query.neq('status', 'VOIDED');
+        }
+
+        if (filters.warehouse_id) {
+            query = query.eq('warehouse_id', filters.warehouse_id);
         }
 
         if (filters.start_date) {
@@ -48,7 +54,10 @@ export const documentService = {
 
         const { data, error, count } = await query
             .range(from, to)
-            .order('issue_date', { ascending: false });
+            // Orden por consecutivo (number va con relleno de ceros → orden lexicográfico = numérico).
+            // created_at como desempate para documentos sin número (borradores).
+            .order('number', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false });
 
         if (error) { console.error('[documents] getDocuments:', error.message); return { data: [] as Document[], count: 0 }; }
         return { data: data as Document[], count };
@@ -178,6 +187,10 @@ export const documentService = {
             tenant_id: _tenantId,
             created_at: _createdAt,
             number: _number,
+            // La clave de idempotencia identifica el intento de CREACIÓN. Editar
+            // no debe sobrescribirla (ni escribir la del formulario de edición,
+            // que chocaría con el índice único si se reenviara).
+            idempotency_key: _idempotencyKey,
             ...headerData
         } = document as Document & {
             lines?: DocumentLine[];

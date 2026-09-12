@@ -24,6 +24,7 @@ import Link from "next/link"
 import { Badge } from "@/shared/components/ui/badge"
 import { cn } from "@/shared/lib/utils"
 import { Card, CardContent } from "@/shared/components/ui/card"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface CarteraItem {
     id: string
@@ -131,13 +132,13 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-1000">
 
             {/* 🛠️ ENHANCED TOOLBAR */}
-            <div className="flex flex-col md:flex-row gap-6 justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-premium border border-slate-50 relative overflow-hidden group">
+            <div className="flex flex-col lg:flex-row gap-6 justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-premium border border-slate-50 relative overflow-hidden group flex-wrap">
                 {/* Decorative Icon */}
                 <div className="absolute right-0 top-0 p-4 opacity-[0.02] pointer-events-none">
                     <Search className="h-16 w-16" />
                 </div>
 
-                <div className="relative w-full md:w-[500px] z-10">
+                <div className="relative w-full max-w-[500px] z-10">
                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
@@ -148,15 +149,15 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
                     />
                 </div>
 
-                <div className="flex items-center gap-4 z-10 w-full md:w-auto">
-                    <Button variant="outline" className="h-14 flex-1 md:flex-none px-6 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-slate-900 transition-all">
-                        <Filter className="h-4 w-4 mr-3" /> Parámetros
+                <div className="flex flex-wrap items-center gap-2 z-10 w-full lg:w-auto">
+                    <Button variant="outline" className="h-11 flex-1 lg:flex-none px-4 rounded-xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-slate-900 transition-all">
+                        <Filter className="h-4 w-4 mr-2" /> Parámetros
                     </Button>
                     <Button
-                        className="h-14 flex-1 md:flex-none px-8 rounded-2xl bg-slate-900 hover:bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-active hover:scale-105 active:scale-95 transition-all"
+                        className="h-11 flex-1 lg:flex-none px-4 rounded-xl bg-slate-900 hover:bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-active hover:scale-105 active:scale-95 transition-all"
                         onClick={handleDownloadReport}
                     >
-                        <Download className="h-4 w-4 mr-3" /> Reporte Fiscal
+                        <Download className="h-4 w-4 mr-2" /> Reporte Fiscal
                     </Button>
                 </div>
             </div>
@@ -168,6 +169,7 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
                     <Activity className="h-48 w-48 text-slate-900" />
                 </div>
 
+                <div className="overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow className="border-slate-50 hover:bg-transparent">
@@ -234,16 +236,20 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
                                     </TableCell>
                                     <TableCell className="py-10 text-right pr-14">
                                         <div className="flex items-center justify-end gap-3">
-                                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl border-none bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white shadow-sm transition-all duration-500 hover:scale-110 active:scale-90 group/action" asChild title="Registrar Transacción">
-                                                <Link href={`/treasury/new?type=${type === 'RECEIVABLES' ? 'RECEIPT' : 'PAYMENT'}&invoice_id=${item.id}`}>
-                                                    <ArrowUpRight className="h-6 w-6 group-hover/action:rotate-45 transition-transform" />
-                                                </Link>
-                                            </Button>
-                                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl border-none bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white shadow-sm transition-all duration-500 hover:scale-110 active:scale-90 group/view" asChild title="Ver Documento">
-                                                <Link href={`/documents/${item.id}`}>
-                                                    <ArrowRight className="h-6 w-6" />
-                                                </Link>
-                                            </Button>
+                                            <Hint label="Registrar Transacción" side="top">
+                                                <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl border-none bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white shadow-sm transition-all duration-500 hover:scale-110 active:scale-90 group/action" asChild>
+                                                    <Link href={`/treasury/new?type=${type === 'RECEIVABLES' ? 'RECEIPT' : 'PAYMENT'}&invoice_id=${item.id}`}>
+                                                        <ArrowUpRight className="h-6 w-6 group-hover/action:rotate-45 transition-transform" />
+                                                    </Link>
+                                                </Button>
+                                            </Hint>
+                                            <Hint label="Ver Documento" side="top">
+                                                <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl border-none bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white shadow-sm transition-all duration-500 hover:scale-110 active:scale-90 group/view" asChild>
+                                                    <Link href={`/documents/${item.id}`}>
+                                                        <ArrowRight className="h-6 w-6" />
+                                                    </Link>
+                                                </Button>
+                                            </Hint>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -251,10 +257,11 @@ export function CarteraList({ items, type, tenant }: CarteraListProps) {
                         )}
                     </TableBody>
                 </Table>
+                </div>
             </div>
 
             {/* 📊 FOOTER METRICS - "Nodos de Resumen" */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
                 <Card className="rounded-[3rem] bg-white border-none shadow-premium p-8 group hover:translate-y-[-8px] transition-all duration-700 overflow-hidden relative border border-slate-50">
                     <div className="absolute right-0 top-0 p-8 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform">
                         <Target className="h-20 w-20 text-slate-900" />

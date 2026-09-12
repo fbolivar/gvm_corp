@@ -22,9 +22,13 @@ import { cn } from "@/shared/lib/utils"
 import { approveVendorBillAction } from "../actions"
 import { useToast } from "@/shared/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { Hint } from "@/shared/components/ui/hint"
+import { AttachmentBadge } from "@/features/documents/components/AttachmentBadge"
 
 interface VendorBillListProps {
     bills: Document[]
+    /** Soportes por documento: alimenta el indicador de la columna "Soportes". */
+    attachmentCounts?: Record<string, number>
 }
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; Icon: React.ComponentType<{ className?: string }> }> = {
@@ -34,7 +38,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; Icon: Re
     CANCELLED: { label: 'Anulada', className: 'bg-rose-50 text-rose-600', Icon: AlertCircle },
 };
 
-export function VendorBillList({ bills }: VendorBillListProps) {
+export function VendorBillList({ bills, attachmentCounts = {} }: VendorBillListProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
     const { toast } = useToast();
@@ -97,6 +101,7 @@ export function VendorBillList({ bills }: VendorBillListProps) {
                                 <th scope="col" className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Proveedor</th>
                                 <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                                 <th scope="col" className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Vencimiento</th>
+                                <th scope="col" className="px-4 py-3 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Soportes</th>
                                 <th scope="col" className="px-4 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total</th>
                                 <th scope="col" className="px-5 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -135,6 +140,9 @@ export function VendorBillList({ bills }: VendorBillListProps) {
                                                 <span className="text-[10px] text-slate-400">{bill.due_date || bill.issue_date || '—'}</span>
                                             </div>
                                         </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <AttachmentBadge documentId={bill.id!} count={attachmentCounts[bill.id ?? ''] ?? 0} />
+                                        </td>
                                         <td className="px-4 py-4 text-right">
                                             <span className="text-sm font-bold text-slate-900 font-mono tabular-nums">
                                                 ${bill.total.toLocaleString('es-CO', { minimumFractionDigits: 0 })}
@@ -161,18 +169,22 @@ export function VendorBillList({ bills }: VendorBillListProps) {
                                                     </Button>
                                                 )}
 
-                                                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" asChild title="Ver Detalle">
-                                                    <Link href={`/documents/${bill.id}`}>
-                                                        <Eye className="h-3.5 w-3.5" />
-                                                    </Link>
-                                                </Button>
-
-                                                {bill.status === 'SENT' && (
-                                                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-indigo-100 text-indigo-500 hover:bg-indigo-50" asChild title="Programar Pago">
-                                                        <Link href={`/treasury/payments/new?billId=${bill.id}`}>
-                                                            <ArrowUpRight className="h-3.5 w-3.5" />
+                                                <Hint label="Ver Detalle" side="top">
+                                                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" asChild title="Ver Detalle">
+                                                        <Link href={`/documents/${bill.id}`}>
+                                                            <Eye className="h-3.5 w-3.5" />
                                                         </Link>
                                                     </Button>
+                                                </Hint>
+
+                                                {bill.status === 'SENT' && (
+                                                    <Hint label="Programar Pago" side="left">
+                                                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg border-indigo-100 text-indigo-500 hover:bg-indigo-50" asChild title="Programar Pago">
+                                                            <Link href={`/treasury/payments/new?billId=${bill.id}`}>
+                                                                <ArrowUpRight className="h-3.5 w-3.5" />
+                                                            </Link>
+                                                        </Button>
+                                                    </Hint>
                                                 )}
                                             </div>
                                         </td>

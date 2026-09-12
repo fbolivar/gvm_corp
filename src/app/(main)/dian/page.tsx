@@ -115,8 +115,8 @@ export default async function DianDashboard() {
                         {transmissions?.map((tx: any) => (
                             <Card key={tx.id} className="group overflow-hidden rounded-[2.5rem] border-none bg-white shadow-premium hover:shadow-lg hover:scale-[1.01] transition-all duration-300">
                                 <CardContent className="p-0">
-                                    <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-50">
-                                        <div className="p-8 flex-1 space-y-5">
+                                    <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-50">
+                                        <div className="p-8 flex-1 space-y-5 min-w-0">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
                                                     <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
@@ -158,7 +158,7 @@ export default async function DianDashboard() {
                                             </div>
                                         </div>
 
-                                        <div className="p-8 bg-slate-50/30 w-fit md:w-64 flex flex-col justify-center gap-4">
+                                        <div className="p-8 bg-slate-50/30 w-full lg:w-64 flex flex-col justify-center gap-4">
                                             <div className="space-y-1">
                                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Valor Transmitido</p>
                                                 <p className="text-xl font-black text-slate-900 tracking-tighter">${tx.document?.total.toLocaleString('es-CO')}</p>

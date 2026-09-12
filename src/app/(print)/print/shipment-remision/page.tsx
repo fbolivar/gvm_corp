@@ -118,10 +118,12 @@ export const dynamic = "force-dynamic";
 export default async function ShipmentRemisionPrintPage({
     searchParams,
 }: {
-    searchParams: Promise<{ id?: string }>;
+    searchParams: Promise<{ id?: string; precios?: string }>;
 }) {
     const supabase = await createClient();
     const params = await searchParams;
+    // Opción para generar la remisión sin precios (precios=0 la oculta)
+    const showPrices = params.precios !== "0";
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
@@ -386,20 +388,20 @@ export default async function ShipmentRemisionPrintPage({
                 <table className="ea-table" style={{ borderTop: "none" }}>
                     <thead>
                         <tr>
-                            <th style={{ width: "14%" }}>SKU</th>
-                            <th style={{ width: "28%", textAlign: "center" }}>Descripción</th>
-                            <th style={{ width: "11%" }}>Bodega</th>
-                            <th style={{ width: "9%" }} className="ea-num">Pedido</th>
-                            <th style={{ width: "9%" }} className="ea-num">Despachado</th>
-                            <th style={{ width: "9%" }}>U Medida</th>
-                            <th style={{ width: "10%" }} className="ea-num">Valor Unit</th>
-                            <th style={{ width: "10%" }} className="ea-num">Total</th>
+                            <th style={{ width: showPrices ? "14%" : "16%" }}>SKU</th>
+                            <th style={{ width: showPrices ? "28%" : "40%", textAlign: "center" }}>Descripción</th>
+                            <th style={{ width: showPrices ? "11%" : "14%" }}>Bodega</th>
+                            <th style={{ width: "10%" }} className="ea-num">Pedido</th>
+                            <th style={{ width: "10%" }} className="ea-num">Despachado</th>
+                            <th style={{ width: "10%" }}>U Medida</th>
+                            {showPrices && <th style={{ width: "10%" }} className="ea-num">Valor Unit</th>}
+                            {showPrices && <th style={{ width: "10%" }} className="ea-num">Total</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {rows.length === 0 && (
                             <tr>
-                                <td colSpan={8} style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
+                                <td colSpan={showPrices ? 8 : 6} style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
                                     Sin líneas registradas.
                                 </td>
                             </tr>
@@ -412,13 +414,13 @@ export default async function ShipmentRemisionPrintPage({
                                 <td className="ea-num">{fmtNumber(r.qtyOrdered)}</td>
                                 <td className="ea-num" style={{ fontWeight: 700 }}>{fmtNumber(r.qty)}</td>
                                 <td>{r.uom}</td>
-                                <td className="ea-num">{fmtNumber(r.unitValue)}</td>
-                                <td className="ea-num" style={{ fontWeight: 600 }}>{fmtNumber(r.total)}</td>
+                                {showPrices && <td className="ea-num">{fmtNumber(r.unitValue)}</td>}
+                                {showPrices && <td className="ea-num" style={{ fontWeight: 600 }}>{fmtNumber(r.total)}</td>}
                             </tr>
                         ))}
                         {isClosed && (
                             <tr>
-                                <td colSpan={8} style={{ padding: "8px", textAlign: "center", fontWeight: 700, letterSpacing: "0.15em" }}>
+                                <td colSpan={showPrices ? 8 : 6} style={{ padding: "8px", textAlign: "center", fontWeight: 700, letterSpacing: "0.15em" }}>
                                     ********* ENTREGADO *********
                                 </td>
                             </tr>
@@ -426,7 +428,8 @@ export default async function ShipmentRemisionPrintPage({
                     </tbody>
                 </table>
 
-                {/* ── FOOTER: Valor en letras + totales ────────────────────────── */}
+                {/* ── FOOTER: Valor en letras + totales (solo con precios) ─────── */}
+                {showPrices && (
                 <table className="ea-outer" style={{ borderTop: "none" }}>
                     <tbody>
                         <tr>
@@ -449,6 +452,7 @@ export default async function ShipmentRemisionPrintPage({
                         </tr>
                     </tbody>
                 </table>
+                )}
 
                 {/* ── SELLOS / FIRMAS ──────────────────────────────────────────── */}
                 <table className="ea-outer" style={{ borderTop: "none" }}>

@@ -40,7 +40,7 @@ export default async function PeriodClosePage() {
             />
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: 'Total Períodos', value: allPeriods.length, icon: CalendarRange, color: 'text-slate-600', bg: 'bg-slate-100' },
                     { label: 'Abiertos', value: openCount, icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },

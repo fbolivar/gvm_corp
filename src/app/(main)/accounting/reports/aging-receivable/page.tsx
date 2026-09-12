@@ -111,9 +111,9 @@ export default async function AgingReceivablePage({
             />
 
             {/* Total Balance Strip */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 px-1">
-                <div className="flex items-center gap-12">
-                    <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 px-1">
+                <div className="flex items-center gap-12 min-w-0">
+                    <div className="flex flex-col min-w-0">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Total Cartera Pendiente</span>
                         <div className="flex items-baseline gap-4">
                             <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
@@ -164,8 +164,8 @@ export default async function AgingReceivablePage({
 
             {/* Detailed Table */}
             <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
-                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-                    <div>
+                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                    <div className="min-w-0">
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Composición de la Cartera</h3>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Desglose Individual de Facturas Vencidas</p>
                     </div>

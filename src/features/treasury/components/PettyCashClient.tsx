@@ -22,6 +22,7 @@ import { cn } from '@/shared/lib/utils';
 import { useConfirm } from '@/shared/hooks/useConfirm';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
+import { Hint } from '@/shared/components/ui/hint';
 import type { PettyCashFund, PettyCashTransaction, ExpenseCategory } from '../services/pettyCashService';
 import {
     createPettyCashFundAction,
@@ -257,12 +258,14 @@ function CreateFundDialog({ open, onClose, onCreated }: CreateFundDialogProps) {
                             Crear Caja Menor
                         </h2>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-                    >
-                        <X className="h-4 w-4 text-slate-400" />
-                    </button>
+                    <Hint label="Cerrar" side="left">
+                        <button
+                            onClick={onClose}
+                            className="h-9 w-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                        >
+                            <X className="h-4 w-4 text-slate-400" />
+                        </button>
+                    </Hint>
                 </div>
 
                 {/* Form */}
@@ -395,7 +398,7 @@ function AddExpenseForm({ fundId, onSuccess }: AddExpenseFormProps) {
                 </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-[8px] font-black uppercase tracking-widest text-slate-500">
                         Monto *
@@ -970,7 +973,7 @@ export default function PettyCashClient({ funds: initialFunds }: Props) {
 
             {/* Fund Cards */}
             {funds.length === 0 ? (
-                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-premium p-16 text-center space-y-4">
+                <div className="bg-white rounded-[2rem] border border-slate-100 shadow-premium p-6 md:p-16 text-center space-y-4">
                     <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
                         <Wallet className="h-8 w-8 text-slate-300" />
                     </div>

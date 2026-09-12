@@ -109,9 +109,9 @@ export default async function InvoicesIssuedPage({
             />
 
             {/* KPI Strip */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 px-1">
-                <div className="flex items-center gap-12">
-                    <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 px-1">
+                <div className="flex items-center gap-12 min-w-0">
+                    <div className="flex flex-col min-w-0">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">
                             Total Facturado
                         </span>
@@ -136,7 +136,7 @@ export default async function InvoicesIssuedPage({
             </div>
 
             {/* Metrics Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-8 group hover:translate-y-[-4px] transition-all">
                     <div className="space-y-4">
                         <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -188,8 +188,8 @@ export default async function InvoicesIssuedPage({
 
             {/* Invoice Table */}
             <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
-                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-                    <div>
+                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                    <div className="min-w-0">
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">
                             Registro de Documentos Electrónicos
                         </h3>
@@ -319,7 +319,7 @@ export default async function InvoicesIssuedPage({
 
                 {/* Footer summary */}
                 {docs.length > 0 && (
-                    <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                    <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between flex-wrap gap-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                             {docs.length} documento{docs.length !== 1 ? 's' : ''} • Periodo {startDate} — {endDate}
                         </span>

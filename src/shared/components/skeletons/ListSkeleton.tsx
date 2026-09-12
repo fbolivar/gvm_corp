@@ -23,7 +23,7 @@ export function ListSkeleton() {
             </div>
 
             {/* KPI strip */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="bg-white rounded-2xl p-5 shadow-sm">
                         <div className="h-3 w-16 bg-slate-100 rounded mb-2" />

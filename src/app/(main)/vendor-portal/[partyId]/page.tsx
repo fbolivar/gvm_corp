@@ -56,7 +56,7 @@ export default async function VendorStatementPage({ params }: { params: Promise<
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 {[
                     { label: 'Total Órdenes',   value: totalOrders,         icon: ShoppingBag,    color: 'text-amber-600',  bg: 'bg-amber-50' },
                     { label: 'Por Pagar',        value: `$${(totalPending / 1e6).toFixed(2)}M`, icon: Receipt, color: 'text-rose-600', bg: 'bg-rose-50' },

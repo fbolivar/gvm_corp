@@ -152,7 +152,7 @@ function ParetoChart({ summary }: { summary: ABCSummary }) {
                 </div>
 
                 {/* Legend */}
-                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
                     {zones.map(z => (
                         <div key={z.label} className={cn('rounded-xl p-3', z.lightBg)}>
                             <p className={cn('text-lg font-bold tracking-tight', z.textColor)}>{z.count}</p>
@@ -217,7 +217,7 @@ export function ABCAnalysisClient({ initialProducts, initialSummary }: Props) {
         <div className="space-y-6">
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: 'Valor Total Stock', value: `$${COP(s.totalStockValue)}`, icon: DollarSign, color: 'text-indigo-600', bg: 'bg-indigo-50', badge: 'Valorización', badgeCls: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
                     { label: 'Rotación Promedio', value: `${s.avgRotation}x`, icon: RotateCcw, color: 'text-emerald-600', bg: 'bg-emerald-50', badge: 'Índice', badgeCls: 'bg-emerald-50 text-emerald-600 border-emerald-100' },

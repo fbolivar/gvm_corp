@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/shared/components/theme/ThemeProvider'
+import { AppUpdateGuard } from '@/shared/components/system/AppUpdateGuard'
 
 export const metadata: Metadata = {
     title: {
@@ -55,6 +56,9 @@ export default function RootLayout({
             <body>
                 <ThemeProvider>
                     {children}
+                    {/* Detecta despliegues nuevos: avisa antes de que una Server
+                        Action del bundle viejo falle, y explica qué pasó si falla. */}
+                    <AppUpdateGuard />
                 </ThemeProvider>
             </body>
         </html>

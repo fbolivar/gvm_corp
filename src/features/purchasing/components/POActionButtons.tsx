@@ -22,6 +22,7 @@ import {
 } from "@/features/purchasing/actions"
 import { rejectOrderAction } from "@/features/purchasing/actions/purchaseOrderActions"
 import { POStatus } from "@/features/purchasing/types"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface POActionButtonsProps {
     orderId: string
@@ -56,13 +57,15 @@ export function POActionButtons({ orderId, status }: POActionButtonsProps) {
     const busy = (label: string) => loading === label
 
     return (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
             {/* View detail */}
-            <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" title="Ver Detalle" asChild>
-                <Link href={`/purchasing/orders/${orderId}`}>
-                    <Eye className="h-3.5 w-3.5" />
-                </Link>
-            </Button>
+            <Hint label="Ver Detalle" side="top">
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" title="Ver Detalle" asChild>
+                    <Link href={`/purchasing/orders/${orderId}`}>
+                        <Eye className="h-3.5 w-3.5" />
+                    </Link>
+                </Button>
+            </Hint>
 
             {/* DRAFT → Edit */}
             {status === "DRAFT" && (
@@ -149,20 +152,22 @@ export function POActionButtons({ orderId, status }: POActionButtonsProps) {
 
             {/* DRAFT or PENDING_APPROVAL → Cancel */}
             {(status === "DRAFT" || status === "PENDING_APPROVAL") && (
-                <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:border-rose-100"
-                    disabled={busy("cancel")}
-                    onClick={() => run("cancel", () => cancelOrderAction(orderId))}
-                    title="Cancelar Orden"
-                >
-                    {busy("cancel") ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                        <XCircle className="h-3.5 w-3.5" />
-                    )}
-                </Button>
+                <Hint label="Cancelar Orden" side="top">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:border-rose-100"
+                        disabled={busy("cancel")}
+                        onClick={() => run("cancel", () => cancelOrderAction(orderId))}
+                        title="Cancelar Orden"
+                    >
+                        {busy("cancel") ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <XCircle className="h-3.5 w-3.5" />
+                        )}
+                    </Button>
+                </Hint>
             )}
         </div>
     )

@@ -3,6 +3,22 @@ import type { NextConfig } from 'next'
 const isProd = process.env.NODE_ENV === 'production'
 
 const nextConfig: NextConfig = {
+  // 0. Version skew — evita "Server Action ... was not found on the server".
+  // Cada deploy genera IDs nuevos para las Server Actions: una pestaña abierta
+  // con el bundle anterior enviaba un ID que ya no existía y el guardado fallaba.
+  // Con deploymentId el cliente marca sus peticiones con el deploy que le sirvió
+  // el HTML, y Vercel (Skew Protection) las enruta a ESE deploy.
+  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+
+  // Sello de build: mismo valor en cliente y servidor de ESTE deploy. El cliente
+  // lo compara contra /api/version para avisar de una versión nueva a tiempo.
+  env: {
+    NEXT_PUBLIC_APP_BUILD:
+      process.env.VERCEL_DEPLOYMENT_ID ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      `local-${Date.now()}`,
+  },
+
   // =============================================
   // 🏎️ SAAS FACTORY V3 - PRODUCTION PERFORMANCE
   // Target: 100+ concurrent connections
@@ -73,10 +89,14 @@ const nextConfig: NextConfig = {
               ...(isProd ? ["upgrade-insecure-requests"] : []),
             ].join('; '),
           },
-          // Restrict browser features
+          // Restrict browser features.
+          // camera=(self) y geolocation=(self): la propia app SÍ puede usarlas
+          // (la terminal QR de asistencia escanea con cámara y captura GPS). El
+          // resto sigue bloqueado. Sin (self) el navegador deniega la cámara sin
+          // siquiera preguntar (NotAllowedError: Permission denied).
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=()',
+            value: 'camera=(self), microphone=(), geolocation=(self), payment=(), usb=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=()',
           },
           // Prevent cross-origin window access
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },

@@ -91,8 +91,8 @@ export function FinancialHealthRadar({ radarData, healthScore }: Props) {
                             <Radar
                                 name="Salud"
                                 dataKey="score"
-                                stroke="#6366f1"
-                                fill="#6366f1"
+                                stroke="#0096E6"
+                                fill="#0096E6"
                                 fillOpacity={0.25}
                                 strokeWidth={2}
                             />
@@ -111,7 +111,7 @@ export function FinancialHealthRadar({ radarData, healthScore }: Props) {
                 </div>
 
                 {/* Axis Mini List */}
-                <div className="w-full grid grid-cols-2 gap-2">
+                <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {radarData.map((axis) => (
                         <div
                             key={axis.axis}

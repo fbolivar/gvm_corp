@@ -46,9 +46,9 @@ export default async function GeneralLedgerPage({
             />
 
             {/* 📊 SUMMARY V3 STRIP */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 px-1">
-                <div className="flex items-center gap-12">
-                    <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 px-1">
+                <div className="flex items-center gap-12 min-w-0">
+                    <div className="flex flex-col min-w-0">
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">Jerarquía de Saldos Maestro</span>
                         <div className="flex items-baseline gap-4">
                             <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">

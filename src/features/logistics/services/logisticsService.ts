@@ -177,12 +177,30 @@ export const logisticsService = {
     async updateShipment(
         supabase: SupabaseClient,
         shipmentId: string,
-        fields: { carrier_id?: string | null; tracking_number?: string | null; freight_cost?: number; notes?: string | null }
+        fields: {
+            carrier_id?: string | null;
+            warehouse_id?: string | null;
+            tracking_number?: string | null;
+            freight_cost?: number;
+            status?: string | null;
+            shipped_at?: string | null;
+            delivered_at?: string | null;
+            delivered_by_name?: string | null;
+            notes?: string | null;
+        }
     ) {
+        // Convierte 'yyyy-MM-dd' a timestamptz a mediodía UTC para no correr el día
+        // al mostrarse en zona horaria Bogotá (UTC-5).
+        const toTs = (v?: string | null) => (v ? `${String(v).slice(0, 10)}T12:00:00Z` : null);
         const updates: Record<string, unknown> = {};
         if ('carrier_id' in fields) updates.carrier_id = fields.carrier_id || null;
+        if ('warehouse_id' in fields) updates.warehouse_id = fields.warehouse_id || null;
         if ('tracking_number' in fields) updates.tracking_number = fields.tracking_number ?? null;
         if ('freight_cost' in fields) updates.freight_cost = Number(fields.freight_cost) || 0;
+        if ('status' in fields && fields.status) updates.status = fields.status;
+        if ('shipped_at' in fields) updates.shipped_at = toTs(fields.shipped_at);
+        if ('delivered_at' in fields) updates.delivered_at = toTs(fields.delivered_at);
+        if ('delivered_by_name' in fields) updates.delivered_by_name = fields.delivered_by_name ?? null;
         if ('notes' in fields) updates.notes = fields.notes ?? null;
 
         const { error } = await supabase

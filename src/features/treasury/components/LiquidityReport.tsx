@@ -73,7 +73,7 @@ export function LiquidityReport({ ar, ap, totalLiquidity }: LiquidityReportProps
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 mb-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                         <div className="bg-slate-50 rounded-xl p-4 text-center">
                             <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">Liquidez</p>
                             <p className="text-lg font-bold text-slate-900">${fmt(totalLiquidity)}</p>

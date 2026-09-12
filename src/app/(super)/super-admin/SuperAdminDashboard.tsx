@@ -199,7 +199,7 @@ export function SuperAdminDashboard({ tenants, execMetrics, trend, risks, activi
       )}
 
       {/* ═══════════ KPIs PRINCIPALES ═══════════ */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KpiCard
           icon={DollarSign}
           label="MRR estimado"

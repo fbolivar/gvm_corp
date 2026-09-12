@@ -319,8 +319,8 @@ export function SettlementForm() {
 
                             {/* Net Pay Footer */}
                             <div className="p-5 pt-0">
-                                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-                                    <div className="text-center md:text-left">
+                                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 flex-wrap">
+                                    <div className="text-center md:text-left min-w-0">
                                         <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Neto a Pagar</p>
                                         <div className="flex items-baseline gap-2 mt-1">
                                             <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">

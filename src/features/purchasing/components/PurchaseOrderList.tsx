@@ -29,6 +29,7 @@ import { useToast } from "@/shared/hooks/use-toast"
 import { markAsReceivedAction } from "@/features/purchasing/actions"
 import { IndustrialApprovalFlow } from "./IndustrialApprovalFlow"
 import { useRouter } from "next/navigation"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface PurchaseOrderListProps {
     orders: Document[]
@@ -101,12 +102,12 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
     return (
         <div className="space-y-8">
             {/* 🛠️ ENHANCED SEARCH TOOLBAR */}
-            <div className="flex flex-col md:flex-row gap-6 justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-premium border border-slate-50 relative overflow-hidden group">
+            <div className="flex flex-col lg:flex-row gap-6 justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-premium border border-slate-50 relative overflow-hidden group">
                 <div className="absolute right-0 top-0 p-4 opacity-[0.02] pointer-events-none transition-transform group-hover:scale-110">
                     <Search className="h-16 w-16" />
                 </div>
 
-                <div className="relative w-full md:w-[500px] z-10">
+                <div className="relative w-full lg:w-full lg:max-w-[500px] min-w-0 z-10">
                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-amber-600 transition-colors" />
                     <input
                         type="text"
@@ -117,11 +118,11 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
                     />
                 </div>
 
-                <div className="flex items-center gap-4 z-10 w-full md:w-auto">
-                    <Button variant="outline" className="h-14 flex-1 md:flex-none px-6 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-slate-900 transition-all">
+                <div className="flex items-center gap-4 z-10 w-full lg:w-auto">
+                    <Button variant="outline" className="h-14 flex-1 lg:flex-none px-6 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-slate-900 transition-all">
                         <Filter className="h-4 w-4 mr-3" /> Logística
                     </Button>
-                    <Button variant="outline" className="h-14 flex-1 md:flex-none px-6 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-slate-900 transition-all">
+                    <Button variant="outline" className="h-14 flex-1 lg:flex-none px-6 rounded-2xl border-slate-100 bg-white text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 hover:text-slate-900 transition-all">
                         <Download className="h-4 w-4 mr-3" /> Exportar
                     </Button>
                 </div>
@@ -129,6 +130,7 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
 
             <Card className="border-none shadow-premium bg-white rounded-[3.5rem] overflow-hidden p-2">
                 <CardContent className="p-0">
+                    <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="border-slate-50 hover:bg-transparent">
@@ -197,15 +199,17 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
                                             </div>
                                         </TableCell>
                                         <TableCell className="py-10 text-right pr-14">
-                                            <div className="flex items-center justify-end gap-5">
-                                                <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 hover:text-amber-600 hover:bg-white hover:shadow-premium transition-all active:scale-90 border border-transparent hover:border-slate-100" asChild title="Ver Detalle">
-                                                    <Link href={`/documents/${order.id}`}>
-                                                        <Search className="h-7 w-7" />
-                                                    </Link>
-                                                </Button>
+                                            <div className="flex flex-wrap items-center justify-end gap-2">
+                                                <Hint label="Ver Detalle" side="top">
+                                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-slate-50 text-slate-300 hover:text-amber-600 hover:bg-white hover:shadow-premium transition-all active:scale-90 border border-transparent hover:border-slate-100" asChild title="Ver Detalle">
+                                                        <Link href={`/documents/${order.id}`}>
+                                                            <Search className="h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
+                                                </Hint>
                                                 <Button
                                                     variant="ghost"
-                                                    className="h-14 px-8 rounded-[1.2rem] bg-indigo-50/50 text-indigo-400 hover:text-indigo-600 hover:bg-white hover:shadow-premium transition-all active:scale-95 border border-transparent hover:border-indigo-100 font-black text-[9px] uppercase tracking-widest group/rec"
+                                                    className="h-10 px-4 rounded-xl bg-indigo-50/50 text-indigo-400 hover:text-indigo-600 hover:bg-white hover:shadow-premium transition-all active:scale-95 border border-transparent hover:border-indigo-100 font-black text-[9px] uppercase tracking-widest group/rec"
                                                     disabled={order.status === 'ACCEPTED' || actionLoading === order.id}
                                                     onClick={() => order.id && handleMarkAsReceived(order.id)}
                                                 >
@@ -213,17 +217,19 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
                                                         <Loader2 className="h-5 w-5 animate-spin" />
                                                     ) : (
                                                         <>
-                                                            <PackageCheck className="h-6 w-6 mr-3 group-hover/rec:scale-110 transition-transform" />
+                                                            <PackageCheck className="h-4 w-4 mr-2 group-hover/rec:scale-110 transition-transform" />
                                                             RECIBIR CARGA
                                                         </>
                                                     )}
                                                 </Button>
 
-                                                <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 hover:text-emerald-600 hover:bg-white hover:shadow-premium transition-all active:scale-90 border border-transparent hover:border-slate-100" asChild title="Convertir a Factura" disabled={order.status !== 'ACCEPTED'}>
-                                                    <Link href={`/purchasing/bills/new?orderId=${order.id}`}>
-                                                        <ArrowUpRight className="h-7 w-7" />
-                                                    </Link>
-                                                </Button>
+                                                <Hint label="Convertir a Factura" side="left">
+                                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-slate-50 text-slate-300 hover:text-emerald-600 hover:bg-white hover:shadow-premium transition-all active:scale-90 border border-transparent hover:border-slate-100" asChild title="Convertir a Factura" disabled={order.status !== 'ACCEPTED'}>
+                                                        <Link href={`/purchasing/bills/new?orderId=${order.id}`}>
+                                                            <ArrowUpRight className="h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
+                                                </Hint>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -231,6 +237,7 @@ export function PurchaseOrderList({ orders }: PurchaseOrderListProps) {
                             )}
                         </TableBody>
                     </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>

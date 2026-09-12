@@ -16,6 +16,7 @@ import {
     Settings2,
     TrendingUp
 } from "lucide-react"
+import { Hint } from "@/shared/components/ui/hint"
 
 type DashboardFilter = 'PENDING' | 'PACKING' | 'IN_TRANSIT' | 'DELIVERED'
 
@@ -75,13 +76,15 @@ export function ShipmentManager() {
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <Button
-                                variant="outline"
-                                className="h-10 w-10 rounded-xl border-none bg-white shadow-sm text-slate-400 hover:text-primary transition-all p-0"
-                                onClick={() => setRefreshKey(prev => prev + 1)}
-                            >
-                                <Settings2 className="h-5 w-5" />
-                            </Button>
+                            <Hint label="Actualizar" side="left">
+                                <Button
+                                    variant="outline"
+                                    className="h-10 w-10 rounded-xl border-none bg-white shadow-sm text-slate-400 hover:text-primary transition-all p-0"
+                                    onClick={() => setRefreshKey(prev => prev + 1)}
+                                >
+                                    <Settings2 className="h-5 w-5" />
+                                </Button>
+                            </Hint>
                         </div>
                     </div>
 

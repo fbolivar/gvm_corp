@@ -108,7 +108,7 @@ export function SerialListClient({ serials, stats, products, warehouses }: Props
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-[2rem] p-6 shadow-premium border border-slate-50">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Seriales</p>
                     <p className="text-3xl font-black text-slate-900 mt-2 italic tracking-tighter">{stats.total}</p>

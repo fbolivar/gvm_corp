@@ -43,14 +43,16 @@ export async function createPurchaseReturnAction(input: CreatePurchaseReturnInpu
                 party_id: input.party_id,
                 status: 'POSTED',
                 subtotal: input.total,
-                tax: 0,
+                // La columna es `taxes` (no `tax`) y `documents` no tiene `created_by`:
+                // con esos dos campos el INSERT fallaba SIEMPRE y ninguna devolución
+                // de compra se podía registrar.
+                taxes: 0,
                 total: input.total,
                 balance: 0,
                 currency: 'COP',
                 issue_date: new Date().toISOString().split('T')[0],
                 notes_internal: input.reason,
                 notes_public: `Devolución sobre factura ${parentBill.number}`,
-                created_by: user.id,
             })
             .select()
             .single()

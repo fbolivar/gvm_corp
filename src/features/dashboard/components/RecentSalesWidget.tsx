@@ -40,6 +40,7 @@ export function RecentSalesWidget({ data }: RecentSalesWidgetProps) {
                 </Button>
             </CardHeader>
             <CardContent className="p-0">
+                <div className="overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="border-slate-50 hover:bg-transparent">
@@ -95,6 +96,7 @@ export function RecentSalesWidget({ data }: RecentSalesWidgetProps) {
                         )}
                     </TableBody>
                 </Table>
+                </div>
             </CardContent>
         </Card>
     );

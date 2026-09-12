@@ -71,8 +71,8 @@ export default async function BudgetDetailPage({
                     <ArrowLeft className="h-3.5 w-3.5" /> Volver a Presupuestos
                 </Link>
 
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                    <div className="space-y-2">
+                <div className="flex flex-col md:flex-row flex-wrap md:items-start justify-between gap-6">
+                    <div className="space-y-2 min-w-0">
                         <div className="flex items-center gap-3">
                             <h1 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">{budget.name}</h1>
                             <Badge className={cn("border-none text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-xl", cfg.cls)}>
@@ -105,7 +105,7 @@ export default async function BudgetDetailPage({
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-8">
                     <div className="space-y-4">
                         <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -162,7 +162,7 @@ export default async function BudgetDetailPage({
             </div>
 
             {/* Main: Lines + Form */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-10">
 
                 {/* Add Line Form */}
                 <div className="lg:col-span-4">
@@ -182,8 +182,8 @@ export default async function BudgetDetailPage({
 
                     {/* Income Lines */}
                     <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                        <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
                                 <div className="h-3 w-3 rounded-full bg-emerald-500" />
                                 <h3 className="text-base font-black text-slate-900 italic uppercase">Ingresos</h3>
                                 <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black uppercase px-2 py-0.5">
@@ -244,8 +244,8 @@ export default async function BudgetDetailPage({
 
                     {/* Expense Lines */}
                     <Card className="border-none shadow-premium bg-white rounded-[3rem] overflow-hidden">
-                        <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                        <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
                                 <div className="h-3 w-3 rounded-full bg-rose-500" />
                                 <h3 className="text-base font-black text-slate-900 italic uppercase">Gastos</h3>
                                 <Badge className="bg-rose-50 text-rose-600 border-none text-[8px] font-black uppercase px-2 py-0.5">

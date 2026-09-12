@@ -169,7 +169,7 @@ export function DianSettingsForm({ initialData, tenantId }: Props) {
                                             className="h-14 rounded-2xl bg-slate-50 border-transparent focus:bg-white transition-all font-mono"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">PIN</Label>
                                             <Input
@@ -200,7 +200,7 @@ export function DianSettingsForm({ initialData, tenantId }: Props) {
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                                     <div className="space-y-4">
                                         <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Seleccionar Ambiente</Label>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div
                                                 onClick={() => form.setValue("environment", "TEST")}
                                                 className={cn(
@@ -251,7 +251,7 @@ export function DianSettingsForm({ initialData, tenantId }: Props) {
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                                     <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-4">
                                         <h4 className="font-black text-slate-900 text-lg">Resumen de Configuración</h4>
-                                        <dl className="grid grid-cols-2 gap-y-4 text-sm">
+                                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 text-sm">
                                             <div>
                                                 <dt className="text-slate-400 font-bold text-xs uppercase">Ambiente</dt>
                                                 <dd className="font-bold text-slate-900">{form.watch("environment") === "TEST" ? "Pruebas" : "Producción"}</dd>

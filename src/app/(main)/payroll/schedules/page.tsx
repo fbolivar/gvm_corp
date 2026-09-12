@@ -47,7 +47,7 @@ export default async function SchedulesPage() {
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
                         <CalendarClock className="h-5 w-5" />
@@ -81,7 +81,7 @@ export default async function SchedulesPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Left: Create form */}
                 <div className="col-span-12 lg:col-span-4">
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4 sticky top-24">

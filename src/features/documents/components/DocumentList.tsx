@@ -28,6 +28,7 @@ import { DataTable, DataTableColumn } from "@/shared/components/ui/data-table"
 import { StatusBadge, statusToTone } from "@/shared/components/ui/status-badge"
 import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
+import { Hint } from "@/shared/components/ui/hint"
 import { cn } from "@/shared/lib/utils"
 import { useConfirm } from "@/shared/hooks/useConfirm"
 
@@ -302,16 +303,18 @@ export function DocumentList({ documents }: DocumentListProps) {
                             )}
 
                         {/* Ver detalle */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5 transition-colors"
-                            asChild
-                        >
-                            <Link href={`/documents/${row.id}`}>
-                                <Eye className="h-4 w-4" />
-                            </Link>
-                        </Button>
+                        <Hint label="Ver detalle" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5 transition-colors"
+                                asChild
+                            >
+                                <Link href={`/documents/${row.id}`}>
+                                    <Eye className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </Hint>
                     </div>
                 )
             },

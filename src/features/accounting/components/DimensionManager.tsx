@@ -12,6 +12,7 @@ import {
     deleteDimensionValueAction,
 } from "../actions/dimensionActions"
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { Hint } from "@/shared/components/ui/hint"
 import {
     Plus,
     Trash2,
@@ -214,7 +215,7 @@ export function DimensionManager({ dimensions, dimensionValues }: Props) {
 
             {/* Dimensions List */}
             {dimensions.length === 0 ? (
-                <div className="bg-white rounded-[2.5rem] p-16 text-center shadow-premium border border-slate-50">
+                <div className="bg-white rounded-[2.5rem] p-6 md:p-16 text-center shadow-premium border border-slate-50">
                     <Layers className="h-12 w-12 mx-auto text-slate-200 mb-4" />
                     <p className="text-sm font-bold text-slate-400">Sin dimensiones configuradas</p>
                     <p className="text-xs text-slate-300 mt-1">
@@ -256,14 +257,16 @@ export function DimensionManager({ dimensions, dimensionValues }: Props) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Button
-                                            onClick={e => { e.stopPropagation(); handleDeleteDim(dim.id) }}
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
+                                        <Hint label="Eliminar dimensión" side="top">
+                                            <Button
+                                                onClick={e => { e.stopPropagation(); handleDeleteDim(dim.id) }}
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </Hint>
                                         {isExpanded
                                             ? <ChevronUp className="h-4 w-4 text-slate-400" />
                                             : <ChevronDown className="h-4 w-4 text-slate-400" />
@@ -345,12 +348,14 @@ export function DimensionManager({ dimensions, dimensionValues }: Props) {
                                                                 {val.name}
                                                             </span>
                                                         </div>
-                                                        <button
-                                                            onClick={() => handleDeleteValue(val.id)}
-                                                            className="text-slate-300 hover:text-rose-500 transition-colors p-1 rounded"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                        </button>
+                                                        <Hint label="Eliminar valor" side="left">
+                                                            <button
+                                                                onClick={() => handleDeleteValue(val.id)}
+                                                                className="text-slate-300 hover:text-rose-500 transition-colors p-1 rounded"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        </Hint>
                                                     </div>
                                                 ))}
                                             </div>

@@ -206,7 +206,11 @@ export const documentPdfService = {
         // =====================================================
         // CLIENTE — bloque limpio con fondo sutil
         // =====================================================
-        const clientH = 26;
+        // El concepto va a todo el ancho y envuelve (textos largos de envío/recibe).
+        const conceptText = (document.notes_public || '').trim();
+        doc.setFontSize(8.5);
+        const conceptLines: string[] = conceptText ? (doc.splitTextToSize(conceptText, CW - 30) as string[]) : [];
+        const clientH = conceptText ? (29 + conceptLines.length * 4) : 26;
         doc.setFillColor(...SOFT);
         doc.setDrawColor(...LINE);
         doc.setLineWidth(0.3);
@@ -228,7 +232,10 @@ export const documentPdfService = {
         };
 
         const party = document.party as Record<string, unknown> | undefined;
-        field('Cliente', document.party?.legal_name || '', lx, y + 6);
+        // En documentos de compra el tercero es el proveedor, no el cliente.
+        const isPurchaseDoc = document.doc_type === 'PURCHASE_ORDER' || document.doc_type === 'VENDOR_BILL';
+        const partyLabel = isPurchaseDoc ? 'Proveedor' : 'Cliente';
+        field(partyLabel, document.party?.legal_name || '', lx, y + 6);
         field('NIT / CC', document.party?.doc_number || '', lx, y + 12);
         field('Dirección', (party?.address as string) || '', lx, y + 18);
         field('Ciudad', (party?.city as string) || '', lx, y + 24);
@@ -236,14 +243,22 @@ export const documentPdfService = {
         field('Teléfono', document.party?.phone || '', rx, y + 6);
         field('Fecha', fmtDate(document.issue_date), rx, y + 12);
         field('Forma de pago', 'Contado', rx, y + 18, 30);
-        field('Concepto', (document.notes_public || '').substring(0, 38), rx, y + 24);
+
+        // Concepto: etiqueta + texto completo a todo el ancho, en varias líneas si hace falta
+        if (conceptText) {
+            const cy = y + 29;
+            doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MUTED);
+            doc.text('CONCEPTO', lx, cy);
+            doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...INK);
+            doc.text(conceptLines, lx + 20, cy);
+        }
 
         y += clientH + 5;
 
         // =====================================================
         // TABLA DE ÍTEMS
         // =====================================================
-        const tHead = [['#', 'Código', 'Descripción', 'Cant.', 'U. Med', 'Vr Unitario', 'IVA', 'Vr IVA', 'Dcto %', 'Total']];
+        const tHead = [['#', 'Código', 'Descripción', 'Cant.', 'Lote', 'U. Med', 'Vr Unitario', 'IVA', 'Vr IVA', 'Dcto %', 'Total']];
 
         let calcSubtotal = 0;
         let calcTaxes = 0;
@@ -262,6 +277,7 @@ export const documentPdfService = {
                 sku,
                 line.description || '',
                 fmtInt(qty),
+                '', // Lote — casilla en blanco para diligenciar a mano en el impreso
                 'Und.',
                 fmtInt(price),
                 `${iva}%`,
@@ -299,12 +315,13 @@ export const documentPdfService = {
                 1: { cellWidth: 22, fontStyle: 'bold' },
                 2: { cellWidth: 'auto' },
                 3: { halign: 'right', cellWidth: 15 },
-                4: { halign: 'center', cellWidth: 13 },
-                5: { halign: 'right', cellWidth: 22 },
-                6: { halign: 'center', cellWidth: 12 },
-                7: { halign: 'right', cellWidth: 20 },
-                8: { halign: 'center', cellWidth: 13 },
-                9: { halign: 'right', cellWidth: 25, fontStyle: 'bold' },
+                4: { halign: 'center', cellWidth: 22, minCellHeight: 9 }, // Lote — casilla fantasma para escribir a mano
+                5: { halign: 'center', cellWidth: 12 },
+                6: { halign: 'right', cellWidth: 20 },
+                7: { halign: 'center', cellWidth: 12 },
+                8: { halign: 'right', cellWidth: 18 },
+                9: { halign: 'center', cellWidth: 11 },
+                10: { halign: 'right', cellWidth: 24, fontStyle: 'bold' },
             },
             margin: { left: M, right: M },
             theme: 'grid',
@@ -379,6 +396,30 @@ export const documentPdfService = {
         doc.text(`$ ${fmtInt(total)}`, totalsX + totalsW - 2.5, ty + 5.6, { align: 'right' });
 
         y = Math.max(y + 24, ty + 8.5) + 6;
+
+        // =====================================================
+        // OBSERVACIONES FINALES (pedidos ya cerrados)
+        // =====================================================
+        const finalNotes = (document.final_notes || '').trim();
+        if (finalNotes) {
+            doc.setFontSize(8);
+            const fnLines = doc.splitTextToSize(finalNotes, CW - 8) as string[];
+            const boxH = 8 + fnLines.length * 3.8;
+            doc.setFillColor(...SOFT);
+            doc.setDrawColor(...LINE);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(M, y, CW, boxH, 2, 2, 'FD');
+            doc.setFontSize(6.5);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...MUTED);
+            doc.text('OBSERVACIONES FINALES', M + 4, y + 4.5);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...INK);
+            let fy = y + 8.5;
+            for (const fl of fnLines) { doc.text(fl, M + 4, fy); fy += 3.8; }
+            y += boxH + 5;
+        }
 
         // =====================================================
         // DISCLAIMER (cotizaciones) + NOTA LEGAL

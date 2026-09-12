@@ -69,8 +69,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Pipeline CRM</span>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                        <div className="space-y-3">
+                    <div className="flex flex-col md:flex-row flex-wrap md:items-end justify-between gap-8">
+                        <div className="space-y-3 min-w-0">
                             <Badge className={cn("border-none font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full", meta.bg, meta.color)}>
                                 {meta.label}
                             </Badge>
@@ -131,7 +131,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             )}
 
             {/* KPI CARDS */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-premium border border-slate-50 space-y-3">
                     <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                         <DollarSign className="h-6 w-6" />
@@ -256,8 +256,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             </div>
 
             {/* STAGE ACTIONS */}
-            <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
+            <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 flex flex-col md:flex-row flex-wrap items-center justify-between gap-6">
+                <div className="flex items-center gap-4 min-w-0">
                     <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center text-slate-400 shadow-premium border border-slate-100">
                         <Clock className="h-6 w-6" />
                     </div>

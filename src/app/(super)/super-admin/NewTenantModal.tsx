@@ -135,8 +135,8 @@ export function NewTenantModal({ onClose, onSuccess }: Props) {
                   onChange={v => setForm(p => ({ ...p, company_name: v }))}
                   placeholder="EMPRESA CLIENTE S.A.S"
                 />
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-2">
                     <Field
                       label="NIT *"
                       value={form.nit}
@@ -177,7 +177,7 @@ export function NewTenantModal({ onClose, onSuccess }: Props) {
 
             <section>
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-700 mb-3">Plan y Licencia</h3>
-              <div className="grid grid-cols-4 gap-2 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
                 {(['TRIAL', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as const).map(p => (
                   <button
                     key={p}
@@ -193,7 +193,7 @@ export function NewTenantModal({ onClose, onSuccess }: Props) {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Field
                   label="Max usuarios"
                   type="number"
@@ -219,7 +219,7 @@ export function NewTenantModal({ onClose, onSuccess }: Props) {
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-700 mb-3">
                 Módulos habilitados ({form.modules_enabled.length}/{ALL_MODULES.length})
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {ALL_MODULES.map(m => (
                   <label
                     key={m}

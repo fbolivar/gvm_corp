@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface Props {
     documentId: string
@@ -184,33 +185,35 @@ function AttachmentPanel({ department, documentId, tenantId, uploaderName, curre
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                     {att.signed_url && (
+                                        <Hint label="Descargar" side="top">
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                asChild
+                                                className="h-8 w-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                            >
+                                                <a href={att.signed_url} target="_blank" rel="noopener noreferrer" download={att.file_name}>
+                                                    <Download className="h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                        </Hint>
+                                    )}
+                                    <Hint label="Eliminar" side="top">
                                         <Button
                                             type="button"
                                             size="icon"
                                             variant="ghost"
-                                            asChild
-                                            className="h-8 w-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                                            title="Descargar"
+                                            disabled={deletingId === att.id}
+                                            onClick={() => handleDelete(att)}
+                                            className="h-8 w-8 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                         >
-                                            <a href={att.signed_url} target="_blank" rel="noopener noreferrer" download={att.file_name}>
-                                                <Download className="h-4 w-4" />
-                                            </a>
+                                            {deletingId === att.id
+                                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                                : <Trash2 className="h-4 w-4" />
+                                            }
                                         </Button>
-                                    )}
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        disabled={deletingId === att.id}
-                                        onClick={() => handleDelete(att)}
-                                        className="h-8 w-8 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                                        title="Eliminar"
-                                    >
-                                        {deletingId === att.id
-                                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                                            : <Trash2 className="h-4 w-4" />
-                                        }
-                                    </Button>
+                                    </Hint>
                                 </div>
                             </li>
                         ))}
@@ -277,7 +280,8 @@ export function DocumentAttachmentsSection({ documentId, tenantId }: Props) {
     const sharedProps = { documentId, tenantId, uploaderName, currentUserId, attachments, onUploaded: handleUploaded, onDeleted: handleDeleted }
 
     return (
-        <div className="space-y-3">
+        // id="soportes": destino del enlace directo desde los listados.
+        <div id="soportes" className="space-y-3 scroll-mt-24">
             <div className="px-1">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Adjuntos del Documento</p>
                 <p className="text-xs text-slate-300 mt-0.5">Soporte documental por departamento · visible para todos los usuarios del pedido</p>

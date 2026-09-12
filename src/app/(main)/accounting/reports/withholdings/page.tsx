@@ -96,8 +96,8 @@ export default async function WithholdingsPage({
             />
 
             {/* KPI Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-1">
+                <div className="flex flex-col min-w-0">
                     <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">
                         Total Retenciones
                     </span>
@@ -161,8 +161,8 @@ export default async function WithholdingsPage({
 
             {/* Bills Table */}
             <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
-                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-                    <div>
+                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                    <div className="min-w-0">
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">
                             Retenciones por Factura de Compra
                         </h3>
@@ -237,7 +237,7 @@ export default async function WithholdingsPage({
                 </div>
 
                 {rows.length > 0 && (
-                    <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                    <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between flex-wrap gap-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{rows.length} facturas · Estimación basada en tasas estándar Colombia 2026</span>
                         <div className="flex items-center gap-4">
                             <div className="text-right"><span className="text-[9px] font-black text-red-500 block">ReteFuente</span><span className="text-sm font-black text-red-600 italic">{fmt(totReteFuente)}</span></div>

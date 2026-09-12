@@ -22,9 +22,10 @@ export const supportService = {
             .select(`
                 *,
                 party:parties(*),
+                assigned_user:profiles(full_name),
                 interactions:support_interactions(*, author:profiles(full_name, avatar_url)),
                 audit_logs:support_audit_log(*, actor:profiles(full_name)),
-                document:documents(number, total, status, issue_date),
+                document:documents(number, total, status, issue_date, subtotal, taxes, currency),
                 product:products(name, sku)
             `)
             .eq('id', id)
@@ -47,17 +48,16 @@ export const supportService = {
 
         if (!userTenant) throw new Error("Usuario sin tenant asociado");
 
-        // Generar número de ticket (esto idealmente sería secuencial en DB, 
-        // pero para este MVP usaremos un generador rápido)
-        const ticketNumber = `TKT-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+        // El número es secuencial por tenant, generado por un trigger de BD
+        // (set_support_ticket_number). No lo generamos aquí para evitar colisiones.
+        const { number: _ignored, ...rest } = ticket as Partial<Ticket>;
 
         const { data, error } = await client
             .from('support_tickets')
             .insert({
-                ...ticket,
-                number: ticketNumber,
+                ...rest,
                 tenant_id: userTenant.tenant_id,
-                status: 'OPEN'
+                status: ticket.status || 'OPEN'
             })
             .select()
             .single();
@@ -83,14 +83,18 @@ export const supportService = {
             .select(`
                 *,
                 author:profiles(full_name, avatar_url),
-                ticket:support_tickets(number, subject)
+                ticket:support_tickets(number, subject, tenant_id)
             `)
             .single();
 
         if (error) throw error;
 
-        // Procesar menciones @
-        await this.parseAndNotifyMentions(client, data, (data as any).ticket);
+        // Procesar menciones @ — nunca debe romper el envío del mensaje
+        try {
+            await this.parseAndNotifyMentions(client, data, (data as any).ticket);
+        } catch (e) {
+            console.error('[support] parseAndNotifyMentions:', e);
+        }
 
         return data;
     },
@@ -100,66 +104,77 @@ export const supportService = {
      * Busca menciones de usuarios o roles y crea notificaciones.
      */
     async parseAndNotifyMentions(client: SupabaseClient, interaction: TicketInteraction, ticketInfo: any) {
-        const mentionRegex = /@(\w+)/g;
-        const matches = [...interaction.content.matchAll(mentionRegex)];
+        if (!ticketInfo) return;
+        const tenantId = ticketInfo.tenant_id as string | undefined;
+        const content = interaction.content || '';
+        const matches = [...content.matchAll(/@(\w+)/g)];
         if (matches.length === 0) return;
 
+        const notified = new Set<string>();
         for (const match of matches) {
-            const tag = match[1].toUpperCase();
-
-            // 1. Buscar si es un ROL (Departamento)
-            const { data: roleUsers } = await client
-                .from('user_roles')
-                .select('user_id')
-                .eq('role_name', tag);
-
-            if (roleUsers && roleUsers.length > 0) {
-                for (const ru of roleUsers) {
-                    if (ru.user_id === interaction.author_id) continue;
-                    await this.createNotification(client, ru.user_id, {
-                        title: `Mención en Ticket ${ticketInfo.number}`,
-                        body: `Te han mencionado en una nota del ticket: ${interaction.content.substring(0, 50)}...`,
-                        link: `/support/tickets/${interaction.ticket_id}`
-                    });
-                }
-            }
-
-            // 2. Buscar si es un NOMBRE de usuario (mención individual)
-            const { data: userProfile } = await client
+            const tag = match[1];
+            // Buscar usuarios por nombre (mención individual)
+            const { data: profiles } = await client
                 .from('profiles')
                 .select('id')
                 .ilike('full_name', `%${tag}%`)
-                .limit(1)
-                .single();
+                .limit(5);
 
-            if (userProfile && userProfile.id !== interaction.author_id) {
-                await this.createNotification(client, userProfile.id, {
-                    title: `Mención Personal: Ticket ${ticketInfo.number}`,
-                    body: `Has sido mencionado directamente: ${interaction.content.substring(0, 50)}...`,
+            for (const p of profiles || []) {
+                if (p.id === interaction.author_id || notified.has(p.id)) continue;
+                notified.add(p.id);
+                await this.createNotification(client, p.id, tenantId, {
+                    title: `Mención en el ticket ${ticketInfo.number}`,
+                    body: `Te mencionaron: ${content.substring(0, 60)}${content.length > 60 ? '…' : ''}`,
                     link: `/support/tickets/${interaction.ticket_id}`
                 });
             }
         }
     },
 
-    async createNotification(client: SupabaseClient, userId: string, data: { title: string, body: string, link: string }) {
-        await client.from('app_notifications').insert({
+    async createNotification(
+        client: SupabaseClient,
+        userId: string,
+        tenantId: string | undefined,
+        data: { title: string; body: string; link: string }
+    ) {
+        // app_notifications tiene RLS con with_check tenant_id = get_my_tenant_id():
+        // el tenant_id es OBLIGATORIO o el insert falla silenciosamente por RLS.
+        const { error } = await client.from('app_notifications').insert({
             user_id: userId,
+            tenant_id: tenantId ?? null,
+            category: 'GENERAL',
+            priority: 'MEDIUM',
             ...data
         });
+        if (error) console.error('[support] createNotification:', error.message);
     },
 
     async updateTicketStatus(client: SupabaseClient, id: string, status: string, prevState: any) {
         const { data, error } = await client
             .from('support_tickets')
-            .update({ status })
+            .update({ status, updated_at: new Date().toISOString() })
             .eq('id', id)
             .select()
             .single();
 
         if (error) throw error;
 
-        await this.logAction(client, id, 'UPDATE_STATUS', { status: prevState.status }, { status });
+        await this.logAction(client, id, 'UPDATE_STATUS', { status: prevState?.status ?? null }, { status });
+        return data;
+    },
+
+    async assignTicket(client: SupabaseClient, id: string, assignedTo: string | null, prevAssignedTo: string | null) {
+        const { data, error } = await client
+            .from('support_tickets')
+            .update({ assigned_to: assignedTo, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        await this.logAction(client, id, 'ASSIGN', { assigned_to: prevAssignedTo ?? null }, { assigned_to: assignedTo });
         return data;
     },
 

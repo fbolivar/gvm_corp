@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 import {
     PieChart,
     Pie,
@@ -52,7 +53,7 @@ export function CRMInsightsDashboard({ stats }: Props) {
     useEffect(() => { setIsMounted(true); }, []);
 
     const funnelData = [
-        { name: 'Nuevos', value: stats.leadFunnel.new, fill: '#6366f1' },
+        { name: 'Nuevos', value: stats.leadFunnel.new, fill: '#0096E6' },
         { name: 'Contactados', value: stats.leadFunnel.contacted, fill: '#8b5cf6' },
         { name: 'Calificados', value: stats.leadFunnel.qualified, fill: '#d946ef' },
         { name: 'Convertidos', value: stats.leadFunnel.converted, fill: '#10b981' },
@@ -178,9 +179,9 @@ export function CRMInsightsDashboard({ stats }: Props) {
                                             contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', padding: '10px 14px', fontSize: '12px' }}
                                             formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString('es-CO')}`, 'Valor']}
                                         />
-                                        <Bar dataKey="value" fill="#6366f1" radius={[0, 8, 8, 0]} barSize={28}>
+                                        <Bar dataKey="value" fill="#0096E6" radius={[0, 8, 8, 0]} barSize={28}>
                                             {stageData.map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#4f46e5' : '#818cf8'} fillOpacity={1 - (index * 0.1)} />
+                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#0069A8' : '#6BCAF8'} fillOpacity={1 - (index * 0.1)} />
                                             ))}
                                         </Bar>
                                     </BarChart>
@@ -282,9 +283,11 @@ export function CRMInsightsDashboard({ stats }: Props) {
                                         )}>
                                             {status}
                                         </Badge>
-                                        <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-lg hover:bg-slate-100">
-                                            <Link href={`/crm/leads/${id}/edit`}><ChevronRight className="h-4 w-4" /></Link>
-                                        </Button>
+                                        <Hint label="Ver detalle" side="top">
+                                            <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-lg hover:bg-slate-100">
+                                                <Link href={`/crm/leads/${id}/edit`}><ChevronRight className="h-4 w-4" /></Link>
+                                            </Button>
+                                        </Hint>
                                     </div>
                                 </div>
                                 );

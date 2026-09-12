@@ -17,11 +17,14 @@ import {
   Circle,
   RefreshCw,
   FileText,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib/utils'
+import { toast } from 'sonner'
 import {
   getLicense,
   getLicenseStatus,
@@ -65,44 +68,25 @@ function formatLicenseKey(key: string): string {
   return groups.join('-')
 }
 
-function planColorClass(plan: string): string {
+// Azul corporativo de marca (BC FABRIC SAS · GVM Corp)
+const BRAND = '#0096E6'
+
+// Estilo del sello del plan sobre la tarjeta oscura (paleta sobria)
+function planBadgeDark(plan: string): string {
   switch (plan) {
     case 'ENTERPRISE':
-      return 'bg-purple-100 text-purple-700 border-purple-200'
+      return 'bg-sky-500/15 text-sky-200 border-sky-400/30'
     case 'PROFESSIONAL':
-      return 'bg-blue-100 text-blue-700 border-blue-200'
+      return 'bg-blue-500/15 text-blue-200 border-blue-400/30'
     case 'STARTER':
-      return 'bg-slate-100 text-slate-600 border-slate-200'
+      return 'bg-slate-400/15 text-slate-200 border-slate-300/25'
     case 'TRIAL':
-      return 'bg-orange-100 text-orange-700 border-orange-200'
+      return 'bg-amber-500/15 text-amber-200 border-amber-400/30'
     default:
-      return 'bg-gray-100 text-gray-600 border-gray-200'
+      return 'bg-slate-400/15 text-slate-200 border-slate-300/25'
   }
 }
 
-function planDarkClass(plan: string): string {
-  switch (plan) {
-    case 'ENTERPRISE':
-      return 'from-purple-900 via-slate-900 to-slate-900'
-    case 'PROFESSIONAL':
-      return 'from-blue-900 via-slate-900 to-slate-900'
-    case 'STARTER':
-      return 'from-slate-800 via-slate-900 to-slate-900'
-    case 'TRIAL':
-      return 'from-orange-900 via-slate-900 to-slate-900'
-    default:
-      return 'from-slate-800 to-slate-900'
-  }
-}
-
-function planAccentColor(plan: string): string {
-  switch (plan) {
-    case 'ENTERPRISE': return '#7c3aed'
-    case 'PROFESSIONAL': return '#1d4ed8'
-    case 'TRIAL': return '#ea580c'
-    default: return '#475569'
-  }
-}
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
@@ -162,173 +146,206 @@ function LicenseProgressBar({ license }: { license: TenantLicense }) {
 
 // ─── PDF Generator ────────────────────────────────────────────────────────────
 
+function licenseStatusEs(status: string): string {
+  const map: Record<string, string> = {
+    ACTIVE: 'Activa',
+    EXPIRED: 'Vencida',
+    SUSPENDED: 'Suspendida',
+    CANCELLED: 'Cancelada',
+  }
+  return map[status] || status
+}
+
 function generateLicensePDF(license: TenantLicense): void {
   const doc = new jsPDF()
-  const W = doc.internal.pageSize.width
-  const margin = 14
-  const maxWidth = W - margin * 2
-  const accentColor = planAccentColor(license.plan)
-  const accentRGB = hexToRgb(accentColor)
+  const W = doc.internal.pageSize.width   // 210
+  const H = doc.internal.pageSize.height  // 297
+  const cx = W / 2
+
+  const INK: [number, number, number] = [17, 24, 39]
+  const MUTED: [number, number, number] = [107, 114, 128]
+  const LINE: [number, number, number] = [209, 213, 219]
+  const SOFT: [number, number, number] = [249, 250, 251]
+
   const today = new Date().toLocaleDateString('es-CO', {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 
-  // ── Header background ──
-  doc.setFillColor(0, 150, 230)
-  doc.rect(0, 0, W, 50, 'F')
+  // ── Marco doble (estilo diploma) ──
+  doc.setDrawColor(...INK)
+  doc.setLineWidth(0.6)
+  doc.rect(12, 12, W - 24, H - 24)
+  doc.setDrawColor(...LINE)
+  doc.setLineWidth(0.2)
+  doc.rect(15, 15, W - 30, H - 30)
 
-  // ── Accent left stripe ──
-  doc.setFillColor(accentRGB.r, accentRGB.g, accentRGB.b)
-  doc.rect(0, 0, 5, 297, 'F')
-
-  // ── Issuer branding ──
+  // ── Emisor ──
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.setTextColor(148, 163, 184)
-  doc.text('EMITIDO POR', 14, 14)
-
-  doc.setFontSize(20)
-  doc.setTextColor(255, 255, 255)
-  doc.text('BC FABRIC SAS', 14, 26)
-
-  doc.setFontSize(8)
-  doc.setTextColor(148, 163, 184)
-  doc.text('Software ERP · GVM Corp', 14, 34)
-
-  // ── Title banner ──
-  doc.setFillColor(accentRGB.r, accentRGB.g, accentRGB.b)
-  doc.rect(5, 52, W - 5, 16, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(12)
-  doc.setTextColor(255, 255, 255)
-  doc.text('CERTIFICADO DE LICENCIA DE SOFTWARE', 14, 62.5)
-
-  // ── Plan badge (top-right) ──
-  doc.setFontSize(9)
-  doc.setTextColor(255, 255, 255)
-  doc.text(`PLAN ${getPlanLabel(license.plan).toUpperCase()}`, W - margin, 26, { align: 'right' })
-
-  let y = 82
-
-  // ── Section helper ──
-  const sectionTitle = (text: string, yPos: number): number => {
-    doc.setFillColor(248, 250, 252)
-    doc.rect(margin, yPos - 5, maxWidth, 9, 'F')
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(accentRGB.r, accentRGB.g, accentRGB.b)
-    doc.text(text.toUpperCase(), margin + 2, yPos + 1)
-    return yPos + 12
-  }
-
-  const row = (label: string, value: string, yPos: number, bold = false): number => {
-    doc.setFont('helvetica', bold ? 'bold' : 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(100, 116, 139)
-    doc.text(label, margin + 2, yPos)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(15, 23, 42)
-    doc.text(value, margin + 60, yPos)
-    return yPos + 7
-  }
-
-  // ── Company data ──
-  y = sectionTitle('Datos del Licenciatario', y)
-  y = row('Empresa:', license.company_name, y)
-  y = row('NIT:', license.company_nit, y)
-  y += 4
-
-  // ── License data ──
-  y = sectionTitle('Datos de la Licencia', y)
-  y = row('Clave de Licencia:', formatLicenseKey(license.license_key), y, true)
-  y = row('Plan:', getPlanLabel(license.plan), y)
-  y = row('Estado:', license.status, y)
-  y = row('Usuarios Máximos:', `${license.max_users} usuarios`, y)
-  y += 4
-
-  // ── Validity ──
-  y = sectionTitle('Vigencia', y)
-  y = row('Válida Desde:', formatDate(license.valid_from), y)
-  y = row('Válida Hasta:', formatDate(license.valid_until), y)
-  const daysLeft = getDaysRemaining(license)
-  y = row('Días Restantes:', daysLeft > 0 ? `${daysLeft} días` : 'Vencida', y)
-  y += 4
-
-  // ── Modules ──
-  y = sectionTitle('Módulos Habilitados', y)
-  const enabledModules = license.modules_enabled.map(getModuleLabel)
-  const cols = 2
-  const colW = maxWidth / cols
-  enabledModules.forEach((mod, i) => {
-    const col = i % cols
-    const xPos = margin + 2 + col * colW
-    const yPos = y + Math.floor(i / cols) * 7
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(accentRGB.r, accentRGB.g, accentRGB.b)
-    doc.text('•', xPos, yPos)
-    doc.setTextColor(15, 23, 42)
-    doc.text(mod, xPos + 5, yPos)
-  })
-  y += Math.ceil(enabledModules.length / cols) * 7 + 6
-
-  // ── Issued by ──
-  y = sectionTitle('Emisión', y)
-  y = row('Emitido por:', license.issued_by, y)
-  y = row('Fecha de Emisión:', formatDate(license.issued_at), y)
-  y = row('Generado el:', today, y)
-
-  // ── Notes ──
-  if (license.notes) {
-    y += 4
-    y = sectionTitle('Notas', y)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(100, 116, 139)
-    const noteLines = doc.splitTextToSize(license.notes, maxWidth - 4)
-    doc.text(noteLines, margin + 2, y)
-    y += noteLines.length * 5.5 + 4
-  }
-
-  // ── Signature line ──
-  const sigY = Math.max(y + 20, 230)
-  doc.setDrawColor(0, 150, 230)
-  doc.setLineWidth(0.3)
-  doc.line(margin, sigY, margin + 80, sigY)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  doc.setTextColor(15, 23, 42)
-  doc.text(license.issued_by.toUpperCase(), margin, sigY + 6)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(100, 116, 139)
-  doc.text('Representante Comercial · BC FABRIC SAS', margin, sigY + 12)
-
-  // ── Footer ──
-  doc.setFillColor(248, 250, 252)
-  doc.rect(0, 277, W, 20, 'F')
-  doc.setFillColor(accentRGB.r, accentRGB.g, accentRGB.b)
-  doc.rect(0, 277, 5, 20, 'F')
+  doc.setFontSize(11)
+  doc.setTextColor(...INK)
+  doc.text('BC FABRIC S.A.S.', cx, 30, { align: 'center', charSpace: 2 })
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
-  doc.setTextColor(148, 163, 184)
-  doc.text(
-    'Este certificado es generado automáticamente por el sistema ERP GVM Corp · BC FABRIC SAS',
-    14, 285
+  doc.setTextColor(...MUTED)
+  doc.text('SOFTWARE DE GESTIÓN EMPRESARIAL · GVM CORP', cx, 35.5, { align: 'center', charSpace: 1.2 })
+  doc.setDrawColor(...LINE)
+  doc.setLineWidth(0.3)
+  doc.line(cx - 18, 39, cx + 18, 39)
+
+  // ── Título ──
+  doc.setFont('times', 'bold')
+  doc.setFontSize(30)
+  doc.setTextColor(...INK)
+  doc.text('CERTIFICADO', cx, 58, { align: 'center' })
+  doc.setFont('times', 'normal')
+  doc.setFontSize(14)
+  doc.setTextColor(...MUTED)
+  doc.text('DE LICENCIA DE SOFTWARE', cx, 67, { align: 'center', charSpace: 2 })
+  doc.setDrawColor(...INK)
+  doc.setLineWidth(0.5)
+  doc.line(cx - 28, 73, cx + 28, 73)
+
+  // ── Intro ──
+  doc.setFont('times', 'italic')
+  doc.setFontSize(10.5)
+  doc.setTextColor(...MUTED)
+  const intro = doc.splitTextToSize(
+    'BC FABRIC S.A.S. hace constar que la presente licencia de uso del software ha sido otorgada de forma legítima a:',
+    150,
   )
+  doc.text(intro, cx, 85, { align: 'center' })
+
+  // ── Licenciatario ──
+  // Ajuste automático: se reduce la fuente hasta caber en el ancho útil y,
+  // si aún es muy largo, se divide en dos líneas (sin salirse de los márgenes).
+  const nameMaxW = 150
+  doc.setFont('times', 'bold')
+  let nameSize = 19
+  doc.setFontSize(nameSize)
+  while (doc.getTextWidth(license.company_name) > nameMaxW && nameSize > 11) {
+    nameSize -= 1
+    doc.setFontSize(nameSize)
+  }
+  doc.setTextColor(...INK)
+  let nitY = 109
+  if (doc.getTextWidth(license.company_name) > nameMaxW) {
+    const nameLines = doc.splitTextToSize(license.company_name, nameMaxW)
+    const lineH = nameSize * 0.42
+    nameLines.forEach((ln: string, i: number) => {
+      doc.text(ln, cx, 100 + i * lineH, { align: 'center' })
+    })
+    nitY = 100 + nameLines.length * lineH + 1
+  } else {
+    doc.text(license.company_name, cx, 102, { align: 'center' })
+  }
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(...MUTED)
+  doc.text(`NIT ${license.company_nit}`, cx, nitY, { align: 'center' })
+
+  // ── Clave de licencia ──
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7)
+  doc.setTextColor(...MUTED)
+  doc.text('CLAVE DE LICENCIA', cx, 120, { align: 'center', charSpace: 2 })
+  doc.setFillColor(...SOFT)
+  doc.setDrawColor(...LINE)
+  doc.setLineWidth(0.3)
+  doc.roundedRect(cx - 62, 123, 124, 13, 2, 2, 'FD')
+  doc.setFont('courier', 'bold')
+  doc.setFontSize(14)
+  doc.setTextColor(...INK)
+  doc.text(formatLicenseKey(license.license_key), cx, 131.5, { align: 'center', charSpace: 1 })
+
+  // ── Detalles ──
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...MUTED)
+  doc.text('DETALLES DE LA LICENCIA', cx, 148, { align: 'center', charSpace: 2 })
+  doc.setDrawColor(...LINE)
+  doc.setLineWidth(0.2)
+  doc.line(cx - 30, 151, cx + 30, 151)
+
+  const daysLeft = getDaysRemaining(license)
+  const field = (label: string, value: string, x: number, y: number): void => {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    doc.setTextColor(...MUTED)
+    doc.text(label.toUpperCase(), x, y, { charSpace: 0.5 })
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(...INK)
+    doc.text(value, x, y + 5.5)
+  }
+
+  const xL = 30, xR = 112
+  let gy = 160
+  field('Plan', getPlanLabel(license.plan), xL, gy)
+  field('Estado', licenseStatusEs(license.status), xR, gy)
+  gy += 15
+  field('Usuarios máximos', `${license.max_users} usuarios`, xL, gy)
+  field('Días restantes', daysLeft > 0 ? `${daysLeft} días` : 'Vencida', xR, gy)
+  gy += 15
+  field('Válida desde', formatDate(license.valid_from), xL, gy)
+  field('Válida hasta', formatDate(license.valid_until), xR, gy)
+  gy += 15
+  field('Emitida por', license.issued_by, xL, gy)
+  field('Fecha de emisión', formatDate(license.issued_at), xR, gy)
+  gy += 17
+
+  // ── Módulos ──
+  const mods = license.modules_enabled.map(getModuleLabel)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7.5)
+  doc.setTextColor(...MUTED)
+  doc.text(`MÓDULOS HABILITADOS (${mods.length})`, xL, gy, { charSpace: 1 })
+  gy += 6.5
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.5)
+  const cols = 3
+  const cw = 150 / cols
+  mods.forEach((m, i) => {
+    const col = i % cols
+    const rowy = gy + Math.floor(i / cols) * 5.5
+    const mx = xL + col * cw
+    doc.setTextColor(...MUTED)
+    doc.text('—', mx, rowy)
+    doc.setTextColor(...INK)
+    doc.text(m, mx + 4, rowy)
+  })
+  const modRows = Math.ceil(mods.length / cols)
+  gy += modRows * 5.5 + 10
+
+  // ── Firma ──
+  const sigY = Math.min(Math.max(gy + 12, 246), 252)
+  doc.setDrawColor(...INK)
+  doc.setLineWidth(0.4)
+  doc.line(cx - 30, sigY, cx + 30, sigY)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(...INK)
+  doc.text(license.issued_by, cx, sigY + 6, { align: 'center' })
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...MUTED)
+  doc.text('Representante Autorizado · BC FABRIC S.A.S.', cx, sigY + 11, { align: 'center' })
+
+  // ── Pie ──
+  doc.setDrawColor(...LINE)
+  doc.setLineWidth(0.2)
+  doc.line(24, H - 30, W - 24, H - 30)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7)
+  doc.setTextColor(...MUTED)
+  doc.text(`Documento generado el ${today}.`, 24, H - 24)
+  doc.text('Verificación: soporte@bcfabric.com.co', W - 24, H - 24, { align: 'right' })
+  doc.setFontSize(6.5)
   doc.text(
-    'Documento con validez legal. Para verificar autenticidad contactar a soporte@bcfabric.com.co',
-    14, 291
+    'Certificado emitido electrónicamente por el sistema ERP GVM Corp. Su validez está sujeta a los términos del contrato de licenciamiento.',
+    cx, H - 19, { align: 'center' },
   )
 
-  doc.save(`licencia-${license.company_nit}-${license.plan.toLowerCase()}.pdf`)
-}
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result
-    ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
-    : { r: 79, g: 70, b: 229 }
+  doc.save(`certificado-licencia-${license.company_nit}.pdf`)
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -336,12 +353,25 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 export function LicenseManager() {
   const [license, setLicense] = useState<TenantLicense | null>(null)
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     getLicense()
       .then(setLicense)
       .finally(() => setLoading(false))
   }, [])
+
+  async function copyKey(): Promise<void> {
+    if (!license) return
+    try {
+      await navigator.clipboard.writeText(formatLicenseKey(license.license_key))
+      setCopied(true)
+      toast.success('Clave de licencia copiada')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('No se pudo copiar la clave')
+    }
+  }
 
   if (loading) {
     return (
@@ -372,23 +402,35 @@ export function LicenseManager() {
   const daysRemaining = getDaysRemaining(license)
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-3xl font-black tracking-tighter text-slate-900 italic">
-            Licencia de Software
-          </h2>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
-            GVM Corp ERP — Emitida por BC FABRIC SAS
-          </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div
+            className="h-12 w-12 rounded-2xl flex items-center justify-center text-white shadow-sm shrink-0"
+            style={{ backgroundColor: BRAND }}
+          >
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">
+              Configuración · Licenciamiento
+            </p>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+              Licencia de Software
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              GVM Corp ERP — Emitida por BC FABRIC SAS
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200">
-          <BadgeCheck className="h-4 w-4 text-slate-500" />
-          <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">
-            Certificado Oficial
-          </span>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={status} />
+          <div className="hidden sm:flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+            <BadgeCheck className="h-3.5 w-3.5 text-slate-500" />
+            <span className="text-[11px] font-semibold text-slate-600">Certificado oficial</span>
+          </div>
         </div>
       </div>
 
@@ -396,8 +438,8 @@ export function LicenseManager() {
       {(status === 'EXPIRING_SOON' || status === 'EXPIRED' || status === 'SUSPENDED') && (
         <div
           className={cn(
-            'flex items-center gap-3 px-6 py-4 rounded-2xl border font-medium text-sm',
-            status === 'EXPIRING_SOON' && 'bg-yellow-50 border-yellow-200 text-yellow-800',
+            'flex items-center gap-3 px-5 py-4 rounded-2xl border font-medium text-sm',
+            status === 'EXPIRING_SOON' && 'bg-amber-50 border-amber-200 text-amber-800',
             status === 'EXPIRED' && 'bg-red-50 border-red-200 text-red-800',
             status === 'SUSPENDED' && 'bg-orange-50 border-orange-200 text-orange-800',
           )}
@@ -407,40 +449,42 @@ export function LicenseManager() {
           {status === 'SUSPENDED' && <ShieldOff className="h-5 w-5 shrink-0" />}
           <span>
             {status === 'EXPIRING_SOON' &&
-              `Tu licencia vence en ${daysRemaining} dias. Contacta a BC FABRIC SAS para renovarla antes de la fecha limite.`}
+              `Tu licencia vence en ${daysRemaining} días. Contacta a BC FABRIC SAS para renovarla antes de la fecha límite.`}
             {status === 'EXPIRED' &&
               'Tu licencia ha vencido. Algunas funciones pueden estar restringidas. Contacta a BC FABRIC SAS para renovar.'}
             {status === 'SUSPENDED' &&
-              'Tu licencia ha sido suspendida. Contacta a BC FABRIC SAS para resolver esta situacion.'}
+              'Tu licencia ha sido suspendida. Contacta a BC FABRIC SAS para resolver esta situación.'}
           </span>
         </div>
       )}
 
       {/* Main License Card */}
-      <Card
-        className={cn(
-          'border-none shadow-2xl rounded-[2.5rem] overflow-hidden bg-gradient-to-br text-white relative',
-          planDarkClass(license.plan)
-        )}
-      >
+      <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900 text-white relative">
+        {/* Top brand accent */}
+        <div className="h-1.5 w-full" style={{ backgroundColor: BRAND }} />
         {/* Background watermark icon */}
-        <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
-          <ShieldCheck className="h-40 w-40" />
+        <div className="absolute top-6 right-0 p-10 opacity-[0.04] pointer-events-none">
+          <ShieldCheck className="h-44 w-44" />
         </div>
+        {/* Subtle brand glow */}
+        <div
+          className="absolute -top-24 -right-24 h-64 w-64 rounded-full blur-3xl opacity-20 pointer-events-none"
+          style={{ backgroundColor: BRAND }}
+        />
 
-        <CardContent className="p-10 space-y-8 relative z-10">
+        <CardContent className="p-8 md:p-10 space-y-8 relative z-10">
           {/* Top row: plan badge + status badge */}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <Badge
                 className={cn(
-                  'border font-black text-xs px-3 py-1 mb-4',
-                  planColorClass(license.plan)
+                  'border font-bold text-[11px] px-3 py-1 rounded-full mb-3',
+                  planBadgeDark(license.plan)
                 )}
               >
-                {getPlanLabel(license.plan).toUpperCase()}
+                Plan {getPlanLabel(license.plan)}
               </Badge>
-              <h3 className="text-3xl font-black italic tracking-wide leading-tight">
+              <h3 className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">
                 {license.company_name}
               </h3>
               <p className="text-slate-400 text-sm font-mono mt-1">NIT {license.company_nit}</p>
@@ -449,7 +493,7 @@ export function LicenseManager() {
               <StatusBadge status={status} />
               <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
                 <Users className="h-3.5 w-3.5 text-slate-400" />
-                <span className="text-xs font-bold text-slate-300">
+                <span className="text-xs font-semibold text-slate-300">
                   Hasta {license.max_users} usuarios
                 </span>
               </div>
@@ -457,21 +501,32 @@ export function LicenseManager() {
           </div>
 
           {/* License Key */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-1">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-              <KeyRound className="h-3 w-3" />
-              Clave de Licencia
-            </p>
-            <p className="font-mono text-lg font-bold tracking-[0.15em] text-white break-all">
-              {formatLicenseKey(license.license_key)}
-            </p>
+          <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                  <KeyRound className="h-3 w-3" />
+                  Clave de Licencia
+                </p>
+                <p className="font-mono text-base md:text-lg font-bold tracking-[0.15em] text-white break-all mt-2">
+                  {formatLicenseKey(license.license_key)}
+                </p>
+              </div>
+              <button
+                onClick={copyKey}
+                className="shrink-0 h-10 px-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all active:scale-95"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? 'Copiada' : 'Copiar'}
+              </button>
+            </div>
           </div>
 
           {/* Validity + Progress */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-slate-400" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                 Vigencia
               </span>
             </div>
@@ -481,32 +536,32 @@ export function LicenseManager() {
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
                 Emitida por
               </p>
-              <div className="flex items-center gap-2 mt-1">
-                <Building2 className="h-4 w-4 text-slate-400" />
-                <span className="font-bold text-sm text-white">{license.issued_by}</span>
+              <div className="flex items-center gap-2 mt-1.5">
+                <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+                <span className="font-semibold text-sm text-white truncate">{license.issued_by}</span>
               </div>
             </div>
             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                Fecha Emision
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                Fecha de Emisión
               </p>
-              <div className="flex items-center gap-2 mt-1">
-                <CalendarDays className="h-4 w-4 text-slate-400" />
-                <span className="font-bold text-sm text-white">
+              <div className="flex items-center gap-2 mt-1.5">
+                <CalendarDays className="h-4 w-4 text-slate-400 shrink-0" />
+                <span className="font-semibold text-sm text-white">
                   {new Date(license.issued_at).toLocaleDateString('es-CO')}
                 </span>
               </div>
             </div>
             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                Modulos Activos
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                Módulos Activos
               </p>
-              <div className="flex items-center gap-2 mt-1">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                <span className="font-bold text-sm text-white">
+              <div className="flex items-center gap-2 mt-1.5">
+                <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND }} />
+                <span className="font-semibold text-sm text-white">
                   {license.modules_enabled.length} / {ALL_MODULES.length}
                 </span>
               </div>
@@ -516,21 +571,21 @@ export function LicenseManager() {
       </Card>
 
       {/* Modules Grid */}
-      <Card className="border-none shadow-premium rounded-[2.5rem] bg-white overflow-hidden">
-        <CardHeader className="px-10 pt-8 pb-4 border-b border-slate-100">
+      <Card className="surface-card overflow-hidden">
+        <CardHeader className="px-6 md:px-8 pt-6 pb-4 border-b border-slate-100">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-black text-slate-900 italic">
-              Modulos Incluidos
+            <CardTitle className="text-base font-bold text-slate-900 tracking-tight">
+              Módulos Incluidos
             </CardTitle>
             <Badge
               variant="secondary"
-              className="bg-slate-100 text-slate-600 border-none font-bold"
+              className="bg-slate-100 text-slate-600 border-none font-semibold"
             >
               {license.modules_enabled.length} habilitados
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-10">
+        <CardContent className="p-6 md:p-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {ALL_MODULES.map((mod) => {
               const enabled = license.modules_enabled.includes(mod)
@@ -538,21 +593,21 @@ export function LicenseManager() {
                 <div
                   key={mod}
                   className={cn(
-                    'flex items-center gap-3 p-4 rounded-2xl border transition-colors',
+                    'flex items-center gap-3 p-3.5 rounded-2xl border transition-colors',
                     enabled
-                      ? 'bg-emerald-50 border-emerald-100'
-                      : 'bg-slate-50 border-slate-100 opacity-50'
+                      ? 'bg-sky-50 border-sky-100'
+                      : 'bg-slate-50 border-slate-100 opacity-60'
                   )}
                 >
                   {enabled ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 shrink-0" style={{ color: BRAND }} />
                   ) : (
                     <Circle className="h-5 w-5 text-slate-300 shrink-0" />
                   )}
                   <span
                     className={cn(
-                      'text-xs font-bold',
-                      enabled ? 'text-emerald-800' : 'text-slate-400'
+                      'text-xs font-semibold',
+                      enabled ? 'text-slate-800' : 'text-slate-400'
                     )}
                   >
                     {getModuleLabel(mod)}
@@ -566,35 +621,48 @@ export function LicenseManager() {
 
       {/* Notes */}
       {license.notes && (
-        <Card className="border-none shadow-premium rounded-[2.5rem] bg-amber-50 overflow-hidden">
-          <CardContent className="p-8 flex items-start gap-4">
-            <FileText className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <Card className="surface-card overflow-hidden">
+          <CardContent className="p-6 md:p-8 flex items-start gap-4">
+            <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+              <FileText className="h-5 w-5 text-amber-600" />
+            </div>
             <div>
-              <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
                 Notas de la Licencia
               </p>
-              <p className="text-sm text-amber-800">{license.notes}</p>
+              <p className="text-sm text-slate-700 leading-relaxed">{license.notes}</p>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Actions */}
-      <Card className="border-none shadow-premium rounded-[2.5rem] bg-gradient-to-r from-emerald-600 to-teal-600 overflow-hidden">
-        <CardContent className="p-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div>
-              <h3 className="text-xl font-black text-white italic">Certificado de Licencia</h3>
-              <p className="text-emerald-100 text-sm mt-1">
-                Descarga el certificado oficial en PDF para presentar ante clientes o auditores.
-              </p>
+      <Card className="surface-card overflow-hidden">
+        <CardContent className="p-6 md:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div
+                className="h-11 w-11 rounded-2xl flex items-center justify-center text-white shrink-0"
+                style={{ backgroundColor: BRAND }}
+              >
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                  Certificado de Licencia
+                </h3>
+                <p className="text-sm text-slate-500 mt-0.5 max-w-md">
+                  Descarga el certificado oficial en PDF para presentarlo ante clientes o auditores.
+                </p>
+              </div>
             </div>
             <Button
               onClick={() => generateLicensePDF(license)}
-              className="h-14 px-8 rounded-2xl bg-white text-emerald-800 font-black text-base hover:bg-emerald-50 shadow-xl transition-all active:scale-95 flex items-center gap-3 whitespace-nowrap"
+              className="h-12 px-6 rounded-2xl text-white font-bold text-sm shadow-sm hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap"
+              style={{ backgroundColor: BRAND }}
             >
-              <Download className="h-5 w-5" />
-              Descargar Certificado PDF
+              <Download className="h-4 w-4" />
+              Descargar PDF
             </Button>
           </div>
         </CardContent>

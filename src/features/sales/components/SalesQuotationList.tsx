@@ -18,6 +18,7 @@ import { cn } from "@/shared/lib/utils"
 import { convertDocumentAction } from "../convertActions"
 import { toast } from "sonner"
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface SalesQuotationListProps {
     quotations: Document[]
@@ -160,16 +161,18 @@ export function SalesQuotationList({ quotations }: SalesQuotationListProps) {
                                                     }
                                                 </Button>
                                             )}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600"
-                                                asChild
-                                            >
-                                                <Link href={`/documents/${quote.id}`}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
+                                            <Hint label="Ver detalle" side="left">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600"
+                                                    asChild
+                                                >
+                                                    <Link href={`/documents/${quote.id}`}>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                            </Hint>
                                         </div>
                                     </TableCell>
                                 </TableRow>

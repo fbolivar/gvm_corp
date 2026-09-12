@@ -46,6 +46,9 @@ export function PayrollDispersionHub() {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [processing, setProcessing] = useState(false)
     const [stats, setStats] = useState({ totalAmount: 0, count: 0 })
+    const [companyNit, setCompanyNit] = useState<string>('')
+    const [sourceAccounts, setSourceAccounts] = useState<{ id: string; label: string; account_number: string }[]>([])
+    const [sourceAccountId, setSourceAccountId] = useState<string>('')
 
     useEffect(() => {
         async function fetchSettlements() {
@@ -143,6 +146,23 @@ export function PayrollDispersionHub() {
         }
     }
 
+    // Config real de la empresa: NIT + cuentas bancarias de origen (nunca valores quemados)
+    useEffect(() => {
+        async function loadConfig() {
+            const [{ data: tenant }, { data: accts }] = await Promise.all([
+                supabase.from('tenants').select('nit').limit(1).maybeSingle(),
+                supabase.from('treasury_accounts').select('id, name, bank_name, account_number').order('name'),
+            ])
+            setCompanyNit(tenant?.nit ? String(tenant.nit) : '')
+            const list = ((accts ?? []) as { id: string; name: string; bank_name: string | null; account_number: string | null }[])
+                .filter(a => a.account_number)
+                .map(a => ({ id: a.id, label: `${a.bank_name || a.name} · ${a.account_number}`, account_number: String(a.account_number) }))
+            setSourceAccounts(list)
+            if (list.length) setSourceAccountId(list[0].id)
+        }
+        loadConfig().catch(err => console.error('[dispersion] loadConfig:', err))
+    }, [supabase])
+
     const handleGenerate = (bank: 'BANCOLOMBIA' | 'DAVIVIENDA' | 'GENERIC') => {
         if (selectedIds.length === 0) {
             toast.error("Seleccione al menos una liquidacion");
@@ -166,10 +186,21 @@ export function PayrollDispersionHub() {
             let filename = `dispersion_${bank.toLowerCase()}_${new Date().getTime()}`;
 
             if (bank === 'BANCOLOMBIA') {
-                content = bankService.generateBancolombiaPAB(selected as Parameters<typeof bankService.generateBancolombiaPAB>[0], "00012345678");
+                const acct = sourceAccounts.find(a => a.id === sourceAccountId);
+                if (!acct) {
+                    toast.error("Selecciona la cuenta bancaria de origen. Configúrala en Tesorería → Cuentas antes de generar el archivo de Bancolombia.");
+                    setProcessing(false);
+                    return;
+                }
+                content = bankService.generateBancolombiaPAB(selected as Parameters<typeof bankService.generateBancolombiaPAB>[0], acct.account_number);
                 filename += ".txt";
             } else if (bank === 'DAVIVIENDA') {
-                content = bankService.generateDaviviendaTXT(selected as Parameters<typeof bankService.generateDaviviendaTXT>[0], "900987654");
+                if (!companyNit) {
+                    toast.error("Falta el NIT de la empresa. Configúralo en Configuración → Empresa antes de generar el archivo de Davivienda.");
+                    setProcessing(false);
+                    return;
+                }
+                content = bankService.generateDaviviendaTXT(selected as Parameters<typeof bankService.generateDaviviendaTXT>[0], companyNit);
                 filename += ".txt";
             } else {
                 content = bankService.generateDispersionFile(selected as Parameters<typeof bankService.generateDispersionFile>[0]);
@@ -216,6 +247,20 @@ export function PayrollDispersionHub() {
                     </div>
 
                     <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cuenta origen</span>
+                            {sourceAccounts.length > 0 ? (
+                                <select
+                                    value={sourceAccountId}
+                                    onChange={(e) => setSourceAccountId(e.target.value)}
+                                    className="h-9 rounded-xl border border-slate-200 bg-white text-xs font-semibold px-2 outline-none max-w-[220px]"
+                                >
+                                    {sourceAccounts.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+                                </select>
+                            ) : (
+                                <span className="text-[10px] text-amber-600 font-semibold">Configúrala en Tesorería → Cuentas</span>
+                            )}
+                        </div>
                         <Button
                             onClick={() => handleGenerate('BANCOLOMBIA')}
                             disabled={selectedIds.length === 0 || processing}
@@ -251,8 +296,8 @@ export function PayrollDispersionHub() {
 
             {/* Settlement list */}
             <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div>
+                <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
                         <h3 className="text-sm font-bold text-slate-900">Liquidaciones Listas para Pago</h3>
                         <p className="text-xs text-slate-400">{settlements.length} registros disponibles</p>
                     </div>

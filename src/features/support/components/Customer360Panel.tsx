@@ -90,10 +90,6 @@ export function Customer360Panel({ partyId, ticketId }: { partyId: string, ticke
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Facturas Totales</p>
                             <span className="text-xs font-bold text-slate-900">{String(invoiceCount)}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Promedio de Pago</p>
-                            <span className="text-xs font-bold text-slate-900">12 Dias</span>
-                        </div>
                     </div>
                 </div>
             </div>

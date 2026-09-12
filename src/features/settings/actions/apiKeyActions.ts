@@ -24,7 +24,8 @@ export async function createApiKeyAction(data: { name: string }) {
             .insert({
                 tenant_id: tenantId,
                 name: data.name,
-                prefix,
+                // La columna es `key_prefix`: con `prefix` el INSERT fallaba siempre.
+                key_prefix: prefix,
                 key_hash: keyHash,
                 scopes: ['read'],
                 is_active: true,

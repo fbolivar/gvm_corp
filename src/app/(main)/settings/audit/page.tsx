@@ -1,42 +1,81 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { Shield } from 'lucide-react';
+import Link from 'next/link';
+import { Shield, Users } from 'lucide-react';
 import AuditLogClient from './client';
+import {
+    auditService,
+    AuditFilters,
+    EnrichedAuditLog,
+} from '@/features/settings/services/auditService';
 
-export default async function AuditLogPage() {
+// Cuántos eventos se cargan en pantalla por render. El filtrado ocurre en el
+// servidor (tabla completa); esto solo limita cuántas filas se pintan a la vez.
+// El reporte CSV NO tiene este límite (usa su propio tope mayor).
+const PAGE_LIMIT = 1000;
+
+export default async function AuditLogPage({
+    searchParams,
+}: {
+    searchParams: Promise<{
+        q?: string;
+        entity?: string;
+        action?: string;
+        actor?: string;
+        from?: string;
+        to?: string;
+    }>;
+}) {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    // Fetch audit logs directly — order by most recent, limit to 500
-    const { data: logs, error } = await supabase
-        .from('audit_log')
-        .select('id, actor_user_id, action, entity, entity_id, payload, created_at')
-        .order('created_at', { ascending: false })
-        .limit(500);
+    const sp = await searchParams;
+    const filters: AuditFilters = {
+        q: sp.q || undefined,
+        entity: sp.entity || undefined,
+        action: sp.action || undefined,
+        actor: sp.actor || undefined,
+        from: sp.from || undefined,
+        to: sp.to || undefined,
+    };
 
-    // Enrich logs with user display names from profiles
-    const userIds = [...new Set((logs || []).map((l) => l.actor_user_id).filter(Boolean))];
-    let userMap: Record<string, string> = {};
-
-    if (userIds.length > 0) {
-        const { data: profiles } = await supabase
+    // Si se filtra por un usuario específico (drill-down desde el reporte), resolver su nombre.
+    let actorName: string | null = null;
+    if (filters.actor) {
+        const { data: prof } = await supabase
             .from('profiles')
-            .select('id, full_name, email')
-            .in('id', userIds);
-        profiles?.forEach((p) => {
-            userMap[p.id] = p.full_name || p.email || 'Desconocido';
-        });
+            .select('full_name, email')
+            .eq('id', filters.actor)
+            .maybeSingle();
+        actorName = prof?.full_name || prof?.email || null;
     }
 
-    const enrichedLogs = (logs || []).map((log) => ({
-        ...log,
-        actor_name: log.actor_user_id ? (userMap[log.actor_user_id] ?? 'Sistema') : 'Sistema',
-    }));
+    let logs: EnrichedAuditLog[] = [];
+    let loadError: string | null = null;
+    let filteredCount = 0;
+    let totalCount = 0;
 
-    const totalCount = enrichedLogs.length;
-    const uniqueUsers = new Set(enrichedLogs.map((l) => l.actor_user_id).filter(Boolean)).size;
-    const mostRecent = enrichedLogs[0]?.created_at ?? null;
+    try {
+        const [rows, fCount, tCount] = await Promise.all([
+            auditService.getLogs(supabase, filters, PAGE_LIMIT),
+            auditService.countLogs(supabase, filters),
+            auditService.countLogs(supabase, {}),
+        ]);
+        const userMap = await auditService.getActorNames(supabase, rows);
+        logs = auditService.enrich(rows, userMap);
+        filteredCount = fCount;
+        totalCount = tCount;
+    } catch (err) {
+        loadError =
+            err instanceof Error ? err.message : 'Error al cargar el registro de auditoría';
+        console.error('[AuditLogPage] carga falló:', err);
+    }
+
+    const uniqueUsers = new Set(logs.map((l) => l.actor_user_id).filter(Boolean)).size;
+    const mostRecent = logs[0]?.created_at ?? null;
 
     return (
         <div className="page-container space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -53,20 +92,31 @@ export default async function AuditLogPage() {
                         </span>
                     </div>
                     <h1 className="text-3xl font-black tracking-tight uppercase leading-tight">
-                        Registro de{' '}
-                        <span className="text-slate-500">Auditoría</span>
+                        Registro de <span className="text-slate-500">Auditoría</span>
                     </h1>
                     <p className="text-slate-500 font-bold text-[9px] uppercase tracking-[0.3em]">
                         Traza inmutable de todas las operaciones del sistema
                     </p>
+                    <Link
+                        href="/settings/audit/users"
+                        className="inline-flex items-center gap-2 mt-2 h-10 px-5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+                    >
+                        <Users className="h-4 w-4" /> Actividad por Usuario
+                    </Link>
                 </div>
             </div>
 
             <AuditLogClient
-                logs={enrichedLogs}
+                logs={logs}
                 totalCount={totalCount}
+                filteredCount={filteredCount}
+                loadedCount={logs.length}
+                pageLimit={PAGE_LIMIT}
                 uniqueUsers={uniqueUsers}
                 mostRecent={mostRecent}
+                loadError={loadError}
+                initialFilters={filters}
+                actorName={actorName}
             />
         </div>
     );

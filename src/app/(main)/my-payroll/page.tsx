@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { employeeService } from "@/features/payroll/services/employeeService"
 import { financeService } from "@/features/payroll/services/financeService"
 import { overtimeService } from "@/features/payroll/services/overtimeService"
@@ -8,6 +9,11 @@ import { PayrollSlipButton } from "@/features/payroll/components/PayrollSlipButt
 import { OvertimePanel } from "@/features/payroll/components/OvertimePanel"
 import { CertificateButtons } from "@/features/payroll/components/CertificateButtons"
 import { AbsenceRequestForm } from "@/features/payroll/components/AbsenceRequestForm"
+import { MyTrainings } from "@/features/training/components/MyTrainings"
+import { trainingService } from "@/features/training/services/trainingService"
+import { MyAssets } from "@/features/technology/components/MyAssets"
+import { technologyService } from "@/features/technology/services/technologyService"
+import { settingsService } from "@/features/settings/services/settingsService"
 import {
     Wallet,
     FileText,
@@ -24,7 +30,16 @@ export default async function MyPayrollPage() {
         redirect("/login")
     }
 
-    const employee = await employeeService.getEmployeeByUserId(supabase, user.id)
+    // BLINDAJE: resolvemos la ficha del empleado con admin client filtrando SOLO por
+    // este user_id autenticado. Así, si un empleado está vinculado, SIEMPRE ve su
+    // portal aunque la RLS o la membresía de empresa tengan algún borde raro.
+    // Es seguro: solo devuelve el empleado que pertenece a este mismo usuario.
+    const admin = createAdminClient()
+    const employee = await employeeService.getEmployeeByUserId(admin, user.id)
+    const tenant = await settingsService.getTenantInfo(supabase)
+    const companyNit = tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : undefined
+    const companyAddress = [tenant?.address, tenant?.city, tenant?.department].filter(Boolean).join(', ') || undefined
+    const companyContact = [tenant?.phone, tenant?.email, tenant?.website].filter(Boolean).join(' · ') || undefined
 
     if (!employee) {
         return (
@@ -34,17 +49,29 @@ export default async function MyPayrollPage() {
                 </div>
                 <div className="space-y-2">
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Portal No Vinculado</h1>
-                    <p className="text-slate-400 text-sm max-w-md">Tu cuenta de usuario no está vinculada a un registro de empleado. Contacta a RRHH para habilitar tu autoservicio.</p>
+                    <p className="text-slate-400 text-sm max-w-md">
+                        Esta cuenta de usuario no está vinculada a una ficha de empleado.
+                    </p>
+                    <p className="text-slate-400 text-sm max-w-md">
+                        Si ya tienes contrato, es posible que hayas ingresado con un <strong>usuario distinto</strong> al registrado.
+                        Verifica que sea tu usuario habitual (<span className="font-mono">nombre.apellido</span>) o
+                        pídele a RRHH que vincule tu cuenta desde <span className="font-semibold">Nómina → Empleados</span>.
+                    </p>
                 </div>
             </div>
         )
     }
 
-    const [loans, benefits, documents, overtimeRequests] = await Promise.all([
+    const [loans, benefits, documents, overtimeRequests, trainings, myAssets] = await Promise.all([
         financeService.getEmployeeLoans(supabase, employee.id!),
         financeService.getEmployeeBenefits(supabase, employee.id!),
         supabase.from('documents').select('id, number, issue_date, total, status').eq('party_id', employee.party_id).eq('doc_type', 'PAYROLL').order('issue_date', { ascending: false }).limit(5),
         overtimeService.getMyOvertimeRequests(supabase, employee.id!).catch(() => []),
+        // Mismo blindaje que la ficha: admin client filtrado por SU employee.id.
+        trainingService.getRecordsByEmployee(admin, employee.id!).catch(() => []),
+        // Activos corporativos en su poder. Mismo blindaje: admin client filtrado
+        // por SU employee.id (la RLS de it_assets no contempla al empleado final).
+        technologyService.getAssignmentsByEmployee(admin, employee.id!).catch(() => []),
     ])
 
     return (
@@ -98,12 +125,12 @@ export default async function MyPayrollPage() {
 
                         <div className="grid gap-3">
                             {documents.data?.map((doc) => (
-                                <div key={doc.id} className="group bg-white rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 hover:border-slate-200">
-                                    <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div key={doc.id} className="group bg-white rounded-2xl p-5 flex flex-col lg:flex-row items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 hover:border-slate-200">
+                                    <div className="flex items-center gap-4 w-full lg:w-auto min-w-0">
                                         <div className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shrink-0">
                                             <FileText className="h-5 w-5" />
                                         </div>
-                                        <div>
+                                        <div className="min-w-0">
                                             <div className="flex items-center gap-2 mb-0.5">
                                                 <h3 className="text-sm font-bold text-slate-900 tracking-tight">{doc.number}</h3>
                                                 <Badge variant="outline" className="text-xs font-semibold px-2 py-0 border-slate-200">PAYROLL</Badge>
@@ -112,7 +139,7 @@ export default async function MyPayrollPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between w-full md:w-auto gap-6">
+                                    <div className="flex items-center justify-between w-full lg:w-auto gap-6">
                                         <div className="text-right">
                                             <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-0.5">Neto Liquidado</p>
                                             <p className="text-base font-bold text-emerald-600 tracking-tight">${(Number((doc as any).total) || 0).toLocaleString('es-CO')}</p>
@@ -175,6 +202,26 @@ export default async function MyPayrollPage() {
                                 </div>
                             )}
                         </div>
+                    </section>
+
+                    {/* TRAINING SECTION */}
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-px flex-1 bg-slate-100" />
+                            <h2 className="text-xs font-semibold text-indigo-500 uppercase tracking-wide shrink-0 px-3">Mis Capacitaciones</h2>
+                            <div className="h-px flex-1 bg-slate-100" />
+                        </div>
+                        <MyTrainings records={trainings} />
+                    </section>
+
+                    {/* CORPORATE ASSETS SECTION */}
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-px flex-1 bg-slate-100" />
+                            <h2 className="text-xs font-semibold text-indigo-500 uppercase tracking-wide shrink-0 px-3">Mis Activos Asignados</h2>
+                            <div className="h-px flex-1 bg-slate-100" />
+                        </div>
+                        <MyAssets assignments={myAssets} />
                     </section>
                 </div>
 
@@ -269,7 +316,18 @@ export default async function MyPayrollPage() {
                                 startDate:         employee.start_date,
                                 salary:            Number(employee.salary),
                                 transportAllowance: employee.transport_allowance,
-                                companyName:       'GVM Corp',
+                                salaryBonus:          Number(employee.salary_bonus) || 0,
+                                nonSalaryBonus:       Number(employee.non_salary_bonus) || 0,
+                                additionalAllowances: Number(employee.additional_allowances) || 0,
+                                mobilityAllowance:    Number(employee.mobility_allowance) || 0,
+                                companyName:       tenant?.name ?? 'GVM Corp',
+                                companyNit,
+                                companyAddress,
+                                companyContact,
+                                companyLogoUrl:    tenant?.logo_url ?? null,
+                                signerName:        tenant?.hr_manager_name ?? undefined,
+                                signerTitle:       tenant?.hr_manager_title ?? 'Jefe de Recursos Humanos',
+                                signerSignatureUrl: tenant?.hr_signature_url ?? null,
                             }}
                         />
                     </div>

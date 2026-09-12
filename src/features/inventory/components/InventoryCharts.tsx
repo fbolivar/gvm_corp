@@ -27,9 +27,9 @@ export function InventoryCharts({ data }: Props) {
     return (
         <Card className="border border-slate-100 bg-white shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="p-5 pb-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <div className="h-9 w-9 bg-blue-50 rounded-lg flex items-center justify-center">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-9 w-9 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
                             <Activity className="h-4 w-4 text-blue-600" />
                         </div>
                         <div>
@@ -40,7 +40,7 @@ export function InventoryCharts({ data }: Props) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 flex-wrap">
                         <div className="flex items-center gap-2">
                             <div className="h-6 w-6 bg-emerald-50 rounded-md flex items-center justify-center">
                                 <ArrowUpRight className="h-3 w-3 text-emerald-600" />
@@ -97,7 +97,7 @@ export function InventoryCharts({ data }: Props) {
                                     tickFormatter={(value) => `${value}`}
                                 />
                                 <Tooltip
-                                    cursor={{ stroke: '#6366f1', strokeWidth: 1.5, strokeDasharray: '4 4' }}
+                                    cursor={{ stroke: '#0096E6', strokeWidth: 1.5, strokeDasharray: '4 4' }}
                                     contentStyle={{
                                         backgroundColor: 'rgba(255, 255, 255, 0.97)',
                                         borderColor: '#e2e8f0',

@@ -18,11 +18,15 @@ import { emitDianAction } from "@/features/dian/actions"
 import { toast } from "sonner"
 import { useConfirm } from "@/shared/hooks/useConfirm"
 import { DataTable, DataTableColumn } from "@/shared/components/ui/data-table"
+import { Hint } from "@/shared/components/ui/hint"
 import { StatusBadge, statusToTone } from "@/shared/components/ui/status-badge"
 import { format } from "date-fns"
 import { parseLocalDate } from "@/shared/lib/dateFmt"
+import { AttachmentBadge } from "@/features/documents/components/AttachmentBadge"
 
 interface SalesInvoiceListProps {
+    /** Soportes por documento: alimenta el indicador de la columna "Soportes". */
+    attachmentCounts?: Record<string, number>;
     invoices: Document[]
 }
 
@@ -36,7 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
     VOIDED: "Anulada",
 }
 
-export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
+export function SalesInvoiceList({ invoices, attachmentCounts = {} }: SalesInvoiceListProps) {
     const router = useRouter()
     const [processingId, setProcessingId] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState("")
@@ -165,6 +169,16 @@ export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
             },
         },
         {
+            key: "attachments",
+            header: "Soportes",
+            align: "center",
+            width: "100px",
+            sortValue: (row) => attachmentCounts[row.id ?? ''] ?? 0,
+            accessor: (row) => (
+                <AttachmentBadge documentId={row.id!} count={attachmentCounts[row.id ?? ''] ?? 0} />
+            ),
+        },
+        {
             key: "actions",
             header: "Acciones",
             align: "right",
@@ -192,28 +206,32 @@ export function SalesInvoiceList({ invoices }: SalesInvoiceListProps) {
                         )}
 
                         {/* Ver detalle */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                            asChild
-                        >
-                            <Link href={`/documents/${row.id}`}>
-                                <Eye className="h-4 w-4" />
-                            </Link>
-                        </Button>
+                        <Hint label="Ver detalle" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                asChild
+                            >
+                                <Link href={`/documents/${row.id}`}>
+                                    <Eye className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </Hint>
 
                         {/* Registrar cobro */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50"
-                            asChild
-                        >
-                            <Link href={`/treasury/collections/new?invoiceId=${row.id}`}>
-                                <ArrowRightLeft className="h-4 w-4" />
-                            </Link>
-                        </Button>
+                        <Hint label="Registrar cobro" side="left">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50"
+                                asChild
+                            >
+                                <Link href={`/treasury/collections/new?invoiceId=${row.id}`}>
+                                    <ArrowRightLeft className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </Hint>
                     </div>
                 )
             },

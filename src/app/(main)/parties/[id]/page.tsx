@@ -16,6 +16,13 @@ export default async function EditPartyPage({ params }: PageProps) {
         const party = await partyService.getPartyById(supabase, id);
         if (!party) notFound();
 
+        // ¿Este tercero también es empleado? (rol múltiple)
+        const { data: employeeLink } = await supabase
+            .from('employees')
+            .select('id')
+            .eq('party_id', id)
+            .maybeSingle();
+
         // Fetch price lists
         const { data: priceLists } = await supabase
             .from('price_lists')
@@ -34,6 +41,7 @@ export default async function EditPartyPage({ params }: PageProps) {
                     party={party}
                     priceLists={priceLists || []}
                     salespeople={salespeople || []}
+                    employeeId={employeeLink?.id ?? null}
                 />
                 <div className="mt-8">
                     <AuditTrail

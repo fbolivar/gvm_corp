@@ -210,7 +210,7 @@ export default function NewFixedAssetClient() {
 
                     {/* Preview */}
                     {form.category !== 'LAND' && form.acquisition_cost > 0 && (
-                        <div className="grid grid-cols-3 gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
                             <div className="text-center">
                                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Dep. Mensual</p>
                                 <p className="text-base font-bold text-indigo-700 font-mono">{fmt(monthlyDep)}</p>

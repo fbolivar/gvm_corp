@@ -1,5 +1,33 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { JournalEntry, Account, AccountFormData } from '../types';
+import {
+    buildSalesEntry,
+    resolveLineIvaRate,
+    resolvePaymentForm,
+    type AccountingRule,
+    type DocKind,
+    type TaxRates,
+} from './salesAccountingEngine';
+
+/** Asiento de venta ya calculado, ANTES de guardarlo (lo usa la simulación). */
+export interface SalesEntryDraft {
+    entry_date: string;
+    description: string;
+    document_id: string;
+    taxpayer_code: string;
+    payment_form: string;
+    totals: { base: number; iva: number; retefuente: number; reteica: number; reteiva: number; autorrenta: number; cartera: number; debit: number; credit: number };
+    lines: Array<{
+        account_id: string;
+        account_code: string;
+        concept: string;
+        iva_rate: number | null;
+        party_id: string | null;
+        debit: number;
+        credit: number;
+        description: string;
+    }>;
+}
 
 export const accountingService = {
 
@@ -179,12 +207,16 @@ export const accountingService = {
     },
 
     async getAccountByCode(client: SupabaseClient, code: string) {
+        // maybeSingle (no single): si el código no existe o hay más de una fila
+        // —p. ej. el mismo PUC cargado para varios tenants— `single()` devolvía
+        // error y el llamador se salía en silencio. Se toma la primera del tenant.
         const { data, error } = await client
             .from('chart_accounts')
             .select('*')
             .eq('code', code)
-            .single();
-        if (error) return null; // Or throw, depends on strictness. For now return null to avoid blocking if config missing
+            .limit(1)
+            .maybeSingle();
+        if (error || !data) return null;
         return data as Account;
     },
 
@@ -295,7 +327,173 @@ export const accountingService = {
         return await this.createEntry(client, entry);
     },
 
+    /**
+     * Contabiliza una venta (factura o nota crédito) con las reglas del contador.
+     *
+     * Devuelve el asiento creado, o null si no se pudo (sin reglas para ese
+     * cliente, sin cuentas, etc.) junto con los avisos, para que el llamador
+     * decida si alerta al usuario en vez de fallar en silencio.
+     */
+    async previewSalesEntry(client: SupabaseClient, document: any): Promise<{ draft: SalesEntryDraft | null; warnings: string[] }> {
+        const docKind: DocKind | null =
+            document.doc_type === 'INVOICE' ? 'FV' :
+            document.doc_type === 'CREDIT_NOTE' ? 'NC' : null;
+        if (!docKind) return { draft: null, warnings: [] };
+
+        const docLines = Array.isArray(document.lines) ? document.lines : [];
+        if (docLines.length === 0) {
+            return { draft: null, warnings: [`El documento ${document.number ?? ''} no tiene líneas: no se contabiliza.`] };
+        }
+
+        // ── Tercero: tipo de contribuyente y plazo de pago ─────────────────
+        // `applies_reteica` va en el select: sin ella el indicador llegaba
+        // undefined y ReteICA salía en $0 para TODOS los clientes de Bogotá,
+        // aunque tuvieran la marca traída de WorldOffice.
+        const { data: party } = await client
+            .from('parties')
+            .select('taxpayer_type, payment_term_days, city, applies_reteica')
+            .eq('id', document.party_id)
+            .maybeSingle();
+
+        const { data: types } = await client
+            .from('taxpayer_types')
+            .select('code, legacy_code');
+
+        const legacy = (party?.taxpayer_type as string | null) ?? null;
+        const match = (types ?? []).find((t: { code: string; legacy_code: string | null }) =>
+            t.code === legacy || t.legacy_code === legacy);
+        const taxpayerCode = match?.code ?? 'PJ';
+        const warnings: string[] = [];
+        if (!match) {
+            warnings.push(
+                `El tercero no tiene un tipo de contribuyente reconocido (${legacy ?? 'vacío'}); ` +
+                `se contabilizó como Persona Jurídica. Corrige el tercero para que el asiento sea el correcto.`,
+            );
+        }
+
+        const paymentForm = resolvePaymentForm(document.payment_form, party?.payment_term_days);
+
+        // ── Reglas y tarifas ───────────────────────────────────────────────
+        const { data: ruleRows } = await client
+            .from('accounting_rules')
+            .select('iva_rate, account_code, nature, concept')
+            .eq('doc_kind', docKind)
+            .eq('payment_form', paymentForm)
+            .eq('taxpayer_code', taxpayerCode)
+            .eq('is_active', true);
+
+        const year = Number((document.issue_date ?? '').slice(0, 4)) || new Date().getFullYear();
+        const { data: taxRows } = await client
+            .from('tax_configurations')
+            .select('tax_type, rate, min_base, city')
+            .eq('year', year)
+            .eq('is_active', true);
+
+        // ReteICA solo se practica a los terceros marcados como agentes de retencion
+        // de ICA (dato traido de WorldOffice). Para el resto, aunque esten en Bogota,
+        // la factura NO lleva ReteICA.
+        const partyAppliesReteica = (party as { applies_reteica?: boolean } | null)?.applies_reteica === true;
+
+        const taxes: TaxRates = {};
+        for (const t of (taxRows ?? []) as Array<{ tax_type: string; rate: number; min_base: number; city: string | null }>) {
+            if (t.tax_type === 'RETEICA' && !partyAppliesReteica) continue;
+            // ReteICA depende del municipio: gana la tarifa de la ciudad del
+            // tercero y, si no hay, la general (city NULL).
+            if (t.tax_type === 'RETEICA' && t.city && t.city !== party?.city) continue;
+            const key = t.tax_type as keyof TaxRates;
+            if (taxes[key] && t.city == null) continue;
+            taxes[key] = { rate: Number(t.rate) || 0, min_base: Number(t.min_base) || 0 };
+        }
+
+        // ── Motor ──────────────────────────────────────────────────────────
+        const result = buildSalesEntry(
+            {
+                doc_kind: docKind,
+                payment_form: paymentForm,
+                taxpayer_code: taxpayerCode,
+                lines: docLines.map((l: any) => ({
+                    qty: Number(l.qty) || 0,
+                    unit_price: Number(l.unit_price) || 0,
+                    iva_rate: resolveLineIvaRate(l.tax_config, l.product?.tax_category),
+                })),
+            },
+            (ruleRows ?? []) as AccountingRule[],
+            taxes,
+        );
+        warnings.push(...result.warnings);
+
+        if (result.lines.length === 0 || result.totals.debit !== result.totals.credit) {
+            return { draft: null, warnings };
+        }
+
+        // ── Traducción de códigos de cuenta a ids ──────────────────────────
+        const codes = [...new Set(result.lines.map(l => l.account_code))];
+        const { data: accounts } = await client
+            .from('chart_accounts')
+            .select('id, code')
+            .in('code', codes);
+
+        const idByCode = new Map((accounts ?? []).map((a: { id: string; code: string }) => [a.code, a.id]));
+        const missing = codes.filter(c => !idByCode.has(c));
+        if (missing.length > 0) {
+            warnings.push(`Faltan cuentas en el PUC: ${missing.join(', ')}. No se contabilizó.`);
+            return { draft: null, warnings };
+        }
+
+        const label = docKind === 'FV' ? 'Factura' : 'Nota crédito';
+        return {
+            draft: {
+                entry_date: document.issue_date,
+                description: `${label} ${document.number ?? ''} — ${paymentForm.toLowerCase()}`.trim(),
+                document_id: document.id,
+                taxpayer_code: taxpayerCode,
+                payment_form: paymentForm,
+                totals: result.totals,
+                lines: result.lines.map(l => ({
+                    account_id: idByCode.get(l.account_code)!,
+                    account_code: l.account_code,
+                    concept: l.concept,
+                    iva_rate: l.iva_rate ?? null,
+                    party_id: document.party_id,
+                    debit: l.debit,
+                    credit: l.credit,
+                    description: `${l.concept}${l.iva_rate != null ? ` ${l.iva_rate}%` : ''} — ${label} ${document.number ?? ''}`,
+                })),
+            },
+            warnings,
+        };
+    },
+
+    /**
+     * Contabiliza una venta: calcula el asiento con previewSalesEntry y lo guarda.
+     * La simulación usa el MISMO cálculo, por eso el borrador está separado.
+     */
+    async createSalesEntry(client: SupabaseClient, document: any): Promise<{ entry: unknown | null; warnings: string[] }> {
+        const { draft, warnings } = await this.previewSalesEntry(client, document);
+        if (!draft) return { entry: null, warnings };
+        const entry = await this.createEntry(client, {
+            entry_date: draft.entry_date,
+            description: draft.description,
+            document_id: draft.document_id,
+            lines: draft.lines.map(l => ({
+                account_id: l.account_id,
+                party_id: l.party_id,
+                debit: l.debit,
+                credit: l.credit,
+                description: l.description,
+            })),
+        } as JournalEntry);
+        return { entry, warnings };
+    },
+
     async createEntryFromDocument(client: SupabaseClient, document: any) {
+        // Ventas: van por el motor de reglas del contador.
+        if (document.doc_type === 'INVOICE' || document.doc_type === 'CREDIT_NOTE') {
+            const { entry, warnings } = await this.createSalesEntry(client, document);
+            if (warnings.length > 0) console.warn('[contabilización]', document.number, warnings.join(' | '));
+            return entry;
+        }
+
         let lines: any[] = [];
         let description = `Contabilización ${document.doc_type} ${document.number || document.id?.substring(0, 8)}`;
 
@@ -338,35 +536,7 @@ export const accountingService = {
             cxAmount = Number(document.total) || 0;
         }
 
-        if (document.doc_type === 'INVOICE') {
-            const receivableAccount = await this.getAccountByCode(client, '1305'); // Clientes
-            const incomeAccount = await this.getAccountByCode(client, '4135'); // Comercio
-            const ivaAccount = await this.getAccountByCode(client, '2408'); // IVA Generado
-            const reteFuenteAccount = await this.getAccountByCode(client, '135515'); // Anticipo Retefuente (Activo)
-            const reteIcaAccount = await this.getAccountByCode(client, '135518'); // Anticipo ReteICA (Activo)
-
-            if (!receivableAccount || !incomeAccount) return;
-
-            // Debits (Receivable / CXC) -> Total
-            lines.push({ account_id: receivableAccount.id, party_id: document.party_id, debit: cxAmount, credit: 0, description });
-
-            // Debits (Anticipos Retenciones)
-            if (reteFuenteAmount > 0 && reteFuenteAccount) {
-                lines.push({ account_id: reteFuenteAccount.id, party_id: document.party_id, debit: reteFuenteAmount, credit: 0, description: `Anticipo Retefuente Fac ${document.number}` });
-            }
-            if (reteIcaAmount > 0 && reteIcaAccount) {
-                lines.push({ account_id: reteIcaAccount.id, party_id: document.party_id, debit: reteIcaAmount, credit: 0, description: `Anticipo ReteICA Fac ${document.number}` });
-            }
-
-            // Credits (Income) -> Subtotal
-            lines.push({ account_id: incomeAccount.id, party_id: document.party_id, debit: 0, credit: document.subtotal, description: `Ingreso Fac ${document.number}` });
-
-            // Credits (IVA Generado)
-            if (ivaAmount > 0 && ivaAccount) {
-                lines.push({ account_id: ivaAccount.id, party_id: document.party_id, debit: 0, credit: ivaAmount, description: `IVA Generado Fac ${document.number}` });
-            }
-        }
-        else if (document.doc_type === 'VENDOR_BILL') {
+        if (document.doc_type === 'VENDOR_BILL') {
             const payableAccount = await this.getAccountByCode(client, '2205'); // Proveedores
             const expenseAccount = await this.getAccountByCode(client, '6135'); // Costo de Ventas
             const ivaAccount = await this.getAccountByCode(client, '2408'); // IVA Descontable
@@ -393,34 +563,6 @@ export const accountingService = {
 
             // Credits (Payable / CXP) -> Total a pagar
             lines.push({ account_id: payableAccount.id, party_id: document.party_id, debit: 0, credit: cxAmount, description: `CXP Prov ${document.number}` });
-        }
-        else if (document.doc_type === 'CREDIT_NOTE') {
-            const receivableAccount = await this.getAccountByCode(client, '1305'); // Clientes
-            const returnAccount = await this.getAccountByCode(client, '4175'); // Devoluciones Ventas
-            const ivaAccount = await this.getAccountByCode(client, '2408'); // IVA Descontable/Generado Reversado
-            const reteFuenteAccount = await this.getAccountByCode(client, '135515'); // Reversa
-            const reteIcaAccount = await this.getAccountByCode(client, '135518'); // Reversa
-
-            if (!receivableAccount || !returnAccount) return;
-
-            // Debits (Income Reversal / Returns) -> Subtotal
-            lines.push({ account_id: returnAccount.id, party_id: document.party_id, debit: document.subtotal, credit: 0, description: `Devolución Venta ${document.number}` });
-
-            // Debits (IVA Reversal)
-            if (ivaAmount > 0 && ivaAccount) {
-                lines.push({ account_id: ivaAccount.id, party_id: document.party_id, debit: ivaAmount, credit: 0, description: `Ajuste IVA NC ${document.number}` });
-            }
-
-            // Credits (Reversa Anticipos)
-            if (reteFuenteAmount > 0 && reteFuenteAccount) {
-                lines.push({ account_id: reteFuenteAccount.id, party_id: document.party_id, debit: 0, credit: reteFuenteAmount, description: `Reversa Retefuente NC ${document.number}` });
-            }
-            if (reteIcaAmount > 0 && reteIcaAccount) {
-                lines.push({ account_id: reteIcaAccount.id, party_id: document.party_id, debit: 0, credit: reteIcaAmount, description: `Reversa ReteICA NC ${document.number}` });
-            }
-
-            // Credits (Receivable Reversal) -> Total
-            lines.push({ account_id: receivableAccount.id, party_id: document.party_id, debit: 0, credit: cxAmount, description: `Ajuste CXC NC ${document.number}` });
         }
         // Orders and Quotes do not generate accounting entries.
         else if (['PURCHASE_ORDER', 'SALES_ORDER', 'QUOTATION'].includes(document.doc_type)) {

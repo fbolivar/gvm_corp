@@ -20,6 +20,7 @@ export interface FixedAsset {
     serial_number: string | null;
     notes: string | null;
     chart_account_id: string | null;
+    last_depreciation_date: string | null;
     created_at: string;
 }
 
@@ -101,7 +102,7 @@ export const fixedAssetService = {
 
     async create(
         client: SupabaseClient,
-        payload: Omit<FixedAsset, 'id' | 'tenant_id' | 'accumulated_depreciation' | 'created_at'>
+        payload: Omit<FixedAsset, 'id' | 'tenant_id' | 'accumulated_depreciation' | 'created_at' | 'last_depreciation_date'>
     ): Promise<FixedAsset> {
         const { data: tenantRow } = await client.from('tenants').select('id').limit(1).single();
         const { data: { user } } = await client.auth.getUser();
@@ -132,9 +133,10 @@ export const fixedAssetService = {
 
         const newStatus: AssetStatus = newAccumulated >= depreciable ? 'FULLY_DEPRECIATED' : 'ACTIVE';
 
+        const today = new Date().toISOString().split('T')[0];
         const { error: updErr } = await client
             .from('fixed_assets')
-            .update({ accumulated_depreciation: newAccumulated, status: newStatus })
+            .update({ accumulated_depreciation: newAccumulated, status: newStatus, last_depreciation_date: today })
             .eq('id', assetId);
         if (updErr) throw updErr;
 
@@ -167,6 +169,37 @@ export const fixedAssetService = {
         }
 
         return { newAccumulated };
+    },
+
+    /**
+     * Corre la depreciación de 1 mes para TODOS los activos ACTIVOS que aún no se
+     * hayan depreciado en el mes actual (idempotente: no duplica si ya se corrió).
+     */
+    async runMonthlyDepreciation(client: SupabaseClient): Promise<{ processed: number; skipped: number; totalDepreciated: number; errors: number }> {
+        const { data: assets } = await client
+            .from('fixed_assets')
+            .select('id, last_depreciation_date, acquisition_cost, salvage_value, accumulated_depreciation, useful_life_years, category, status')
+            .eq('status', 'ACTIVE');
+        const now = new Date();
+        const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        let processed = 0, skipped = 0, totalDepreciated = 0, errors = 0;
+        for (const a of (assets ?? []) as FixedAsset[]) {
+            const last = a.last_depreciation_date ? String(a.last_depreciation_date).slice(0, 7) : null;
+            if (last === ym) { skipped++; continue; }                       // ya corrido este mes
+            if (a.category === 'LAND' || Number(a.useful_life_years) === 0) { skipped++; continue; }
+            const depreciable = Number(a.acquisition_cost) - Number(a.salvage_value);
+            if (Number(a.accumulated_depreciation) >= depreciable) { skipped++; continue; } // ya depreciado 100%
+            try {
+                const before = Number(a.accumulated_depreciation);
+                const { newAccumulated } = await this.registerDepreciation(client, a.id, 1);
+                totalDepreciated += Math.max(0, newAccumulated - before);
+                processed++;
+            } catch (e) {
+                console.error(`[fixedAsset] runMonthly error en ${a.id}:`, e instanceof Error ? e.message : e);
+                errors++;
+            }
+        }
+        return { processed, skipped, totalDepreciated, errors };
     },
 
     async dispose(client: SupabaseClient, assetId: string): Promise<void> {

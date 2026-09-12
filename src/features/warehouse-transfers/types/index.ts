@@ -10,11 +10,17 @@ export type TransferStatus = typeof TRANSFER_STATUSES[number];
 export const transferLineSchema = z.object({
     id: z.string().optional(),
     transfer_id: z.string().optional(),
-    product_id: z.string().min(1, 'Producto requerido'),
+    // product_id es opcional: se permite un ítem de texto libre (producto aún no
+    // creado en el sistema) usando `description`. Debe haber al menos uno de los dos.
+    product_id: z.string().optional().nullable(),
+    description: z.string().optional().default(''),
     qty: z.coerce.number().positive('Cantidad debe ser mayor a 0'),
     qty_received: z.coerce.number().min(0).default(0),
     notes: z.string().optional().default(''),
-});
+}).refine(
+    (l) => (!!l.product_id && l.product_id.length > 0) || (!!l.description && l.description.trim().length > 0),
+    { message: 'Selecciona un producto o escribe una descripción', path: ['description'] }
+);
 
 export type TransferLine = z.infer<typeof transferLineSchema>;
 
@@ -39,13 +45,27 @@ export interface TransferWithDetails extends Omit<WarehouseTransfer, 'lines'> {
     transferred_by_user?: { email: string };
     received_by_user?: { email: string };
     lines: Array<TransferLine & { product?: { name: string; sku: string } }>;
+    receipts?: TransferReceipt[];
     created_at?: string;
     transferred_at?: string;
     received_at?: string;
 }
 
+/** Un renglón recibido: qué lote llegó, cuándo vence y cuántas unidades. */
+export interface TransferReceipt {
+    id: string;
+    transfer_line_id: string;
+    product_id?: string | null;
+    lot_number?: string | null;
+    expiration_date?: string | null;
+    qty: number;
+    received_at: string;
+    receiver?: { full_name?: string | null } | null;
+}
+
 // ─── Action input types ────────────────────────────────────────────────────────
 
+/** @deprecated La recepción se registra por renglón (lote + vencimiento). Ver ReceiptDraft. */
 export interface ReceiveTransferLine {
     line_id: string;
     qty_received: number;

@@ -126,7 +126,7 @@ export function CreateBenefitModal({ isOpen, onClose, employees, tenantId, onSuc
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Monto</Label>
                             <div className="relative">

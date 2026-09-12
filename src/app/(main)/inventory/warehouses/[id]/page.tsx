@@ -76,8 +76,8 @@ export default async function WarehouseDetailPage({ params }: PageProps) {
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                         <Badge className="bg-indigo-50 text-indigo-600 border border-indigo-100 text-[10px] font-semibold px-2 py-0.5 rounded-full">
                             {warehouse.code}
@@ -97,7 +97,7 @@ export default async function WarehouseDetailPage({ params }: PageProps) {
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                     { label: 'Pasillos',    value: Object.keys(byAisle).length, icon: Grid3X3,  bg: 'bg-slate-50',    color: 'text-slate-600' },
                     { label: 'Ubicaciones', value: locations.length,             icon: MapPin,   bg: 'bg-indigo-50',   color: 'text-indigo-600' },
@@ -131,7 +131,7 @@ export default async function WarehouseDetailPage({ params }: PageProps) {
                     </CardHeader>
                     <CardContent className="p-5">
                         <form action={addLocation} className="space-y-4">
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pasillo</label>
                                     <input name="aisle" required placeholder="A" maxLength={5}

@@ -111,11 +111,11 @@ export async function POST(req: NextRequest) {
         if (!todayRecord || !todayRecord.check_in) {
             // No record today or no check-in → CLOCK IN
             action = 'clock_in';
-            resultData = await attendanceService.clockIn(adminClient, employee_id, terminal.tenant_id, geo);
+            resultData = await attendanceService.clockIn(adminClient, employee_id, terminal.tenant_id, geo, terminal.id);
         } else if (todayRecord.check_in && !todayRecord.check_out) {
             // Has check-in but no check-out → CLOCK OUT
             action = 'clock_out';
-            resultData = await attendanceService.clockOut(adminClient, employee_id, geo);
+            resultData = await attendanceService.clockOut(adminClient, employee_id, geo, terminal.id);
         } else {
             // Both check-in and check-out exist → already completed
             return NextResponse.json(
@@ -124,16 +124,22 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 7. Update terminal last_ping
-        void adminClient
+        // 7. Marca de uso del terminal. Se espera la promesa: lanzada sin await,
+        // la función serverless puede terminar antes de que se ejecute y el
+        // "último uso" nunca se guardaba (los 5 terminales lo tenían vacío pese
+        // a haber marcaciones reales).
+        const { error: pingError } = await adminClient
             .from('kiosk_terminals')
             .update({ last_ping_at: new Date().toISOString() })
             .eq('id', terminal.id);
+
+        if (pingError) console.error('[kiosk/clock] last_ping:', pingError.message);
 
         return NextResponse.json({
             success: true,
             action,
             employee_name: employeeName || 'Empleado',
+            terminal_name: terminal.name,
             time: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
             data: {
                 status: resultData.status,

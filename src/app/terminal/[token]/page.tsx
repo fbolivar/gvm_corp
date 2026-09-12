@@ -32,29 +32,31 @@ export default async function TerminalPage({ params }: PageProps) {
     // 2. Get tenant info
     const { data: tenant } = await adminClient
         .from('tenants')
-        .select('legal_name, nit')
+        // La empresa se llama `name` en `tenants` (legal_name es de parties):
+        // con legal_name la consulta fallaba y siempre salía el nombre por defecto.
+        .select('legal_name:name, nit')
         .eq('id', terminal.tenant_id)
         .maybeSingle()
 
-    // 3. Get all active employees for this tenant (for local name lookup after scan)
-    const { data: employees } = await adminClient
+    // 3. Solo el CONTEO de empleados activos.
+    //
+    // Antes se enviaba al navegador la lista completa (id + nombre de los 39
+    // empleados) para mostrar el nombre mientras se procesaba el escaneo. Esta
+    // página es pública —basta el enlace, no hay sesión— así que cualquiera con
+    // la URL se llevaba el directorio del personal. El nombre real ya lo
+    // devuelve /api/kiosk/clock después de validar la firma del QR.
+    const { count: employeeCount } = await adminClient
         .from('employees')
-        .select('id, party:parties(legal_name)')
+        .select('id', { count: 'exact', head: true })
         .eq('tenant_id', terminal.tenant_id)
         .eq('status', 'ACTIVE')
-
-    const employeeList = (employees || []).map(emp => {
-        const party = emp.party as unknown as { legal_name: string } | { legal_name: string }[] | null
-        const name = Array.isArray(party) ? party[0]?.legal_name : party?.legal_name
-        return { id: emp.id, name: name || 'Sin nombre' }
-    })
 
     return (
         <KioskTerminal
             token={token}
             terminalName={terminal.name}
             tenantName={tenant?.legal_name || 'GVM Corp'}
-            employees={employeeList}
+            employeeCount={employeeCount ?? 0}
         />
     )
 }

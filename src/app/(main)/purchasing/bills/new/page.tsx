@@ -66,7 +66,7 @@ export default async function NewBillPage(props: { searchParams: Promise<{ order
                     <FileCheck className="h-96 w-96" />
                 </div>
 
-                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-12">
+                <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 lg:gap-12">
                     <div className="space-y-6">
                         <div className="flex items-center gap-4">
                             <div className="h-10 w-10 bg-emerald-500 rounded-xl flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20 rotate-6 group-hover:rotate-0 transition-transform">

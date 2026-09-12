@@ -34,8 +34,8 @@ export default async function ContractsPage() {
                 <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
                     <FileText className="h-24 w-24 text-white" />
                 </div>
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
-                    <div className="space-y-4">
+                <div className="relative z-10 flex flex-col md:flex-row flex-wrap justify-between items-start md:items-end gap-10">
+                    <div className="space-y-4 min-w-0">
                         <div className="flex items-center gap-3">
                             <div className="h-2 w-8 bg-violet-500 rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-violet-400">Gestión Legal</span>

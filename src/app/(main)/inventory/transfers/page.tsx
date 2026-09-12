@@ -8,6 +8,8 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { cn } from '@/shared/lib/utils';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
+import { TransferSearchList } from '@/features/warehouse-transfers/components/TransferSearchList';
+import { DocumentExportButton } from '@/features/sales/components/DocumentExportButton';
 import {
     ArrowLeftRight,
     Plus,
@@ -19,6 +21,7 @@ import {
     Calendar,
     ExternalLink,
     LayoutGrid,
+    RefreshCw,
 } from 'lucide-react';
 
 export const metadata = { title: 'Traslados entre Bodegas — GVM Corp' };
@@ -32,6 +35,7 @@ function formatDate(dateStr: string | null | undefined): string {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
+            timeZone: 'America/Bogota',
         });
     } catch {
         return dateStr;
@@ -100,11 +104,30 @@ export default async function TransfersPage() {
 
     const defaultStats = { total: 0, drafts: 0, inTransit: 0, received: 0, cancelled: 0 };
 
-    const [transfers, stats, tenant] = await Promise.all([
-        transferService.getTransfers(supabase).catch((): TransferWithDetails[] => []),
+    // Cargamos los traslados por separado para distinguir un ERROR real (que antes se
+    // ocultaba con un `.catch(() => [])` mostrando "Sin Traslados" en silencio) de una
+    // lista legítimamente vacía. Si falla, se avisa al usuario en vez de fingir vacío.
+    let transfers: TransferWithDetails[] = [];
+    let loadError: string | null = null;
+    try {
+        transfers = await transferService.getTransfers(supabase);
+    } catch (err: unknown) {
+        loadError = err instanceof Error ? err.message : 'Error desconocido al cargar traslados';
+        console.error('[TransfersPage] getTransfers falló:', err);
+    }
+
+    const [stats, tenant] = await Promise.all([
         transferService.getStats(supabase).catch(() => defaultStats),
         settingsService.getTenantInfo(supabase),
     ]);
+
+    const company = {
+        name: tenant?.name || 'GVM S.A.S',
+        nit: tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : null,
+        address: [tenant?.address, tenant?.city].filter(Boolean).join(', ') || null,
+        phone: tenant?.phone ?? null,
+        logoUrl: tenant?.logo_url ?? null,
+    };
 
     const kpis = [
         {
@@ -141,20 +164,37 @@ export default async function TransfersPage() {
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
 
             {/* ── Header ──────────────────────────────────────────────────────── */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <VisualReportHeader
-                    title="Traslados entre Bodegas"
-                    subtitle="Movimiento y trazabilidad de mercancía entre ubicaciones"
-                    tenant={tenant}
-                />
-                <Button
-                    asChild
-                    className="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs gap-2 shrink-0"
-                >
-                    <Link href="/inventory/transfers/new">
-                        <Plus className="h-3.5 w-3.5" /> Nuevo Traslado
-                    </Link>
-                </Button>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                    <VisualReportHeader
+                        title="Traslados entre Bodegas"
+                        subtitle="Movimiento y trazabilidad de mercancía entre ubicaciones"
+                        tenant={tenant}
+                    />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <Button
+                        asChild
+                        className="h-11 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs gap-2"
+                    >
+                        <Link href="/inventory/transfers/new">
+                            <Plus className="h-3.5 w-3.5" /> Nuevo Traslado
+                        </Link>
+                    </Button>
+                    <DocumentExportButton
+                        source="transfers"
+                        company={company}
+                        opts={{
+                            title: 'TRASLADOS ENTRE BODEGAS',
+                            partyLabel: 'Origen',
+                            docLabel: 'Destino',
+                            warehouseLabel: 'Observaciones',
+                            fileLabel: 'Traslados',
+                            sheetName: 'Traslados',
+                            statusLabels: {},
+                        }}
+                    />
+                </div>
             </div>
 
             {/* ── KPI Cards ─────────────────────────────────────────────────── */}
@@ -190,12 +230,37 @@ export default async function TransfersPage() {
                 <div className="border-b border-slate-100 px-5 py-3 flex items-center gap-3">
                     <ArrowLeftRight className="h-4 w-4 text-slate-400" />
                     <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Listado de Traslados ({transfers.length})
+                        Listado de Traslados ({loadError ? '—' : transfers.length})
                     </span>
                 </div>
 
                 <CardContent className="p-0">
-                    {transfers.length === 0 ? (
+                    {loadError ? (
+                        <div className="py-16 px-6 text-center flex flex-col items-center justify-center gap-3">
+                            <div className="h-12 w-12 rounded-xl bg-rose-50 flex items-center justify-center">
+                                <AlertCircle className="h-6 w-6 text-rose-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900">
+                                    No se pudieron cargar los traslados
+                                </h3>
+                                <p className="text-xs text-slate-400 mt-1 max-w-md">
+                                    Ocurrió un error al consultar la información. Tus traslados NO se
+                                    han perdido — vuelve a intentar en unos segundos.
+                                </p>
+                                <p className="text-[10px] text-slate-300 mt-2 font-mono break-all">
+                                    {loadError}
+                                </p>
+                            </div>
+                            {/* Enlace nativo = recarga completa (evita el router-cache del cliente) */}
+                            <a
+                                href="/inventory/transfers"
+                                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold mt-2 transition-colors"
+                            >
+                                <RefreshCw className="h-3.5 w-3.5" /> Reintentar
+                            </a>
+                        </div>
+                    ) : transfers.length === 0 ? (
                         <div className="py-16 text-center flex flex-col items-center justify-center gap-3">
                             <div className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center">
                                 <ArrowLeftRight className="h-6 w-6 text-slate-300" />
@@ -216,116 +281,16 @@ export default async function TransfersPage() {
                             </Button>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full" role="table">
-                                <thead>
-                                    <tr className="border-b border-slate-100 bg-slate-50/60">
-                                        <th
-                                            scope="col"
-                                            className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
-                                        >
-                                            TR #
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
-                                        >
-                                            Origen
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
-                                        >
-                                            Destino
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
-                                        >
-                                            Estado
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
-                                        >
-                                            Fecha
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-5 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider"
-                                        >
-                                            Acciones
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {transfers.map((transfer: TransferWithDetails) => {
-                                        const fromName =
-                                            (transfer.from_warehouse as { name?: string } | undefined)
-                                                ?.name ?? '—';
-                                        const toName =
-                                            (transfer.to_warehouse as { name?: string } | undefined)
-                                                ?.name ?? '—';
-                                        return (
-                                            <tr
-                                                key={transfer.id}
-                                                className="hover:bg-slate-50/50 transition-colors"
-                                            >
-                                                {/* TR Number */}
-                                                <td className="px-5 py-4">
-                                                    <span className="text-xs font-bold text-slate-900 font-mono">
-                                                        {transfer.transfer_number ?? '—'}
-                                                    </span>
-                                                </td>
-
-                                                {/* Origin */}
-                                                <td className="px-4 py-4 max-w-[140px]">
-                                                    <p className="text-xs font-bold text-slate-900 truncate leading-snug">
-                                                        {fromName}
-                                                    </p>
-                                                </td>
-
-                                                {/* Destination */}
-                                                <td className="px-4 py-4 max-w-[140px]">
-                                                    <p className="text-xs font-bold text-slate-900 truncate leading-snug">
-                                                        {toName}
-                                                    </p>
-                                                </td>
-
-                                                {/* Status */}
-                                                <td className="px-4 py-4">
-                                                    <StatusBadge status={transfer.status as TransferStatus} />
-                                                </td>
-
-                                                {/* Date (hidden on mobile) */}
-                                                <td className="hidden md:table-cell px-4 py-4">
-                                                    <div className="flex items-center gap-1.5 text-slate-500">
-                                                        <Calendar className="h-3 w-3 text-slate-300 shrink-0" />
-                                                        <span className="text-[10px] text-slate-400">
-                                                            {formatDate(transfer.created_at)}
-                                                        </span>
-                                                    </div>
-                                                </td>
-
-                                                {/* Actions */}
-                                                <td className="px-5 py-4 text-right">
-                                                    <Button
-                                                        asChild
-                                                        variant="ghost"
-                                                        className="h-8 px-3 rounded-xl text-[10px] font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1.5 uppercase tracking-wide"
-                                                    >
-                                                        <Link href={`/inventory/transfers/${transfer.id}`}>
-                                                            <ExternalLink className="h-3 w-3" />
-                                                            Ver detalle
-                                                        </Link>
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                        <TransferSearchList
+                            rows={transfers.map((t: TransferWithDetails) => ({
+                                id: t.id!,
+                                number: t.transfer_number ?? null,
+                                from: (t.from_warehouse as { name?: string } | undefined)?.name ?? '—',
+                                to: (t.to_warehouse as { name?: string } | undefined)?.name ?? '—',
+                                status: t.status as string,
+                                created_at: t.created_at,
+                            }))}
+                        />
                     )}
                 </CardContent>
             </Card>

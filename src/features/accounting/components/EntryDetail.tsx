@@ -13,6 +13,7 @@ import { es } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { cn } from "@/shared/lib/utils"
 import Link from "next/link"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface EntryDetailProps {
     entry: Record<string, unknown>;
@@ -37,16 +38,18 @@ export function EntryDetail({ entry }: EntryDetailProps) {
         <div className="page-container space-y-8 pb-20 animate-in fade-in duration-500 max-w-5xl mx-auto">
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => router.back()}
-                        className="h-10 w-10 rounded-xl"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 flex-wrap min-w-0">
+                <div className="flex items-center gap-4 min-w-0">
+                    <Hint label="Volver" side="right">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => router.back()}
+                            className="h-10 w-10 rounded-xl"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                    </Hint>
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -85,13 +88,13 @@ export function EntryDetail({ entry }: EntryDetailProps) {
             {/* Table */}
             <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
                 <CardHeader className="py-5 px-6 border-b border-slate-100 bg-slate-50/30">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-wrap min-w-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
                                 <BookOpen className="h-5 w-5" />
                             </div>
-                            <div>
-                                <CardTitle className="text-base font-bold text-slate-900">{entry.description as string}</CardTitle>
+                            <div className="min-w-0">
+                                <CardTitle className="text-base font-bold text-slate-900 truncate">{entry.description as string}</CardTitle>
                                 <p className="text-[10px] text-slate-400 mt-0.5">Glosa del asiento</p>
                             </div>
                         </div>
@@ -105,6 +108,7 @@ export function EntryDetail({ entry }: EntryDetailProps) {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
+                    <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="border-slate-100 hover:bg-transparent bg-slate-50/50">
@@ -173,6 +177,7 @@ export function EntryDetail({ entry }: EntryDetailProps) {
                             </TableRow>
                         </TableBody>
                     </Table>
+                    </div>
                 </CardContent>
             </Card>
 

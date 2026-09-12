@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { documentService } from '@/features/documents/services/documentService';
+import { settingsService } from '@/features/settings/services/settingsService';
 import { DocumentList } from '@/features/documents/components/DocumentList';
+import { DocumentExportButton } from '@/features/sales/components/DocumentExportButton';
 import { redirect } from 'next/navigation';
 import { Button } from '@/shared/components/ui/button';
 import { PageHeader } from '@/shared/components/ui/page-header';
@@ -19,7 +21,18 @@ export default async function DocumentsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
-    const { data } = await documentService.getDocuments(supabase, { page: 1, per_page: 50 });
+    // Los anulados quedan fuera de la vista general; se consultan desde
+    // Pedidos con el filtro "Solo anulados".
+    const { data } = await documentService.getDocuments(supabase, { page: 1, per_page: 50, hide_voided: true });
+
+    const tenant = await settingsService.getTenantInfo(supabase);
+    const company = {
+        name: tenant?.name || 'GVM S.A.S',
+        nit: tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : null,
+        address: [tenant?.address, tenant?.city].filter(Boolean).join(', ') || null,
+        phone: tenant?.phone ?? null,
+        logoUrl: tenant?.logo_url ?? null,
+    };
 
     const drafts = data.filter(d => d.status === 'DRAFT').length;
     const emitted = data.filter(d => d.status === 'SENT' || d.status === 'ACCEPTED').length;
@@ -47,6 +60,16 @@ export default async function DocumentsPage() {
                         <Button asChild variant="outline">
                             <Link href="/sales">Ver ventas</Link>
                         </Button>
+                        <DocumentExportButton
+                            source="documents"
+                            docType=""
+                            filters={{}}
+                            company={company}
+                            opts={{
+                                title: 'DOCUMENTOS', partyLabel: 'Tercero', fileLabel: 'Documentos', sheetName: 'Documentos',
+                                statusLabels: { DRAFT: 'Borrador', SENT: 'Emitido', ACCEPTED: 'Aceptado', PAID: 'Pagado', VOIDED: 'Anulado', REJECTED: 'Rechazado' },
+                            }}
+                        />
                         <Button asChild>
                             <Link href="/documents/new">
                                 <Plus className="h-4 w-4 mr-1.5" />

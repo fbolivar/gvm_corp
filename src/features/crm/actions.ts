@@ -16,8 +16,15 @@ export async function createLeadAction(data: Lead) {
         return { error: "Datos inválidos: " + JSON.stringify(parsed.error.format()) };
     }
 
+    // La RLS de `leads` exige tenant_id = get_my_tenant_id() en el INSERT.
+    // Sin esto, crear un prospecto siempre falla.
+    const { data: tenantId } = await supabase.rpc('get_my_tenant_id');
+    if (!tenantId) {
+        return { error: "No se encontró el tenant del usuario" };
+    }
+
     try {
-        await crmService.createLead(supabase, parsed.data);
+        await crmService.createLead(supabase, { ...parsed.data, tenant_id: tenantId as string });
     } catch (error: any) {
         return { error: error.message };
     }
@@ -84,11 +91,17 @@ export async function addActivityAction(opportunityId: string, data: { type: str
 export async function convertLeadToOpportunityAction(leadId: string, partyData: Partial<Party>, opportunityName: string, value: number) {
     const supabase = await createClient();
 
+    // parties y crm_opportunities exigen tenant_id = get_my_tenant_id() en el INSERT (RLS).
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+    const { data: tenantId } = await supabase.rpc('get_my_tenant_id');
+    if (!tenantId) return { error: "No se encontró el tenant del usuario" };
+
     try {
         // 1. Create Party (Client)
-        // Ensure minimal data is present or handle errors
         const party = await partyService.createParty(supabase, {
             ...partyData,
+            tenant_id: tenantId as string,
             is_customer: true,
             is_vendor: false
         } as Party);
@@ -101,6 +114,8 @@ export async function convertLeadToOpportunityAction(leadId: string, partyData: 
             lead_id: leadId,
             party_id: party.id,
             probability: 10, // Initial probability
+            tenant_id: tenantId as string,
+            assigned_to: user.id,
         });
 
         // 3. Update Lead Status

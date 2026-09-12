@@ -81,9 +81,9 @@ export function PeriodClosePanel({ period: initialPeriod, items: initialItems }:
             {/* Period header */}
             <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
                 <CardHeader className="py-5 px-6">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-3">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 flex-wrap">
+                        <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0">
                                 <h2 className="text-lg font-bold text-slate-900 capitalize">
                                     {periodLabel(period.period)}
                                 </h2>

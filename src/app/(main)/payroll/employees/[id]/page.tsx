@@ -2,9 +2,12 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { EditEmployeeFormWrapper } from "@/features/payroll/components/EditEmployeeFormWrapper"
 import { EmployeeCarnet } from "@/features/payroll/components/EmployeeCarnet"
+import { CertificateButtons } from "@/features/payroll/components/CertificateButtons"
+import { employeeService } from "@/features/payroll/services/employeeService"
+import { settingsService } from "@/features/settings/services/settingsService"
 import { AuditTrail } from "@/shared/components/ui/audit-trail"
 import { Button } from "@/shared/components/ui/button"
-import { ChevronLeft, UserCog, Sparkles } from "lucide-react"
+import { ChevronLeft, UserCog, Sparkles, FileBadge } from "lucide-react"
 import Link from "next/link"
 
 interface PageProps {
@@ -21,11 +24,18 @@ export default async function EditEmployeePage({ params }: PageProps) {
         redirect('/login')
     }
 
+    // Datos para los certificados (empleado + empresa + firmante RRHH)
+    const employee = await employeeService.getEmployeeById(supabase, id).catch(() => null)
+    const tenant = await settingsService.getTenantInfo(supabase)
+    const companyNit = tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : undefined
+    const companyAddress = [tenant?.address, tenant?.city, tenant?.department].filter(Boolean).join(', ') || undefined
+    const companyContact = [tenant?.phone, tenant?.email, tenant?.website].filter(Boolean).join(' · ') || undefined
+
     return (
         <div className="space-y-12 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 container mx-auto py-12 px-4">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="space-y-2">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1 flex-wrap">
+                <div className="space-y-2 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                         <Button asChild variant="ghost" className="h-8 w-8 p-0 rounded-lg text-slate-400 hover:text-primary">
                             <Link href="/payroll/employees">
@@ -56,6 +66,46 @@ export default async function EditEmployeePage({ params }: PageProps) {
             </div>
 
             <EditEmployeeFormWrapper employeeId={id} />
+
+            {/* Certificados (RRHH los genera para el empleado) */}
+            {employee?.party && (
+                <div className="bg-white rounded-[2rem] shadow-premium border-none p-8 max-w-md">
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                            <FileBadge className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-slate-900 tracking-tight italic">Certificados</h3>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Genera el certificado laboral o de ingresos</p>
+                        </div>
+                    </div>
+                    <div className="mt-5">
+                        <CertificateButtons
+                            data={{
+                                employeeName:       (employee.party as { legal_name?: string }).legal_name ?? '',
+                                employeeDoc:        (employee.party as { doc_number?: string }).doc_number ?? '',
+                                employeeDocType:    (employee.party as { doc_type?: string }).doc_type ?? 'C.C.',
+                                contractType:       employee.contract_type,
+                                startDate:          employee.start_date,
+                                salary:             Number(employee.salary),
+                                transportAllowance: employee.transport_allowance,
+                                salaryBonus:          Number(employee.salary_bonus) || 0,
+                                nonSalaryBonus:       Number(employee.non_salary_bonus) || 0,
+                                additionalAllowances: Number(employee.additional_allowances) || 0,
+                                mobilityAllowance:    Number(employee.mobility_allowance) || 0,
+                                companyName:        tenant?.name ?? 'GVM Corp',
+                                companyNit,
+                                companyAddress,
+                                companyContact,
+                                companyLogoUrl:     tenant?.logo_url ?? null,
+                                signerName:         tenant?.hr_manager_name ?? undefined,
+                                signerTitle:        tenant?.hr_manager_title ?? 'Jefe de Recursos Humanos',
+                                signerSignatureUrl: tenant?.hr_signature_url ?? null,
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Carnet QR del empleado */}
             <div className="max-w-md">

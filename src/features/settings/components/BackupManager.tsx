@@ -94,14 +94,14 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
             const a = document.createElement('a');
             a.href = url;
             const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-            a.download = `backup-gvm-${dateStr}.json`;
+            a.download = `backup-gvm-${dateStr}.gvm`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            toast.success("Backup generado exitosamente", {
-                description: `${recordCount} registros de ${tablesCount} tablas exportados.`
+            toast.success("Backup cifrado generado", {
+                description: `${recordCount} registros de ${tablesCount} tablas · formato .gvm (AES-256).`
             });
 
             // Refresh history
@@ -128,7 +128,8 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
             const a = document.createElement('a');
             a.href = url;
             const dateStr = new Date(backup.created_at).toISOString().slice(0, 10);
-            a.download = `backup-gvm-${dateStr}.json`;
+            const ext = backup.file_path?.endsWith('.gvm') ? 'gvm' : 'json';
+            a.download = `backup-gvm-${dateStr}.${ext}`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -175,7 +176,7 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                 </div>
                 <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Datos Reales del Tenant</span>
+                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Cifrado AES-256 · .gvm</span>
                 </div>
             </div>
 
@@ -264,7 +265,7 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                             {loading ? "Exportando datos..." : "Generar Copia Ahora"}
                         </Button>
                         <p className="text-xs text-indigo-300 text-center mt-4">
-                            Incluye base de datos completa. Se guarda en servidor y se descarga.
+                            Formato <strong className="text-white">.gvm</strong> cifrado (AES-256-GCM). Se guarda en servidor y se descarga.
                         </p>
                     </CardContent>
                 </Card>
@@ -316,12 +317,12 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                 </CardHeader>
                 <CardContent className="p-0">
                     {loadingHistory ? (
-                        <div className="p-12 text-center">
+                        <div className="p-6 md:p-12 text-center">
                             <RefreshCw className="h-8 w-8 animate-spin text-slate-300 mx-auto mb-3" />
                             <p className="text-sm text-slate-400 font-medium">Cargando historial...</p>
                         </div>
                     ) : history.length === 0 ? (
-                        <div className="p-12 text-center">
+                        <div className="p-6 md:p-12 text-center">
                             <AlertCircle className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                             <p className="text-sm text-slate-400 font-bold">No hay copias de seguridad</p>
                             <p className="text-xs text-slate-300 mt-1">Genera tu primera copia con el botón de arriba.</p>

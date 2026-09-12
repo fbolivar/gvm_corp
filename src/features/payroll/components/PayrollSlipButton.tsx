@@ -3,6 +3,7 @@
 import { Button } from "@/shared/components/ui/button"
 import { Download, Loader2 } from "lucide-react"
 import { useState } from "react"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface PayrollSlipData {
     docNumber: string
@@ -139,16 +140,18 @@ export function PayrollSlipButton({
     }
 
     return (
-        <Button
-            variant="outline"
-            onClick={handleDownload}
-            disabled={loading}
-            className={`h-16 w-16 rounded-2xl border-none bg-slate-50 hover:bg-slate-900 text-slate-400 hover:text-white transition-all duration-500 group/btn ${className ?? ''}`}
-        >
-            {loading
-                ? <Loader2 className="h-6 w-6 animate-spin" />
-                : <Download className="h-6 w-6 group-hover/btn:translate-y-1 transition-transform" />
-            }
-        </Button>
+        <Hint label="Descargar desprendible" side="top">
+            <Button
+                variant="outline"
+                onClick={handleDownload}
+                disabled={loading}
+                className={`h-16 w-16 rounded-2xl border-none bg-slate-50 hover:bg-slate-900 text-slate-400 hover:text-white transition-all duration-500 group/btn ${className ?? ''}`}
+            >
+                {loading
+                    ? <Loader2 className="h-6 w-6 animate-spin" />
+                    : <Download className="h-6 w-6 group-hover/btn:translate-y-1 transition-transform" />
+                }
+            </Button>
+        </Hint>
     )
 }

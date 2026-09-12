@@ -21,6 +21,7 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/shared/lib/utils";
+import { Hint } from "@/shared/components/ui/hint";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -109,10 +110,26 @@ export function NotificationBell() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            await supabase
+            // Resolver tenant (las alertas del sistema van a nivel tenant: user_id NULL)
+            let tid = tenantId;
+            if (!tid) {
+                const { data: ut } = await supabase
+                    .from('user_tenants')
+                    .select('tenant_id')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                tid = ut?.tenant_id ?? null;
+            }
+
+            // Marca leídas tanto las personales como las de tenant (mismo filtro que la carga)
+            let query = supabase
                 .from('app_notifications')
                 .update({ is_read: true })
-                .eq('user_id', user.id);
+                .eq('is_read', false);
+            query = tid
+                ? query.or(`user_id.eq.${user.id},and(user_id.is.null,tenant_id.eq.${tid})`)
+                : query.eq('user_id', user.id);
+            await query;
 
             setHasUnread(false);
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
@@ -123,6 +140,7 @@ export function NotificationBell() {
 
     return (
         <DropdownMenu onOpenChange={(open) => open && markAsRead()}>
+            <Hint label="Notificaciones" description="Alertas y avisos del sistema" side="bottom">
             <DropdownMenuTrigger asChild>
                 <div className="relative group cursor-pointer hover:scale-110 transition-transform p-3 rounded-full hover:bg-slate-50 border border-transparent hover:border-slate-100">
                     <Bell className={cn(
@@ -134,6 +152,7 @@ export function NotificationBell() {
                     )}
                 </div>
             </DropdownMenuTrigger>
+            </Hint>
             <DropdownMenuContent align="end" className="w-80 rounded-[2rem] p-4 shadow-premium border-slate-50 bg-white/95 backdrop-blur-xl">
                 <DropdownMenuLabel className="flex items-center justify-between p-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Notificaciones</span>

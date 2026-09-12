@@ -3,19 +3,26 @@
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
-import { ArrowLeft, ArrowRight, Building2, Calendar } from "lucide-react"
+import { ArrowLeft, ArrowRight, Building2, Calendar, XCircle, RotateCcw } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/shared/lib/utils"
 import { useRouter } from "next/navigation"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface Props {
     opportunity: Record<string, unknown>
     onMove: (id: string, direction: 'PREV' | 'NEXT') => void
+    onLose?: (id: string) => void
+    onReopen?: (id: string) => void
 }
 
-export function OpportunityCard({ opportunity, onMove }: Props) {
+export function OpportunityCard({ opportunity, onMove, onLose, onReopen }: Props) {
     const router = useRouter();
+    const stage = String(opportunity.stage);
+    const isClosed = stage === 'CLOSED_WON' || stage === 'CLOSED_LOST';
+    const isFirstOpen = stage === 'PROSPECTING';
+    const oppId = String(opportunity.id);
     const probability = Number(opportunity.probability) || 0;
     const probabilityColor =
         probability >= 80 ? "text-emerald-600 bg-emerald-50 border-emerald-100" :
@@ -68,37 +75,66 @@ export function OpportunityCard({ opportunity, onMove }: Props) {
                     <span className="text-sm font-bold text-slate-900">{valueFormatted}</span>
                 </div>
 
-                {/* Footer: Date & Nav */}
-                <div className="flex items-center justify-between gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-md hover:bg-slate-100 text-slate-300 hover:text-slate-900 disabled:opacity-20"
-                        onClick={(e) => { e.stopPropagation(); onMove(String(opportunity.id), 'PREV'); }}
-                        disabled={['PROSPECTING', 'CLOSED_WON', 'CLOSED_LOST'].includes(String(opportunity.stage))}
-                    >
-                        <ArrowLeft className="h-3.5 w-3.5" />
-                    </Button>
-
-                    <div className="flex-1 flex items-center justify-center gap-1.5 h-7 bg-slate-50 rounded-md px-2">
-                        <Calendar className="h-3 w-3 text-slate-400" />
-                        <span className="text-[10px] text-slate-500 font-medium">
-                            {opportunity.expected_close_date
-                                ? format(new Date(String(opportunity.expected_close_date)), 'dd MMM yyyy', { locale: es })
-                                : 'Sin fecha'}
-                        </span>
-                    </div>
-
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-md hover:bg-indigo-50 hover:text-indigo-600 text-slate-300 disabled:opacity-20"
-                        onClick={(e) => { e.stopPropagation(); onMove(String(opportunity.id), 'NEXT'); }}
-                        disabled={['CLOSED_WON', 'CLOSED_LOST'].includes(String(opportunity.stage))}
-                    >
-                        <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
+                {/* Date */}
+                <div className="flex items-center justify-center gap-1.5 h-7 bg-slate-50 rounded-md px-2">
+                    <Calendar className="h-3 w-3 text-slate-400" />
+                    <span className="text-[10px] text-slate-500 font-medium">
+                        {opportunity.expected_close_date
+                            ? format(new Date(String(opportunity.expected_close_date)), 'dd MMM yyyy', { locale: es })
+                            : 'Sin fecha'}
+                    </span>
                 </div>
+
+                {/* Footer: Stage actions */}
+                {isClosed ? (
+                    <Hint label="Reabrir en Prospección" side="top">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full h-7 rounded-md border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 text-[10px] font-bold uppercase tracking-wider"
+                            onClick={(e) => { e.stopPropagation(); onReopen?.(oppId); }}
+                        >
+                            <RotateCcw className="h-3 w-3 mr-1.5" />
+                            Reabrir
+                        </Button>
+                    </Hint>
+                ) : (
+                    <div className="flex items-center justify-between gap-1">
+                        <Hint label="Etapa anterior" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-md hover:bg-slate-100 text-slate-300 hover:text-slate-900 disabled:opacity-20"
+                                onClick={(e) => { e.stopPropagation(); onMove(oppId, 'PREV'); }}
+                                disabled={isFirstOpen}
+                            >
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
+
+                        <Hint label="Marcar como perdida" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-600"
+                                onClick={(e) => { e.stopPropagation(); onLose?.(oppId); }}
+                            >
+                                <XCircle className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
+
+                        <Hint label={stage === 'NEGOTIATION' ? 'Marcar como ganada' : 'Siguiente etapa'} side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-md hover:bg-indigo-50 hover:text-indigo-600 text-slate-300"
+                                onClick={(e) => { e.stopPropagation(); onMove(oppId, 'NEXT'); }}
+                            >
+                                <ArrowRight className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

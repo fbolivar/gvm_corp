@@ -11,9 +11,9 @@ import {
 } from '@/features/super-admin/services/superAdminService'
 
 const PRESET_COLORS = [
-  { name: 'Índigo', primary: '#6366f1', accent: '#10b981' },
+  { name: 'Índigo', primary: '#0096E6', accent: '#10b981' },
   { name: 'Azul', primary: '#2563eb', accent: '#f59e0b' },
-  { name: 'Emerald', primary: '#10b981', accent: '#6366f1' },
+  { name: 'Emerald', primary: '#10b981', accent: '#0096E6' },
   { name: 'Rose', primary: '#e11d48', accent: '#0ea5e9' },
   { name: 'Naranja', primary: '#f97316', accent: '#3b82f6' },
   { name: 'Púrpura', primary: '#9333ea', accent: '#f59e0b' },
@@ -34,7 +34,7 @@ export function BrandingSection({ tenantId }: Props) {
     custom_domain: null,
     logo_url: null,
     favicon_url: null,
-    primary_color: '#6366f1',
+    primary_color: '#0096E6',
     accent_color: '#10b981',
     app_name: null,
   })

@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { updateSalesDocumentAction } from '@/features/sales/actions';
 import { Document } from "@/features/documents/types";
 import { Party } from "@/features/parties/types";
@@ -25,9 +26,16 @@ interface Props {
 
 export default function EditDocumentClient({ documentId, parties, products, warehouses = [], tenantId, initialData }: Props) {
     const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (data: Document) => {
-        const result = await updateSalesDocumentAction(documentId, data, `/documents/${documentId}`);
+        setLoading(true);
+        let result;
+        try {
+            result = await updateSalesDocumentAction(documentId, data, `/documents/${documentId}`);
+        } finally {
+            setLoading(false);
+        }
         if (result?.error) {
             toast.error(result.error);
             throw new Error(result.error);
@@ -46,6 +54,7 @@ export default function EditDocumentClient({ documentId, parties, products, ware
             products={products}
             warehouses={warehouses}
             onSubmit={handleSubmit}
+            isLoading={loading}
             initialData={initialData}
             tenantId={tenantId}
         />

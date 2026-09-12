@@ -3,9 +3,8 @@ import { fixedAssetService, netBookValue, annualDepreciation, CATEGORY_LABELS } 
 import { settingsService } from '@/features/settings/services/settingsService';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { FixedAssetList } from '@/features/accounting/components/FixedAssetList';
-import { Button } from '@/shared/components/ui/button';
-import { Plus, Package, TrendingDown, DollarSign, Layers } from 'lucide-react';
-import Link from 'next/link';
+import { FixedAssetToolbar } from '@/features/accounting/components/FixedAssetToolbar';
+import { Package, TrendingDown, DollarSign, Layers } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 export default async function FixedAssetsPage() {
@@ -44,7 +43,7 @@ export default async function FixedAssetsPage() {
 
             {/* KPIs + Action */}
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
                         { label: 'Activos Activos', value: String(activeCount), icon: Layers, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                         { label: 'Costo Total', value: fmt(totalCost), icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -62,19 +61,14 @@ export default async function FixedAssetsPage() {
                         </div>
                     ))}
                 </div>
-                <Button size="sm" asChild className="h-9 px-4 rounded-xl gap-2 bg-indigo-600 hover:bg-indigo-700">
-                    <Link href="/accounting/fixed-assets/new">
-                        <Plus className="h-3.5 w-3.5" />
-                        <span className="text-xs">Registrar Activo</span>
-                    </Link>
-                </Button>
+                <FixedAssetToolbar />
             </div>
 
             {/* Category breakdown */}
             {byCategory.length > 0 && (
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
                     <h3 className="text-xs font-bold text-slate-900 mb-4">Distribución por Categoría</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                         {byCategory.map(c => (
                             <div key={c.cat} className="p-4 bg-slate-50/50 rounded-xl border border-slate-100">
                                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{c.label}</p>

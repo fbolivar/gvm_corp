@@ -18,6 +18,9 @@ export interface AttendanceRecord {
     check_in_lng?: number;
     check_out_lat?: number;
     check_out_lng?: number;
+    /** Terminal QR donde se marcó. Nulo si el registro se hizo a mano. */
+    check_in_terminal_id?: string | null;
+    check_out_terminal_id?: string | null;
     notes?: string;
 }
 
@@ -62,7 +65,13 @@ export const attendanceService = {
         return data as AttendanceRecord[];
     },
 
-    async clockIn(client: SupabaseClient, employeeId: string, tenantId: string, geo?: GeoPosition) {
+    async clockIn(
+        client: SupabaseClient,
+        employeeId: string,
+        tenantId: string,
+        geo?: GeoPosition,
+        terminalId?: string,
+    ) {
         const today = new Date().toISOString().split('T')[0];
         const now = new Date();
         const nowIso = now.toISOString();
@@ -87,6 +96,10 @@ export const attendanceService = {
             record.check_in_lng = geo.lng;
         }
 
+        // Deja la traza de dónde se autenticó el carnet. Se omite en registros
+        // manuales (sin terminal) para no pisar el dato con un nulo.
+        if (terminalId) record.check_in_terminal_id = terminalId;
+
         const { data, error } = await client
             .from('payroll_attendance')
             .upsert(record, { onConflict: 'employee_id, work_date' })
@@ -97,7 +110,12 @@ export const attendanceService = {
         return { ...data, schedule };
     },
 
-    async clockOut(client: SupabaseClient, employeeId: string, geo?: GeoPosition) {
+    async clockOut(
+        client: SupabaseClient,
+        employeeId: string,
+        geo?: GeoPosition,
+        terminalId?: string,
+    ) {
         const today = new Date().toISOString().split('T')[0];
         const now = new Date();
         const nowIso = now.toISOString();
@@ -134,6 +152,9 @@ export const attendanceService = {
             updates.check_out_lat = geo.lat;
             updates.check_out_lng = geo.lng;
         }
+
+        // La salida puede marcarse en una sede distinta a la de entrada.
+        if (terminalId) updates.check_out_terminal_id = terminalId;
 
         const { data, error } = await client
             .from('payroll_attendance')

@@ -4,8 +4,9 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
     partySchema, Party, DocTypeEnum, PartyTypeEnum,
-    PropertyTypeEnum, TaxpayerTypeEnum, PaymentMethodEnum,
-    PROPERTY_TYPE_LABELS, TAXPAYER_TYPE_LABELS, PAYMENT_METHOD_LABELS
+    PropertyTypeEnum, TAXPAYER_TYPE_CODES, PaymentMethodEnum,
+    PROPERTY_TYPE_LABELS, TAXPAYER_TYPE_LABELS, PAYMENT_METHOD_LABELS,
+    PARTY_EXTRA_PROPERTIES, DOC_TYPE_LABELS
 } from "../types"
 import { calculateDV } from "@/shared/utils/nit"
 import { Button } from "@/shared/components/ui/button"
@@ -13,7 +14,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 import { FormLayout, FormSection, FormField } from "@/shared/components/ui/form-layout"
 import { PageHeader } from "@/shared/components/ui/page-header"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import {
     User, Building2, Mail, Phone, Save, Briefcase, IdCard,
     Globe, CreditCard, MapPin, Landmark, DollarSign, CalendarDays,
@@ -21,6 +22,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { toast } from "sonner"
 
 interface PriceList {
     id: string
@@ -39,6 +42,7 @@ interface PartyFormProps {
     isLoading?: boolean
     priceLists?: PriceList[]
     salespeople?: Salesperson[]
+    employeeId?: string | null
 }
 
 const COLOMBIAN_DEPARTMENTS = [
@@ -52,7 +56,29 @@ const COLOMBIAN_DEPARTMENTS = [
 
 const selectCls = "w-full h-10 bg-white border border-slate-200 rounded-lg px-3 text-slate-900 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-slate-900/10 transition-all cursor-pointer"
 
-export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], salespeople = [] }: PartyFormProps) {
+/** Nombres legibles de los campos, para que el aviso no muestre jerga técnica. */
+const FIELD_LABELS: Record<string, string> = {
+    legal_name: 'Nombre o razón social',
+    doc_number: 'Número de documento',
+    doc_type: 'Tipo de documento',
+    dv: 'Dígito de verificación',
+    email: 'Correo electrónico',
+    party_type: 'Tipo de tercero',
+    taxpayer_type: 'Tipo de contribuyente',
+    property_type: 'Propiedad (tipo de tercero)',
+    payment_method: 'Forma de pago',
+    payment_term_days: 'Plazo de pago',
+    credit_limit: 'Cupo de crédito',
+}
+
+/** Si el formulario no valida, decir QUÉ campo falla en vez de no hacer nada. */
+function reportInvalid(errs: Record<string, unknown>) {
+    console.warn('[PartyForm] campos inválidos:', errs)
+    const campos = Object.keys(errs).map(k => FIELD_LABELS[k] ?? k)
+    toast.error(`No se pudo guardar. Revisa: ${campos.join(', ')}`)
+}
+
+export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], salespeople = [], employeeId = null }: PartyFormProps) {
     const router = useRouter()
 
     const form = useForm<Party>({
@@ -73,6 +99,7 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
             payment_term_days: 0,
             credit_limit: 0,
             property_type: 'CLIENTE',
+            properties: [],
             taxpayer_type: 'REGIMEN_SIMPLE',
             payment_method: 'TRANSFERENCIA',
             economic_activity: '',
@@ -86,6 +113,39 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
     const docType = watch('doc_type')
     const nit = watch('nit')
     const docNumber = watch('doc_number')
+    const partyType = watch('party_type')
+
+    // Nombres separados (persona natural)
+    const firstName = watch('first_name')
+    const secondName = watch('second_name')
+    const firstSurname = watch('first_surname')
+    const secondSurname = watch('second_surname')
+
+    // El DV se calcula solo, PERO el usuario manda: si lo escribe (o lo pega junto
+    // al número), se respeta su valor y el cálculo automático deja de pisarlo.
+    // Vaciar la casilla vuelve al modo automático.
+    // Al editar, un DV guardado que no coincide con la fórmula ya es "manual":
+    // no debe pisarse al abrir la ficha.
+    const [dvManual, setDvManual] = useState(() => {
+        const saved = initialData?.dv
+        if (!saved) return false
+        return saved !== calculateDV(initialData?.nit || initialData?.doc_number || '')
+    })
+    const dv = watch('dv')
+
+    // Si el número viene con el DV pegado (ej. "70190497-5"), lo separa.
+    useEffect(() => {
+        if (docNumber && docNumber.includes('-')) {
+            const idx = docNumber.lastIndexOf('-')
+            const num = docNumber.slice(0, idx).trim()
+            const ver = docNumber.slice(idx + 1).trim()
+            setValue('doc_number', num)
+            if (ver) {
+                setValue('dv', ver.slice(0, 1))
+                setDvManual(true)
+            }
+        }
+    }, [docNumber, docType, setValue])
 
     useEffect(() => {
         if (docType === 'NIT' && docNumber && docNumber !== nit) {
@@ -94,12 +154,52 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
     }, [docNumber, docType, setValue, nit])
 
     useEffect(() => {
+        if (dvManual) return
         if (docType === 'NIT' && nit) {
             setValue('dv', calculateDV(nit))
-        } else {
+        } else if (docType === 'NIT') {
             setValue('dv', '')
         }
-    }, [nit, docType, setValue])
+    }, [nit, docType, dvManual, setValue])
+
+    // DV que sugiere la fórmula DIAN — sirve para avisar si el escrito no coincide.
+    const suggestedDv = docType === 'NIT' && nit ? calculateDV(nit) : ''
+    const dvMismatch = Boolean(dvManual && dv && suggestedDv && dv !== suggestedDv)
+
+    // Para persona natural: compone el nombre completo desde las partes
+    // (solo si hay al menos una parte, para no borrar el nombre de registros migrados).
+    useEffect(() => {
+        if (partyType !== 'PERSON') return
+        const parts = [firstName, secondName, firstSurname, secondSurname]
+            .map(x => (x || '').trim()).filter(Boolean)
+        if (parts.length) setValue('legal_name', parts.join(' '))
+    }, [partyType, firstName, secondName, firstSurname, secondSurname, setValue])
+
+    // Descompone el nombre completo en partes (heurística; el usuario puede corregir).
+    const separarNombre = () => {
+        const t = (watch('legal_name') || '').trim().split(/\s+/).filter(Boolean)
+        let fn = '', sn = '', fs = '', ss = ''
+        if (t.length === 1) { fn = t[0] }
+        else if (t.length === 2) { fn = t[0]; fs = t[1] }
+        else if (t.length === 3) { fn = t[0]; fs = t[1]; ss = t[2] }
+        else { fn = t[0]; sn = t[1]; fs = t[2]; ss = t.slice(3).join(' ') }
+        setValue('first_name', fn); setValue('second_name', sn)
+        setValue('first_surname', fs); setValue('second_surname', ss)
+    }
+
+    // Propiedades/roles adicionales (multi-selección)
+    const properties = watch('properties') || []
+    const toggleProperty = (v: string) => {
+        const set = new Set(properties)
+        set.has(v) ? set.delete(v) : set.add(v)
+        setValue('properties', Array.from(set))
+    }
+
+    // Opciones del tipo de contribuyente: el catálogo actual más el código que
+    // tenga el tercero, por si es uno heredado de la migración.
+    const currentTaxpayer = watch('taxpayer_type')
+    const taxpayerOptions = [...TAXPAYER_TYPE_CODES] as string[]
+    if (currentTaxpayer && !taxpayerOptions.includes(currentTaxpayer)) taxpayerOptions.unshift(currentTaxpayer)
 
     const isEditing = Boolean(initialData)
 
@@ -117,7 +217,7 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
                 ]}
             />
 
-            <form onSubmit={handleSubmit(onSubmit as any)}>
+            <form onSubmit={handleSubmit(onSubmit as any, reportInvalid)}>
                 <FormLayout
                     footer={
                         <>
@@ -157,24 +257,58 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
                             </div>
                         </FormField>
 
-                        <FormField
-                            label="Razón Social / Nombre"
-                            htmlFor="legal_name"
-                            required
-                            error={errors.legal_name?.message}
-                        >
-                            <Input
-                                id="legal_name"
-                                {...register('legal_name')}
-                                placeholder="Nombre legal completo"
-                            />
-                        </FormField>
+                        {partyType === 'PERSON' ? (
+                            <FormField
+                                label="Nombres y Apellidos"
+                                htmlFor="first_name"
+                                required
+                                colSpan={2}
+                                error={errors.legal_name?.message}
+                                hint="Se guardan separados para Información Exógena"
+                            >
+                                {/* legal_name se compone solo desde las partes */}
+                                <input type="hidden" {...register('legal_name')} />
+                                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                    <Input {...register('first_name')} placeholder="Primer nombre" />
+                                    <Input {...register('second_name')} placeholder="Segundo nombre" />
+                                    <Input {...register('first_surname')} placeholder="Primer apellido" />
+                                    <Input {...register('second_surname')} placeholder="Segundo apellido" />
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+                                    <p className="text-xs text-slate-500">
+                                        Nombre completo: <b className="text-slate-700">{watch('legal_name') || '—'}</b>
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={separarNombre}
+                                        className="h-8 px-3 text-xs"
+                                        title="Separar el nombre completo en las cuatro partes"
+                                    >
+                                        Separar del nombre
+                                    </Button>
+                                </div>
+                            </FormField>
+                        ) : (
+                            <FormField
+                                label="Razón Social"
+                                htmlFor="legal_name"
+                                required
+                                error={errors.legal_name?.message}
+                            >
+                                <Input
+                                    id="legal_name"
+                                    {...register('legal_name')}
+                                    placeholder="Razón social de la empresa"
+                                />
+                            </FormField>
+                        )}
 
                         <FormField label="Tipo de Documento" htmlFor="doc_type" required>
                             <div className="relative">
                                 <select id="doc_type" {...register('doc_type')} className={selectCls}>
                                     {DocTypeEnum.options.map(opt => (
-                                        <option key={opt} value={opt}>{opt}</option>
+                                        <option key={opt} value={opt}>{DOC_TYPE_LABELS[opt] ?? opt}</option>
                                     ))}
                                 </select>
                                 <IdCard className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -195,15 +329,30 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
                                     className="font-mono tracking-widest flex-1"
                                 />
                                 {docType === 'NIT' && (
-                                    <div
-                                        className="h-10 min-w-[3.5rem] flex items-center justify-center bg-slate-900 text-white rounded-lg font-mono font-bold text-sm px-3 shrink-0"
-                                        title="Dígito de Verificación"
+                                    <Input
+                                        id="dv"
+                                        value={dv ?? ''}
+                                        onChange={(e) => {
+                                            // Solo un dígito. Vacío = volver al cálculo automático.
+                                            const digit = e.target.value.replace(/\D/g, '').slice(-1)
+                                            setValue('dv', digit)
+                                            setDvManual(digit !== '')
+                                        }}
+                                        inputMode="numeric"
+                                        maxLength={1}
+                                        placeholder="DV"
+                                        title="Dígito de verificación — se calcula solo, pero puedes escribirlo"
                                         aria-label="Dígito de verificación"
-                                    >
-                                        {watch('dv') || '—'}
-                                    </div>
+                                        className="h-10 w-14 text-center font-mono font-bold text-sm shrink-0"
+                                    />
                                 )}
                             </div>
+                            {docType === 'NIT' && dvMismatch && (
+                                <p className="text-[11px] font-medium text-amber-600 mt-1.5">
+                                    DV manual — la fórmula DIAN sugiere <span className="font-bold">{suggestedDv}</span>.
+                                    Borra la casilla para recalcularlo.
+                                </p>
+                            )}
                         </FormField>
 
                         <FormField label="Nombre Comercial" htmlFor="trade_name" hint="Opcional">
@@ -317,6 +466,26 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
                         description="Tipo de contribuyente y roles que puede cumplir este tercero"
                         columns={2}
                     >
+                        {employeeId && (
+                            <FormField label="Vínculo con Nómina" colSpan={2}>
+                                <Link
+                                    href={`/payroll/employees/${employeeId}`}
+                                    className="flex items-center justify-between p-4 rounded-xl border-2 border-teal-200 bg-teal-50 hover:bg-teal-100 transition-all"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-9 w-9 rounded-lg bg-teal-500 text-white flex items-center justify-center">
+                                            <UserCheck className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-semibold text-teal-900 block">También es Empleado</span>
+                                            <span className="text-xs text-teal-600">Este tercero está vinculado a la nómina · abrir su ficha</span>
+                                        </div>
+                                    </div>
+                                    <span className="text-teal-600 text-xs font-bold uppercase tracking-widest">Ver →</span>
+                                </Link>
+                            </FormField>
+                        )}
+
                         <FormField label="Propiedad (Tipo de Tercero)" htmlFor="property_type" required>
                             <div className="relative">
                                 <select id="property_type" {...register('property_type')} className={selectCls}>
@@ -331,8 +500,10 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
                         <FormField label="Tipo de Contribuyente" htmlFor="taxpayer_type" required>
                             <div className="relative">
                                 <select id="taxpayer_type" {...register('taxpayer_type')} className={selectCls}>
-                                    {TaxpayerTypeEnum.options.map(opt => (
-                                        <option key={opt} value={opt}>{TAXPAYER_TYPE_LABELS[opt]}</option>
+                                    {/* Si el tercero trae un código heredado que ya no está en el
+                                        catálogo, se muestra igual para no cambiarlo sin querer. */}
+                                    {taxpayerOptions.map(opt => (
+                                        <option key={opt} value={opt}>{TAXPAYER_TYPE_LABELS[opt] ?? opt}</option>
                                     ))}
                                 </select>
                                 <ShieldCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
@@ -411,6 +582,34 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
                                     aria-label="Habilitar como proveedor"
                                 />
                             </label>
+                        </FormField>
+
+                        <FormField
+                            label="Otras Propiedades"
+                            hint="Selecciona todas las que apliquen (además de Cliente/Proveedor/Empleado)"
+                            colSpan={2}
+                        >
+                            <div className="flex flex-wrap gap-2">
+                                {PARTY_EXTRA_PROPERTIES.map((p) => {
+                                    const active = properties.includes(p.value)
+                                    return (
+                                        <button
+                                            key={p.value}
+                                            type="button"
+                                            onClick={() => toggleProperty(p.value)}
+                                            aria-pressed={active}
+                                            className={cn(
+                                                "px-3.5 h-9 rounded-xl border-2 text-xs font-semibold transition-all",
+                                                active
+                                                    ? "bg-slate-900 border-slate-900 text-white"
+                                                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                                            )}
+                                        >
+                                            {p.label}
+                                        </button>
+                                    )
+                                })}
+                            </div>
                         </FormField>
                     </FormSection>
 

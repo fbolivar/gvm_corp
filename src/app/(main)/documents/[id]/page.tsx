@@ -25,11 +25,33 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         const document = await documentService.getDocumentById(supabase, id);
         const relatedDocs = await documentService.getRelatedDocuments(supabase, id, document.parent_id);
 
+        // Para pedidos: cantidades ya enviadas por producto (desde logística) →
+        // permite calcular % enviado / pendiente por línea.
+        const shippedByProduct: Record<string, number> = {};
+        if (document.doc_type === 'SALES_ORDER') {
+            const { data: shipRows } = await supabase
+                .from('logistics_shipments')
+                .select('id, items:logistics_shipment_items(product_id, qty_shipped)')
+                .eq('order_id', id);
+            (shipRows ?? []).forEach((s) => {
+                const items = (s as { items?: Array<{ product_id: string | null; qty_shipped: number | null }> }).items ?? [];
+                items.forEach((it) => {
+                    if (it.product_id) {
+                        shippedByProduct[it.product_id] =
+                            (shippedByProduct[it.product_id] ?? 0) + Number(it.qty_shipped ?? 0);
+                    }
+                });
+            });
+        }
+
         // Documentos del mismo tipo para navegación rápida (anterior/siguiente/saltar)
         const { data: siblingRows } = await supabase
             .from('documents')
             .select('id, number, party:parties(legal_name)')
             .eq('doc_type', document.doc_type)
+            // Mismo orden que la lista: por consecutivo (number) desc para que
+            // "anterior/siguiente" concuerden con el orden visible.
+            .order('number', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false })
             .limit(500);
         const siblings: QuickNavSibling[] = (siblingRows || []).map((r) => {
@@ -79,6 +101,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
                     relatedDocuments={relatedDocs}
                     tenantInfo={tenantInfo}
                     dianResolution={dianResolution}
+                    shippedByProduct={shippedByProduct}
                 />
                 <DocumentAuditTrail client={supabase} documentId={id} />
             </div>

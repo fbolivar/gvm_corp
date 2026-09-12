@@ -18,8 +18,8 @@ export default async function NewAssetPage() {
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">
             <VisualReportHeader
-                title="Nuevo Activo"
-                subtitle="Registro de equipo tecnologico"
+                title="Nuevo Activo Corporativo"
+                subtitle="Registro de activo por categoría"
                 tenant={tenant}
             />
             <AssetForm employees={employees} />

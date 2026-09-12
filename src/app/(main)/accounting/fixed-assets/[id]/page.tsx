@@ -83,7 +83,7 @@ export default async function FixedAssetDetailPage({ params }: Props) {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: 'Costo Adquisición', value: fmt(Number(asset.acquisition_cost)), icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50' },
                     { label: 'Valor Neto Libros', value: fmt(nbv), icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50' },

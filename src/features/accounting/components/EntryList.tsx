@@ -41,12 +41,12 @@ export function EntryList({ entries }: EntryListProps) {
                 return (
                     <Card key={entry.id as string} className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
                         <CardHeader className="py-4 px-6 border-b border-slate-100 bg-slate-50/30">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap min-w-0">
+                                <div className="flex items-center gap-3 min-w-0">
                                     <div className="h-9 w-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shrink-0">
                                         <BookOpen className="h-4 w-4" />
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                         <CardTitle className="text-sm font-bold text-slate-900 line-clamp-1">
                                             {entry.description as string}
                                         </CardTitle>
@@ -71,6 +71,7 @@ export function EntryList({ entries }: EntryListProps) {
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
+                            <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow className="border-slate-100 hover:bg-transparent bg-slate-50/50">
@@ -135,6 +136,7 @@ export function EntryList({ entries }: EntryListProps) {
                                     </TableRow>
                                 </TableBody>
                             </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 );

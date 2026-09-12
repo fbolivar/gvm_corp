@@ -17,11 +17,14 @@ export const partyService = {
         while (true) {
             let q = client
                 .from('parties')
-                .select('id, legal_name, trade_name, doc_number, nit, email, phone, is_customer, is_vendor, party_type');
+                .select('id, legal_name, trade_name, doc_type, doc_number, dv, nit, email, phone, is_customer, is_vendor, party_type');
             if (role === 'customer') q = q.eq('is_customer', true);
             else if (role === 'vendor') q = q.eq('is_vendor', true);
             const { data, error } = await q
+                // 'id' desempata: legal_name no es único y sin un orden total
+                // determinista range() puede saltarse filas entre páginas.
                 .order('legal_name')
+                .order('id')
                 .range(offset, offset + pageSize - 1);
             if (error) {
                 console.error('[parties] getAllPartiesLight:', error.message);

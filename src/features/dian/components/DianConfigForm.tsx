@@ -103,7 +103,7 @@ export function DianConfigForm({ initialConfig }: Props) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-5">PIN</Label>
                                 <div className="relative group/field">

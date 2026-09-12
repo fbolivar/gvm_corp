@@ -272,7 +272,7 @@ export default function CreditNoteFormClient({ invoices, products, noteType }: P
                 {/* INVOICE DETAILS PANEL */}
                 {selectedInvoice && (
                     <div className={cn(
-                        'rounded-2xl p-6 border grid grid-cols-2 md:grid-cols-4 gap-6',
+                        'rounded-2xl p-6 border grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6',
                         isCredit ? 'bg-rose-50/60 border-rose-100' : 'bg-amber-50/60 border-amber-100'
                     )}>
                         <div className="space-y-1">

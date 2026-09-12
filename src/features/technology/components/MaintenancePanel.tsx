@@ -11,6 +11,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Wrench, Plus, CheckCircle2, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { createMaintenanceAction, completeMaintenanceAction } from '../actions/technologyActions';
+import { Hint } from '@/shared/components/ui/hint';
 import type { ITMaintenanceSchedule, ITMaintenanceStatus } from '../types';
 import { useRouter } from 'next/navigation';
 
@@ -166,17 +167,19 @@ export function MaintenancePanel({ assetId, schedules }: MaintenancePanelProps) 
                                             {STATUS_LABELS[displayStatus]}
                                         </Badge>
                                         {displayStatus !== 'COMPLETED' && (
-                                            <Button
-                                                onClick={() => handleComplete(s.id)}
-                                                disabled={completingId === s.id}
-                                                variant="ghost"
-                                                className="h-7 w-7 p-0 rounded-lg"
-                                            >
-                                                {completingId === s.id
-                                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                                    : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                                                }
-                                            </Button>
+                                            <Hint label="Marcar como completado" side="top">
+                                                <Button
+                                                    onClick={() => handleComplete(s.id)}
+                                                    disabled={completingId === s.id}
+                                                    variant="ghost"
+                                                    className="h-7 w-7 p-0 rounded-lg"
+                                                >
+                                                    {completingId === s.id
+                                                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                                                        : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                                    }
+                                                </Button>
+                                            </Hint>
                                         )}
                                     </div>
                                 </div>

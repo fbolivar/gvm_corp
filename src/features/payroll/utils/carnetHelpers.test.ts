@@ -3,12 +3,36 @@ import {
     contractLabel,
     resolvePartyRow,
     resolveEmployeeName,
+    resolveCargo,
+    toTitleCaseEs,
     formatDocNumber,
     getInitials,
     splitName,
     DEFAULT_CARGO,
     NO_NAME,
 } from './carnetHelpers'
+
+describe('resolveCargo', () => {
+    it('muestra el rol del empleado en Title Case español', () => {
+        expect(resolveCargo('ANALISTA DE COMPRAS')).toBe('Analista de Compras')
+        expect(resolveCargo('COORDINADORA DE CALIDAD Y GESTION HUMANA'))
+            .toBe('Coordinadora de Calidad y Gestion Humana')
+        expect(resolveCargo('GESTOR LOGISTICO')).toBe('Gestor Logistico')
+    })
+
+    it('cae al contrato cuando no hay rol', () => {
+        expect(resolveCargo(null, 'INDEFINIDO')).toBe('Contrato Indefinido')
+        expect(resolveCargo('', 'TEMPORAL')).toBe('Contrato Temporal')
+        expect(resolveCargo(undefined, undefined)).toBe(DEFAULT_CARGO)
+    })
+})
+
+describe('toTitleCaseEs', () => {
+    it('deja conectores en minúscula salvo al inicio', () => {
+        expect(toTitleCaseEs('JEFE DE BIOSEGURIDAD')).toBe('Jefe de Bioseguridad')
+        expect(toTitleCaseEs('DE PRUEBA')).toBe('De Prueba') // conector al inicio sí capitaliza
+    })
+})
 
 describe('contractLabel', () => {
     it('mapea claves en inglés (enum)', () => {

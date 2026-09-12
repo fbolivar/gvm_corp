@@ -49,7 +49,7 @@ export default async function ReconcileIndexPage() {
                     </div>
                 </div>
 
-                <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 lg:gap-10 md:grid-cols-2 lg:grid-cols-3">
                     {bankAccounts.map((account) => (
                         <Card key={account.id} className="group bg-white rounded-[3rem] border-none shadow-premium p-8 hover:translate-y-[-8px] transition-all duration-700 overflow-hidden relative border border-slate-50">
                             <div className="absolute right-0 top-0 p-8 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform">
@@ -108,7 +108,7 @@ export default async function ReconcileIndexPage() {
             </div>
 
             {/* 📊 PROTOCOLO DE ESTADO */}
-            <div className="grid gap-10 md:grid-cols-2">
+            <div className="grid gap-6 lg:gap-10 md:grid-cols-2">
                 <Card className="rounded-[3rem] bg-white border-none shadow-premium p-10 relative overflow-hidden group hover:translate-y-[-4px] transition-all border border-slate-50">
                     <div className="absolute right-0 top-0 p-10 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform">
                         <Clock className="h-24 w-24 text-amber-500" />

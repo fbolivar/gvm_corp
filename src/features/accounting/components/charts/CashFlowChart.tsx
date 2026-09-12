@@ -79,8 +79,8 @@ export function CashFlowChart({ data, title = "Flujo de Caja" }: CashFlowChartPr
                         <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 4, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="cfBalanceGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="#0096E6" stopOpacity={0.2} />
+                                    <stop offset="95%" stopColor="#0096E6" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -91,7 +91,7 @@ export function CashFlowChart({ data, title = "Flujo de Caja" }: CashFlowChartPr
                                 type="monotone"
                                 dataKey="balance"
                                 name="Saldo"
-                                stroke="#6366f1"
+                                stroke="#0096E6"
                                 strokeWidth={2.5}
                                 fill="url(#cfBalanceGrad)"
                                 animationDuration={1400}

@@ -374,6 +374,7 @@ export function PriceListManager({ priceLists, products }: Props) {
 
                                             {/* Items table */}
                                             {(items[list.id] || []).length > 0 ? (
+                                                <div className="overflow-x-auto">
                                                 <table className="w-full">
                                                     <thead>
                                                         <tr className="border-b border-slate-100">
@@ -417,6 +418,7 @@ export function PriceListManager({ priceLists, products }: Props) {
                                                         ))}
                                                     </tbody>
                                                 </table>
+                                                </div>
                                             ) : (
                                                 <div className="text-center py-6 text-xs text-slate-400 font-medium">
                                                     Sin precios configurados. Agrega el primero arriba.

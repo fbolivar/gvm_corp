@@ -61,6 +61,7 @@ export function AcademyReports({ reports }: AcademyReportsProps) {
                 <div className="p-4 border-b border-slate-100">
                     <h3 className="text-sm font-bold text-slate-900">Adopcion por Curso</h3>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-slate-50">
@@ -97,6 +98,7 @@ export function AcademyReports({ reports }: AcademyReportsProps) {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     )

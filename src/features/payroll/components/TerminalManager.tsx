@@ -2,14 +2,15 @@
 
 import { useState, useTransition } from "react"
 import { KioskTerminal as KioskTerminalType } from "../types"
-import { createTerminalAction, toggleTerminalAction, deleteTerminalAction } from "../actions/kioskActions"
+import { createTerminalAction, toggleTerminalAction, deleteTerminalAction, rotateTerminalTokenAction } from "../actions/kioskActions"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Badge } from "@/shared/components/ui/badge"
 import { toast } from "sonner"
-import { Plus, Loader2, Trash2, Copy, Power, QrCode, ExternalLink } from "lucide-react"
+import { Plus, Loader2, Trash2, Copy, Power, QrCode, ExternalLink, RefreshCw } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface Props {
     terminals: KioskTerminalType[]
@@ -63,6 +64,29 @@ export function TerminalManager({ terminals: initialTerminals, baseUrl }: Props)
         })
     }
 
+    const handleRotate = async (id: string, name: string) => {
+        const ok = await confirmFn({
+            title: 'Renovar enlace del terminal',
+            description:
+                `Se generará un enlace nuevo para "${name}" y el actual dejará de funcionar de inmediato. ` +
+                'Tendrás que volver a abrirlo en la tablet de esa sede. Úsalo si el enlace se filtró.',
+            confirmLabel: 'Renovar enlace',
+        })
+        if (!ok) return
+
+        startTransition(async () => {
+            try {
+                const token = await rotateTerminalTokenAction(id)
+                setTerminals(prev => prev.map(t => (t.id === id ? { ...t, token } : t)))
+                toast.success('Enlace renovado', {
+                    description: 'El enlace anterior ya no sirve. Abre el nuevo en la tablet.',
+                })
+            } catch {
+                toast.error('No se pudo renovar el enlace')
+            }
+        })
+    }
+
     const copyUrl = (token: string) => {
         const url = `${baseUrl}/terminal/${token}`
         navigator.clipboard.writeText(url)
@@ -104,21 +128,21 @@ export function TerminalManager({ terminals: initialTerminals, baseUrl }: Props)
                 </div>
 
                 {terminals.length === 0 ? (
-                    <div className="p-12 text-center">
+                    <div className="p-6 md:p-12 text-center">
                         <QrCode className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                         <p className="text-xs text-slate-400">No hay terminales. Crea uno para comenzar.</p>
                     </div>
                 ) : (
                     <div className="divide-y divide-slate-50">
                         {terminals.map(terminal => (
-                            <div key={terminal.id} className="px-5 py-4 space-y-3">
-                                <div className="flex items-center gap-3">
+                            <div key={terminal.id} className="px-4 sm:px-5 py-4 space-y-3">
+                                <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
                                     <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
                                         terminal.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
                                     }`}>
                                         <QrCode className="h-5 w-5" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex-1 min-w-[140px]">
                                         <div className="flex items-center gap-2">
                                             <p className="text-sm font-semibold text-slate-900">{terminal.name}</p>
                                             <Badge className={`text-[8px] font-bold px-1.5 py-0 ${
@@ -134,53 +158,70 @@ export function TerminalManager({ terminals: initialTerminals, baseUrl }: Props)
                                             {terminal.last_ping_at && ` · Ultimo uso: ${new Date(terminal.last_ping_at).toLocaleString('es-CO')}`}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setShowQr(showQr === terminal.id ? null : terminal.id)}
-                                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                            title="Ver QR del enlace"
-                                        >
-                                            <QrCode className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => copyUrl(terminal.token)}
-                                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                            title="Copiar URL"
-                                        >
-                                            <Copy className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <a
-                                            href={`/terminal/${terminal.token}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
-                                            title="Abrir terminal"
-                                        >
-                                            <ExternalLink className="h-3.5 w-3.5" />
-                                        </a>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleToggle(terminal.id, terminal.is_active)}
-                                            disabled={isPending}
-                                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-                                            title={terminal.is_active ? 'Desactivar' : 'Activar'}
-                                        >
-                                            <Power className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDelete(terminal.id, terminal.name)}
-                                            disabled={isPending}
-                                            className="h-8 w-8 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
+                                    <div className="flex items-center gap-1 ml-auto shrink-0">
+                                        <Hint label="Ver QR del enlace" side="top">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setShowQr(showQr === terminal.id ? null : terminal.id)}
+                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                            >
+                                                <QrCode className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </Hint>
+                                        <Hint label="Copiar URL" side="top">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => copyUrl(terminal.token)}
+                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                            >
+                                                <Copy className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </Hint>
+                                        <Hint label="Renovar enlace" side="top">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleRotate(terminal.id, terminal.name)}
+                                                disabled={isPending}
+                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                                            >
+                                                <RefreshCw className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </Hint>
+                                        <Hint label="Abrir terminal" side="top">
+                                            <a
+                                                href={`/terminal/${terminal.token}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                            >
+                                                <ExternalLink className="h-3.5 w-3.5" />
+                                            </a>
+                                        </Hint>
+                                        <Hint label={terminal.is_active ? 'Desactivar' : 'Activar'} side="top">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleToggle(terminal.id, terminal.is_active)}
+                                                disabled={isPending}
+                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                                            >
+                                                <Power className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </Hint>
+                                        <Hint label="Eliminar" side="top">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDelete(terminal.id, terminal.name)}
+                                                disabled={isPending}
+                                                className="h-8 w-8 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </Hint>
                                     </div>
                                 </div>
 

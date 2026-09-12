@@ -11,6 +11,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { SearchableSelect } from '@/shared/components/ui/searchable-select';
 import { Monitor, Save, Loader2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { createAssetAction } from '../actions/technologyActions';
 import { IT_ASSET_CATEGORIES, IT_ASSET_CONDITIONS, CATEGORY_LABELS, CONDITION_LABELS } from '../types';
 
@@ -37,15 +38,19 @@ export function AssetForm({ employees = [] }: AssetFormProps) {
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        if (loading) return; // Evita doble envío por doble clic
         setLoading(true);
         setError('');
         try {
             const fd = new FormData(formRef.current!);
             await createAssetAction(fd);
+            toast.success('Activo registrado correctamente');
             router.push('/technology');
+            // No liberamos loading: dejamos el botón deshabilitado mientras navega,
+            // para que no se pueda volver a enviar y crear un duplicado.
         } catch (err: unknown) {
             setError((err as Error).message);
-        } finally {
+            toast.error((err as Error).message || 'No se pudo registrar el activo');
             setLoading(false);
         }
     }
@@ -76,7 +81,7 @@ export function AssetForm({ employees = [] }: AssetFormProps) {
                         </div>
                         <div className="space-y-1.5">
                             <Label className="text-xs font-semibold text-slate-700">Categoría *</Label>
-                            <Select name="category" defaultValue="LAPTOP">
+                            <Select name="category" defaultValue="COMPUTER">
                                 <SelectTrigger className="h-9 rounded-xl"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {IT_ASSET_CATEGORIES.map(c => (

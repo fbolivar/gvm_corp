@@ -25,6 +25,7 @@ import {
     ArrowRight
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface BankStatementLineInput {
     date: string;
@@ -91,7 +92,7 @@ export function BankStatementImportForm({ accountId, onSubmit, isLoading }: Bank
     }
 
     return (
-        <div className="grid gap-12 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="grid gap-6 lg:gap-12 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-8 duration-1000">
             {/* 📝 PARAMETERS PANEL */}
             <div className="lg:col-span-1 space-y-8">
                 <div className="flex items-center gap-4 px-1">
@@ -108,7 +109,7 @@ export function BankStatementImportForm({ accountId, onSubmit, isLoading }: Bank
                     <div className="space-y-6">
                         <div className="space-y-4">
                             <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 ml-4 block italic">Rango Cronológico</Label>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="relative group/field">
                                     <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within/field:text-primary transition-colors" />
                                     <Input
@@ -248,14 +249,16 @@ export function BankStatementImportForm({ accountId, onSubmit, isLoading }: Bank
                                             />
                                         </TableCell>
                                         <TableCell className="pr-8 py-4 text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => removeLine(index)}
-                                                className="h-8 w-8 rounded-lg text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <Hint label="Eliminar" side="left">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeLine(index)}
+                                                    className="h-8 w-8 rounded-lg text-slate-200 hover:text-rose-500 hover:bg-rose-50 transition-all"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </Hint>
                                         </TableCell>
                                     </TableRow>
                                 ))}

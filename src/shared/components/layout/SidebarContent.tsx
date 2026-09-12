@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 import {
     LayoutDashboard,
     Users,
@@ -35,6 +36,8 @@ import {
     Heart,
     ShoppingBag,
     Headset,
+    Briefcase,
+    Inbox,
     Plus,
     ShieldCheck,
     Wallet,
@@ -73,6 +76,7 @@ import {
     Timer,
     QrCode,
     FileSpreadsheet,
+    Star,
 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar"
@@ -89,6 +93,42 @@ import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/shared/stores/useLanguageStore"
 import { getSidebarBootstrapAction, type SidebarUser } from "@/shared/actions/shellBootstrap"
+
+// Descripciones ("para qué sirve") por módulo — se muestran en el tooltip al pasar el mouse.
+const moduleDescriptions: Record<string, string> = {
+    "/dashboard": "Resumen general del negocio con indicadores clave.",
+    "/analytics": "Inteligencia de negocio: análisis de ventas y finanzas.",
+    "/sales": "Cotizaciones, pedidos y facturas de venta.",
+    "/inventory": "Productos, stock, bodegas, lotes y análisis de inventario.",
+    "/crm": "Clientes potenciales, embudo de ventas y oportunidades.",
+    "/support": "Mesa de ayuda y tickets de soporte.",
+    "/parties": "Directorio de terceros: clientes y proveedores.",
+    "/client-portal": "Portal para que tus clientes consulten su estado de cuenta.",
+    "/catalog": "Catálogo de productos para cotizar rápidamente.",
+    "/my-payroll": "Tu información de nómina, desprendibles y certificados.",
+    "/purchasing": "Órdenes de compra, facturas y proveedores.",
+    "/documents": "Histórico de todos los documentos del sistema.",
+    "/production": "Órdenes de producción y recetas (BOM).",
+    "/payroll": "Nómina: empleados, liquidaciones, asistencia y más.",
+    "/accounting/reports": "Contabilidad: reportes y estados financieros.",
+    "/logistics": "Despachos, remisiones y seguimiento de entregas.",
+    "/treasury": "Bancos, cajas, cartera y flujo de caja.",
+    "/contracts": "Gestión de contratos.",
+    "/vendor-portal": "Portal para que tus proveedores consulten pagos.",
+    "/notifications": "Centro de alertas y avisos del sistema.",
+    "/collaboration": "Chat interno del equipo en tiempo real.",
+    "/settings/import": "Importación masiva de datos desde Excel/CSV.",
+    "/technology": "Inventario de activos corporativos por categoría.",
+    "/dian": "Facturación y nómina electrónica ante la DIAN.",
+    "/settings": "Configuración de la empresa y del sistema.",
+    "/settings/audit": "Registro de auditoría: quién hizo qué y cuándo.",
+    "/settings/dimensions": "Dimensiones contables para clasificar movimientos.",
+    "/settings/currencies": "Monedas y tasas de cambio.",
+    "/settings/pricing": "Listas de precios por cliente o canal.",
+    "/settings/api-keys": "Llaves de API para Power BI e integraciones.",
+    "/settings/license": "Estado y detalles de tu licencia.",
+    "/help": "Ayuda, manual de usuario y academia.",
+}
 
 interface SubLink {
     title: string
@@ -155,6 +195,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.sidebar.quotations, href: "/sales/quotations", icon: ClipboardList },
                         { title: t.sidebar.orders, href: "/sales/orders", icon: FileBarChart },
+                        { title: 'Remisiones', href: "/sales/deliveries", icon: Truck },
                         { title: 'Facturas', href: "/sales/invoices", icon: FileDigit },
                         { title: 'Recurrentes', href: "/sales/recurring", icon: Repeat },
                         { title: 'Notas Credito', href: "/sales/credit-notes", icon: FileX },
@@ -197,6 +238,17 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     children: [
                         { title: t.sidebar.tickets, href: "/support/tickets", icon: ClipboardList },
                         { title: t.sidebar.new_ticket, href: "/support/tickets/new", icon: Plus },
+                        { title: 'Encuestas', href: "/support/surveys", icon: Star },
+                    ]
+                },
+                {
+                    title: 'Gestión Comercial',
+                    href: "/commercial",
+                    icon: Briefcase,
+                    moduleKey: 'commercial',
+                    children: [
+                        { title: 'Mis Solicitudes', href: "/commercial", icon: ClipboardList },
+                        { title: 'Aprobaciones', href: "/commercial/approvals", icon: Inbox },
                     ]
                 },
                 { title: t.sidebar.parties, href: "/parties", icon: Users, moduleKey: 'crm' },
@@ -260,6 +312,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Cuentas Contables', href: "/accounting/accounts", icon: BookOpen },
                         { title: 'Activos Fijos', href: "/accounting/fixed-assets", icon: PiggyBank },
                         { title: 'Cierre Periodos', href: "/accounting/period-close", icon: CalendarCheck },
+                        { title: 'Simulación contable', href: "/accounting/simulation", icon: FlaskConical },
                         { title: 'Presupuesto', href: "/budget", icon: Target },
                     ]
                 },
@@ -288,7 +341,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: 'Notificaciones', href: "/notifications", icon: Bell }, // siempre visible — centro de alertas personal
                 { title: t.sidebar.collaboration, href: "/collaboration", icon: MessageSquare, moduleKey: 'collaboration' },
                 { title: 'Importación', href: "/settings/import", icon: Upload, moduleKey: 'settings' },
-                { title: 'Tecnología', href: "/technology", icon: Monitor, moduleKey: 'technology' },
+                { title: 'Activos Corporativos', href: "/technology", icon: Package, moduleKey: 'technology' },
                 {
                     title: 'DIAN',
                     href: '/dian',
@@ -460,6 +513,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                     return (
                                         <div key={link.href} className="space-y-0.5">
                                             {/* Parent Link */}
+                                            <Hint label={link.title} description={moduleDescriptions[link.href]} side="right">
                                             {hasChildren ? (
                                                 <button
                                                     onClick={() => toggleSection(link.href)}
@@ -513,6 +567,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                                                     <span className="uppercase tracking-widest italic">{link.title}</span>
                                                 </Link>
                                             )}
+                                            </Hint>
 
                                             {/* Children (Accordion) */}
                                             {hasChildren && (

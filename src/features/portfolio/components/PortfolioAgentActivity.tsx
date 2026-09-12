@@ -42,6 +42,7 @@ export function PortfolioAgentActivity({ actions, onRefresh }: Props) {
                 </div>
             </CardHeader>
             <CardContent className="p-0">
+                <div className="overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-slate-50/30">
                         <TableRow className="hover:bg-transparent border-0">
@@ -111,6 +112,7 @@ export function PortfolioAgentActivity({ actions, onRefresh }: Props) {
                         ))}
                     </TableBody>
                 </Table>
+                </div>
             </CardContent>
         </Card>
     )

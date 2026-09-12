@@ -151,8 +151,8 @@ export default async function SlowMoversPage({
             />
 
             {/* Period Selector */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-1">
+                <div className="flex flex-col min-w-0">
                     <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">
                         Capital Inmovilizado
                     </span>
@@ -193,7 +193,7 @@ export default async function SlowMoversPage({
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <Card className="border-none shadow-premium bg-white rounded-[2.5rem] p-8 group hover:translate-y-[-4px] transition-all">
                     <div className="space-y-4">
                         <div className="h-12 w-12 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500">
@@ -245,8 +245,8 @@ export default async function SlowMoversPage({
 
             {/* Products Table */}
             <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
-                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-                    <div>
+                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                    <div className="min-w-0">
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">
                             Análisis de Rotación por SKU
                         </h3>

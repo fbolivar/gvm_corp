@@ -309,7 +309,7 @@ function PucImporter() {
             {/* Resumen por clase */}
             <div>
               <p className="text-xs font-medium text-slate-600 mb-2">Distribución por clase</p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
                 {Object.entries(preview.summary)
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([cls, count]) => (
@@ -596,7 +596,7 @@ function PartiesImporter() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-4">
               <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
                 <p className="text-[11px] text-emerald-700">Nuevos</p>
                 <p className="text-base font-bold text-emerald-900 tabular-nums">{preview.new_ones}</p>
@@ -896,7 +896,7 @@ function BalanceImporter() {
               <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-4">
               <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                 <p className="text-[11px] text-slate-500">Movimientos</p>
                 <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
@@ -923,7 +923,7 @@ function BalanceImporter() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
               <div>Débitos: <strong className="text-slate-900">{fmtMoney(preview.total_debits)}</strong></div>
               <div>Créditos: <strong className="text-slate-900">{fmtMoney(preview.total_credits)}</strong></div>
             </div>
@@ -1148,7 +1148,7 @@ function ReceivablesImporter() {
       {/* Toggle Cobrar / Pagar */}
       <div className="surface-card p-4">
         <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-3">Tipo de cartera</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => { setCarteraType('INVOICE'); reset() }}
@@ -1224,7 +1224,7 @@ function ReceivablesImporter() {
               <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                 <p className="text-[11px] text-slate-500">Facturas</p>
                 <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
@@ -1454,7 +1454,7 @@ function InventoryImporter() {
               <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                 <p className="text-[11px] text-slate-500">Líneas</p>
                 <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
@@ -1478,7 +1478,7 @@ function InventoryImporter() {
 
             <div className="mt-4">
               <p className="text-xs font-semibold text-slate-700 mb-2">Bodegas en el archivo</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {preview.bodegas.map(b => (
                   <div key={b.name} className={`rounded-md px-2 py-1.5 text-[11px] border ${b.matched ? 'bg-emerald-50/40 border-emerald-100' : 'bg-amber-50/40 border-amber-100'}`}>
                     <p className="font-medium text-slate-900">{b.matched ? '✓' : '⚠'} {b.name}</p>
@@ -1704,7 +1704,7 @@ function ProductTaxImporter() {
               <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                 <p className="text-[11px] text-slate-500">Cruzados</p>
                 <p className="text-lg font-bold text-slate-900 tabular-nums">
@@ -1728,7 +1728,7 @@ function ProductTaxImporter() {
 
             <div className="mt-4">
               <p className="text-xs font-semibold text-slate-700 mb-2">Distribución resultante (productos cruzados)</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="bg-slate-50 border border-slate-100 rounded-md px-3 py-2 text-center">
                   <p className="text-[11px] text-slate-500">Excluido / Exento (0%)</p>
                   <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.distribution.iva0}</p>
@@ -1951,7 +1951,7 @@ function FixedAssetsImporter() {
               <Button variant="outline" size="sm" onClick={reset}>Cambiar archivo</Button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                 <p className="text-[11px] text-slate-500">Activos</p>
                 <p className="text-lg font-bold text-slate-900 tabular-nums">{preview.total.toLocaleString('es-CO')}</p>
@@ -1972,7 +1972,7 @@ function FixedAssetsImporter() {
 
             <div className="mt-4">
               <p className="text-xs font-semibold text-slate-700 mb-2">Distribución por categoría</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                 {preview.by_category.map(c => (
                   <div key={c.category} className="bg-slate-50 border border-slate-100 rounded-md px-2 py-1.5 text-[11px]">
                     <p className="font-medium text-slate-900">{CATEGORY_LABELS[c.category] || c.category}</p>

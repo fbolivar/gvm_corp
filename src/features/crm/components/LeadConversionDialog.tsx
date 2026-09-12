@@ -79,7 +79,7 @@ export function LeadConversionDialog({ open, onOpenChange, lead, onSuccess }: Pr
                     <UserCheck className="h-64 w-64" />
                 </div>
 
-                <DialogHeader className="bg-slate-950 p-12 pb-10 text-white relative overflow-hidden">
+                <DialogHeader className="bg-slate-950 p-6 md:p-12 pb-6 md:pb-10 text-white relative overflow-hidden">
                     {/* Scanline effect for header */}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/[0.02] to-transparent h-1 w-full animate-scanline pointer-events-none" />
 
@@ -99,8 +99,8 @@ export function LeadConversionDialog({ open, onOpenChange, lead, onSuccess }: Pr
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-10 p-12 bg-white">
-                    <div className="grid grid-cols-2 gap-8">
+                <form onSubmit={handleSubmit} className="space-y-6 md:space-y-10 p-6 md:p-12 bg-white">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                         <div className="space-y-4">
                             <Label className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400 ml-6 italic">TIPO DOCUMENTAL</Label>
                             <div className="relative group/field">
@@ -151,7 +151,7 @@ export function LeadConversionDialog({ open, onOpenChange, lead, onSuccess }: Pr
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_#6366f1]" />
+                            <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_#0096E6]" />
                             <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.5em] italic">DATOS DE OPORTUNIDAD COMERCIAL</span>
                         </div>
 

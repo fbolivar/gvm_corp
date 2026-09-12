@@ -82,10 +82,25 @@ export const inventoryService = {
                     }
                 } else {
                     console.warn("Inventory Accounting Skipped: Missing accounts 1435, 6135 or 9999");
+                    // ALERTA visible: no dejar el descuadre Kardex vs Contabilidad en silencio.
+                    notificationService.createInAppNotification(client, {
+                        title: '⚠️ Inventario sin asiento contable',
+                        body: `Un movimiento de inventario (${movement.type}) NO generó asiento porque faltan cuentas contables (1435 / 6135 / 9999). Configúralas para no descuadrar el Kardex vs. Contabilidad.`,
+                        category: 'GENERAL',
+                        priority: 'HIGH',
+                        link: '/accounting/accounts',
+                    }).catch(e => console.error('[inventory] alerta contable falló:', e));
                 }
             } catch (err: any) {
                 console.error("Error generating inventory accounting entry:", err);
-                // Non-blocking error? Maybe we should see it in tests
+                // ALERTA visible: el asiento falló → avisar para cuadrar (antes era silencioso).
+                notificationService.createInAppNotification(client, {
+                    title: '⚠️ Falló el asiento contable de inventario',
+                    body: `Un movimiento de inventario (${movement.type}) se registró, pero su asiento contable falló: ${err?.message ?? 'error desconocido'}. Revisa Contabilidad para cuadrar.`,
+                    category: 'GENERAL',
+                    priority: 'HIGH',
+                    link: '/accounting/entries',
+                }).catch(e => console.error('[inventory] alerta contable falló:', e));
                 if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
                     console.error("ACCOUNTING ERROR DETAIL:", JSON.stringify(err, null, 2));
                 }

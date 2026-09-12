@@ -4,38 +4,61 @@ import { createClient } from '@/lib/supabase/server';
 import { translateAuthError } from '@/shared/lib/auth-errors';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// Verifica si el usuario autenticado puede gestionar miembros del equipo.
-// Retorna el tenant_id si tiene permiso, o null si no.
+// Roles que pueden gestionar el equipo por su propio rol.
+const TEAM_ADMIN_ROLES = ['SUPER ADMINISTRADOR', 'ADMINISTRADOR'];
+
+/**
+ * Verifica si el usuario autenticado puede gestionar miembros del equipo.
+ * Retorna el tenant_id si tiene permiso, o null si no.
+ *
+ * SEGURIDAD (auditoría 2026-07-16): antes bastaba con `settings.can_edit`, que por
+ * datos corruptos tenían 38 de 40 usuarios (hasta CONDUCTOR y APRENDIZ SENA) →
+ * cualquiera podía crear cuentas SUPER ADMINISTRADOR. Ahora se exige:
+ *   - rol admin explícito, o
+ *   - can_admin en 'settings' (no basta can_edit), o
+ *   - estar en team_admins (excepción por persona; p. ej. JEFE ADMINISTRATIVO
+ *     donde solo UNA de las dos personas del rol debe gestionar el equipo).
+ */
 async function getManagingTenantId(
     supabase: SupabaseClient,
     userId: string
-): Promise<{ tenantId: string } | null> {
+): Promise<{ tenantId: string; isSuperAdmin: boolean } | null> {
     const { data: userTenant } = await supabase
         .from('user_tenants')
-        .select('role, role_id, tenant_id')
+        .select('role, role_id, tenant_id, status')
         .eq('user_id', userId)
         .maybeSingle();
 
-    if (!userTenant) return null;
+    if (!userTenant || userTenant.status !== 'active') return null;
 
-    // SUPER ADMINISTRADOR siempre tiene acceso completo
-    if (userTenant.role === 'SUPER ADMINISTRADOR') {
-        return { tenantId: userTenant.tenant_id };
+    const isSuperAdmin = userTenant.role === 'SUPER ADMINISTRADOR';
+    if (TEAM_ADMIN_ROLES.includes(userTenant.role as string)) {
+        return { tenantId: userTenant.tenant_id, isSuperAdmin };
     }
 
-    // Para cualquier otro rol, verificar permiso can_edit en módulo settings
+    // can_admin (no can_edit) en el módulo settings
     if (userTenant.role_id) {
         const { data: perm } = await supabase
             .from('role_permissions')
-            .select('can_edit')
+            .select('can_view, can_admin')
             .eq('role_id', userTenant.role_id)
             .eq('module_key', 'settings')
             .maybeSingle();
 
-        if (perm?.can_edit === true) {
-            return { tenantId: userTenant.tenant_id };
+        if (perm?.can_admin === true && perm?.can_view === true) {
+            return { tenantId: userTenant.tenant_id, isSuperAdmin };
         }
     }
+
+    // Excepción explícita por persona
+    const { data: teamAdmin } = await supabase
+        .from('team_admins')
+        .select('user_id')
+        .eq('user_id', userId)
+        .eq('tenant_id', userTenant.tenant_id)
+        .maybeSingle();
+
+    if (teamAdmin) return { tenantId: userTenant.tenant_id, isSuperAdmin };
 
     return null;
 }
@@ -79,6 +102,17 @@ export async function POST(request: NextRequest) {
 
         if (!role) {
             return NextResponse.json({ error: 'El rol es requerido' }, { status: 400 });
+        }
+
+        // ANTI-ESCALADA: solo un SUPER ADMINISTRADOR puede crear/asignar cuentas con
+        // rol administrativo. Sin esto, quien gestiona el equipo podría fabricarse
+        // (o darle a un tercero) una cuenta con poder total sobre la empresa.
+        if (TEAM_ADMIN_ROLES.includes(role) && !managing.isSuperAdmin) {
+            console.warn(`[API /team/members] escalada bloqueada: user ${user.id} intentó asignar rol "${role}"`);
+            return NextResponse.json(
+                { error: `Solo un SUPER ADMINISTRADOR puede asignar el rol "${role}".` },
+                { status: 403 }
+            );
         }
         if (!rawEmail && !rawUsername) {
             return NextResponse.json({ error: 'Debes indicar un usuario o un email' }, { status: 400 });

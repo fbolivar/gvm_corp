@@ -70,13 +70,15 @@ export default async function PurchasingDashboard() {
     return (
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <VisualReportHeader
-                    title="Cadena de Suministros"
-                    subtitle="Ordenes de compra, proveedores y cuentas por pagar"
-                    tenant={tenant}
-                />
-                <div className="flex gap-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                    <VisualReportHeader
+                        title="Cadena de Suministros"
+                        subtitle="Ordenes de compra, proveedores y cuentas por pagar"
+                        tenant={tenant}
+                    />
+                </div>
+                <div className="flex gap-3 flex-wrap">
                     <Button variant="outline" asChild className="h-9 px-4 rounded-xl text-xs gap-2">
                         <Link href="/purchasing/vendors">
                             <Users className="h-3.5 w-3.5" /> Proveedores

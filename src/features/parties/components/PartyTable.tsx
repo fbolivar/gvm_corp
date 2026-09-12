@@ -28,6 +28,7 @@ import {
 import { cn } from "@/shared/lib/utils"
 import { DataTable, DataTableColumn } from "@/shared/components/ui/data-table"
 import { StatusBadge } from "@/shared/components/ui/status-badge"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface PartyTableProps {
     data: Party[]
@@ -170,16 +171,18 @@ export function PartyTable({ data }: PartyTableProps) {
                     className="flex justify-end gap-3"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        asChild
-                        className="h-10 w-10 rounded-xl border-none bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white shadow-sm transition-all duration-300"
-                    >
-                        <Link href={`/parties/${row.id}`}>
-                            <ChevronRight className="h-5 w-5" />
-                        </Link>
-                    </Button>
+                    <Hint label="Ver detalle" side="top">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            asChild
+                            className="h-10 w-10 rounded-xl border-none bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white shadow-sm transition-all duration-300"
+                        >
+                            <Link href={`/parties/${row.id}`}>
+                                <ChevronRight className="h-5 w-5" />
+                            </Link>
+                        </Button>
+                    </Hint>
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

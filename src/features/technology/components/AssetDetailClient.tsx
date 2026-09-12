@@ -7,7 +7,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
 import {
     Monitor, UserPlus, RotateCcw, Calendar, Tag, Cpu, HardDrive,
-    ShieldCheck, Hash, DollarSign, Info,
+    ShieldCheck, Hash, DollarSign, Info, Trash2, Loader2,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { AssignAssetModal } from './AssignAssetModal';
@@ -15,6 +15,9 @@ import { ReturnAssetModal } from './ReturnAssetModal';
 import { MaintenancePanel } from './MaintenancePanel';
 import type { ITAsset, ITAssetAssignment, ITMaintenanceSchedule, ITAssetStatus } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS, CONDITION_LABELS } from '../types';
+import { deleteAssetAction } from '../actions/technologyActions';
+import { useConfirm } from '@/shared/hooks/useConfirm';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 const STATUS_COLORS: Record<ITAssetStatus, string> = {
@@ -42,6 +45,31 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
     const router = useRouter();
     const [assignOpen, setAssignOpen] = useState(false);
     const [returnOpen, setReturnOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
+
+    async function handleDelete() {
+        const ok = await confirmFn({
+            title: 'Eliminar activo',
+            description: `¿Seguro que deseas eliminar "${asset.name}"? Se borrará su historial de asignaciones y mantenimientos. Esta acción no se puede deshacer.`,
+            variant: 'danger',
+            confirmLabel: 'Eliminar',
+        });
+        if (!ok) return;
+        setDeleting(true);
+        try {
+            const res = await deleteAssetAction(asset.id);
+            if (!res.success) {
+                toast.error(res.error || 'No se pudo eliminar el activo');
+                return;
+            }
+            toast.success('Activo eliminado');
+            router.push('/technology');
+            router.refresh();
+        } finally {
+            setDeleting(false);
+        }
+    }
 
     const specs = asset.specs || {};
     const specEntries = Object.entries(specs).filter(([, v]) => v);
@@ -54,6 +82,7 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
 
     return (
         <div className="space-y-6">
+            {ConfirmDialogEl}
             {/* Asset Info Card */}
             <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
                 <CardHeader className="p-5 border-b border-slate-50">
@@ -67,7 +96,7 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
                                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{asset.asset_code}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                             <Badge className={cn('text-[9px] font-semibold border-none px-2 py-0.5 rounded-full', STATUS_COLORS[asset.status])}>
                                 {STATUS_LABELS[asset.status]}
                             </Badge>
@@ -81,6 +110,15 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
                                     <RotateCcw className="h-3 w-3" /> Devolver
                                 </Button>
                             )}
+                            <Button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                variant="outline"
+                                className="h-8 rounded-lg text-[10px] font-semibold gap-1.5 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
+                            >
+                                {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                Eliminar
+                            </Button>
                         </div>
                     </div>
                 </CardHeader>

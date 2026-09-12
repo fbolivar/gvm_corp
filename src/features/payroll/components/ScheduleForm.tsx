@@ -40,7 +40,7 @@ export function ScheduleForm() {
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                     <Label htmlFor="start_time" className="text-xs font-semibold text-slate-600">Hora Inicio</Label>
                     <Input
@@ -65,7 +65,7 @@ export function ScheduleForm() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                     <Label htmlFor="break_minutes" className="text-xs font-semibold text-slate-600">Descanso (min)</Label>
                     <Input

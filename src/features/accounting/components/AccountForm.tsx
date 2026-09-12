@@ -14,6 +14,7 @@ import {
 import { Switch } from "@/shared/components/ui/switch"
 import { useToast } from "@/shared/hooks/use-toast"
 import { ArrowLeft, Save, Loader2 } from "lucide-react"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface AccountFormProps {
     account?: Account | null;
@@ -98,14 +99,16 @@ export function AccountForm({ account, parentAccounts }: AccountFormProps) {
         <div className="page-container max-w-2xl mx-auto space-y-6 pb-20 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex items-center gap-4">
-                <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => router.back()}
-                    className="h-10 w-10 rounded-xl"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
+                <Hint label="Volver" side="right">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => router.back()}
+                        className="h-10 w-10 rounded-xl"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                </Hint>
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                         {isEditing ? 'Editar Cuenta Contable' : 'Nueva Cuenta Contable'}

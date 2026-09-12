@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { Carrier } from "../types"
 import { logisticsService } from "../services/logisticsService"
@@ -13,6 +14,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 import {
     Truck,
     Plus,
@@ -48,6 +50,7 @@ export function CarrierManager() {
             setCarriers(data)
         } catch (error) {
             console.error(error)
+            toast.error("No se pudieron cargar las transportadoras")
         } finally {
             setLoading(false)
         }
@@ -60,8 +63,10 @@ export function CarrierManager() {
             setEditingCarrier(null)
             reset()
             loadCarriers()
+            toast.success(editingCarrier ? "Transportadora actualizada" : "Transportadora creada")
         } catch (error) {
             console.error(error)
+            toast.error(error instanceof Error ? error.message : "No se pudo guardar la transportadora")
         }
     }
 
@@ -164,17 +169,19 @@ export function CarrierManager() {
                                         <Truck className="h-7 lg:h-8 w-7 lg:w-8" />
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-9 lg:h-10 w-9 lg:w-10 rounded-full bg-slate-50 text-slate-400 hover:text-primary transition-all sm:opacity-0 sm:group-hover:opacity-100"
-                                            onClick={() => {
-                                                setEditingCarrier(carrier)
-                                                reset(carrier)
-                                            }}
-                                        >
-                                            <Edit2 className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
-                                        </Button>
+                                        <Hint label="Editar" side="top">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 lg:h-10 w-9 lg:w-10 rounded-full bg-slate-50 text-slate-400 hover:text-primary transition-all sm:opacity-0 sm:group-hover:opacity-100"
+                                                onClick={() => {
+                                                    setEditingCarrier(carrier)
+                                                    reset(carrier)
+                                                }}
+                                            >
+                                                <Edit2 className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
+                                            </Button>
+                                        </Hint>
                                     </div>
                                 </div>
 

@@ -29,10 +29,13 @@ export function getProductsLightCached(tenantId: string): Promise<Product[]> {
             for (;;) {
                 const { data, error } = await db
                     .from('products')
-                    .select('id, sku, name, selling_price, cost, tax_category, status, type, uom, min_stock')
+                    .select('id, sku, barcode, name, selling_price, cost, tax_category, status, type, uom, min_stock, min_margin, enforce_margin')
                     .eq('tenant_id', tenantId)
                     .eq('status', 'ACTIVE')
+                    // 'id' desempata: 'name' no es único y en el borde de página
+                    // un orden ambiguo puede saltarse/duplicar filas.
                     .order('name')
+                    .order('id')
                     .range(offset, offset + pageSize - 1)
                 if (error || !data || data.length === 0) break
                 all.push(...data)
@@ -59,11 +62,18 @@ export function getPartiesLightCached(
             for (;;) {
                 let q = db
                     .from('parties')
-                    .select('id, legal_name, trade_name, doc_number, nit, email, phone, is_customer, is_vendor, party_type')
+                    .select('id, legal_name, trade_name, doc_type, doc_number, dv, nit, email, phone, is_customer, is_vendor, party_type')
                     .eq('tenant_id', tenantId)
                 if (role === 'customer') q = q.eq('is_customer', true)
                 else if (role === 'vendor') q = q.eq('is_vendor', true)
-                const { data, error } = await q.range(offset, offset + pageSize - 1)
+                // ORDEN DETERMINISTA OBLIGATORIO: sin ORDER BY, Postgres no garantiza
+                // el mismo orden entre páginas y range() puede SALTARSE filas (con 6.5k
+                // terceros = 7 páginas, algunos clientes desaparecían del selector).
+                // 'id' desempata porque legal_name no es único.
+                const { data, error } = await q
+                    .order('legal_name')
+                    .order('id')
+                    .range(offset, offset + pageSize - 1)
                 if (error || !data || data.length === 0) break
                 all.push(...data)
                 if (data.length < pageSize) break

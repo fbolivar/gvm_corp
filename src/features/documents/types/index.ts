@@ -56,6 +56,13 @@ export const documentSchema = z.object({
 
     currency: z.string().default('COP'),
 
+    // Contado/crédito: define qué asiento contable arma el motor de ventas.
+    // Vacío = se deduce del plazo de pago del tercero.
+    payment_form: z.preprocess(
+        (v) => (v === '' ? null : v),
+        z.enum(['CONTADO', 'CREDITO']).nullable().optional(),
+    ),
+
     subtotal: z.number().default(0),
     taxes: z.number().default(0),
     total: z.number().default(0),
@@ -67,6 +74,16 @@ export const documentSchema = z.object({
     notes_internal: z.string().optional().nullable(),
     notes_public: z.string().optional().nullable(),
 
+    // Facturas (FEV) asociadas a un pedido marcado como facturado. Un pedido
+    // puede corresponder a varias facturas.
+    invoice_numbers: z.array(z.string()).optional().nullable(),
+
+    // Observaciones finales: se registran cuando el documento ya está cerrado
+    // (pedido facturado). Se imprimen al final del PDF del pedido.
+    final_notes: z.string().optional().nullable(),
+    final_notes_at: z.string().optional().nullable(),
+    final_notes_by: z.string().uuid().optional().nullable(),
+
     // ICA Compliance (Resolución 1056) — receta médica + comercial responsable
     prescription_url: z.string().optional().nullable(),
     prescription_doctor_name: z.string().optional().nullable(),
@@ -76,6 +93,12 @@ export const documentSchema = z.object({
     commercial_user_id: z.string().uuid().optional().nullable(),
 
     created_at: z.string().optional(),
+
+    // Clave de idempotencia: la genera el formulario, una por intento de guardado.
+    // El índice único (tenant_id, idempotency_key) impide que un doble clic, un
+    // reintento tras error de red o un envío desde otra pestaña creen dos
+    // documentos con dos consecutivos distintos.
+    idempotency_key: z.string().uuid().optional().nullable(),
 
     // Relations (optional for fetching)
     party: z.custom<Party>().optional(),
@@ -90,8 +113,13 @@ export const documentFilterSchema = z.object({
     search: z.string().optional(),
     type: DocumentTypeEnum.optional(),
     status: DocumentStatusEnum.optional(),
+    warehouse_id: z.string().optional(),
     start_date: z.string().optional(),
     end_date: z.string().optional(),
+    // Oculta los documentos anulados. Anular conserva el consecutivo, así que la
+    // lista se llenaba de filas ANULADO (24 seguidas tras el incidente de
+    // duplicados del 2026-08-31). Siguen accesibles filtrando por "Anulado".
+    hide_voided: z.boolean().optional(),
     page: z.number().default(1),
     per_page: z.number().default(10),
 });

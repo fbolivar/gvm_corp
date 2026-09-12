@@ -99,7 +99,7 @@ export function LotForm({ products, warehouses, suppliers }: LotFormProps) {
             </div>
 
             {/* Lote + Batch */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                     <label htmlFor="lot-number" className={labelClass}>
                         No. Lote <span className="text-rose-500">*</span>
@@ -115,7 +115,7 @@ export function LotForm({ products, warehouses, suppliers }: LotFormProps) {
             </div>
 
             {/* Cantidad + Costo */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                     <label htmlFor="lot-qty" className={labelClass}>
                         Cantidad <span className="text-rose-500">*</span>

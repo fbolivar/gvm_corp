@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { TransferWithDetails } from '../types';
+import { buildReceiptRows } from '../utils/receiptRows';
 import {
     drawBrandHeader,
     drawBrandFooter,
@@ -70,49 +71,125 @@ export const transferPdfService = {
 
         y += blockH + 5;
 
-        // ── Tabla de artículos ──
+        // ── Tabla de artículos (con IVA segregado por producto) ──
+        const ivaRateFromCategory = (cat: string | null | undefined): number => {
+            if (!cat) return 0;
+            const m = /(\d+)/.exec(cat);
+            return m ? Number(m[1]) : 0;
+        };
+        const money = (v: number) => `$${pdfFmtInt(Math.round(v))}`;
+
         let totalQty = 0;
         let totalRecv = 0;
+        let totalCost = 0;
+        let totalIva = 0;
         const body = (transfer.lines || []).map((line, i) => {
+            const prod = line.product as { sku?: string; name?: string; tax_category?: string | null; cost?: number | null } | undefined;
             const qty = Number(line.qty) || 0;
             const recv = Number(line.qty_received ?? 0) || 0;
+            const unitCost = Number(prod?.cost ?? 0);
+            const rate = ivaRateFromCategory(prod?.tax_category);
+            const ivaAmt = unitCost * qty * (rate / 100);
             totalQty += qty;
             totalRecv += recv;
+            totalCost += unitCost * qty;
+            totalIva += ivaAmt;
             return [
                 String(i + 1),
-                line.product?.sku ?? '',
-                line.product?.name ?? 'Producto',
+                prod?.sku ?? '',
+                prod?.name ?? line.description ?? 'Producto (solicitud)',
+                prod ? money(unitCost) : '—',
+                prod ? `${rate}%` : '—',
+                prod ? money(ivaAmt) : '—',
                 pdfFmtInt(qty),
                 pdfFmtInt(recv),
                 pdfFmtInt(Math.max(0, qty - recv)),
             ];
         });
 
+        const tableBase = brandTableStyles();
         autoTable(doc, {
             startY: y,
-            head: [['#', 'Código', 'Producto', 'Cantidad', 'Recibido', 'Pendiente']],
+            head: [['#', 'Código', 'Producto', 'Costo Unit.', 'IVA', 'Valor IVA', 'Cant.', 'Recib.', 'Pend.']],
             body,
-            foot: [['', '', 'TOTALES', pdfFmtInt(totalQty), pdfFmtInt(totalRecv), pdfFmtInt(Math.max(0, totalQty - totalRecv))]],
-            ...brandTableStyles(),
+            foot: [['', '', 'TOTALES', money(totalCost), '', money(totalIva), pdfFmtInt(totalQty), pdfFmtInt(totalRecv), pdfFmtInt(Math.max(0, totalQty - totalRecv))]],
+            ...tableBase,
+            styles: { ...tableBase.styles, fontSize: 7.5, cellPadding: { top: 2, bottom: 2, left: 2, right: 2 } },
             footStyles: {
                 fillColor: PDF_SOFT as unknown as [number, number, number],
                 textColor: PDF_INK as unknown as [number, number, number],
                 fontStyle: 'bold',
-                fontSize: 8,
+                fontSize: 7.5,
             },
             columnStyles: {
-                0: { halign: 'center', cellWidth: 10 },
-                1: { cellWidth: 26, fontStyle: 'bold' },
+                0: { halign: 'center', cellWidth: 8 },
+                1: { cellWidth: 20, fontStyle: 'bold' },
                 2: { cellWidth: 'auto' },
-                3: { halign: 'right', cellWidth: 24 },
-                4: { halign: 'right', cellWidth: 24 },
+                3: { halign: 'right', cellWidth: 22 },
+                4: { halign: 'center', cellWidth: 12 },
                 5: { halign: 'right', cellWidth: 24 },
+                6: { halign: 'right', cellWidth: 15 },
+                7: { halign: 'right', cellWidth: 15 },
+                8: { halign: 'right', cellWidth: 15 },
             },
             margin: { left: M, right: M },
         });
 
         y = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || y + 30;
         y += 6;
+
+        // ── Consolidado de lo recibido (lote por lote) ──
+        // Es el acta de entrada a la bodega de destino: sin lote ni vencimiento
+        // el documento no sirve para trazabilidad ni para el conteo físico.
+        const { rows: receiptRows, total: receivedTotal } = buildReceiptRows(transfer);
+
+        if (receiptRows.length > 0) {
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...PDF_PRIMARY);
+            doc.text('MERCANCÍA RECIBIDA', M, y);
+            y += 3;
+
+            const recvBody = receiptRows.map(r => [
+                String(r.index),
+                r.sku,
+                r.reference,
+                r.lot,
+                r.expiration ? pdfFmtDate(r.expiration) : '—',
+                pdfFmtInt(r.qty),
+                r.receiver,
+                pdfFmtDate(r.receivedAt),
+            ]);
+
+            autoTable(doc, {
+                startY: y,
+                head: [['#', 'Código', 'Referencia', 'Lote', 'Vence', 'Cant. recibida', 'Recibido por', 'Fecha']],
+                body: recvBody,
+                foot: [['', '', 'TOTAL RECIBIDO', '', '', pdfFmtInt(receivedTotal), '', '']],
+                ...tableBase,
+                styles: { ...tableBase.styles, fontSize: 7.5, cellPadding: { top: 2, bottom: 2, left: 2, right: 2 } },
+                footStyles: {
+                    fillColor: PDF_SOFT as unknown as [number, number, number],
+                    textColor: PDF_INK as unknown as [number, number, number],
+                    fontStyle: 'bold',
+                    fontSize: 7.5,
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 8 },
+                    1: { cellWidth: 20, fontStyle: 'bold' },
+                    2: { cellWidth: 'auto' },
+                    3: { cellWidth: 24, fontStyle: 'bold' },
+                    4: { halign: 'center', cellWidth: 20 },
+                    5: { halign: 'right', cellWidth: 22 },
+                    6: { cellWidth: 34 },
+                    7: { halign: 'center', cellWidth: 20 },
+                },
+                margin: { left: M, right: M },
+            });
+
+            y = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || y + 30;
+            y += 6;
+        }
 
         // ── Notas ──
         if (transfer.notes) {

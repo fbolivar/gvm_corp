@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { settingsService } from "@/features/settings/services/settingsService";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, FileOutput, ShieldCheck } from "lucide-react";
+import { ArrowLeft, FileOutput } from "lucide-react";
 import { SalesOrderPrintControls } from "./SalesOrderPrintControls";
 
 interface DocumentLine {
@@ -12,7 +12,23 @@ interface DocumentLine {
   unit_price: number;
   line_total: number;
   product_id?: string | null;
+  tax_config?: unknown;
   products?: { name?: string; sku?: string; uom?: string } | null;
+}
+
+/** Extrae la tasa de IVA (%) desde el tax_config de una línea. */
+function ivaRateOf(taxConfig: unknown): number {
+  if (Array.isArray(taxConfig)) {
+    const iva =
+      taxConfig.find(
+        (t) => t && typeof t === "object" && ((t as { type?: string }).type === "IVA" || (t as { name?: string }).name === "IVA")
+      ) ?? taxConfig[0];
+    return Number((iva as { rate?: number })?.rate ?? 0);
+  }
+  if (taxConfig && typeof taxConfig === "object") {
+    return Number((taxConfig as { rate?: number }).rate ?? 0);
+  }
+  return 0;
 }
 
 interface Party {
@@ -37,6 +53,8 @@ interface DocRow {
   total: number;
   notes_public: string | null;
   notes_internal: string | null;
+  final_notes: string | null;
+  invoice_numbers: string[] | null;
   prescription_url: string | null;
   prescription_doctor_name: string | null;
   prescription_doctor_license: string | null;
@@ -56,12 +74,6 @@ function fmtDate(iso: string | null | undefined): string {
 
 function fmtMoney(n: number | null | undefined): string {
   return `$${(n ?? 0).toLocaleString("es-CO", { minimumFractionDigits: 0 })}`;
-}
-
-function doctorTypeLabel(t: string | null): string {
-  if (t === "VETERINARIO") return "Médico Veterinario";
-  if (t === "ZOOTECNISTA") return "Zootecnista";
-  return "Profesional";
 }
 
 export const dynamic = "force-dynamic";
@@ -136,9 +148,6 @@ export default async function SalesOrderPrintPage({
   const fileDate = (doc.issue_date || "").replaceAll("-", "-");
   const filename = `PEDIDO ${displayNumber} - ${clientName} - ${fileDate}`;
 
-  const prescriptionIsPdf = doc.prescription_url?.toLowerCase().includes(".pdf");
-  const prescriptionIsImg = doc.prescription_url && !prescriptionIsPdf;
-
   return (
     <>
       <style>{`
@@ -193,6 +202,12 @@ export default async function SalesOrderPrintPage({
               {doc.due_date && <p><span>Fecha entrega : </span><span className="font-semibold">{fmtDate(doc.due_date)}</span></p>}
               {doc.warehouse && <p><span>Bodega origen : </span><span className="font-semibold uppercase">{doc.warehouse.name}</span></p>}
               <p><span>Estado : </span><span className="font-semibold">{doc.status}</span></p>
+              {doc.invoice_numbers && doc.invoice_numbers.length > 0 && (
+                <p>
+                  <span>{doc.invoice_numbers.length > 1 ? 'Facturas : ' : 'Factura : '}</span>
+                  <span className="font-semibold">{doc.invoice_numbers.join(' · ')}</span>
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -221,56 +236,37 @@ export default async function SalesOrderPrintPage({
           </div>
         </div>
 
-        {/* ═══════ BLOQUE RECETA MÉDICA ICA ═══════ */}
-        <div className="ov-ica-border p-3 mb-3 bg-sky-50/30">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="h-4 w-4 text-sky-700" />
-            <p className="font-bold text-sky-900 text-[11px]">Receta Médica — Cumplimiento ICA (Resolución 1056)</p>
-          </div>
-          {doc.prescription_doctor_name ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
-              <p><span className="text-slate-500">Profesional:</span> <span className="font-semibold">{doctorTypeLabel(doc.prescription_doctor_type)}</span></p>
-              <p><span className="text-slate-500">Fecha receta:</span> <span className="font-semibold">{fmtDate(doc.prescription_date)}</span></p>
-              <p><span className="text-slate-500">Nombre:</span> <span className="font-semibold">{doc.prescription_doctor_name}</span></p>
-              <p><span className="text-slate-500">Matrícula:</span> <span className="font-semibold">{doc.prescription_doctor_license || "—"}</span></p>
-            </div>
-          ) : (
-            <p className="text-[10px] text-rose-700">⚠ Pedido sin datos de receta médica — NO cumple requisito ICA</p>
-          )}
-          {doc.prescription_url && (
-            <p className="text-[10px] mt-1.5 text-slate-600">
-              {prescriptionIsPdf ? (
-                <>📄 Receta adjunta (PDF) — ver <a href={doc.prescription_url} className="text-sky-700 underline">archivo</a></>
-              ) : (
-                <>🖼️ Receta adjunta (imagen) — ver al final del documento</>
-              )}
-            </p>
-          )}
-        </div>
-
         {/* TABLA PRODUCTOS */}
         <table className="ov-table mb-3 text-[11px]">
           <thead>
             <tr className="ov-box-gray">
-              <th className="text-left font-normal w-[10%]">SKU</th>
-              <th className="text-left font-normal w-[42%]">Descripción</th>
-              <th className="text-center font-normal w-[10%]">U.M.</th>
-              <th className="text-right font-normal w-[10%]">Cant.</th>
-              <th className="text-right font-normal w-[14%]">V. Unit.</th>
-              <th className="text-right font-normal w-[14%]">Total</th>
+              <th className="text-left font-normal w-[9%]">SKU</th>
+              <th className="text-left font-normal w-[30%]">Descripción</th>
+              <th className="text-center font-normal w-[7%]">IVA</th>
+              <th className="text-right font-normal w-[13%]">P. Unit.</th>
+              <th className="text-right font-normal w-[14%]">P.U. + IVA</th>
+              <th className="text-right font-normal w-[7%]">Cant.</th>
+              <th className="text-center font-normal w-[6%]">Desc.</th>
+              <th className="text-right font-normal w-[14%]">Total (sin IVA)</th>
             </tr>
           </thead>
           <tbody>
-            {lines.map((line, idx) => (
+            {lines.map((line, idx) => {
+              const iva = ivaRateOf(line.tax_config);
+              const totalSinIva = line.qty * line.unit_price;
+              return (
               <tr key={line.id || idx}>
                 <td className="align-top text-[9.5px] font-mono">{line.products?.sku || "—"}</td>
                 <td className="align-top">{line.description || line.products?.name || "—"}</td>
-                <td className="text-center align-top">{line.products?.uom || "Und."}</td>
-                <td className="text-right align-top tabular-nums">{Number(line.qty).toLocaleString("es-CO")}</td>
+                <td className="text-center align-top tabular-nums">{iva}%</td>
                 <td className="text-right align-top tabular-nums">{fmtMoney(line.unit_price)}</td>
-                <td className="text-right align-top tabular-nums font-semibold">{fmtMoney(line.line_total || line.qty * line.unit_price)}</td>
+                <td className="text-right align-top tabular-nums">{fmtMoney(line.unit_price * (1 + iva / 100))}</td>
+                <td className="text-right align-top tabular-nums">{Number(line.qty).toLocaleString("es-CO")}</td>
+                <td className="text-center align-top tabular-nums text-slate-400">—</td>
+                <td className="text-right align-top tabular-nums font-semibold">{fmtMoney(totalSinIva)}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
 
@@ -294,11 +290,19 @@ export default async function SalesOrderPrintPage({
           </table>
         </div>
 
-        {/* NOTAS */}
-        {(doc.notes_public || doc.notes_internal) && (
+        {/* NOTAS — solo las públicas; las internas NO se imprimen */}
+        {doc.notes_public && (
           <div className="border border-slate-300 rounded-sm px-3 py-1.5 mb-3 text-[10.5px]">
             <p className="text-slate-500 text-[9px] uppercase tracking-wide mb-0.5">Observaciones</p>
-            {doc.notes_public || doc.notes_internal}
+            {doc.notes_public}
+          </div>
+        )}
+
+        {/* OBSERVACIONES FINALES — solo pedidos ya cerrados (facturados) */}
+        {doc.final_notes && (
+          <div className="border border-slate-400 rounded-sm px-3 py-1.5 mb-3 text-[10.5px] whitespace-pre-wrap">
+            <p className="text-slate-500 text-[9px] uppercase tracking-wide mb-0.5">Observaciones finales</p>
+            {doc.final_notes}
           </div>
         )}
 
@@ -338,31 +342,8 @@ export default async function SalesOrderPrintPage({
 
         {/* FOOTER */}
         <div className="mt-4 text-center text-[9px] text-slate-500 leading-[1.3]">
-          <p>Este pedido cumple con la Resolución ICA 1056 — requiere receta firmada por médico veterinario o zootecnista.</p>
           {tenant?.nit && <p>{tenant.name} · NIT {tenant.nit}</p>}
         </div>
-
-        {/* ═══════ RECETA ADJUNTA (segunda página si es imagen) ═══════ */}
-        {prescriptionIsImg && doc.prescription_url && (
-          <div className="ov-page-break mt-6">
-            <div className="flex items-center gap-2 mb-3 border-b border-slate-300 pb-2">
-              <ShieldCheck className="h-4 w-4 text-sky-700" />
-              <p className="font-bold text-[12px]">Anexo: Receta Médica Firmada</p>
-            </div>
-            <div className="text-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={doc.prescription_url}
-                alt="Receta médica ICA"
-                className="ov-ica-img max-h-[260mm] max-w-full mx-auto object-contain border border-slate-200 rounded"
-              />
-              <div className="mt-3 text-[10px] text-slate-600 space-y-0.5">
-                <p><strong>{doc.prescription_doctor_name}</strong> — {doctorTypeLabel(doc.prescription_doctor_type)}</p>
-                <p>Matrícula: {doc.prescription_doctor_license} · Fecha: {fmtDate(doc.prescription_date)}</p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </>
   );

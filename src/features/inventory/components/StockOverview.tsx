@@ -6,6 +6,7 @@ import { Package, Warehouse, Sparkles, ChevronLeft, ChevronRight, AlertTriangle 
 import { Badge } from "@/shared/components/ui/badge"
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface StockOverviewProps {
     stock: (ProductStock & {
@@ -158,27 +159,31 @@ export function StockOverview({ stock }: StockOverviewProps) {
                         registros
                     </span>
                     <div className="flex items-center gap-1.5">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 w-7 p-0 rounded-lg"
-                            disabled={page <= 1}
-                            onClick={() => setPage(p => p - 1)}
-                        >
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                        </Button>
+                        <Hint label="Página anterior" side="top">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0 rounded-lg"
+                                disabled={page <= 1}
+                                onClick={() => setPage(p => p - 1)}
+                            >
+                                <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
                         <span className="text-[10px] text-slate-500 px-1">
                             {page} / {totalPages}
                         </span>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 w-7 p-0 rounded-lg"
-                            disabled={page >= totalPages}
-                            onClick={() => setPage(p => p + 1)}
-                        >
-                            <ChevronRight className="h-3.5 w-3.5" />
-                        </Button>
+                        <Hint label="Página siguiente" side="top">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0 rounded-lg"
+                                disabled={page >= totalPages}
+                                onClick={() => setPage(p => p + 1)}
+                            >
+                                <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
                     </div>
                 </div>
             )}

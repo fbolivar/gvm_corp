@@ -167,7 +167,7 @@ export default async function AccountingReportsPage() {
             />
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {statsCards.map((s, i) => (
                     <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-3">
                         <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", s.bg, s.color)}>

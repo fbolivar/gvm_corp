@@ -21,8 +21,11 @@ export default async function PipelinePage() {
         settingsService.getTenantInfo(supabase)
     ]);
 
-    const totalPipelineValue = opportunities.reduce((acc: number, curr: Record<string, unknown>) => acc + (Number(curr.value) || 0), 0);
+    const openOpps = opportunities.filter((o: Record<string, unknown>) => o.stage !== 'CLOSED_WON' && o.stage !== 'CLOSED_LOST');
+    // "Capital en Pipeline" = valor nominal de oportunidades ABIERTAS (excluye cerradas).
+    const totalPipelineValue = openOpps.reduce((acc: number, curr: Record<string, unknown>) => acc + (Number(curr.value) || 0), 0);
     const winRate = opportunities.length > 0 ? (opportunities.filter((o: Record<string, unknown>) => o.stage === 'CLOSED_WON').length / opportunities.length) * 100 : 0;
+    const openRatio = opportunities.length > 0 ? (openOpps.length / opportunities.length) * 100 : 0;
 
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">
@@ -77,7 +80,7 @@ export default async function PipelinePage() {
                             <h3 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">{winRate.toFixed(1)}%</h3>
                         </div>
                         <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full w-2/3 bg-emerald-500 rounded-full" />
+                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min(100, winRate)}%` }} />
                         </div>
                     </CardContent>
                 </Card>
@@ -93,11 +96,11 @@ export default async function PipelinePage() {
                         <div>
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Oportunidades Abiertas</p>
                             <h3 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">
-                                {opportunities.filter((o: Record<string, unknown>) => o.stage !== 'CLOSED_WON' && o.stage !== 'CLOSED_LOST').length}
+                                {openOpps.length}
                             </h3>
                         </div>
                         <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full w-1/2 bg-amber-500 rounded-full" />
+                            <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${Math.min(100, openRatio)}%` }} />
                         </div>
                     </CardContent>
                 </Card>

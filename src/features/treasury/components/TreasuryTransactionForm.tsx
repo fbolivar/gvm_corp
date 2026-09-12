@@ -140,7 +140,7 @@ export function TreasuryTransactionForm({ type, onSubmit, isLoading }: TreasuryT
         <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 max-w-5xl mx-auto pb-24">
 
             {/* 🏎️ PREMIUM HEADER POD */}
-            <div className="relative group overflow-hidden bg-slate-900 rounded-[4rem] p-12 text-white shadow-active">
+            <div className="relative group overflow-hidden bg-slate-900 rounded-[4rem] p-6 md:p-12 text-white shadow-active">
                 {/* Decorators */}
                 <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-1000">
                     <Banknote className="h-48 w-48" />
@@ -149,8 +149,8 @@ export function TreasuryTransactionForm({ type, onSubmit, isLoading }: TreasuryT
                     <Cpu className="h-64 w-64" />
                 </div>
 
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-10">
-                    <div className="space-y-4">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6 lg:gap-10 flex-wrap">
+                    <div className="space-y-4 min-w-0">
                         <div className="flex items-center gap-3">
                             <div className={cn("h-3 w-3 rounded-full animate-pulse", type === 'RECEIPT' ? "bg-emerald-500" : "bg-rose-500")} />
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Terminal de Transacciones</span>
@@ -178,10 +178,10 @@ export function TreasuryTransactionForm({ type, onSubmit, isLoading }: TreasuryT
 
             {/* 🛠️ CORE FORM CARD */}
             <Card className="rounded-[4rem] bg-white border-none shadow-premium overflow-hidden group border border-slate-50">
-                <CardContent className="p-12 md:p-16 space-y-12">
+                <CardContent className="p-6 md:p-16 space-y-12">
 
                     {/* Sección 1: Eje de la Transacción */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                         <div className="space-y-4">
                             <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 ml-6 block italic">Fuente / Destino Local</Label>
                             <div className="relative group/field">
@@ -231,7 +231,7 @@ export function TreasuryTransactionForm({ type, onSubmit, isLoading }: TreasuryT
                     </div>
 
                     {/* Sección 2: Magnitudes Financieras */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                         <div className="space-y-4">
                             <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 ml-6 block italic">Magnitud del Movimiento</Label>
                             <div className="relative group/field">

@@ -102,7 +102,7 @@ export function HealthSection({ health }: { health: TenantHealth | null }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <HealthKpi label="Última actividad" value={fmtRelative(health.last_activity_at)} icon={Activity} />
         <HealthKpi label="Usuarios activos 30d" value={health.active_users_30d.toString()} icon={Users} />
         <HealthKpi label="Docs últimos 7d" value={health.documents_7d.toString()} icon={FileText} />

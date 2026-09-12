@@ -236,7 +236,7 @@ export function FinancialDashboard({ incomeRows, expenseRows }: Props) {
                                 <Tooltip content={<PnLTooltip />} />
                                 <Bar dataKey="income" name="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={36} />
                                 <Bar dataKey="expense" name="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={36} />
-                                <Line type="monotone" dataKey="net" name="Utilidad Neta" stroke="#6366f1" strokeWidth={3} dot={{ fill: '#6366f1', r: 3, strokeWidth: 0 }} />
+                                <Line type="monotone" dataKey="net" name="Utilidad Neta" stroke="#0096E6" strokeWidth={3} dot={{ fill: '#0096E6', r: 3, strokeWidth: 0 }} />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>

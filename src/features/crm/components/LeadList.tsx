@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/shared/components/ui/card"
 import { cn } from "@/shared/lib/utils"
 import { LeadConversionDialog } from "./LeadConversionDialog"
 import { Sparkles, Mail, Phone } from "lucide-react"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface LeadListProps {
     leads: Lead[]
@@ -21,7 +22,7 @@ interface LeadListProps {
 const statusConfig: Record<string, { label: string; style: string; color: string }> = {
     'NEW': { label: 'RADICADO NUEVO', style: 'border-blue-200 text-blue-600 bg-blue-50/50', color: '#3b82f6' },
     'CONTACTED': { label: 'EN GESTIÓN', style: 'border-amber-200 text-amber-600 bg-amber-50/50', color: '#f59e0b' },
-    'QUALIFIED': { label: 'CERTIFICADO', style: 'border-indigo-200 text-indigo-600 bg-indigo-50/50', color: '#6366f1' },
+    'QUALIFIED': { label: 'CERTIFICADO', style: 'border-indigo-200 text-indigo-600 bg-indigo-50/50', color: '#0096E6' },
     'LOST': { label: 'DESCARTADO', style: 'border-rose-200 text-rose-600 bg-rose-50/50', color: '#f43f5e' },
     'CONVERTED': { label: 'CONVERTIDO CLIENTE', style: 'border-emerald-200 text-emerald-600 bg-emerald-50/50', color: '#10b981' },
 }
@@ -90,9 +91,9 @@ export function LeadList({ leads, onDelete }: LeadListProps) {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div className="flex items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 group/source">
-                                                <div className="h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_6px_#6366f1]" />
+                                                <div className="h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_6px_#0096E6]" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Origen</span>
                                                     <span className="text-[10px] font-black text-slate-950 uppercase tracking-widest leading-none">{lead.source || 'DIRECTO'}</span>
@@ -111,19 +112,23 @@ export function LeadList({ leads, onDelete }: LeadListProps) {
                                     {/* Actions Industrial Hub */}
                                     <div className="flex items-center justify-between pt-8 border-t border-slate-50">
                                         <div className="flex gap-3">
-                                            <Button variant="outline" size="icon" asChild className="h-12 w-12 rounded-2xl border-slate-100 bg-white hover:bg-slate-950 hover:text-white hover:border-slate-950 transition-all shadow-premium group/edit">
-                                                <Link href={`/crm/leads/${lead.id}/edit`}>
-                                                    <Edit2 className="h-5 w-5 transition-transform group-hover/edit:scale-110" />
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                onClick={() => lead.id && onDelete?.(lead.id)}
-                                                className="h-12 w-12 rounded-2xl border-slate-100 bg-white hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all shadow-premium group/del"
-                                            >
-                                                <Trash2 className="h-5 w-5 transition-transform group-hover/del:scale-110" />
-                                            </Button>
+                                            <Hint label="Editar" side="top">
+                                                <Button variant="outline" size="icon" asChild className="h-12 w-12 rounded-2xl border-slate-100 bg-white hover:bg-slate-950 hover:text-white hover:border-slate-950 transition-all shadow-premium group/edit">
+                                                    <Link href={`/crm/leads/${lead.id}/edit`}>
+                                                        <Edit2 className="h-5 w-5 transition-transform group-hover/edit:scale-110" />
+                                                    </Link>
+                                                </Button>
+                                            </Hint>
+                                            <Hint label="Eliminar" side="top">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => lead.id && onDelete?.(lead.id)}
+                                                    className="h-12 w-12 rounded-2xl border-slate-100 bg-white hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all shadow-premium group/del"
+                                                >
+                                                    <Trash2 className="h-5 w-5 transition-transform group-hover/del:scale-110" />
+                                                </Button>
+                                            </Hint>
                                         </div>
                                         <Button
                                             onClick={() => handleConvertClick(lead)}

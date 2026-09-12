@@ -79,7 +79,7 @@ export const purchaseOrderService = {
 
         // Calculate totals
         const subtotal = lines.reduce((sum, l) => sum + l.qty * l.unit_cost, 0);
-        const tax_total = lines.reduce((sum, l) => sum + l.qty * l.unit_cost * (l.tax_rate || 0.19), 0);
+        const tax_total = lines.reduce((sum, l) => sum + l.qty * l.unit_cost * ((l.tax_rate ?? 0.19)), 0);
         const total = subtotal + tax_total;
 
         const { data: po, error: poError } = await client
@@ -94,7 +94,7 @@ export const purchaseOrderService = {
             product_id: l.product_id,
             qty: l.qty,
             unit_cost: l.unit_cost,
-            tax_rate: l.tax_rate || 0.19,
+            tax_rate: (l.tax_rate ?? 0.19),
             notes: l.notes,
         }));
 
@@ -110,7 +110,7 @@ export const purchaseOrderService = {
         const { lines, ...header } = order;
 
         const subtotal = lines.reduce((sum, l) => sum + l.qty * l.unit_cost, 0);
-        const tax_total = lines.reduce((sum, l) => sum + l.qty * l.unit_cost * (l.tax_rate || 0), 0);
+        const tax_total = lines.reduce((sum, l) => sum + l.qty * l.unit_cost * ((l.tax_rate ?? 0.19)), 0);
         const total = subtotal + tax_total;
 
         const { error: headerError } = await client
@@ -131,7 +131,7 @@ export const purchaseOrderService = {
             product_id: l.product_id,
             qty: l.qty,
             unit_cost: l.unit_cost,
-            tax_rate: l.tax_rate || 0,
+            tax_rate: (l.tax_rate ?? 0.19),
             notes: l.notes,
         }));
 

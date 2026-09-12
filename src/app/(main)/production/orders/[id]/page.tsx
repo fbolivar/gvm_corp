@@ -54,8 +54,8 @@ export default async function ProductionOrderDetailPage({ params }: { params: Pr
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Planta de Producción</span>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                        <div className="space-y-3">
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                        <div className="min-w-0 space-y-3">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl">
                                     <Hash className="h-3 w-3 text-slate-400" />
@@ -177,8 +177,8 @@ export default async function ProductionOrderDetailPage({ params }: { params: Pr
 
             {/* ACTIONS */}
             {order.status === 'IN_PROGRESS' && (
-                <div className="bg-amber-50 rounded-[2.5rem] p-8 border border-amber-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
+                <div className="bg-amber-50 rounded-[2.5rem] p-8 border border-amber-100 flex flex-col lg:flex-row items-center justify-between gap-6 flex-wrap">
+                    <div className="flex items-center gap-4 min-w-0">
                         <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
                             <PlayCircle className="h-6 w-6" />
                         </div>

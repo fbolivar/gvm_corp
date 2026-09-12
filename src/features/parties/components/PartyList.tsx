@@ -39,6 +39,7 @@ import {
     DropdownMenuCheckboxItem
 } from "@/shared/components/ui/dropdown-menu"
 import { PartyTable } from "./PartyTable"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface VendorMetric {
     total_purchased: number
@@ -164,22 +165,26 @@ export function PartyList({ initialData, totalCount, currentPage, perPage, vendo
                     <span className="text-[10px] font-semibold text-slate-400">{totalCount} registros</span>
 
                     <div className="bg-slate-100 p-1 rounded-lg flex">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setViewMode('grid')}
-                            className={cn("h-7 w-7 rounded-md", viewMode === 'grid' ? "bg-white shadow-sm text-slate-900" : "text-slate-400")}
-                        >
-                            <LayoutGrid className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setViewMode('table')}
-                            className={cn("h-7 w-7 rounded-md", viewMode === 'table' ? "bg-white shadow-sm text-slate-900" : "text-slate-400")}
-                        >
-                            <List className="h-3.5 w-3.5" />
-                        </Button>
+                        <Hint label="Vista de cuadrícula" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setViewMode('grid')}
+                                className={cn("h-7 w-7 rounded-md", viewMode === 'grid' ? "bg-white shadow-sm text-slate-900" : "text-slate-400")}
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
+                        <Hint label="Vista de tabla" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setViewMode('table')}
+                                className={cn("h-7 w-7 rounded-md", viewMode === 'table' ? "bg-white shadow-sm text-slate-900" : "text-slate-400")}
+                            >
+                                <List className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
                     </div>
 
                     <Button asChild className="h-9 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs gap-2">

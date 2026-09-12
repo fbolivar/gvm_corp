@@ -5,6 +5,20 @@ import { createPortal } from 'react-dom'
 import { ChevronDown, Search, X, Check, Plus } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 
+/**
+ * Normaliza texto para búsqueda tolerante: quita acentos y todo lo que no sea
+ * letra o número (puntos, guiones, espacios, «&»...). Así «S.A.S» ≡ «SAS» y
+ * «901.955.241-5» ≡ «9019552415».
+ */
+function looseText(s: string): string {
+  // NFD descompone los acentos (á -> a + tilde) y el filtro siguiente elimina
+  // la tilde junto con puntos, guiones y espacios.
+  return s
+    .normalize('NFD')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase()
+}
+
 export interface SearchableSelectItem {
   value: string
   label: string
@@ -62,11 +76,15 @@ export function SearchableSelect({
 
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items.slice(0, 100)
-    const q = query.toLowerCase()
+    const q = query.toLowerCase().trim()
+    const qLoose = looseText(q)
     return items
       .filter((item) => {
         const haystack = `${item.label ?? ''} ${item.subLabel ?? ''} ${item.keywords ?? ''}`.toLowerCase()
-        return haystack.includes(q)
+        if (haystack.includes(q)) return true
+        // Comparación tolerante: ignora puntos, guiones, espacios y acentos, para que
+        // «genesys pig sas» encuentre «GENESYS PIG S.A.S» y «901.955.241-5» el NIT.
+        return qLoose.length > 0 && looseText(haystack).includes(qLoose)
       })
       .slice(0, 200)
   }, [items, query])

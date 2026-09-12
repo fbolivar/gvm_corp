@@ -1,18 +1,15 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { CheckCircle2, XCircle, Clock, Camera, Scan, Loader2 } from "lucide-react"
-
-interface KioskEmployee {
-    id: string
-    name: string
-}
+import { CheckCircle2, XCircle, Clock, Camera, Scan, Loader2, SwitchCamera } from "lucide-react"
+import { cn } from "@/shared/lib/utils"
 
 interface Props {
     token: string
     terminalName: string
     tenantName: string
-    employees: KioskEmployee[]
+    /** Solo el conteo: el portal es público y no debe exponer el directorio. */
+    employeeCount: number
 }
 
 type KioskState = 'scanning' | 'processing' | 'success_in' | 'success_out' | 'error'
@@ -28,17 +25,26 @@ interface ClockResult {
     }
 }
 
-export function KioskTerminal({ token, terminalName, tenantName, employees }: Props) {
+export function KioskTerminal({ token, terminalName, tenantName, employeeCount }: Props) {
     const [state, setState] = useState<KioskState>('scanning')
     const [time, setTime] = useState('')
     const [date, setDate] = useState('')
     const [result, setResult] = useState<ClockResult | null>(null)
     const [errorMessage, setErrorMessage] = useState('')
     const [cameraReady, setCameraReady] = useState(false)
+    const [cameraError, setCameraError] = useState<string | null>(null)
+    const [cameras, setCameras] = useState<{ id: string; label: string }[]>([])
     const [geo, setGeo] = useState<{ lat: number; lng: number } | undefined>()
     const scannerRef = useRef<unknown>(null)
+    const startingRef = useRef(false)
+    const camIdRef = useRef<string | null>(null) // cámara elegida (persistida por dispositivo)
     const containerId = 'kiosk-qr-reader'
     const resetTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Recupera la cámara elegida para esta tablet (se fija una vez por sede)
+    useEffect(() => {
+        try { camIdRef.current = localStorage.getItem('kiosk_camera_id') } catch { /* ignore */ }
+    }, [])
 
     // Live clock
     useEffect(() => {
@@ -83,11 +89,10 @@ export function KioskTerminal({ token, terminalName, tenantName, employees }: Pr
         const employeeId = parts[1]
         const hmacSignature = parts[2]
 
-        // Quick local name lookup
-        const emp = employees.find(e => e.id === employeeId)
-
+        // El nombre lo confirma el servidor tras validar la firma del QR; aquí
+        // solo se muestra el estado de verificación.
         setState('processing')
-        setResult({ employee_name: emp?.name || 'Empleado', time: '', data: { status: '', late_minutes: 0, total_worked_hours: 0, overtime_hours: 0 } })
+        setResult({ employee_name: 'Verificando...', time: '', data: { status: '', late_minutes: 0, total_worked_hours: 0, overtime_hours: 0 } })
 
         try {
             const res = await fetch('/api/kiosk/clock', {
@@ -114,7 +119,7 @@ export function KioskTerminal({ token, terminalName, tenantName, employees }: Pr
             setState('error')
             setErrorMessage('Error de conexion. Verifique la red.')
         }
-    }, [state, token, employees, geo])
+    }, [state, token, geo])
 
     // Auto-reset after result
     useEffect(() => {
@@ -130,48 +135,117 @@ export function KioskTerminal({ token, terminalName, tenantName, employees }: Pr
         }
     }, [state])
 
-    // QR Scanner setup
-    useEffect(() => {
-        let scanner: { stop: () => Promise<void>; start: (config: unknown, options: unknown, onSuccess: (text: string) => void, onError: () => void) => Promise<void> } | null = null
-
-        const startScanner = async () => {
-            try {
-                const { Html5Qrcode } = await import("html5-qrcode")
-                scanner = new Html5Qrcode(containerId) as unknown as typeof scanner
-                scannerRef.current = scanner
-
-                await scanner!.start(
-                    { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
-                    (decodedText: string) => {
-                        handleScan(decodedText)
-                    },
-                    () => { /* ignore scan errors */ }
-                )
-                setCameraReady(true)
-            } catch {
-                setCameraReady(false)
+    // Inicia (o reintenta) el escáner. Es una función estable para poder llamarla
+    // también desde el botón "Activar cámara" (el gesto del usuario ayuda a que el
+    // navegador conceda el permiso, sobre todo en iOS/Safari).
+    const startScanner = useCallback(async () => {
+        if (startingRef.current) return
+        startingRef.current = true
+        setCameraError(null)
+        try {
+            // Pre-chequeos con mensajes claros
+            if (typeof window !== "undefined" && window.isSecureContext === false) {
+                throw new Error("INSECURE_CONTEXT")
             }
-        }
-
-        if (state === 'scanning') {
-            // Small delay to ensure DOM container exists
-            const t = setTimeout(startScanner, 300)
-            return () => {
-                clearTimeout(t)
-                if (scanner) {
-                    scanner.stop().catch(() => { /* ignore */ })
-                }
+            if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("UNSUPPORTED_BROWSER")
             }
-        } else {
-            // Stop scanner when not in scanning state
+
+            const { Html5Qrcode } = await import("html5-qrcode")
+
+            // Detener/limpiar cualquier instancia previa y liberar la cámara.
             if (scannerRef.current) {
-                const s = scannerRef.current as { stop: () => Promise<void> }
-                s.stop().catch(() => { /* ignore */ })
+                try { await (scannerRef.current as { stop: () => Promise<void> }).stop() } catch { /* ignore */ }
                 scannerRef.current = null
             }
+
+            // getCameras() pide permiso y lista las cámaras (una sola apertura).
+            // Arrancamos por ID: más confiable que facingMode y evita reabrir la
+            // cámara varias veces (causa de NotReadableError en Windows).
+            const cams = await Html5Qrcode.getCameras()
+            if (!cams || cams.length === 0) throw new Error("NO_CAMERAS")
+            setCameras(cams.map((c) => ({ id: c.id, label: c.label || "" })))
+
+            // Selección de cámara:
+            //  1) la guardada para esta tablet (si sigue existiendo),
+            //  2) por defecto la FRONTAL — en montaje de pared la pantalla mira a la
+            //     persona, así que la cámara frontal es la que la ve.
+            let chosen = cams.find((c) => c.id === camIdRef.current)
+            if (!chosen) {
+                chosen = cams.find((c) => /front|user|frontal|selfie|delantera/i.test(c.label || "")) ?? cams[0]
+            }
+            camIdRef.current = chosen.id
+            try { localStorage.setItem("kiosk_camera_id", chosen.id) } catch { /* ignore */ }
+            const cameraId = chosen.id
+
+            // Pequeña pausa para que el sistema libere la cámara antes de reabrirla.
+            await new Promise((r) => setTimeout(r, 400))
+
+            const scanner = new Html5Qrcode(containerId)
+            scannerRef.current = scanner
+
+            await scanner.start(
+                cameraId,
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText: string) => handleScan(decodedText),
+                () => { /* ignore scan errors */ }
+            )
+            setCameraReady(true)
+        } catch (err) {
+            setCameraReady(false)
+            const e = err as { name?: string; message?: string }
+            const raw = (typeof err === "string" ? err : `${e?.name || ""} ${e?.message || ""}`).trim()
+            let msg = "No se pudo activar la cámara."
+            if (/INSECURE_CONTEXT|secure|https|insecure/i.test(raw))
+                msg = "La cámara requiere HTTPS. Abre el enlace con https:// (no http)."
+            else if (/UNSUPPORTED_BROWSER|not supported/i.test(raw))
+                msg = "Este navegador no permite acceder a la cámara. Usa Chrome o Safari actualizado."
+            else if (/NotAllowed|Permission|denied/i.test(raw))
+                msg = "Permiso de cámara denegado. Toca el ícono de cámara/candado junto a la URL, permite el acceso y toca \"Activar cámara\"."
+            else if (/NotFound|Devices|Overconstrained|NO_CAMERAS/i.test(raw))
+                msg = "No se detectó ninguna cámara en este dispositivo."
+            else if (/NotReadable|TrackStart|in use/i.test(raw))
+                msg = "La cámara está siendo usada por otra aplicación. Ciérrala e inténtalo de nuevo."
+            // Adjuntamos el detalle técnico para diagnóstico rápido.
+            setCameraError(raw ? `${msg}  ·  [${raw.slice(0, 90)}]` : msg)
+        } finally {
+            startingRef.current = false
         }
-    }, [state, handleScan])
+    }, [handleScan])
+
+    // Cambia a la siguiente cámara disponible (para elegir la correcta según el
+    // montaje). La elección queda guardada por dispositivo.
+    const switchCamera = useCallback(async () => {
+        if (cameras.length < 2) return
+        const idx = cameras.findIndex((c) => c.id === camIdRef.current)
+        const next = cameras[(idx + 1) % cameras.length]
+        camIdRef.current = next.id
+        try { localStorage.setItem("kiosk_camera_id", next.id) } catch { /* ignore */ }
+        // Detener la actual y reiniciar con la nueva
+        if (scannerRef.current) {
+            try { await (scannerRef.current as { stop: () => Promise<void> }).stop() } catch { /* ignore */ }
+            scannerRef.current = null
+        }
+        setCameraReady(false)
+        startScanner()
+    }, [cameras, startScanner])
+
+    // Arranca el escáner al entrar en modo scanning; lo detiene al salir.
+    useEffect(() => {
+        if (state === 'scanning') {
+            const t = setTimeout(() => { startScanner() }, 300)
+            return () => {
+                clearTimeout(t)
+                if (scannerRef.current) {
+                    (scannerRef.current as { stop: () => Promise<void> }).stop().catch(() => { /* ignore */ })
+                    scannerRef.current = null
+                }
+            }
+        } else if (scannerRef.current) {
+            (scannerRef.current as { stop: () => Promise<void> }).stop().catch(() => { /* ignore */ })
+            scannerRef.current = null
+        }
+    }, [state, startScanner])
 
     return (
         <main className="flex-1 flex flex-col min-h-screen select-none">
@@ -200,9 +274,10 @@ export function KioskTerminal({ token, terminalName, tenantName, employees }: Pr
                     <p className="text-sm md:text-base text-slate-400 font-semibold capitalize mt-2">{date}</p>
                 </div>
 
-                {/* Scanning state */}
-                {state === 'scanning' && (
-                    <div className="w-full max-w-xs space-y-4">
+                {/* Scanner — SIEMPRE montado. No lo desmontamos al cambiar de estado
+                    porque html5-qrcode inyecta un <video> dentro del contenedor y React
+                    fallaría al removerlo (causa del "Application error"). Solo lo ocultamos. */}
+                <div className={cn("w-full max-w-xs space-y-4", state !== 'scanning' && "hidden")}>
                         <div className="relative rounded-2xl overflow-hidden border-2 border-indigo-500/50 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
                             <div id={containerId} className="w-full aspect-square bg-slate-900" />
                             {/* Scan line animation */}
@@ -215,12 +290,35 @@ export function KioskTerminal({ token, terminalName, tenantName, employees }: Pr
                             <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-indigo-400 rounded-bl-lg" />
                             <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-indigo-400 rounded-br-lg" />
                         </div>
-                        <div className="flex items-center justify-center gap-2 text-slate-400">
-                            <Scan className="h-4 w-4 animate-pulse" />
-                            <p className="text-xs font-bold uppercase tracking-widest">Acerque su carnet al lector</p>
-                        </div>
+                        {cameraReady ? (
+                            <div className="flex items-center justify-center gap-2 text-slate-400">
+                                <Scan className="h-4 w-4 animate-pulse" />
+                                <p className="text-xs font-bold uppercase tracking-widest">Acerque su carnet al lector</p>
+                            </div>
+                        ) : (
+                            <div className="text-center space-y-3">
+                                <p className="text-xs font-semibold text-amber-400 leading-snug px-2">
+                                    {cameraError || 'Iniciando cámara…'}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => startScanner()}
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors active:scale-95"
+                                >
+                                    <Camera className="h-4 w-4" /> Activar cámara
+                                </button>
+                            </div>
+                        )}
+                        {cameras.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={switchCamera}
+                                className="mx-auto flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                                <SwitchCamera className="h-3.5 w-3.5" /> Cambiar cámara
+                            </button>
+                        )}
                     </div>
-                )}
 
                 {/* Processing state */}
                 {state === 'processing' && (
@@ -304,7 +402,7 @@ export function KioskTerminal({ token, terminalName, tenantName, employees }: Pr
                     <p className="text-[10px] text-slate-600 font-bold">Terminal QR v1.0</p>
                 </div>
                 <p className="text-[10px] text-slate-600 font-bold">
-                    {employees.length} empleados registrados
+                    {employeeCount} empleados registrados
                 </p>
             </footer>
 

@@ -1,17 +1,43 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/components/ui/table';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Badge } from '@/shared/components/ui/badge';
-import { Monitor, Search, Plus, ArrowUpRight } from 'lucide-react';
+import {
+    Monitor, Search, Plus, ArrowUpRight, Wrench, Trash2, Loader2,
+    Laptop, Smartphone, Car, Printer, Server, Armchair, Factory,
+    KeyRound, HeartPulse, Cpu, ShieldCheck, Package, type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
+import { useConfirm } from '@/shared/hooks/useConfirm';
+import { deleteAssetAction } from '../actions/technologyActions';
 import type { ITAsset, ITAssetStatus, ITAssetCategory } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS, CONDITION_LABELS, IT_ASSET_CATEGORIES, IT_ASSET_STATUSES } from '../types';
+
+/** Semáforo de próximo mantenimiento según días restantes (negativo = vencido). */
+function maintenanceBadge(info?: { dueAt: string; days: number }) {
+    if (!info) {
+        return { label: 'Sin programar', cls: 'bg-slate-100 text-slate-400', dot: 'bg-slate-300' };
+    }
+    const { days } = info;
+    if (days < 0) {
+        return { label: `Vencido hace ${Math.abs(days)}d`, cls: 'bg-rose-50 text-rose-600', dot: 'bg-rose-500' };
+    }
+    if (days <= 7) {
+        return { label: days === 0 ? 'Vence hoy' : `Vence en ${days}d`, cls: 'bg-rose-50 text-rose-600', dot: 'bg-rose-500' };
+    }
+    if (days <= 30) {
+        return { label: `En ${days}d`, cls: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' };
+    }
+    return { label: `En ${days}d`, cls: 'bg-emerald-50 text-emerald-600', dot: 'bg-emerald-500' };
+}
 
 const STATUS_COLORS: Record<ITAssetStatus, string> = {
     AVAILABLE: 'bg-emerald-50 text-emerald-600',
@@ -22,24 +48,86 @@ const STATUS_COLORS: Record<ITAssetStatus, string> = {
 };
 
 const CATEGORY_ICONS: Record<ITAssetCategory, string> = {
-    DESKTOP: 'bg-blue-50 text-blue-500',
-    LAPTOP: 'bg-indigo-50 text-indigo-500',
+    COMPUTER: 'bg-indigo-50 text-indigo-500',
+    MONITOR: 'bg-sky-50 text-sky-500',
     MOBILE: 'bg-emerald-50 text-emerald-500',
-    TABLET: 'bg-violet-50 text-violet-500',
+    VEHICLE: 'bg-orange-50 text-orange-500',
     PRINTER: 'bg-amber-50 text-amber-500',
-    NETWORK: 'bg-cyan-50 text-cyan-500',
+    SERVER: 'bg-cyan-50 text-cyan-600',
+    FURNITURE: 'bg-yellow-50 text-yellow-600',
+    TOOL: 'bg-lime-50 text-lime-600',
+    INDUSTRIAL: 'bg-zinc-100 text-zinc-600',
+    SOFTWARE_LICENSE: 'bg-violet-50 text-violet-500',
+    MEDICAL: 'bg-rose-50 text-rose-500',
+    IOT: 'bg-teal-50 text-teal-600',
+    INSURANCE: 'bg-green-50 text-green-600',
     OTHER: 'bg-slate-50 text-slate-500',
 };
+
+const CATEGORY_ICON_MAP: Record<ITAssetCategory, LucideIcon> = {
+    COMPUTER: Laptop,
+    MONITOR: Monitor,
+    MOBILE: Smartphone,
+    VEHICLE: Car,
+    PRINTER: Printer,
+    SERVER: Server,
+    FURNITURE: Armchair,
+    TOOL: Wrench,
+    INDUSTRIAL: Factory,
+    SOFTWARE_LICENSE: KeyRound,
+    MEDICAL: HeartPulse,
+    IOT: Cpu,
+    INSURANCE: ShieldCheck,
+    OTHER: Package,
+};
+
+/** Estilo/ícono de categoría con fallback seguro para valores heredados. */
+function categoryVisual(category: ITAssetCategory) {
+    return {
+        color: CATEGORY_ICONS[category] ?? CATEGORY_ICONS.OTHER,
+        Icon: CATEGORY_ICON_MAP[category] ?? Package,
+        label: CATEGORY_LABELS[category] ?? 'Otros',
+    };
+}
 
 interface AssetListProps {
     assets: ITAsset[];
     assignmentMap?: Record<string, string>;
+    maintenanceMap?: Record<string, { dueAt: string; days: number }>;
 }
 
-export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
+export function AssetList({ assets, assignmentMap = {}, maintenanceMap = {} }: AssetListProps) {
+    const router = useRouter();
+    const [ConfirmDialogEl, confirmFn] = useConfirm();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    async function handleDelete(asset: ITAsset) {
+        const ok = await confirmFn({
+            title: 'Eliminar activo',
+            description: `¿Eliminar "${asset.name}" (${asset.asset_code})? Esta acción no se puede deshacer y borrará su historial de asignaciones y mantenimientos.`,
+            variant: 'danger',
+            confirmLabel: 'Eliminar',
+        });
+        if (!ok) return;
+
+        setDeletingId(asset.id);
+        try {
+            const res = await deleteAssetAction(asset.id);
+            if (res.success) {
+                toast.success('Activo eliminado');
+                router.refresh();
+            } else {
+                toast.error(res.error || 'No se pudo eliminar el activo');
+            }
+        } catch {
+            toast.error('No se pudo eliminar el activo');
+        } finally {
+            setDeletingId(null);
+        }
+    }
 
     const filtered = assets.filter(a => {
         if (statusFilter !== 'ALL' && a.status !== statusFilter) return false;
@@ -55,6 +143,8 @@ export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
     });
 
     return (
+        <>
+        {ConfirmDialogEl}
         <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
             <CardHeader className="p-5 border-b border-slate-50">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -118,13 +208,15 @@ export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
                             <TableHead className="hidden lg:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Serial</TableHead>
                             <TableHead className="hidden md:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Asignado a</TableHead>
                             <TableHead className="hidden lg:table-cell text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Condición</TableHead>
-                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right pr-5">Estado</TableHead>
+                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3">Mantenimiento</TableHead>
+                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right">Estado</TableHead>
+                            <TableHead className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-3 text-right pr-5 w-10"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filtered.length === 0 ? (
                             <TableRow className="hover:bg-transparent">
-                                <TableCell colSpan={6} className="py-12 text-center">
+                                <TableCell colSpan={8} className="py-12 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <Monitor className="h-8 w-8 text-slate-200" />
                                         <span className="text-[10px] font-semibold text-slate-400">Sin activos registrados</span>
@@ -132,12 +224,14 @@ export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filtered.map(asset => (
+                            filtered.map(asset => {
+                                const cat = categoryVisual(asset.category);
+                                return (
                                 <TableRow key={asset.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
                                     <TableCell className="py-3 pl-5">
                                         <Link href={`/technology/${asset.id}`} className="flex items-center gap-3 group">
-                                            <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', CATEGORY_ICONS[asset.category])}>
-                                                <Monitor className="h-3.5 w-3.5" />
+                                            <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', cat.color)}>
+                                                <cat.Icon className="h-3.5 w-3.5" />
                                             </div>
                                             <div>
                                                 <span className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center gap-1">
@@ -149,7 +243,7 @@ export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
                                         </Link>
                                     </TableCell>
                                     <TableCell className="hidden sm:table-cell py-3">
-                                        <Badge variant="secondary" className="text-[9px] font-semibold">{CATEGORY_LABELS[asset.category]}</Badge>
+                                        <Badge variant="secondary" className="text-[9px] font-semibold">{cat.label}</Badge>
                                     </TableCell>
                                     <TableCell className="hidden lg:table-cell py-3">
                                         <span className="text-xs text-slate-600 font-mono">{asset.serial_number || '—'}</span>
@@ -164,17 +258,45 @@ export function AssetList({ assets, assignmentMap = {} }: AssetListProps) {
                                     <TableCell className="hidden lg:table-cell py-3">
                                         <span className="text-xs text-slate-600">{CONDITION_LABELS[asset.condition]}</span>
                                     </TableCell>
-                                    <TableCell className="py-3 text-right pr-5">
+                                    <TableCell className="py-3">
+                                        {(() => {
+                                            const m = maintenanceBadge(maintenanceMap[asset.id]);
+                                            return (
+                                                <span className={cn('inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-full whitespace-nowrap', m.cls)}>
+                                                    <span className={cn('h-1.5 w-1.5 rounded-full', m.dot)} />
+                                                    <Wrench className="h-3 w-3" />
+                                                    {m.label}
+                                                </span>
+                                            );
+                                        })()}
+                                    </TableCell>
+                                    <TableCell className="py-3 text-right">
                                         <Badge className={cn('text-[9px] font-semibold border-none px-1.5 py-0.5 rounded-full', STATUS_COLORS[asset.status])}>
                                             {STATUS_LABELS[asset.status]}
                                         </Badge>
                                     </TableCell>
+                                    <TableCell className="py-3 text-right pr-5">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDelete(asset)}
+                                            disabled={deletingId === asset.id}
+                                            title="Eliminar activo"
+                                            className="h-7 w-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                        >
+                                            {deletingId === asset.id
+                                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                : <Trash2 className="h-3.5 w-3.5" />}
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
-                            ))
+                                );
+                            })
                         )}
                     </TableBody>
                 </Table>
             </CardContent>
         </Card>
+        </>
     );
 }

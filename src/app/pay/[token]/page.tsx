@@ -96,7 +96,9 @@ export default async function PayTokenPage({ params }: PageProps) {
     // Obtener datos del tenant
     const { data: tenantData } = await adminClient
         .from('tenants')
-        .select('legal_name, nit')
+        // En `tenants` la columna es `name` (legal_name es de parties): con legal_name
+        // la consulta fallaba y el link de pago mostraba siempre "GVM Corp".
+        .select('legal_name:name, nit')
         .eq('id', rawLink.tenant_id)
         .maybeSingle()
 

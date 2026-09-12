@@ -39,6 +39,7 @@ import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { globalSearchService } from "../services/globalSearchService";
+import { searchModules } from "../appModules";
 import { portfolioAgentService } from "../../portfolio/services/portfolioAgentService";
 import { analyticsService } from "../../analytics/services/analyticsService";
 import { SearchResult } from "../types";
@@ -104,33 +105,59 @@ export function CommandPalette() {
                 setOpen((open) => !open);
             }
         };
+        // Evento propio para abrir desde botones (barra "Buscador Maestro", móvil, etc.)
+        const openHandler = () => setOpen(true);
 
         document.addEventListener("keydown", down);
-        return () => document.removeEventListener("keydown", down);
+        window.addEventListener("open-command-palette", openHandler);
+        return () => {
+            document.removeEventListener("keydown", down);
+            window.removeEventListener("open-command-palette", openHandler);
+        };
+    }, []);
+
+    // Módulos navegables que coinciden con el término (aparecen de primero).
+    const moduleResults = useCallback((q: string): SearchResult[] => {
+        const term = q.startsWith('/') ? q.slice(1) : q;
+        return searchModules(term).map((m) => ({
+            id: `mod-${m.href}`,
+            title: m.label,
+            subtitle: `Ir al módulo · ${m.group}`,
+            category: 'MODULE' as const,
+            link: m.href,
+            icon: 'Module',
+            metadata: { module_group: m.group, href: m.href },
+        }));
     }, []);
 
     const performSearch = useCallback(async (q: string) => {
+        const mods = moduleResults(q);
+
         if (q.length < 2) {
-            setResults(q.startsWith('/') ? staticCommands.filter(c => c.title.toLowerCase().includes(q.slice(1).toLowerCase())) : []);
+            const cmds = q.startsWith('/')
+                ? staticCommands.filter(c => c.title.toLowerCase().includes(q.slice(1).toLowerCase()))
+                : [];
+            setResults([...mods, ...cmds]);
             return;
         }
 
         setLoading(true);
         try {
             const searchResults = await globalSearchService.search(supabase, q);
-            // Si el query empieza por /, priorizamos comandos
+            // Orden: módulos → comandos (si aplica) → datos.
             if (q.startsWith('/')) {
                 const filteredCmds = staticCommands.filter(c => c.title.toLowerCase().includes(q.slice(1).toLowerCase()));
-                setResults([...filteredCmds, ...searchResults]);
+                setResults([...mods, ...filteredCmds, ...searchResults]);
             } else {
-                setResults(searchResults);
+                setResults([...mods, ...searchResults]);
             }
         } catch (error) {
             console.error("Search error:", error);
+            setResults(mods); // al menos mostramos los módulos
         } finally {
             setLoading(false);
         }
-    }, [supabase]);
+    }, [supabase, moduleResults]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -227,6 +254,7 @@ export function CommandPalette() {
     };
 
     const getIcon = (category: string, iconName?: string) => {
+        if (iconName === 'Module' || category === 'MODULE') return <LayoutDashboard className="h-4 w-4 text-indigo-500" />;
         if (iconName === 'Brain') return <Brain className="h-4 w-4 text-indigo-500" />;
         if (iconName === 'Sparkles') return <Sparkles className="h-4 w-4 text-amber-500" />;
         if (iconName === 'BarChart') return <BarChart className="h-4 w-4 text-emerald-500" />;
@@ -252,6 +280,20 @@ export function CommandPalette() {
 
         const renderDetails = () => {
             switch (result.category) {
+                case 'MODULE':
+                    return (
+                        <div className="space-y-4">
+                            <div className="p-5 bg-slate-900 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40 italic mb-2">Módulo · {result.metadata.module_group}</p>
+                                <p className="text-lg font-black italic tracking-tight leading-tight">{result.title}</p>
+                                <p className="text-[10px] font-bold text-white/40 mt-2 italic">{result.metadata.href}</p>
+                                <LayoutDashboard className="absolute bottom-[-10px] right-[-10px] h-20 w-20 text-white/5 -rotate-12" />
+                            </div>
+                            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                <p className="text-[10px] font-bold text-indigo-900 italic">Presiona Enter o haz clic para ir a este módulo.</p>
+                            </div>
+                        </div>
+                    );
                 case 'PRODUCT':
                     return (
                         <div className="space-y-4">
@@ -463,7 +505,7 @@ export function CommandPalette() {
                         onClick={() => handleSelect(result)}
                         className="w-full bg-slate-900 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-[0.2em] italic flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
                     >
-                        Abrir Registro Completo <ArrowRight className="h-3 w-3" />
+                        {result.category === 'MODULE' ? 'Ir al módulo' : 'Abrir Registro Completo'} <ArrowRight className="h-3 w-3" />
                     </button>
                     <p className="text-[8px] text-center text-slate-400 mt-4 uppercase tracking-widest font-bold">Presiona Enter para navegar</p>
                 </div>
@@ -492,7 +534,7 @@ export function CommandPalette() {
                         )}
                         <Input
                             autoFocus
-                            placeholder={activeFilter ? "Buscando en esta categoría..." : "p:Producto, c:Cliente, t:Tesorería..."}
+                            placeholder={activeFilter ? "Buscando en esta categoría..." : "Buscar módulo (ej. ventas), producto, cliente, documento..."}
                             className="w-full bg-transparent border-none text-xl font-bold tracking-tight italic placeholder:text-slate-300 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
@@ -723,7 +765,7 @@ export function CommandPaletteTrigger() {
 
     return (
         <button
-            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
             className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-sm transition-all group lg:min-w-[300px]"
         >
             <Search className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />

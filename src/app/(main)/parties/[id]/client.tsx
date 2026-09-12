@@ -10,9 +10,10 @@ interface Props {
     party: Party
     priceLists: { id: string; name: string }[]
     salespeople: { id: string; full_name: string; email: string }[]
+    employeeId?: string | null
 }
 
-export default function EditPartyClient({ party, priceLists, salespeople }: Props) {
+export default function EditPartyClient({ party, priceLists, salespeople, employeeId }: Props) {
     const router = useRouter();
 
     const handleSubmit = async (data: Party) => {
@@ -36,6 +37,7 @@ export default function EditPartyClient({ party, priceLists, salespeople }: Prop
             onSubmit={handleSubmit}
             priceLists={priceLists}
             salespeople={salespeople}
+            employeeId={employeeId}
         />
     );
 }

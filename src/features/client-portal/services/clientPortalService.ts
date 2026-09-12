@@ -103,13 +103,13 @@ export const clientPortalService = {
                 .eq('id', partyId)
                 .single(),
             client.from('documents')
-                .select('id, number, doc_type, status, issue_date, due_date, total, notes')
+                .select('id, number, doc_type, status, issue_date, due_date, total, notes:notes_public')
                 .eq('doc_type', 'INVOICE')
                 .eq('party_id', partyId)
                 .order('issue_date', { ascending: false })
                 .limit(30),
             client.from('documents')
-                .select('id, number, doc_type, status, issue_date, due_date, total, notes')
+                .select('id, number, doc_type, status, issue_date, due_date, total, notes:notes_public')
                 .in('doc_type', ['SALES_ORDER', 'QUOTATION'])
                 .eq('party_id', partyId)
                 .order('issue_date', { ascending: false })

@@ -1,0 +1,758 @@
+hoja;tarifa_iva;documento;forma_pago;tipo_contribuyente;cuenta;nombre_cuenta;manejo
+EXCLUIDO 0%;0;FV;Credito;Entidades Sin Animo De Lucro;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Entidades Sin Animo De Lucro;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Entidades Sin Animo De Lucro;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Entidades Sin Animo De Lucro;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Entidades Sin Animo De Lucro;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Entidades Sin Animo De Lucro;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Grande Contribuyente No Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Juridica;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Jurídica Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural No Responsable del IVA;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural o Juridica Ley 1429;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Régimen Simple de Tributación Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Credito;Régimen Simple de Tributación Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Régimen Simple de Tributación Persona Juridica;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Credito;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Credito;Régimen Simple de Tributación Persona Natural;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Entidades Sin Animo De Lucro;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Entidades Sin Animo De Lucro;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Entidades Sin Animo De Lucro;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Entidades Sin Animo De Lucro;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Entidades Sin Animo De Lucro;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Entidades Sin Animo De Lucro;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Grande Contribuyente No Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Juridica;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Jurídica Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Autorretenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural No Responsable del IVA;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural o Juridica Ley 1429;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Régimen Simple de Tributación Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Régimen Simple de Tributación Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Régimen Simple de Tributación Persona Juridica;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Débito
+EXCLUIDO 0%;0;FV;Contado;Régimen Simple de Tributación Persona Natural;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Tercero del Exterior;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+EXCLUIDO 0%;0;FV;Contado;Tercero del Exterior;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+EXCLUIDO 0%;0;FV;Contado;Tercero del Exterior;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+EXCLUIDO 0%;0;FV;Contado;Tercero del Exterior;41352201;VENTA DE PRODUCTOS AGROPECUARIOS 0%;Crédito
+DEV EXC 0%;0;DMC;Credito;Entidades Sin Animo De Lucro;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Entidades Sin Animo De Lucro;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Entidades Sin Animo De Lucro;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Entidades Sin Animo De Lucro;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Entidades Sin Animo De Lucro;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Entidades Sin Animo De Lucro;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Grande Contribuyente No Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Juridica;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Jurídica Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural No Responsable del IVA;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural o Juridica Ley 1429;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Régimen Simple de Tributación Persona Juridica;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Credito;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Credito;Régimen Simple de Tributación Persona Natural;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Entidades Sin Animo De Lucro;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Entidades Sin Animo De Lucro;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Entidades Sin Animo De Lucro;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Entidades Sin Animo De Lucro;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Entidades Sin Animo De Lucro;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Entidades Sin Animo De Lucro;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Grande Contribuyente No Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Juridica;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Juridica;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Jurídica Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Jurídica Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Autorretenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural No Responsable del IVA;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural o Juridica Ley 1429;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Régimen Simple de Tributación Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV EXC 0%;0;DMC;Contado;Régimen Simple de Tributación Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV EXC 0%;0;DMC;Contado;Régimen Simple de Tributación Persona Juridica;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+DEV EXC 0%;0;DMC;Contado;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Crédito
+DEV EXC 0%;0;DMC;Contado;Régimen Simple de Tributación Persona Natural;417501;DEVOLUCIONES CCIO PROD AGROPECUARIOS 0%;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Grande Contribuyente Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Grande Contribuyente No Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Persona Juridica;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Persona Juridica;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Persona Jurídica Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Persona Jurídica Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural No Responsable del IVA;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural No Responsable del IVA;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Persona Natural o Juridica Ley 1429;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural o Juridica Ley 1429;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Juridica;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Juridica;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Natural;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Natural;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Natural;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Credito;Régimen Simple de Tributación Persona Natural;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Entidades Sin Animo De Lucro;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Entidades Sin Animo De Lucro;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Entidades Sin Animo De Lucro;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Entidades Sin Animo De Lucro;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Entidades Sin Animo De Lucro;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Entidades Sin Animo De Lucro;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Entidades Sin Animo De Lucro;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Grande Contribuyente Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Grande Contribuyente No Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Persona Juridica;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Juridica;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Persona Jurídica Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Jurídica Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Autorretenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Autorretenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural No Responsable del IVA;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural No Responsable del IVA;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural o Juridica Ley 1429;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural o Juridica Ley 1429;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Juridica;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Juridica;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Débito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Natural;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Natural;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Natural;24080103;IVA GENERADO POR VENTAS 5%;Crédito
+IVA 5%;5;FV;Contado;Régimen Simple de Tributación Persona Natural;41352202;VENTA DE PRODUCTOS AGROPECUARIOS 5%;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Grande Contribuyente No Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Juridica;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Juridica;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Jurídica Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Jurídica Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural No Responsable del IVA;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural No Responsable del IVA;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural o Juridica Ley 1429;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural o Juridica Ley 1429;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Régimen Simple de Tributación Persona Juridica;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Régimen Simple de Tributación Persona Juridica;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Credito;Régimen Simple de Tributación Persona Natural;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Credito;Régimen Simple de Tributación Persona Natural;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Grande Contribuyente No Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Juridica;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Juridica;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Juridica;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Jurídica Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Jurídica Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Jurídica Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Autorretenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Autorretenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural No Responsable del IVA;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural No Responsable del IVA;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural o Juridica Ley 1429;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural o Juridica Ley 1429;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Régimen Simple de Tributación Persona Juridica;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Régimen Simple de Tributación Persona Juridica;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 5%;5;DMC;Contado;Régimen Simple de Tributación Persona Natural;24080222;IVA POR DEVOLUCION EN VENTAS DEL 5%;Débito
+DEV IVA 5%;5;DMC;Contado;Régimen Simple de Tributación Persona Natural;417502;DEVOLUCIONES CCIO PROD AGROPECUARIOS 5%;Débito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Entidades Sin Animo De Lucro;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Grande Contribuyente Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Grande Contribuyente No Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Persona Juridica;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Persona Juridica;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Persona Jurídica Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Persona Jurídica Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Persona Natural Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Persona Natural No Responsable del IVA;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural No Responsable del IVA;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Persona Natural o Juridica Ley 1429;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural o Juridica Ley 1429;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Credito;Persona Natural Responsable del IVA Agente retenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Régimen Simple de Tributación Persona Juridica;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Régimen Simple de Tributación Persona Juridica;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Credito;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Credito;Régimen Simple de Tributación Persona Natural;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Credito;Régimen Simple de Tributación Persona Natural;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Entidades Sin Animo De Lucro;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Grande Contribuyente Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Grande Contribuyente No Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Persona Juridica;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Juridica;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Persona Juridica;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Persona Jurídica Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Jurídica Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Persona Jurídica Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Persona Natural Autorretenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Persona Natural No Responsable del IVA;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural No Responsable del IVA;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Persona Natural o Juridica Ley 1429;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural o Juridica Ley 1429;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Débito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Persona Natural Responsable del IVA Agente retenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Juridica;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Débito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Crédito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Juridica;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Débito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Natural;24080101;IVA GENERADO VENTAS 19%;Crédito
+IVA 19%;19;FV;Contado;Régimen Simple de Tributación Persona Natural;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente Autorretenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Grande Contribuyente No Autorretenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Juridica;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Juridica;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Jurídica Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Jurídica Autorretenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Autorretenedor;41352203;VENTA DE PRODUCTOS AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural No Responsable del IVA;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural No Responsable del IVA;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural o Juridica Ley 1429;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural o Juridica Ley 1429;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Persona Natural Responsable del IVA Agente retenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Juridica;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Juridica;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Natural;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Natural;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Natural;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Credito;Régimen Simple de Tributación Persona Natural;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente Autorretenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;13551701;RETENCION DE IVA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Grande Contribuyente No Autorretenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Juridica;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Juridica;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Juridica;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Juridica;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Juridica;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Juridica;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Jurídica Autorretenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Jurídica Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Jurídica Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Jurídica Autorretenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Jurídica Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Jurídica Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Jurídica Autorretenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Autorretenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Autorretenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Autorretenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Autorretenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Autorretenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural No Responsable del IVA;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural No Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural No Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural No Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural No Responsable del IVA;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural o Juridica Ley 1429;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural o Juridica Ley 1429;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural o Juridica Ley 1429;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural o Juridica Ley 1429;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural o Juridica Ley 1429;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural o Juridica Ley 1429;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551501;RETENCION DEBITO POR VENTAS DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551801;RETENCION DE ICA POR VENTA DE PRODUCTOS;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Persona Natural Responsable del IVA Agente retenedor;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Juridica;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Juridica;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Juridica;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Natural;24080210;IVA POR DEVOLUCIONES EN VENTAS 19%;Débito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Natural;13050501;DEUDORES NACIONALES;Crédito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Natural;13551511;AUTORRETENCION DE RENTA 0,55%;Crédito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Natural;23657501;AUTORRETENCION DE RENTA 0,55%;Débito
+DEV IVA 19%;19;DMC;Contado;Régimen Simple de Tributación Persona Natural;417503;DEVOLUCIONES CCIO PROD AGROPECUARIOS 19%;Débito

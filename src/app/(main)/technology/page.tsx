@@ -21,12 +21,27 @@ export default async function TechnologyPage() {
         technologyService.getActiveAssignments(supabase),
     ]);
 
+    // Mapa de próximo mantenimiento por activo: el vencimiento pendiente más cercano
+    // (ignora los COMPLETED). days = días restantes (negativo = vencido).
+    const maintenanceMap: Record<string, { dueAt: string; days: number }> = {};
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    for (const m of allMaintenanceSchedules) {
+        if (m.status === 'COMPLETED') continue;
+        const due = new Date(m.next_due_at);
+        const days = Math.ceil((due.getTime() - startOfToday.getTime()) / 86_400_000);
+        const existing = maintenanceMap[m.asset_id];
+        if (!existing || days < existing.days) {
+            maintenanceMap[m.asset_id] = { dueAt: m.next_due_at, days };
+        }
+    }
+
     return (
         <div className="space-y-6 pb-16 animate-in fade-in duration-500">
             <div className="flex items-center justify-between">
                 <VisualReportHeader
-                    title="Tecnología"
-                    subtitle="Gestión de Activos IT — ITIL v4"
+                    title="Activos Corporativos"
+                    subtitle="Inventario de activos por categoría"
                     tenant={tenant}
                 />
                 <AssetExportActions
@@ -82,7 +97,7 @@ export default async function TechnologyPage() {
             )}
 
             {/* Asset List */}
-            <AssetList assets={assets} assignmentMap={assignmentMap} />
+            <AssetList assets={assets} assignmentMap={assignmentMap} maintenanceMap={maintenanceMap} />
         </div>
     );
 }

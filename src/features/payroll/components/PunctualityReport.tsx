@@ -153,7 +153,7 @@ export function PunctualityReport({ records, startDate, endDate }: Props) {
                     </table>
                 </div>
                 {records.length === 0 && (
-                    <div className="p-12 text-center">
+                    <div className="p-6 md:p-12 text-center">
                         <Clock className="h-10 w-10 text-slate-200 mx-auto mb-3" />
                         <p className="text-xs text-slate-400">No hay datos de asistencia para este periodo</p>
                     </div>

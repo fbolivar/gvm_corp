@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { documentService } from '@/features/documents/services/documentService';
+import { settingsService } from '@/features/settings/services/settingsService';
 import { SalesQuotationList } from '@/features/sales/components/SalesQuotationList';
+import { DocumentExportButton } from '@/features/sales/components/DocumentExportButton';
 import { Button } from '@/shared/components/ui/button';
 import { Plus, Target, Zap, Activity, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
@@ -25,6 +27,15 @@ export default async function QuotationsPage() {
     });
 
     const quotations = data || [];
+
+    const tenant = await settingsService.getTenantInfo(supabase);
+    const company = {
+        name: tenant?.name || 'GVM S.A.S',
+        nit: tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : null,
+        address: [tenant?.address, tenant?.city].filter(Boolean).join(', ') || null,
+        phone: tenant?.phone ?? null,
+        logoUrl: tenant?.logo_url ?? null,
+    };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const totalPotential = quotations.reduce((acc: number, q: any) => acc + (Number(q.total) || 0), 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +66,16 @@ export default async function QuotationsPage() {
                                     <Plus className="h-3.5 w-3.5" /> Nueva cotización
                                 </Link>
                             </Button>
+                            <DocumentExportButton
+                                source="documents"
+                                docType="QUOTATION"
+                                filters={{}}
+                                company={company}
+                                opts={{
+                                    title: 'COTIZACIONES', partyLabel: 'Cliente', fileLabel: 'Cotizaciones', sheetName: 'Cotizaciones',
+                                    statusLabels: { DRAFT: 'Borrador', SENT: 'Enviada', ACCEPTED: 'Aceptada', VOIDED: 'Anulada', REJECTED: 'Rechazada' },
+                                }}
+                            />
                             <Button variant="outline" asChild className="h-9 rounded-xl text-xs font-semibold gap-2">
                                 <Link href="/sales">Dashboard Ventas</Link>
                             </Button>

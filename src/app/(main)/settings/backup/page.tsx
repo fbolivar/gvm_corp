@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { BackupManager } from "@/features/settings/components/BackupManager";
+import { BackupCenter } from "@/features/settings/components/BackupCenter";
 import { redirect } from "next/navigation";
 import { settingsService } from "@/features/settings/services/settingsService";
 
@@ -15,7 +15,7 @@ export default async function BackupPage() {
 
     return (
         <div className="p-8 lg:p-12">
-            <BackupManager tenantId={tenantId} />
+            <BackupCenter tenantId={tenantId} initialTab="backup" />
         </div>
     );
 }

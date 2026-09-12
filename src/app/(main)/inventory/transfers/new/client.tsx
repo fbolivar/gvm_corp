@@ -1,9 +1,9 @@
 "use client"
 
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import {
     Warehouse as WarehouseIcon,
@@ -22,6 +22,7 @@ import {
 import { warehouseTransferSchema, WarehouseTransfer } from "@/features/warehouse-transfers/types";
 import {
     createTransferAction,
+    updateTransferAction,
     sendTransferAction,
 } from "@/features/warehouse-transfers/actions/transferActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -47,6 +48,10 @@ interface ProductOption {
 interface Props {
     warehouses: Warehouse[];
     products: ProductOption[];
+    /** Si se provee, el formulario opera en modo EDICIÓN de un borrador existente. */
+    transferId?: string;
+    /** Valores iniciales para precargar el formulario (modo edición). */
+    initialData?: Partial<WarehouseTransfer>;
 }
 
 // ─── Style constants ───────────────────────────────────────────────────────────
@@ -57,21 +62,54 @@ const selectClass =
 const labelClass =
     "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block";
 
+// ─── Validation helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Extrae un mensaje de error legible y específico del primer problema de
+ * validación, para que el usuario sepa EXACTAMENTE qué corregir (nada de
+ * "guardar en silencio" sin feedback).
+ */
+function firstErrorMessage(errors: FieldErrors<WarehouseTransfer>): string {
+    if (errors.from_warehouse_id?.message) return String(errors.from_warehouse_id.message);
+    if (errors.to_warehouse_id?.message) return String(errors.to_warehouse_id.message);
+
+    if (errors.lines) {
+        // Error a nivel del arreglo (ej. "Debe tener al menos una línea")
+        if (!Array.isArray(errors.lines) && (errors.lines as { message?: string }).message) {
+            return String((errors.lines as { message?: string }).message);
+        }
+        // Error en una línea específica
+        if (Array.isArray(errors.lines)) {
+            for (let i = 0; i < errors.lines.length; i++) {
+                const le = errors.lines[i];
+                if (!le) continue;
+                if (le.description?.message) return `Artículo ${i + 1}: ${String(le.description.message)}`;
+                if (le.product_id?.message) return `Artículo ${i + 1}: ${String(le.product_id.message)}`;
+                if (le.qty?.message) return `Artículo ${i + 1}: ${String(le.qty.message)}`;
+            }
+        }
+    }
+    return 'Revisa los campos marcados en rojo antes de guardar';
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function NewTransferClient({ warehouses, products }: Props) {
+export default function NewTransferClient({ warehouses, products, transferId, initialData }: Props) {
     const router = useRouter();
+    const isEdit = !!transferId;
     const [loadingDraft, setLoadingDraft] = useState(false);
     const [loadingSend, setLoadingSend] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const linesRef = useRef<HTMLDivElement>(null);
 
     const form = useForm<WarehouseTransfer>({
         resolver: zodResolver(warehouseTransferSchema) as any,
         defaultValues: {
-            from_warehouse_id: "",
-            to_warehouse_id: "",
+            from_warehouse_id: initialData?.from_warehouse_id ?? "",
+            to_warehouse_id: initialData?.to_warehouse_id ?? "",
             status: "DRAFT",
-            notes: "",
-            lines: [],
+            notes: initialData?.notes ?? "",
+            lines: initialData?.lines ?? [],
         },
     });
 
@@ -87,75 +125,119 @@ export default function NewTransferClient({ warehouses, products }: Props) {
     function addLine() {
         append({
             product_id: "",
+            description: "",
             qty: 1,
             qty_received: 0,
             notes: "",
         });
     }
 
-    async function handleSaveDraft() {
+    // Valida el formulario y, si hay problemas, muestra mensaje específico +
+    // banner + scroll al error. Devuelve true solo si todo está correcto.
+    async function validateBeforeSubmit(): Promise<boolean> {
+        setSubmitError(null);
         const valid = await form.trigger();
         if (!valid) {
-            toast.error("Por favor complete todos los campos requeridos");
-            return;
+            const msg = firstErrorMessage(form.formState.errors);
+            setSubmitError(msg);
+            toast.error(msg);
+            // Llevar la vista al problema
+            if (form.formState.errors.lines) {
+                linesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+            } else {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+            return false;
         }
         const vals = form.getValues();
         if (vals.from_warehouse_id === vals.to_warehouse_id) {
-            toast.error("La bodega destino debe ser diferente a la bodega origen");
-            return;
+            const msg = "La bodega destino debe ser diferente a la bodega origen";
+            setSubmitError(msg);
+            toast.error(msg);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return false;
         }
+        return true;
+    }
+
+    async function handleSaveDraft() {
+        if (!(await validateBeforeSubmit())) return;
+
         setLoadingDraft(true);
         try {
             const data = form.getValues();
-            const result = await createTransferAction({ ...data, status: "DRAFT" });
+            const result = isEdit
+                ? await updateTransferAction(transferId!, { ...data, status: "DRAFT" })
+                : await createTransferAction({ ...data, status: "DRAFT" });
             if (result.error && !result.success) {
+                setSubmitError(result.error);
                 toast.error(result.error);
+                window.scrollTo({ top: 0, behavior: "smooth" });
             } else {
-                toast.success(`Traslado ${result.transfer_number ?? ""} guardado como borrador`);
-                router.push("/inventory/transfers");
+                if (isEdit) {
+                    toast.success(`Traslado ${result.transfer_number ?? ""} actualizado`);
+                    router.push(`/inventory/transfers/${transferId}`);
+                } else {
+                    toast.success(`Traslado ${result.transfer_number ?? ""} guardado como borrador`);
+                    router.push("/inventory/transfers");
+                }
+                router.refresh();
             }
+        } catch (err: unknown) {
+            const msg =
+                err instanceof Error ? err.message : "Error inesperado al guardar el traslado";
+            setSubmitError(msg);
+            toast.error(msg);
+            window.scrollTo({ top: 0, behavior: "smooth" });
         } finally {
             setLoadingDraft(false);
         }
     }
 
     async function handleSaveAndSend() {
-        const valid = await form.trigger();
-        if (!valid) {
-            toast.error("Por favor complete todos los campos requeridos");
-            return;
-        }
-        const vals = form.getValues();
-        if (vals.from_warehouse_id === vals.to_warehouse_id) {
-            toast.error("La bodega destino debe ser diferente a la bodega origen");
-            return;
-        }
+        if (!(await validateBeforeSubmit())) return;
+
         setLoadingSend(true);
         try {
             const data = form.getValues();
 
-            // 1. Create the draft first
-            const createResult = await createTransferAction({ ...data, status: "DRAFT" });
-            if (createResult.error && !createResult.success) {
-                toast.error(createResult.error);
+            // 1. Guardar el borrador (crear o actualizar el existente)
+            const saveResult = isEdit
+                ? await updateTransferAction(transferId!, { ...data, status: "DRAFT" })
+                : await createTransferAction({ ...data, status: "DRAFT" });
+            if (saveResult.error && !saveResult.success) {
+                setSubmitError(saveResult.error);
+                toast.error(saveResult.error);
+                window.scrollTo({ top: 0, behavior: "smooth" });
                 return;
             }
 
+            const targetId = isEdit ? transferId! : saveResult.id!;
+
             // 2. Immediately send it to IN_TRANSIT
-            const sendResult = await sendTransferAction(createResult.id!);
+            const sendResult = await sendTransferAction(targetId);
             if (sendResult.error && !sendResult.success) {
+                setSubmitError(sendResult.error);
                 toast.error(sendResult.error);
+                window.scrollTo({ top: 0, behavior: "smooth" });
             } else {
                 if (sendResult.error) {
                     // Partial success with warnings
                     toast.warning(sendResult.error);
                 } else {
                     toast.success(
-                        `Traslado ${createResult.transfer_number ?? ""} enviado en tránsito`
+                        `Traslado ${saveResult.transfer_number ?? ""} enviado en tránsito`
                     );
                 }
                 router.push("/inventory/transfers");
+                router.refresh();
             }
+        } catch (err: unknown) {
+            const msg =
+                err instanceof Error ? err.message : "Error inesperado al enviar el traslado";
+            setSubmitError(msg);
+            toast.error(msg);
+            window.scrollTo({ top: 0, behavior: "smooth" });
         } finally {
             setLoadingSend(false);
         }
@@ -165,6 +247,24 @@ export default function NewTransferClient({ warehouses, products }: Props) {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+            {/* ── VALIDATION / ERROR BANNER ───────────────────────────────── */}
+            {submitError && (
+                <div
+                    role="alert"
+                    className="flex items-start gap-3 bg-rose-50 border-2 border-rose-200 rounded-2xl px-6 py-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+                >
+                    <div className="h-9 w-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                        <AlertCircle className="h-5 w-5 text-rose-500" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-black text-rose-700 uppercase tracking-widest">
+                            No se guardó el traslado
+                        </p>
+                        <p className="text-xs font-bold text-rose-600 mt-0.5">{submitError}</p>
+                    </div>
+                </div>
+            )}
 
             {/* ── HEADER CARD ─────────────────────────────────────────────── */}
             <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
@@ -259,10 +359,13 @@ export default function NewTransferClient({ warehouses, products }: Props) {
             </Card>
 
             {/* ── PRODUCT LINES CARD ──────────────────────────────────────── */}
-            <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
+            <Card
+                ref={linesRef}
+                className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden scroll-mt-24"
+            >
                 <CardHeader className="p-10 pb-4">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <CardTitle className="min-w-0 text-2xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
                             <div className="h-12 w-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-white shadow-active">
                                 <ArrowLeftRight className="h-6 w-6" />
                             </div>
@@ -309,6 +412,16 @@ export default function NewTransferClient({ warehouses, products }: Props) {
                                     onRemove={() => remove(index)}
                                 />
                             ))}
+
+                            {/* Botón para agregar otro artículo sin subir hasta el encabezado */}
+                            <button
+                                type="button"
+                                onClick={addLine}
+                                className="w-full h-14 rounded-2xl border-2 border-dashed border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/40 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Agregar otro artículo
+                            </button>
                         </div>
                     )}
 
@@ -333,12 +446,12 @@ export default function NewTransferClient({ warehouses, products }: Props) {
                     {loadingDraft ? (
                         <>
                             <Loader2 className="h-4 w-4 mr-3 animate-spin" />
-                            Guardando Borrador...
+                            {isEdit ? "Guardando Cambios..." : "Guardando Borrador..."}
                         </>
                     ) : (
                         <>
                             <Save className="h-5 w-5 mr-3" />
-                            Guardar Borrador
+                            {isEdit ? "Guardar Cambios" : "Guardar Borrador"}
                         </>
                     )}
                 </Button>
@@ -379,36 +492,43 @@ interface LineRowProps {
 function TransferLineRow({ index, form, products, onRemove }: LineRowProps) {
     return (
         <div className="bg-slate-50 rounded-2xl p-4 md:p-0 md:bg-transparent">
-            <div className="grid grid-cols-1 md:grid-cols-[2rem_1fr_10rem_3rem] gap-4 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-[2rem_1fr_10rem_3rem] gap-4 items-start">
                 {/* Line number */}
-                <div className="hidden md:flex items-center justify-center">
+                <div className="hidden md:flex items-center justify-center pt-3">
                     <Badge className="bg-slate-100 text-slate-400 border-none text-[9px] font-black h-6 w-6 rounded-full p-0 flex items-center justify-center">
                         {index + 1}
                     </Badge>
                 </div>
 
-                {/* Product selector */}
-                <div className="relative">
-                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 pointer-events-none z-10" />
-                    <select
-                        {...form.register(`lines.${index}.product_id`)}
-                        className="w-full h-12 bg-white border-none rounded-xl pl-10 pr-8 text-xs font-bold text-slate-900 appearance-none shadow-inner focus:ring-4 focus:ring-primary/5 outline-none hover:bg-slate-50 transition-all cursor-pointer"
-                    >
-                        <option value="">Seleccionar producto</option>
-                        {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                                {p.name} — {p.sku}
-                            </option>
-                        ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300 pointer-events-none" />
+                {/* Producto: nombre libre (primario) + catálogo (opcional) */}
+                <div className="space-y-2">
+                    <Input
+                        {...form.register(`lines.${index}.description`)}
+                        placeholder="Producto a trasladar (nombre libre)"
+                        className="h-12 bg-white border-none rounded-xl px-4 text-xs font-bold text-slate-900 shadow-inner focus:ring-4 focus:ring-primary/5"
+                    />
+                    <div className="relative">
+                        <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300 pointer-events-none z-10" />
+                        <select
+                            {...form.register(`lines.${index}.product_id`)}
+                            className="w-full h-10 bg-slate-50 border-none rounded-xl pl-10 pr-8 text-[11px] font-bold text-slate-600 appearance-none shadow-inner focus:ring-4 focus:ring-primary/5 outline-none hover:bg-slate-100 transition-all cursor-pointer"
+                        >
+                            <option value="">Del catálogo (opcional)</option>
+                            {products.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                    {p.name} — {p.sku}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300 pointer-events-none" />
+                    </div>
                 </div>
 
                 {/* Quantity */}
                 <div>
                     <Input
                         type="number"
-                        step="0.01"
+                        step="any"
                         min="0.01"
                         placeholder="Cant."
                         {...form.register(`lines.${index}.qty`, { valueAsNumber: true })}
@@ -417,7 +537,7 @@ function TransferLineRow({ index, form, products, onRemove }: LineRowProps) {
                 </div>
 
                 {/* Remove */}
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center md:pt-1">
                     <button
                         type="button"
                         onClick={onRemove}
@@ -430,10 +550,13 @@ function TransferLineRow({ index, form, products, onRemove }: LineRowProps) {
             </div>
 
             {/* Field errors */}
-            {(form.formState.errors.lines?.[index]?.product_id ||
+            {(form.formState.errors.lines?.[index]?.description ||
+                form.formState.errors.lines?.[index]?.product_id ||
                 form.formState.errors.lines?.[index]?.qty) && (
                 <p className="text-rose-500 text-[9px] font-black uppercase tracking-widest mt-2 ml-1">
-                    Complete todos los campos de esta línea
+                    {form.formState.errors.lines?.[index]?.description?.message
+                        || form.formState.errors.lines?.[index]?.qty?.message
+                        || 'Completa el producto y la cantidad'}
                 </p>
             )}
         </div>

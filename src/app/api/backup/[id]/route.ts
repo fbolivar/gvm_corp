@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
+export const runtime = 'nodejs';
+
 /** GET /api/backup/[id] — download a specific backup */
 export async function GET(
     _request: NextRequest,
@@ -41,14 +43,16 @@ export async function GET(
             return NextResponse.json({ error: 'Error descargando archivo' }, { status: 500 });
         }
 
-        const content = await fileData.text();
+        const bytes = new Uint8Array(await fileData.arrayBuffer());
         const dateStr = new Date(backup.created_at).toISOString().slice(0, 10);
+        const isGvm = (backup.file_path as string).endsWith('.gvm');
+        const ext = isGvm ? 'gvm' : 'json';
 
-        return new NextResponse(content, {
+        return new NextResponse(bytes, {
             status: 200,
             headers: {
-                'Content-Type': 'application/json',
-                'Content-Disposition': `attachment; filename="backup-gvm-${dateStr}.json"`,
+                'Content-Type': isGvm ? 'application/octet-stream' : 'application/json',
+                'Content-Disposition': `attachment; filename="backup-gvm-${dateStr}.${ext}"`,
             },
         });
 

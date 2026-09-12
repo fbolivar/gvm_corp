@@ -94,8 +94,14 @@ const ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; colo
     ADMINISTRADOR: { label: "Admin", icon: Crown, color: "text-amber-600", bg: "bg-amber-50" }
 };
 
-export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tenant, generatedBy, roles, modules, initialZones, initialPermissions }: Props) {
+export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tenant, generatedBy, roles: initialRoles, modules, initialZones, initialPermissions }: Props) {
     const [members, setMembers] = useState<TeamMember[]>(initialMembers);
+    // Los roles se pueden crear desde la matriz → estado local para reflejarlo al instante.
+    const [roles, setRoles] = useState<AppRole[]>(initialRoles);
+    const [newRoleName, setNewRoleName] = useState("");
+    const [newRoleDesc, setNewRoleDesc] = useState("");
+    const [creatingRole, setCreatingRole] = useState(false);
+    const [showNewRoleForm, setShowNewRoleForm] = useState(false);
     const [zones, setZones] = useState<Zone[]>(initialZones);
     const [permissions, setPermissions] = useState<RolePermission[]>(initialPermissions);
     const [addFullName, setAddFullName] = useState("");
@@ -355,6 +361,32 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
         }
     }
 
+    async function handleCreateRole() {
+        const name = newRoleName.trim();
+        if (name.length < 3) {
+            toast.error("El nombre del rol debe tener al menos 3 caracteres");
+            return;
+        }
+        if (roles.some(r => r.name.toUpperCase() === name.toUpperCase())) {
+            toast.error(`Ya existe un rol llamado "${name.toUpperCase()}"`);
+            return;
+        }
+        setCreatingRole(true);
+        try {
+            const created = await settingsService.createAppRole(supabase, name, newRoleDesc);
+            // El rol nace sin permisos: aparece en la matriz con todo apagado.
+            setRoles(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+            setNewRoleName("");
+            setNewRoleDesc("");
+            setShowNewRoleForm(false);
+            toast.success(`Rol "${created.name}" creado — habilita sus módulos en la matriz`);
+        } catch (error: any) {
+            toast.error(error.message || "No se pudo crear el rol");
+        } finally {
+            setCreatingRole(false);
+        }
+    }
+
     async function handleBulkToggleRole(roleId: string, roleName: string, enableAll: boolean) {
         // Snapshot para rollback
         const snapshot = permissions.slice();
@@ -375,13 +407,21 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
     }
 
     // Un usuario puede gestionar el equipo si:
-    // 1. Su rol es SUPER ADMINISTRADOR (acceso total), o
-    // 2. Su rol tiene can_edit=true en el módulo 'settings' según role_permissions
+    // 1. Su rol es SUPER ADMINISTRADOR / ADMINISTRADOR, o
+    // 2. Su rol tiene can_admin en 'settings', o
+    // 3. Está en la lista team_admins (excepción por persona).
+    // Debe reflejar EXACTAMENTE la regla de /api/team/members: si aquí fuera más
+    // laxo, se mostrarían botones que el backend rechaza con 403.
     const currentMember = members.find(m => m.user_id === currentUserId);
     const isCurrentUserAdmin =
         currentMember?.role === 'SUPER ADMINISTRADOR' ||
+        currentMember?.role === 'ADMINISTRADOR' ||
+        Boolean(currentMember?.is_team_admin) ||
         (currentMember?.role_id != null &&
-            permissions.some(p => p.role_id === currentMember.role_id && p.module_key === 'settings' && p.can_edit));
+            permissions.some(p =>
+                p.role_id === currentMember.role_id &&
+                p.module_key === 'settings' &&
+                p.can_admin && p.can_view));
 
     // Filtro de búsqueda sobre la Nómina de Personal Activo
     const memberSearchQ = memberSearch.trim().toLowerCase();
@@ -526,7 +566,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                     </div>
 
                                     {/* Fila 1: Usuario o Email + Contraseña */}
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {/* Usuario o Email */}
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2 h-4">
@@ -590,7 +630,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                     </div>
 
                                     {/* Fila 2: Rol + Zona */}
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {/* Rol */}
                                         <div className="space-y-2">
                                             <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block">
@@ -660,9 +700,9 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
 
                     {/* Members Table-like List */}
                     <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden mx-4 md:mx-0">
-                        <CardHeader className="p-10 pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tight">
-                                <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center">
+                        <CardHeader className="p-10 pb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-4 uppercase tracking-tight min-w-0">
+                                <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
                                     <Users className="h-5 w-5 text-white" />
                                 </div>
                                 Nómina de Personal Activo
@@ -672,7 +712,7 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                         : `${members.length} REGISTROS`}
                                 </Badge>
                             </CardTitle>
-                            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                                 <div className="relative w-full md:w-80">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                                     <Input
@@ -734,6 +774,15 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                                                     {member.full_name || "SIN NOMBRE"}
                                                                 </p>
                                                                 <p className="text-[10px] font-bold text-slate-400 truncate tracking-widest">{displayLogin(member.email)}</p>
+                                                                {member.has_employee ? (
+                                                                    <span className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest">
+                                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Con ficha
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest">
+                                                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Sin ficha
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -808,14 +857,16 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                                                             <User className="h-4 w-4" />
                                                                             Editar Datos
                                                                         </button>
-                                                                        <a
-                                                                            href={`/payroll/employees/new?userId=${member.user_id}&name=${encodeURIComponent(member.full_name || '')}&email=${encodeURIComponent(member.email)}`}
-                                                                            className="w-full px-5 py-3 text-left text-[11px] font-black text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
-                                                                            onClick={() => setOpenMenu(null)}
-                                                                        >
-                                                                            <Briefcase className="h-4 w-4" />
-                                                                            Enrolar como Empleado
-                                                                        </a>
+                                                                        {!member.has_employee && (
+                                                                            <a
+                                                                                href={`/payroll/employees/new?userId=${member.user_id}&name=${encodeURIComponent(member.full_name || '')}&email=${encodeURIComponent(member.email)}`}
+                                                                                className="w-full px-5 py-3 text-left text-[11px] font-black text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 transition-colors uppercase tracking-widest"
+                                                                                onClick={() => setOpenMenu(null)}
+                                                                            >
+                                                                                <Briefcase className="h-4 w-4" />
+                                                                                Enrolar como Empleado
+                                                                            </a>
+                                                                        )}
                                                                         <button
                                                                             onClick={() => {
                                                                                 setPasswordModal({ userId: member.user_id, email: member.email });
@@ -854,17 +905,26 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                 <TabsContent value="permissions" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-700 outline-none">
                     <Card className="border-none bg-white shadow-premium rounded-[2.5rem] overflow-hidden border-t-4 border-slate-900">
                         <CardHeader className="p-10 pb-8 space-y-8">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                <div className="space-y-2">
+                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                                <div className="space-y-2 min-w-0">
                                     <CardTitle className="text-3xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white rotate-3 group-hover:rotate-0 transition-transform">
+                                        <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white rotate-3 group-hover:rotate-0 transition-transform shrink-0">
                                             <ShieldCheck className="h-6 w-6" />
                                         </div>
                                         Matriz de <span className="text-indigo-600">Gobernanza</span>
                                     </CardTitle>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] ml-16">Configuación de Capas de Acceso Industrial</p>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    {isCurrentUserAdmin && (
+                                        <Button
+                                            onClick={() => setShowNewRoleForm(v => !v)}
+                                            className="h-11 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest gap-2"
+                                        >
+                                            <UserPlus className="h-4 w-4" />
+                                            {showNewRoleForm ? "Cerrar" : "Nuevo rol"}
+                                        </Button>
+                                    )}
                                     <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-4 py-2 rounded-xl text-[10px] font-black italic">
                                         MOTOR DE PERMISOS v3.0
                                     </Badge>
@@ -873,6 +933,68 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                     </Badge>
                                 </div>
                             </div>
+
+                            {/* Alta de rol — el rol nace sin módulos; se encienden en la matriz */}
+                            {isCurrentUserAdmin && showNewRoleForm && (
+                                <div className="rounded-[2rem] border border-indigo-100 bg-indigo-50/40 p-6 space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0">
+                                            <Shield className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Crear rol nuevo</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                                                Nace sin módulos · habilítalos abajo con los interruptores
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block">
+                                                Nombre del rol
+                                            </Label>
+                                            <Input
+                                                value={newRoleName}
+                                                onChange={(e) => setNewRoleName(e.target.value.toUpperCase())}
+                                                placeholder="EJ: COORDINADOR DE LOGÍSTICA"
+                                                maxLength={50}
+                                                className="h-14 bg-white border-none rounded-2xl font-black text-xs uppercase tracking-widest focus:ring-4 focus:ring-indigo-500/10"
+                                                onKeyDown={(e) => e.key === "Enter" && !creatingRole && handleCreateRole()}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 block">
+                                                Descripción (opcional)
+                                            </Label>
+                                            <Input
+                                                value={newRoleDesc}
+                                                onChange={(e) => setNewRoleDesc(e.target.value)}
+                                                placeholder="Para qué sirve este rol"
+                                                maxLength={120}
+                                                className="h-14 bg-white border-none rounded-2xl font-medium text-sm focus:ring-4 focus:ring-indigo-500/10"
+                                                onKeyDown={(e) => e.key === "Enter" && !creatingRole && handleCreateRole()}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-end gap-3">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => { setShowNewRoleForm(false); setNewRoleName(""); setNewRoleDesc(""); }}
+                                            disabled={creatingRole}
+                                            className="h-11 px-4 rounded-xl border-slate-200 bg-white font-black text-slate-400 hover:text-slate-900 text-[10px] uppercase tracking-widest"
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            onClick={handleCreateRole}
+                                            disabled={creatingRole || newRoleName.trim().length < 3}
+                                            className="h-11 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-widest"
+                                        >
+                                            {creatingRole ? "Creando..." : "Crear rol"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="relative group">

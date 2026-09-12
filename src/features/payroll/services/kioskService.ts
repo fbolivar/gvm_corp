@@ -71,6 +71,30 @@ export const kioskService = {
         if (error) throw error;
     },
 
+    /**
+     * Genera un enlace nuevo para el terminal e invalida el anterior.
+     *
+     * Es la respuesta cuando el enlace se filtra (alguien fotografía la URL o la
+     * comparte): el token viejo deja de funcionar al instante y el historial de
+     * marcaciones del terminal se conserva, cosa que no ocurriría borrándolo y
+     * creándolo de nuevo.
+     */
+    async rotateTerminalToken(client: SupabaseClient, id: string): Promise<string> {
+        // Dos UUID v4 concatenados sin guiones: el mismo formato que genera la
+        // base al crear el terminal (64 caracteres hexadecimales).
+        const newToken = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '');
+
+        const { data, error } = await client
+            .from('kiosk_terminals')
+            .update({ token: newToken })
+            .eq('id', id)
+            .select('token')
+            .single();
+
+        if (error) throw error;
+        return data.token as string;
+    },
+
     async deleteTerminal(client: SupabaseClient, id: string): Promise<void> {
         const { error } = await client
             .from('kiosk_terminals')

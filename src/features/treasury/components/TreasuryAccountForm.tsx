@@ -56,7 +56,7 @@ export function TreasuryAccountForm({ initialData, onSubmit, isLoading, chartAcc
                 </CardHeader>
                 <CardContent className="p-10 space-y-10">
                     {/* 🔄 Account Type Selection */}
-                    <div className="grid grid-cols-2 gap-6 p-2 bg-slate-50 rounded-[2rem]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-2 bg-slate-50 rounded-[2rem]">
                         <label className={cn(
                             "flex items-center justify-center gap-3 h-16 rounded-[1.5rem] cursor-pointer transition-all font-black text-[11px] uppercase tracking-widest border-2",
                             accountType === 'BANK'
@@ -79,7 +79,7 @@ export function TreasuryAccountForm({ initialData, onSubmit, isLoading, chartAcc
                         </label>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
                         {/* Basic Info */}
                         <div className="space-y-8">
                             <div className="space-y-3">
@@ -148,8 +148,8 @@ export function TreasuryAccountForm({ initialData, onSubmit, isLoading, chartAcc
                         <div className="absolute top-0 right-0 p-10 opacity-10 group-hover/balance:scale-125 transition-transform duration-700 pointer-events-none">
                             <Sparkles className="h-32 w-32" />
                         </div>
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                            <div className="space-y-2">
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8 flex-wrap">
+                            <div className="space-y-2 min-w-0">
                                 <div className="flex items-center gap-3">
                                     <AlertCircle className="h-5 w-5 text-indigo-300" />
                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200">Saldo de Apertura</h4>

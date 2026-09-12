@@ -14,6 +14,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table"
 import { cn } from "@/shared/lib/utils"
+import { Hint } from "@/shared/components/ui/hint"
 
 export function CertificateGenerator() {
     const [isLoading, setIsLoading] = useState(false)
@@ -147,7 +148,7 @@ export function CertificateGenerator() {
             </div>
 
             <TabsContent value="individual" className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-10">
                     {/* Control Panel */}
                     <Card className="border-none bg-white shadow-premium rounded-[3.5rem] overflow-hidden group">
                         <CardHeader className="p-10 border-b border-slate-50">
@@ -256,7 +257,7 @@ export function CertificateGenerator() {
                             <FileCheck className="h-64 w-64 text-white" />
                         </div>
 
-                        <CardHeader className="p-12 border-b border-white/5 bg-white/5 backdrop-blur-md relative z-10">
+                        <CardHeader className="p-6 md:p-12 border-b border-white/5 bg-white/5 backdrop-blur-md relative z-10">
                             <div className="flex items-center gap-5">
                                 <div className="h-14 w-14 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]">
                                     <Search className="h-7 w-7" />
@@ -268,7 +269,7 @@ export function CertificateGenerator() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-12 pt-0 flex-1 flex flex-col relative z-10">
+                        <CardContent className="p-6 md:p-12 pt-0 flex-1 flex flex-col relative z-10">
                             {selectedParty ? (
                                 <div className="h-full flex flex-col py-10">
                                     {isPreviewLoading ? (
@@ -280,7 +281,7 @@ export function CertificateGenerator() {
                                         </div>
                                     ) : previewData && previewData.length > 0 ? (
                                         <div className="space-y-10 animate-in fade-in slide-in-from-right-8 duration-700">
-                                            <div className="bg-white/5 rounded-[2.5rem] p-10 border border-white/5 backdrop-blur-md">
+                                            <div className="bg-white/5 rounded-[2.5rem] p-10 border border-white/5 backdrop-blur-md overflow-x-auto">
                                                 <table className="w-full text-left">
                                                     <thead>
                                                         <tr className="text-[10px] font-black uppercase text-slate-500 tracking-[0.5em] border-b border-white/10">
@@ -313,7 +314,7 @@ export function CertificateGenerator() {
                                                 </table>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-8">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                                                 <div className="p-8 rounded-[2rem] bg-white/5 border border-white/5 flex items-center justify-between group/kpi">
                                                     <div>
                                                         <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest mb-2 italic">Índice de Registros</p>
@@ -364,7 +365,7 @@ export function CertificateGenerator() {
                                         </p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-6 w-full">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
                                         <div className="p-6 rounded-[2rem] bg-white/5 text-left border border-white/5 hover:bg-white/[0.08] transition-colors">
                                             <p className="text-[8px] font-black uppercase text-indigo-400 tracking-widest mb-1 italic">Articulación Legal</p>
                                             <p className="text-[10px] text-slate-300 font-black uppercase tracking-tight">Art. 381 E.T. Validado</p>
@@ -387,10 +388,10 @@ export function CertificateGenerator() {
                         <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
                             <TrendingUp className="h-48 w-48" />
                         </div>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 relative z-10">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-2 w-8 bg-indigo-500 rounded-full" />
+                        <div className="flex flex-col lg:flex-row md:items-center justify-between gap-5 lg:gap-10 relative z-10 flex-wrap">
+                            <div className="space-y-4 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="h-2 w-8 bg-indigo-500 rounded-full shrink-0" />
                                     <CardTitle className="text-3xl md:text-5xl font-black italic tracking-tighter text-slate-900 uppercase leading-none">
                                         Libro <span className="text-slate-400">Anual</span>
                                     </CardTitle>
@@ -461,17 +462,19 @@ export function CertificateGenerator() {
                                                     <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-1">Certificable</p>
                                                 </TableCell>
                                                 <TableCell className="px-10 py-8 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-12 w-12 rounded-2xl p-0 hover:bg-slate-900 hover:text-white shadow-sm hover:shadow-active transition-all"
-                                                        onClick={() => {
-                                                            setSelectedParty(reg.party_id);
-                                                            setActiveTab("individual");
-                                                        }}
-                                                    >
-                                                        <ArrowUpRight className="h-6 w-6" />
-                                                    </Button>
+                                                    <Hint label="Ver certificado individual" side="left">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-12 w-12 rounded-2xl p-0 hover:bg-slate-900 hover:text-white shadow-sm hover:shadow-active transition-all"
+                                                            onClick={() => {
+                                                                setSelectedParty(reg.party_id);
+                                                                setActiveTab("individual");
+                                                            }}
+                                                        >
+                                                            <ArrowUpRight className="h-6 w-6" />
+                                                        </Button>
+                                                    </Hint>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

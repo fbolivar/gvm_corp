@@ -161,12 +161,12 @@ export default function ReceiveOrderClient({ order }: Props) {
             <div className="bg-white rounded-[2.5rem] shadow-premium overflow-hidden">
 
                 {/* Card header */}
-                <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
+                <div className="px-8 py-6 border-b border-slate-50 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner shrink-0">
                             <Package className="h-5 w-5" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight">
                                 Líneas de la Orden
                             </h2>

@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { documentService } from '@/features/documents/services/documentService';
+import { settingsService } from '@/features/settings/services/settingsService';
 import { SalesInvoiceList } from '@/features/sales/components/SalesInvoiceList';
+import { getAttachmentCounts } from '@/features/documents/services/attachmentCountService';
+import { DocumentExportButton } from '@/features/sales/components/DocumentExportButton';
 import { Button } from '@/shared/components/ui/button';
 import { Plus, Banknote, Activity, ShieldCheck, RefreshCw, FileDigit } from 'lucide-react';
 import Link from 'next/link';
@@ -25,6 +28,20 @@ export default async function InvoicesPage() {
     });
 
     const invoices = data || [];
+    // Conteo de soportes de la página (una sola consulta, no una por fila).
+    const attachmentCounts = await getAttachmentCounts(
+        supabase,
+        invoices.map((d) => d.id!).filter(Boolean)
+    );
+
+    const tenant = await settingsService.getTenantInfo(supabase);
+    const company = {
+        name: tenant?.name || 'GVM S.A.S',
+        nit: tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : null,
+        address: [tenant?.address, tenant?.city].filter(Boolean).join(', ') || null,
+        phone: tenant?.phone ?? null,
+        logoUrl: tenant?.logo_url ?? null,
+    };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const totalInvoiced = invoices.reduce((acc: number, inv: any) => acc + (Number(inv.total) || 0), 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +72,16 @@ export default async function InvoicesPage() {
                                     <Plus className="h-3.5 w-3.5" /> Nueva factura
                                 </Link>
                             </Button>
+                            <DocumentExportButton
+                                source="documents"
+                                docType="INVOICE"
+                                filters={{}}
+                                company={company}
+                                opts={{
+                                    title: 'FACTURAS DE VENTA', partyLabel: 'Cliente', fileLabel: 'Facturas', sheetName: 'Facturas',
+                                    statusLabels: { DRAFT: 'Borrador', SENT: 'Emitida', ACCEPTED: 'Aceptada DIAN', PAID: 'Pagada', VOIDED: 'Anulada', REJECTED: 'Rechazada' },
+                                }}
+                            />
                             <Button variant="outline" asChild className="h-9 rounded-xl text-xs font-semibold gap-2">
                                 <Link href="/sales/recurring">
                                     <RefreshCw className="h-3.5 w-3.5" /> Recurrentes
@@ -90,7 +117,7 @@ export default async function InvoicesPage() {
                 {/* Listing */}
                 <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
                     <CardContent className="p-0">
-                        <SalesInvoiceList invoices={invoices} />
+                        <SalesInvoiceList invoices={invoices} attachmentCounts={attachmentCounts} />
                     </CardContent>
                 </Card>
             </div>

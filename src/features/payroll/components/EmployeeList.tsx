@@ -53,6 +53,7 @@ import { LinkUserModal } from "./LinkUserModal"
 import { deactivateEmployeeAction } from "../actions"
 import { useRouter } from "next/navigation"
 import { useConfirm } from "@/shared/hooks/useConfirm"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface EmployeeListProps {
     employees: Employee[]
@@ -135,7 +136,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
     return (
         <div className="space-y-6">
             {/* Header / Actions */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-wrap">
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                     <Input
@@ -146,7 +147,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                     />
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
                         <DialogTrigger asChild>
                             <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl text-xs">
@@ -213,28 +214,32 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                     </Button>
 
                     <div className="bg-white p-1 rounded-xl border border-slate-200 flex">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setViewMode('grid')}
-                            className={cn(
-                                "rounded-lg h-7 w-7",
-                                viewMode === 'grid' ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
-                            )}
-                        >
-                            <LayoutGrid className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setViewMode('table')}
-                            className={cn(
-                                "rounded-lg h-7 w-7",
-                                viewMode === 'table' ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
-                            )}
-                        >
-                            <List className="h-3.5 w-3.5" />
-                        </Button>
+                        <Hint label="Vista en cuadrícula" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setViewMode('grid')}
+                                className={cn(
+                                    "rounded-lg h-7 w-7",
+                                    viewMode === 'grid' ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
+                                )}
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
+                        <Hint label="Vista en lista" side="top">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setViewMode('table')}
+                                className={cn(
+                                    "rounded-lg h-7 w-7",
+                                    viewMode === 'table' ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-900"
+                                )}
+                            >
+                                <List className="h-3.5 w-3.5" />
+                            </Button>
+                        </Hint>
                     </div>
                 </div>
             </div>
@@ -298,20 +303,23 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                                             </TableCell>
                                             <TableCell className="text-right pr-6">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className={cn("h-8 w-8 rounded-lg", emp.user_id ? "text-indigo-500 hover:text-indigo-700" : "text-slate-300 hover:text-indigo-600")}
-                                                        title={emp.user_id ? 'Cambiar usuario vinculado' : 'Vincular a Mi Nomina'}
-                                                        onClick={() => setLinkModalEmployee(emp)}
-                                                    >
-                                                        <LinkIcon className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                    <Button asChild variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900">
-                                                        <Link href={`/payroll/employees/${emp.id}`}>
-                                                            <ChevronRight className="h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
+                                                    <Hint label={emp.user_id ? 'Cambiar usuario vinculado' : 'Vincular a Mi Nomina'} side="top">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className={cn("h-8 w-8 rounded-lg", emp.user_id ? "text-indigo-500 hover:text-indigo-700" : "text-slate-300 hover:text-indigo-600")}
+                                                            onClick={() => setLinkModalEmployee(emp)}
+                                                        >
+                                                            <LinkIcon className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </Hint>
+                                                    <Hint label="Ver detalle" side="left">
+                                                        <Button asChild variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900">
+                                                            <Link href={`/payroll/employees/${emp.id}`}>
+                                                                <ChevronRight className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    </Hint>
                                                 </div>
                                             </TableCell>
                                         </TableRow>

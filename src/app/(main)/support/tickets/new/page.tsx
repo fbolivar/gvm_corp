@@ -2,15 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { settingsService } from "@/features/settings/services/settingsService";
 import { VisualReportHeader } from "@/features/accounting/components/VisualReportHeader";
 import { NewTicketForm } from "@/features/support/components/NewTicketForm";
+import { getAssignableUsersAction } from "@/features/support/actions";
 
 export default async function NewTicketPage() {
     const supabase = await createClient();
 
-    const [partiesRes, docsRes, productsRes, tenant] = await Promise.all([
+    const [partiesRes, docsRes, productsRes, tenant, users] = await Promise.all([
         supabase.from('parties').select('id, legal_name').limit(100),
         supabase.from('documents').select('id, number, doc_type').limit(100),
         supabase.from('products').select('id, name').limit(100),
-        settingsService.getTenantInfo(supabase)
+        settingsService.getTenantInfo(supabase),
+        getAssignableUsersAction()
     ]);
 
     return (
@@ -25,6 +27,7 @@ export default async function NewTicketPage() {
                 parties={partiesRes.data || []}
                 documents={docsRes.data || []}
                 products={productsRes.data || []}
+                users={users || []}
             />
         </div>
     );

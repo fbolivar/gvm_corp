@@ -91,8 +91,8 @@ export default function DocsPage() {
     return (
         <div className="min-h-screen pb-32 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {/* 🏗️ PREMIUM INDUSTRIAL HEADER */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 mb-16 px-2">
-                <div className="flex items-center gap-8">
+            <div className="flex flex-col md:flex-row flex-wrap md:items-center justify-between gap-10 mb-16 px-2">
+                <div className="flex items-center gap-8 min-w-0">
                     <div className="h-20 w-20 rounded-[2rem] bg-slate-950 flex items-center justify-center text-white shadow-premium group-hover:rotate-12 transition-all duration-700 border-4 border-white">
                         <BookOpen className="h-10 w-10 text-amber-500" />
                     </div>
@@ -126,7 +126,7 @@ export default function DocsPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-10">
                 {/* Sidebar Navigation */}
                 <div className="lg:col-span-3">
                     <div className="sticky top-8 space-y-6">
@@ -216,8 +216,8 @@ export default function DocsPage() {
                                         )}>
                                             <currentSection.icon className="h-10 w-10" />
                                         </div>
-                                        <div className="space-y-4 max-w-2xl">
-                                            <div className="flex items-center gap-4">
+                                        <div className="space-y-4 max-w-2xl min-w-0">
+                                            <div className="flex items-center gap-4 flex-wrap">
                                                 <h2 className="text-5xl font-black text-slate-950 tracking-tighter italic leading-none">{currentSection.title}</h2>
                                                 {currentSection.id === 'onboarding' && (
                                                     <Badge className="bg-amber-100 text-amber-700 animate-pulse border-none px-3 py-1 font-black text-[10px] uppercase tracking-widest">{t.help.fundamental}</Badge>

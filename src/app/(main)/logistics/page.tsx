@@ -7,10 +7,10 @@ export default function LogisticsPage() {
     return (
         <div className="page-container space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* 💎 PREMIUM HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
-                <div className="space-y-1.5">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 px-1">
+                <div className="min-w-0 space-y-1.5">
                     <h1 className="page-title">Logística & Despachos</h1>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Gestión de Entregas & LogiTrack</p>
                         <div className="flex items-center gap-2 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100/50">
                             <Sparkles className="h-2.5 w-2.5 text-indigo-600" />
@@ -18,7 +18,7 @@ export default function LogisticsPage() {
                         </div>
                     </div>
                 </div>
-                <Button variant="outline" asChild className="h-10 rounded-xl">
+                <Button variant="outline" asChild className="h-10 rounded-xl shrink-0">
                     <Link href="/help/logistics-flow">
                         <BookOpen className="h-4 w-4 mr-2" />
                         Guía del Flujo

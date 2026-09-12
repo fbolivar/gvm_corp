@@ -454,7 +454,8 @@ export async function importOpeningEntryAction(rows: OpeningEntryRow[]): Promise
     .insert({
       tenant_id: tenantId,
       description: 'Asiento de apertura — Migración',
-      date: today,
+      // La columna es `entry_date`; con `date` el asiento de apertura nunca se creaba.
+      entry_date: today,
       status: 'POSTED',
     })
     .select('id')

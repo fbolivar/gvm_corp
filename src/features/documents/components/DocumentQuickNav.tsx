@@ -46,9 +46,9 @@ export function DocumentQuickNav({
                 {position && <span className="text-slate-300 ml-2 font-medium normal-case tracking-normal">{position}</span>}
             </span>
 
-            {newer ? (
+            {older ? (
                 <Button asChild variant="outline" size="sm" className="h-9 rounded-lg text-xs gap-1">
-                    <Link href={`/documents/${newer.id}`}><ChevronLeft className="h-4 w-4" /> Anterior</Link>
+                    <Link href={`/documents/${older.id}`}><ChevronLeft className="h-4 w-4" /> Anterior</Link>
                 </Button>
             ) : (
                 <Button variant="outline" size="sm" disabled className="h-9 rounded-lg text-xs gap-1">
@@ -67,9 +67,9 @@ export function DocumentQuickNav({
                 />
             </div>
 
-            {older ? (
+            {newer ? (
                 <Button asChild variant="outline" size="sm" className="h-9 rounded-lg text-xs gap-1">
-                    <Link href={`/documents/${older.id}`}>Siguiente <ChevronRight className="h-4 w-4" /></Link>
+                    <Link href={`/documents/${newer.id}`}>Siguiente <ChevronRight className="h-4 w-4" /></Link>
                 </Button>
             ) : (
                 <Button variant="outline" size="sm" disabled className="h-9 rounded-lg text-xs gap-1">

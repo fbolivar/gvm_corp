@@ -16,6 +16,12 @@ export const TAX_LABELS: Record<TaxCategory, string> = {
 
 export const UOM_OPTIONS = ['UND', 'KG', 'GR', 'LT', 'ML', 'MT', 'CM', 'M2', 'CJ', 'PAR', 'DOC', 'HR'];
 
+// Clasificación local (como WorldOffice).
+export const PRODUCT_CLASSIFICATIONS = [
+    'Producto', 'Servicio', 'Gasto', 'Activo Fijo', 'Diferido',
+    'Título Valor', 'Intangibles', 'Consignación o Depósito', 'Otros Conceptos', 'Dotación',
+];
+
 export const productSchema = z.object({
     id: z.string().uuid().optional(),
     tenant_id: z.string().uuid().optional(),
@@ -34,6 +40,12 @@ export const productSchema = z.object({
 
     barcode: z.string().optional().nullable(),
     track_serials: z.boolean().default(false),
+
+    // Fase 2 — clasificación, grupo y control de margen
+    classification: z.string().optional().nullable(),
+    product_group: z.string().optional().nullable(),
+    min_margin: z.coerce.number().min(0).default(0).optional(),
+    enforce_margin: z.boolean().default(false).optional(),
 
     is_fixed_asset: z.boolean().default(false),
     asset_category: z.enum(['LAND', 'BUILDING', 'VEHICLE', 'EQUIPMENT', 'FURNITURE', 'COMPUTER', 'OTHER']).optional().nullable(),

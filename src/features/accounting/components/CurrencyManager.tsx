@@ -106,6 +106,7 @@ export function CurrencyManager({ currencies, rates }: Props) {
                 <div className="p-5 border-b border-slate-100">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monedas Disponibles</p>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-slate-100">
@@ -130,6 +131,7 @@ export function CurrencyManager({ currencies, rates }: Props) {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Add rate button / form */}
@@ -143,7 +145,7 @@ export function CurrencyManager({ currencies, rates }: Props) {
             ) : (
                 <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nueva Tasa</p>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desde</label>
                             <select
@@ -219,11 +221,12 @@ export function CurrencyManager({ currencies, rates }: Props) {
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Historial de Tasas</p>
                 </div>
                 {rates.length === 0 ? (
-                    <div className="p-12 text-center text-slate-300">
+                    <div className="p-6 md:p-12 text-center text-slate-300">
                         <TrendingUp className="h-8 w-8 mx-auto mb-3 opacity-50" />
                         <p className="text-xs font-bold uppercase tracking-widest">Sin tasas registradas</p>
                     </div>
                 ) : (
+                    <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-100">
@@ -268,6 +271,7 @@ export function CurrencyManager({ currencies, rates }: Props) {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 )}
             </div>
         </div>

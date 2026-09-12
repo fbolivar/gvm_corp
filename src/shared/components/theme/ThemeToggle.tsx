@@ -4,6 +4,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
+import { Hint } from '@/shared/components/ui/hint'
 
 interface ThemeToggleProps {
     variant?: 'icon' | 'cycle' | 'dropdown'
@@ -54,19 +55,19 @@ export function ThemeToggle({ variant = 'cycle', className }: ThemeToggleProps) 
     return (
         <div className={cn('flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1', className)}>
             {options.map(({ value, icon: Icon, label }) => (
-                <button
-                    key={value}
-                    onClick={() => setTheme(value)}
-                    title={label}
-                    className={cn(
-                        'h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-200',
-                        theme === value
-                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                    )}
-                >
-                    <Icon className="h-3.5 w-3.5" />
-                </button>
+                <Hint key={value} label={`Tema ${label.toLowerCase()}`} side="bottom">
+                    <button
+                        onClick={() => setTheme(value)}
+                        className={cn(
+                            'h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-200',
+                            theme === value
+                                ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                        )}
+                    >
+                        <Icon className="h-3.5 w-3.5" />
+                    </button>
+                </Hint>
             ))}
         </div>
     )

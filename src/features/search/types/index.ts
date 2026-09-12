@@ -1,5 +1,5 @@
 
-export type SearchResultCategory = 'PRODUCT' | 'PARTY' | 'DOCUMENT' | 'COMMAND' | 'LEAD' | 'TICKET' | 'ACCOUNT' | 'HELP';
+export type SearchResultCategory = 'PRODUCT' | 'PARTY' | 'DOCUMENT' | 'COMMAND' | 'LEAD' | 'TICKET' | 'ACCOUNT' | 'HELP' | 'MODULE';
 
 export interface SearchResult {
     id: string;

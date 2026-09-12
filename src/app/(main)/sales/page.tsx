@@ -38,9 +38,11 @@ export default async function SalesDashboard() {
     try {
         const [leadsRes, quotesResult, ordersResult, invoicesResult] = await Promise.allSettled([
             crmService.getLeads(supabase),
-            documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'QUOTATION' }),
-            documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'SALES_ORDER' }),
-            documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'INVOICE' })
+            // Sin anulados: el dashboard mide actividad comercial, y una ráfaga de
+            // pedidos anulados llenaba los "últimos 50" dejando fuera los reales.
+            documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'QUOTATION', hide_voided: true }),
+            documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'SALES_ORDER', hide_voided: true }),
+            documentService.getDocuments(supabase, { page: 1, per_page: 50, type: 'INVOICE', hide_voided: true })
         ]);
 
         if (leadsRes.status === 'fulfilled') leads = leadsRes.value || [];
@@ -126,7 +128,7 @@ export default async function SalesDashboard() {
                     {/* Quick Actions */}
                     <div className="surface-card p-5">
                         <h2 className="text-h3 mb-4">Acciones rápidas</h2>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             {actions.map((a) => (
                                 <Link
                                     key={a.label}

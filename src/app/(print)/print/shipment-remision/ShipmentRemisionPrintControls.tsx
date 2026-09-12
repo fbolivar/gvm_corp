@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Printer, DollarSign } from "lucide-react";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -12,6 +12,16 @@ export function ShipmentRemisionPrintControls({ backHref, filename }: { backHref
   const [titleSet, setTitleSet] = useState(false);
   const searchParams = useSearchParams();
   const autoprintDisabled = searchParams?.get("autoprint") === "0";
+  const sinPrecios = searchParams?.get("precios") === "0";
+
+  // Alterna precios sí/no recargando la página; desactiva el auto-print para no reimprimir solo.
+  const togglePreciosHref = (() => {
+    const p = new URLSearchParams(searchParams?.toString() ?? "");
+    if (sinPrecios) p.delete("precios");
+    else p.set("precios", "0");
+    p.set("autoprint", "0");
+    return `?${p.toString()}`;
+  })();
 
   useIsoLayoutEffect(() => {
     document.title = filename;
@@ -57,6 +67,17 @@ export function ShipmentRemisionPrintControls({ backHref, filename }: { backHref
           <span className="hidden sm:block text-xs text-slate-500 truncate">
             <span className="text-slate-400">Guardar como:</span> {titleSet ? `${filename}.pdf` : "..."}
           </span>
+          <Link
+            href={togglePreciosHref}
+            className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-colors shrink-0 ${
+              sinPrecios
+                ? "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                : "border-slate-200 text-slate-600 bg-white hover:bg-slate-50"
+            }`}
+            title={sinPrecios ? "Mostrar precios en la remisión" : "Generar la remisión sin precios"}
+          >
+            <DollarSign className="h-4 w-4" /> {sinPrecios ? "Mostrar precios" : "Sin precios"}
+          </Link>
           <button
             type="button"
             onClick={handleReprint}

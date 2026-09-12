@@ -26,6 +26,7 @@ import {
     DollarSign,
     Users
 } from "lucide-react"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface Props {
     order: any | null
@@ -165,12 +166,14 @@ export function CreateShipmentModal({ order, onClose, onSuccess }: Props) {
                             <p className="text-[8px] sm:text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 truncate">Orden: {order.number} — {order.party?.legal_name}</p>
                         </div>
                     </div>
-                    <Button variant="ghost" onClick={onClose} className="h-10 w-10 rounded-full bg-slate-50 text-slate-400 p-0 hover:bg-slate-100 shrink-0">
-                        <span className="sr-only">Cerrar</span>
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </Button>
+                    <Hint label="Cerrar" side="left">
+                        <Button variant="ghost" onClick={onClose} className="h-10 w-10 rounded-full bg-slate-50 text-slate-400 p-0 hover:bg-slate-100 shrink-0">
+                            <span className="sr-only">Cerrar</span>
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </Button>
+                    </Hint>
                 </div>
 
                 <div className="p-6 sm:p-10 space-y-8 sm:space-y-10 max-h-[65vh] overflow-y-auto custom-scrollbar">

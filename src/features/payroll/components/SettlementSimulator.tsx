@@ -16,12 +16,13 @@ import {
 } from "lucide-react"
 import { format, differenceInDays } from "date-fns"
 import { cn } from "@/shared/lib/utils"
+import { PAYROLL_CONSTANTS } from "../services/payrollService"
 
 export function SettlementSimulator() {
     const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'))
     const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
     const [salary, setSalary] = useState(1300606)
-    const [transportAllowance, setTransportAllowance] = useState(162000)
+    const [transportAllowance, setTransportAllowance] = useState(PAYROLL_CONSTANTS.TRANSPORT_ALLOWANCE_2026)
 
     const calculateSettlement = () => {
         const days = differenceInDays(new Date(endDate), new Date(startDate)) + 1
@@ -164,7 +165,7 @@ export function SettlementSimulator() {
                 </div>
 
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha de Ingreso</label>
                             <div className="relative">
@@ -237,8 +238,8 @@ export function SettlementSimulator() {
 
             {/* Results */}
             <Card className="rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                    <div>
+                <div className="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
                         <h3 className="text-sm font-bold text-slate-900">Liquidacion Estimada</h3>
                         <p className="text-lg font-bold text-slate-900 font-mono tabular-nums">{fmt(results.total)}</p>
                     </div>

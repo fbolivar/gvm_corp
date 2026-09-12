@@ -24,7 +24,8 @@ export async function saveDianResolutionAction(formData: any) {
             current_number: parseInt(formData.from),
             resolution_number: formData.resolutionNumber,
             resolution_date: formData.resolutionDate,
-            expiry_date: formData.expiryDate,
+            // La columna es `valid_until` — con `expiry_date` el alta de resoluciones fallaba.
+            valid_until: formData.expiryDate,
             technical_key: formData.technicalKey,
             is_active: true
         });

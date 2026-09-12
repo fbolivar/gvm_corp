@@ -30,6 +30,7 @@ import { Party } from "@/features/parties/types"
 import { cn } from "@/shared/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/shared/hooks/use-toast"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface DimensionOption {
     dimension: { id: string; code: string; name: string }
@@ -125,17 +126,19 @@ export function JournalEntryForm({ accounts, parties, dimensions = [] }: Journal
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 max-w-6xl mx-auto pb-24">
 
             {/* 💎 PREMIUM HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="flex items-center gap-6">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => router.back()}
-                        className="h-16 w-16 rounded-[1.5rem] border-none bg-white shadow-premium hover:scale-105 transition-all text-slate-400 hover:text-slate-900"
-                    >
-                        <ArrowLeft className="h-6 w-6" />
-                    </Button>
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-1 flex-wrap">
+                <div className="flex items-center gap-6 min-w-0">
+                    <Hint label="Volver" side="right">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => router.back()}
+                            className="h-16 w-16 rounded-[1.5rem] border-none bg-white shadow-premium hover:scale-105 transition-all text-slate-400 hover:text-slate-900"
+                        >
+                            <ArrowLeft className="h-6 w-6" />
+                        </Button>
+                    </Hint>
                     <div className="space-y-2">
                         <div className="flex items-center gap-4">
                             <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-900/20 rotate-3">
@@ -171,7 +174,7 @@ export function JournalEntryForm({ accounts, parties, dimensions = [] }: Journal
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-10">
 
                 {/* 📝 HEADER INFO */}
                 <Card className="lg:col-span-12 border-none bg-white shadow-premium rounded-[3rem] overflow-hidden">
@@ -181,7 +184,7 @@ export function JournalEntryForm({ accounts, parties, dimensions = [] }: Journal
                         </div>
                         <CardTitle className="text-lg font-black text-slate-900 uppercase italic tracking-tighter">Información del Encabezado</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-10 grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <CardContent className="p-6 md:p-10 grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-10">
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Fecha Contable</Label>
                             <Input
@@ -220,10 +223,12 @@ export function JournalEntryForm({ accounts, parties, dimensions = [] }: Journal
                         </Button>
                     </CardHeader>
                     <CardContent className="p-0">
+                        <div className="overflow-x-auto">
                         <Table>
                             <TableHeader className="bg-slate-50/30">
                                 <TableRow className="border-slate-50">
                                     <TableHead className="py-6 pl-10 text-[9px] font-black text-slate-400 uppercase tracking-widest">Cuenta P.U.C</TableHead>
+
                                     <TableHead className="py-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Tercero / Referencia</TableHead>
                                     {dimensions.slice(0, 2).map((dim) => (
                                         <TableHead key={dim.dimension.id} className="py-6 text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -322,34 +327,37 @@ export function JournalEntryForm({ accounts, parties, dimensions = [] }: Journal
                                             />
                                         </TableCell>
                                         <TableCell className="py-6 pr-10">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => remove(index)}
-                                                className="h-10 w-10 text-slate-200 hover:text-rose-600 hover:bg-rose-50"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <Hint label="Eliminar línea" side="left">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => remove(index)}
+                                                    className="h-10 w-10 text-slate-200 hover:text-rose-600 hover:bg-rose-50"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </Hint>
                                         </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
+                        </div>
 
                         {/* 📊 FOOTER TOTALS */}
-                        <div className="bg-slate-900 p-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:rotate-12 transition-transform">
+                        <div className="bg-slate-900 p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-10 flex-wrap">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className="h-12 w-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:rotate-12 transition-transform shrink-0">
                                     <BookOpen className="h-6 w-6 text-white" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <h4 className="text-white font-black text-lg italic tracking-tight uppercase leading-none">Sumatoria de Partida</h4>
                                     <p className="text-[10px] text-white/30 font-black tracking-widest uppercase mt-1">Verificación de Cierre de Ciclo</p>
                                 </div>
                             </div>
 
-                            <div className="flex gap-12">
+                            <div className="flex flex-wrap gap-6 lg:gap-12">
                                 <div className="space-y-2 text-right">
                                     <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Total Débitos</p>
                                     <p className="text-3xl font-black text-white font-mono tracking-tighter italic">${totalDebit.toLocaleString('es-CO')}</p>

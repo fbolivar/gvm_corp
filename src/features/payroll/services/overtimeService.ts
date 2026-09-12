@@ -33,7 +33,8 @@ export const overtimeService = {
             .select('*, employee:employees(id, salary, contract_type, party:parties(legal_name))')
             .eq('tenant_id', tenantId)
             .order('created_at', { ascending: false })
-            .limit(50);
+            // 200 (antes 50) para que los filtros por estado del historial sean útiles.
+            .limit(200);
         if (error) throw error;
         return data as OvertimeRequest[];
     },

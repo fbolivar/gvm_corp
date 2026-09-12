@@ -92,8 +92,8 @@ export default async function BenefitsProvisionPage({
             />
 
             {/* KPI Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-1">
+                <div className="flex flex-col min-w-0">
                     <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">
                         Provisión Mensual Total
                     </span>
@@ -120,7 +120,7 @@ export default async function BenefitsProvisionPage({
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {[
                     { label: 'Cesantías', value: totCesantias, icon: PiggyBank, color: 'text-violet-600', bg: 'bg-violet-50', rate: '8.33%' },
                     { label: 'Int. Cesantías', value: totIntereses, icon: Banknote, color: 'text-indigo-600', bg: 'bg-indigo-50', rate: '12% anual' },
@@ -144,8 +144,8 @@ export default async function BenefitsProvisionPage({
 
             {/* Detail Table */}
             <Card className="border-none shadow-premium bg-white rounded-[2.5rem] overflow-hidden">
-                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between">
-                    <div>
+                <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between flex-wrap gap-3">
+                    <div className="min-w-0">
                         <h3 className="text-lg font-black text-slate-900 tracking-tight italic uppercase">Provisión por Empleado</h3>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                             Acumulado hasta {periodLabel}
@@ -199,7 +199,7 @@ export default async function BenefitsProvisionPage({
                 </div>
 
                 {rows.length > 0 && (
-                    <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                    <div className="px-10 py-6 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between flex-wrap gap-3">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                             {rows.length} empleados · Provisión mensual
                         </span>

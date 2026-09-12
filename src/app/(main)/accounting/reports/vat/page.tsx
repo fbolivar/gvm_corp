@@ -91,8 +91,8 @@ export default async function VatReportPage({
             />
 
             {/* KPI Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
-                <div className="flex flex-col">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-1">
+                <div className="flex flex-col min-w-0">
                     <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.5em] leading-none mb-4">
                         {saldo >= 0 ? 'IVA a Pagar DIAN' : 'Saldo a Favor'}
                     </span>

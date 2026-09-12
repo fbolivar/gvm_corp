@@ -27,7 +27,7 @@ interface Props {
 
 export function AssetExportActions({ assets, kpis, maintenanceSchedules, assignmentMap = {}, companyName, companyNit, companyAddress, companyPhone, logoUrl }: Props) {
     const reportOptions = {
-        title: 'Inventario Activos IT',
+        title: 'Inventario de Activos Corporativos',
         companyName,
         companyNit,
         companyAddress,

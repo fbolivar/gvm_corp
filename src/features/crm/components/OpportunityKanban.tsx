@@ -23,6 +23,9 @@ interface Props {
 }
 
 const STAGES: OpportunityStage[] = ['PROSPECTING', 'QUALIFICATION', 'PROPOSAL', 'NEGOTIATION', 'CLOSED_WON', 'CLOSED_LOST'];
+// Escalera de avance/retroceso: SOLO etapas abiertas + ganada al final.
+// CLOSED_LOST queda fuera de la escalera lineal (se marca con acción explícita).
+const OPEN_LADDER: OpportunityStage[] = ['PROSPECTING', 'QUALIFICATION', 'PROPOSAL', 'NEGOTIATION', 'CLOSED_WON'];
 
 const STAGE_LABELS: Record<OpportunityStage, string> = {
     'PROSPECTING': 'Prospección',
@@ -54,34 +57,46 @@ const STAGE_ICONS: Record<OpportunityStage, React.ComponentType<{ className?: st
 export function OpportunityKanban({ initialOpportunities }: Props) {
     const [opportunities, setOpportunities] = useState(initialOpportunities);
 
-    const handleMove = async (id: string, direction: 'NEXT' | 'PREV') => {
+    // Aplica una etapa concreta con actualización optimista + reversión en error.
+    const applyStage = async (id: string, newStage: OpportunityStage) => {
         const opportunity = opportunities.find(o => o.id === id);
         if (!opportunity) return;
 
-        const currentIndex = STAGES.indexOf(opportunity.stage as OpportunityStage);
-        const newIndex = direction === 'NEXT' ? currentIndex + 1 : currentIndex - 1;
-
-        if (newIndex < 0 || newIndex >= STAGES.length) return;
-
-        const newStage = STAGES[newIndex];
+        const prevStage = opportunity.stage;
+        const prevProbability = opportunity.probability;
         const newProbability = crmService.getStageProbability(newStage);
 
-        // Optimistic update — stage + probability
         setOpportunities(prev => prev.map(o =>
             o.id === id ? { ...o, stage: newStage, probability: newProbability } : o
         ));
 
-        const result = await updateOpportunityStageAction(id as string, newStage);
+        const result = await updateOpportunityStageAction(id, newStage);
 
         if (result?.error) {
             toast.error("Error al mover la oportunidad");
             setOpportunities(prev => prev.map(o =>
-                o.id === id ? { ...o, stage: opportunity.stage, probability: opportunity.probability } : o
+                o.id === id ? { ...o, stage: prevStage, probability: prevProbability } : o
             ));
         } else {
             toast.success(`Movida a ${STAGE_LABELS[newStage]} (${newProbability}%)`);
         }
     };
+
+    // Avanzar/retroceder DENTRO de la escalera de etapas abiertas.
+    const handleMove = (id: string, direction: 'NEXT' | 'PREV') => {
+        const opportunity = opportunities.find(o => o.id === id);
+        if (!opportunity) return;
+
+        const idx = OPEN_LADDER.indexOf(opportunity.stage as OpportunityStage);
+        if (idx === -1) return; // Etapa cerrada: no navega por la escalera
+        const newIndex = direction === 'NEXT' ? idx + 1 : idx - 1;
+        if (newIndex < 0 || newIndex >= OPEN_LADDER.length) return;
+
+        applyStage(id, OPEN_LADDER[newIndex]);
+    };
+
+    const handleLose = (id: string) => applyStage(id, 'CLOSED_LOST');
+    const handleReopen = (id: string) => applyStage(id, 'PROSPECTING');
 
     const getColumnTotal = (stage: string) => {
         return opportunities
@@ -121,6 +136,8 @@ export function OpportunityKanban({ initialOpportunities }: Props) {
                                             key={String(opp.id)}
                                             opportunity={opp}
                                             onMove={handleMove}
+                                            onLose={handleLose}
+                                            onReopen={handleReopen}
                                         />
                                     ))}
                                     {stageOpps.length === 0 && (

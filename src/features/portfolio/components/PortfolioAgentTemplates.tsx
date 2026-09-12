@@ -72,8 +72,8 @@ export function PortfolioAgentTemplates({ config, onUpdate }: Props) {
 
     return (
         <Card className="border-none shadow-premium overflow-hidden bg-white rounded-[2.5rem]">
-            <CardHeader className="p-10 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div>
+            <CardHeader className="p-10 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="min-w-0">
                     <CardTitle className="text-2xl font-black italic tracking-tighter uppercase flex items-center gap-3">
                         <Mail className="w-6 h-6 text-indigo-500" />
                         Scripting de Cobranza
@@ -82,7 +82,7 @@ export function PortfolioAgentTemplates({ config, onUpdate }: Props) {
                         Personaliza los protocolos de comunicación por tono
                     </p>
                 </div>
-                <div className="flex gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap gap-3 w-full lg:w-auto">
                     <Button variant="outline" size="lg" onClick={handleSendTest} className="rounded-full border-2 border-slate-100 hover:border-indigo-100 transition-all font-black uppercase text-[10px] tracking-widest flex-1 md:flex-none">
                         <Send className="w-4 h-4 mr-2" />
                         Prueba

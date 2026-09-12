@@ -244,6 +244,14 @@ interface CreateEmployeeInput {
     salary: number;
     transport_allowance: boolean;
     risk_level: string;
+    eps_name?: string | null;
+    arl_name?: string | null;
+    commissions?: number;
+    collection_commissions?: number;
+    additional_allowances?: number;
+    mobility_allowance?: number;
+    non_salary_bonus?: number;
+    salary_bonus?: number;
     payment_method: string;
     bank_name?: string | null;
     bank_account_type?: string | null;
@@ -261,7 +269,43 @@ export async function createEmployeeAction(input: CreateEmployeeInput): Promise<
     const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id');
     if (tenantErr || !tenantId) return { success: false, error: 'No se pudo obtener el tenant' };
 
-    const admin = createAdminClient();
+    // Pasamos el usuario que actúa para que la auditoría lo registre (no "Sistema").
+    const admin = createAdminClient(user.id);
+
+    // Auto-vincular cuenta de usuario para habilitar el acceso a "Mi Nómina".
+    // Si no llega un user_id explícito pero el email del colaborador coincide con
+    // un usuario existente del tenant (que aún no esté vinculado a otro empleado),
+    // se enlaza automáticamente. Es aditivo y a prueba de fallos: si algo falla o
+    // no hay coincidencia, el enrolamiento continúa igual, sin vínculo.
+    let resolvedUserId: string | null = input.user_id ?? null;
+    if (!resolvedUserId && input.party.email) {
+        try {
+            const email = input.party.email.trim().toLowerCase();
+            const { data: tenantUsers } = await admin
+                .from('user_tenants')
+                .select('user_id')
+                .eq('tenant_id', tenantId);
+            const userIds = (tenantUsers ?? []).map(u => u.user_id as string);
+            if (userIds.length && email) {
+                const { data: matches } = await admin
+                    .from('profiles')
+                    .select('id, email')
+                    .in('id', userIds)
+                    .ilike('email', email);
+                const candidate = (matches ?? [])[0]?.id as string | undefined;
+                if (candidate) {
+                    const { data: alreadyLinked } = await admin
+                        .from('employees')
+                        .select('id')
+                        .eq('user_id', candidate)
+                        .maybeSingle();
+                    if (!alreadyLinked) resolvedUserId = candidate;
+                }
+            }
+        } catch (e) {
+            console.error('[createEmployee] auto-vinculación por email falló (no crítico):', e);
+        }
+    }
 
     // 1. Find or create party (upsert to handle races)
     const { data: party, error: partyError } = await admin
@@ -293,21 +337,22 @@ export async function createEmployeeAction(input: CreateEmployeeInput): Promise<
         .maybeSingle();
 
     if (existingEmployee) {
-        // If enrolling from team settings (user_id provided), link existing employee
-        if (input.user_id && !existingEmployee.user_id) {
+        // If we have a user to link (explicit or resolved by email), link existing employee
+        if (resolvedUserId && !existingEmployee.user_id) {
             const { error: linkErr } = await admin
                 .from('employees')
-                .update({ user_id: input.user_id, status: 'ACTIVE' })
+                .update({ user_id: resolvedUserId, status: 'ACTIVE' })
                 .eq('id', existingEmployee.id);
 
             if (linkErr) return { success: false, error: linkErr.message || 'Error vinculando usuario' };
 
             revalidatePath('/payroll/employees');
+            revalidatePath('/my-payroll');
             return { success: true, id: existingEmployee.id };
         }
 
         // Already linked to this same user
-        if (input.user_id && existingEmployee.user_id === input.user_id) {
+        if (resolvedUserId && existingEmployee.user_id === resolvedUserId) {
             revalidatePath('/payroll/employees');
             return { success: true, id: existingEmployee.id };
         }
@@ -328,6 +373,14 @@ export async function createEmployeeAction(input: CreateEmployeeInput): Promise<
         salary: input.salary,
         transport_allowance: input.transport_allowance ?? true,
         risk_level: input.risk_level || '1',
+        eps_name: input.eps_name?.trim() || null,
+        arl_name: input.arl_name?.trim() || null,
+        commissions: input.commissions ?? 0,
+        collection_commissions: input.collection_commissions ?? 0,
+        additional_allowances: input.additional_allowances ?? 0,
+        mobility_allowance: input.mobility_allowance ?? 0,
+        non_salary_bonus: input.non_salary_bonus ?? 0,
+        salary_bonus: input.salary_bonus ?? 0,
         payment_method: input.payment_method || 'CASH',
         bank_name: input.bank_name || null,
         bank_account_type: input.bank_account_type || null,
@@ -335,8 +388,8 @@ export async function createEmployeeAction(input: CreateEmployeeInput): Promise<
         status: 'ACTIVE',
     };
 
-    if (input.user_id) {
-        employeeData.user_id = input.user_id;
+    if (resolvedUserId) {
+        employeeData.user_id = resolvedUserId;
     }
 
     const { data: newEmployee, error: empError } = await admin
@@ -355,6 +408,7 @@ export async function createEmployeeAction(input: CreateEmployeeInput): Promise<
     if (!newEmployee) return { success: false, error: 'No se obtuvo respuesta al crear empleado' };
 
     revalidatePath('/payroll/employees');
+    if (resolvedUserId) revalidatePath('/my-payroll');
     return { success: true, id: newEmployee.id };
 }
 
@@ -364,7 +418,7 @@ export async function deactivateEmployeeAction(employeeId: string): Promise<{ su
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'No autenticado' };
 
-    const admin = createAdminClient();
+    const admin = createAdminClient(user.id);
 
     // Verify employee exists and belongs to user's tenant
     const { data: tenantId } = await supabase.rpc('get_my_tenant_id');

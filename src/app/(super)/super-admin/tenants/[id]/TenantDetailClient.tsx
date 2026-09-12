@@ -303,7 +303,7 @@ function InfoSection({ detail, onEdit }: { detail: TenantDetail; onEdit: () => v
         <h2 className="text-sm font-black uppercase tracking-wider text-slate-700 mb-5">
           Resumen
         </h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <MiniStat label="Usuarios" value={detail.users.length} icon={Users} color="purple" />
           <MiniStat label="Documentos" value={detail.stats.total_documents} icon={FileText} color="blue" />
           <MiniStat label="Terceros" value={detail.stats.total_parties} icon={UserCircle2} color="emerald" />
@@ -383,7 +383,7 @@ function LicenseSection({
         <h2 className="text-sm font-black uppercase tracking-wider text-slate-700 mb-5">
           Modulos habilitados ({license.modules_enabled.length})
         </h2>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ALL_MODULES.map(m => {
             const enabled = license.modules_enabled.includes(m)
             return (
@@ -468,6 +468,7 @@ function UsersSection({
           No hay usuarios en este tenant
         </div>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-slate-50 text-left">
@@ -548,6 +549,7 @@ function UsersSection({
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )
@@ -644,8 +646,8 @@ function EditTenantModal({
           onChange={v => setForm(p => ({ ...p, name: v }))}
           placeholder="EMPRESA S.A.S"
         />
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-2">
             <ModalField
               label="NIT"
               value={form.nit}
@@ -798,7 +800,7 @@ function EditLicenseModal({
   return (
     <ModalWrapper title="Editar Licencia" onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="lic-plan" className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1">Plan</label>
             <select
@@ -827,7 +829,7 @@ function EditLicenseModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <ModalField
             label="Valida hasta"
             type="date"
@@ -846,7 +848,7 @@ function EditLicenseModal({
           <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-3">
             Modulos ({form.modules_enabled.length}/{ALL_MODULES.length})
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {ALL_MODULES.map(m => (
               <label
                 key={m}

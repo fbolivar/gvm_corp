@@ -15,19 +15,19 @@ export default async function NewRecurringInvoicePage() {
 
     return (
         <div className="space-y-12 pb-24 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <div className="flex items-center justify-between px-1">
-                <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-4 px-1">
+                <div className="min-w-0 space-y-2">
                     <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
                             <RefreshCw className="h-6 w-6" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <h1 className="text-3xl font-black tracking-tight text-slate-900">Nueva Recurrencia</h1>
                             <p className="text-slate-400 font-bold text-sm uppercase tracking-widest mt-1">Configurar plantilla de facturación automática</p>
                         </div>
                     </div>
                 </div>
-                <Button variant="outline" className="h-12 border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest" asChild>
+                <Button variant="outline" className="h-12 border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest shrink-0" asChild>
                     <Link href="/sales/recurring"><ArrowLeft className="h-4 w-4 mr-2" />Volver</Link>
                 </Button>
             </div>

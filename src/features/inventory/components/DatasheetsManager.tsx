@@ -12,6 +12,7 @@ import {
     deleteDatasheetAction,
     type Datasheet,
 } from "../actions/datasheetActions"
+import { Hint } from "@/shared/components/ui/hint"
 
 interface ProductItem { id: string; name: string; sku?: string }
 
@@ -143,9 +144,11 @@ export function DatasheetsManager({ products }: { products: ProductItem[] }) {
                                     <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs gap-1.5" onClick={() => handleView(s.id)}>
                                         <Eye className="h-3.5 w-3.5" /> Ver
                                     </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-600" onClick={() => handleDelete(s.id, s.name)}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                    <Hint label="Eliminar" side="left">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-600" onClick={() => handleDelete(s.id, s.name)}>
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </Hint>
                                 </li>
                             ))}
                         </ul>

@@ -302,8 +302,8 @@ export default function EditOrderClient({ orderId, poNumber, initialData, partie
             {/* ── PRODUCT LINES CARD ─────────────────────────────────────── */}
             <Card className="rounded-[3rem] border-none bg-white shadow-premium overflow-hidden">
                 <CardHeader className="p-10 pb-4">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <CardTitle className="min-w-0 text-2xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
                             <div className="h-12 w-12 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-active">
                                 <ShoppingCart className="h-6 w-6" />
                             </div>
@@ -475,7 +475,7 @@ function LineRow({ index, form, products, currency, onProductSelect, onRemove }:
 
                 <div>
                     <Input
-                        type="number" step="0.01" min="0.01" placeholder="Cant."
+                        type="number" step="any" min="0.01" placeholder="Cant."
                         {...form.register(`lines.${index}.qty`, { valueAsNumber: true })}
                         className="h-12 text-right bg-white border-none rounded-xl font-bold text-slate-900 shadow-inner focus:ring-4 focus:ring-primary/5 text-sm tabular-nums"
                     />

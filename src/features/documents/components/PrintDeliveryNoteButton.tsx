@@ -42,7 +42,7 @@ export function PrintDeliveryNoteButton({ docId }: { docId: string }) {
         <Button
             variant="outline"
             onClick={handlePrint}
-            className="h-14 rounded-[1.25rem] border-slate-100 bg-white shadow-sm px-8 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
+            className="h-11 rounded-xl border-slate-100 bg-white shadow-sm px-4 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
         >
             <Printer className="mr-3 h-4 w-4" />
             Imprimir remisión

@@ -6,22 +6,27 @@ import { Search, CalendarDays, X, Filter } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { cn } from "@/shared/lib/utils"
 
+// Por defecto la lista NO muestra anulados (conservan consecutivo y ensuciaban
+// la pantalla). 'ALL' es la vía explícita para verlo todo.
 const STATUS_OPTIONS = [
-    { value: '', label: 'Todos los estados' },
+    { value: '', label: 'Activos (sin anulados)' },
     { value: 'DRAFT', label: 'Borrador' },
     { value: 'SENT', label: 'Confirmado' },
     { value: 'ACCEPTED', label: 'Facturado' },
-    { value: 'VOIDED', label: 'Anulado' },
+    { value: 'VOIDED', label: 'Solo anulados' },
+    { value: 'ALL', label: 'Todos (incluye anulados)' },
 ]
 
 interface Props {
     defaultSearch?: string
     defaultStatus?: string
+    defaultWarehouse?: string
     defaultFrom?: string
     defaultTo?: string
+    warehouses?: { id: string; name: string }[]
 }
 
-export function SalesOrderFiltersBar({ defaultSearch, defaultStatus, defaultFrom, defaultTo }: Props) {
+export function SalesOrderFiltersBar({ defaultSearch, defaultStatus, defaultWarehouse, defaultFrom, defaultTo, warehouses = [] }: Props) {
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
@@ -40,7 +45,7 @@ export function SalesOrderFiltersBar({ defaultSearch, defaultStatus, defaultFrom
         })
     }, [router, pathname, searchParams])
 
-    const hasFilters = !!(defaultSearch || defaultStatus || defaultFrom || defaultTo)
+    const hasFilters = !!(defaultSearch || defaultStatus || defaultWarehouse || defaultFrom || defaultTo)
 
     const clearAll = () => {
         startTransition(() => {
@@ -84,6 +89,20 @@ export function SalesOrderFiltersBar({ defaultSearch, defaultStatus, defaultFrom
                         <option key={o.value} value={o.value}>{o.label}</option>
                     ))}
                 </select>
+
+                {/* Warehouse */}
+                {warehouses.length > 0 && (
+                    <select
+                        defaultValue={defaultWarehouse ?? ''}
+                        className="h-9 bg-slate-50 border border-slate-200 rounded-xl px-3 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 max-w-[180px]"
+                        onChange={(e) => update('warehouse', e.target.value)}
+                    >
+                        <option value="">Todas las bodegas</option>
+                        {warehouses.map(w => (
+                            <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                    </select>
+                )}
 
                 {/* Date range */}
                 <div className="flex items-center gap-2">

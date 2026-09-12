@@ -93,6 +93,27 @@ export async function updateAssetAction(id: string, formData: FormData) {
     revalidatePath(`/technology/${id}`);
 }
 
+export async function deleteAssetAction(id: string): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'No autenticado' };
+
+    const asset = await technologyService.getAssetById(supabase, id);
+    if (!asset) return { success: false, error: 'Activo no encontrado' };
+
+    // Se permite eliminar aunque esté asignado (p. ej. para borrar duplicados).
+    // Las asignaciones y mantenimientos asociados se borran en cascada (FK ON DELETE CASCADE).
+    try {
+        await technologyService.deleteAsset(supabase, id);
+        revalidatePath('/technology');
+        return { success: true };
+    } catch (e) {
+        const message = e instanceof Error ? e.message : 'No se pudo eliminar el activo';
+        console.error('[deleteAssetAction]', e);
+        return { success: false, error: message };
+    }
+}
+
 export async function assignAssetAction(formData: FormData) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
