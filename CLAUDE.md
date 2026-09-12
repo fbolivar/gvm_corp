@@ -5,6 +5,43 @@
 
 ---
 
+## 🏢 Contexto de la Aplicación: GVM Corp
+
+> **Qué es**: ERP SaaS multi-tenant para **GVM S.A.S** (Global Veterinary Medicine, Colombia). Producción en `https://app.bc-security.com` (Vercel, región Oregon). Idioma de trabajo: **español**.
+
+**Situación de negocio**: el cliente está migrando desde **WorldOffice (WO)** por fases con su contador (Andrés). Facturación electrónica DIAN en modo mock hasta terminar la migración; las facturas reales siguen en WO, en la app se opera con pedidos (`SALES_ORDER`) y remisiones. Admin: `fbolivarb@gmail.com` (rol SUPER ADMINISTRADOR).
+
+**Stack real**: Next.js 16 + React 19 + TypeScript, Tailwind, Supabase (proyecto `qoivnsnugfblfebrpifq`, ~120 migraciones en `supabase/migrations/`), Zustand, Zod, Vercel AI SDK + OpenRouter, Vitest. Deploy manual con `npx vercel --prod --yes` (git push NO despliega). Skew Protection activa en Vercel.
+
+**Mapa de rutas** (`src/app/`): `(main)/` app autenticada · `(auth)/` login por usuario `nombre.apellido` · `(print)/` plantillas A4 (no tocar responsive) · `(public)/`, `pay/[token]`, `terminal/[token]` páginas públicas por token (enviar SOLO lo mínimo al cliente) · `(super)/` super-admin multi-tenant · `api/` route handlers (cron, kiosk, team, version, OData).
+
+**Módulos** (`src/features/` ↔ `src/app/(main)/`):
+
+| Área | Qué hace | Features clave |
+|------|----------|----------------|
+| Ventas | Cotización → pedido → factura (`convertDocumentAction`), remisiones, NC/ND, listas de precios, multi-divisa, portal cliente, link de pago | `sales`, `documents`, `pricing`, `client-portal`, `payments` |
+| Compras | OC (`OC-`), recepción a inventario, devoluciones, ACH proveedores, portal proveedor | `purchasing`, `vendor-portal` |
+| Inventario | `product_stock` es VISTA sobre `inventory_movements`; lotes FEFO, ubicaciones, seriales, traslados entre bodegas (stock se descuenta al RECIBIR), fichas técnicas, ABC | `inventory`, `products`, `warehouse-transfers`, `catalog`, `logistics`, `production` |
+| Terceros / CRM | 6.5k terceros importados de WO (5.437 proveedores / 1.416 clientes), leads, contratos | `parties`, `crm`, `contracts` |
+| Contabilidad | Contabilización automática de ventas (motor + 757 reglas del contador, ReteICA/retenciones), 30+ reportes, activos fijos y depreciación, cierre de períodos, medios magnéticos, presupuesto | `accounting`, `taxes`, `budget`, `dian` |
+| Tesorería | Cuentas, conciliación bancaria (importa extractos), retenciones (`transaction_withholdings`), cartera | `treasury`, `portfolio` |
+| Nómina / RRHH | Nómina consolidada, ausencias, horas extra, capacitación, carnets QR con foto, kiosco de asistencia (`/terminal/[token]`, HMAC `KIOSK_QR_SECRET`, traza por terminal), portal `my-payroll`. **Salarios protegidos por RLS** | `payroll`, `training`, `academy` |
+| Gestión comercial | Viáticos/viajes multi-concepto con aprobación (JEFE ADMINISTRATIVO) | `commercial` |
+| Soporte | Tickets → HexDesk (API key + webhook HMAC), encuestas de satisfacción, centro de ayuda | `support`, `help` |
+| Transversal | Gobernanza: 28 roles / 12 módulos / permisos por rol (`role_permissions`), RLS 100%, `team_admins`; auditoría con actor; backups `.gvm` cifrados (`GVM_BACKUP_KEY`); chat interno realtime; copiloto AI; notificaciones; activos corporativos; importadores WO; PWA; Power BI OData; búsqueda global | `settings`, `super-admin`, `collaboration`, `ai`, `notifications`, `technology`, `import`, `analytics`, `search`, `dashboard` |
+
+**Reglas de datos que NO se ven en el código**:
+- El cliente de Supabase NO está tipado contra el esquema: `npm run preflight` (typecheck + `audit:schema` + tests) antes de cada deploy; regenerar `scripts/schema-snapshot.json` tras cada migración.
+- RPC de tenant: `get_my_tenant_id()` (no existe `get_current_tenant_id`).
+- Fechas date-only son Bogotá (UTC-5): usar `src/shared/lib/dateFmt.ts`.
+- Numeración de documentos por trigger en BD según `doc_type`.
+- PDFs con el kit `src/shared/lib/pdfKit.ts` (color de marca `#0096E6`).
+- Anular conserva consecutivo: las listas filtran `hide_voided` por defecto.
+
+Material de referencia del cliente (exports WO, revisiones del contador) en `docs/`; scripts de migración en `scripts/wo-import/`.
+
+---
+
 ## 🎯 Principios Fundamentales
 
 ### Henry Ford
