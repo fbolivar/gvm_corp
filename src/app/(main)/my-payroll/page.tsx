@@ -10,6 +10,7 @@ import { OvertimePanel } from "@/features/payroll/components/OvertimePanel"
 import { CertificateButtons } from "@/features/payroll/components/CertificateButtons"
 import { AbsenceRequestForm } from "@/features/payroll/components/AbsenceRequestForm"
 import { MyTrainings } from "@/features/training/components/MyTrainings"
+import { MyPerformanceResults, type PerformanceResult } from "@/features/performance/components/MyPerformanceResults"
 import { trainingService } from "@/features/training/services/trainingService"
 import { MyAssets } from "@/features/technology/components/MyAssets"
 import { technologyService } from "@/features/technology/services/technologyService"
@@ -73,6 +74,10 @@ export default async function MyPayrollPage() {
         // por SU employee.id (la RLS de it_assets no contempla al empleado final).
         technologyService.getAssignmentsByEmployee(admin, employee.id!).catch(() => []),
     ])
+
+    // Solo resultados cerrados, por la función de la base (sin recomendaciones ni aprobaciones).
+    const { data: performanceResults, error: performanceError } = await supabase.rpc('my_performance_results')
+    if (performanceError) console.error('[my-payroll] resultados de desempeño:', performanceError.message)
 
     return (
         <div className="space-y-8 pb-16 animate-in fade-in duration-500 px-4 md:px-0">
@@ -213,6 +218,18 @@ export default async function MyPayrollPage() {
                         </div>
                         <MyTrainings records={trainings} />
                     </section>
+
+                    {/* PERFORMANCE SECTION */}
+                    {Array.isArray(performanceResults) && performanceResults.length > 0 && (
+                        <section className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="h-px flex-1 bg-slate-100" />
+                                <h2 className="text-xs font-semibold text-indigo-500 uppercase tracking-wide shrink-0 px-3">Mi Evaluación de Desempeño</h2>
+                                <div className="h-px flex-1 bg-slate-100" />
+                            </div>
+                            <MyPerformanceResults results={performanceResults as PerformanceResult[]} />
+                        </section>
+                    )}
 
                     {/* CORPORATE ASSETS SECTION */}
                     <section className="space-y-4">
