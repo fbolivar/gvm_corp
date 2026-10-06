@@ -66,7 +66,7 @@ export default async function PerformancePage() {
             startDate: e.start_date as string,
         }));
 
-    const evaluatorOptions = canCreate ? await getEvaluatorOptions(tenant.id as string) : [];
+    const evaluatorOptions = canCreate ? await getEvaluatorOptions(tenant.id as string, user.id) : [];
 
     const today = bogotaDateString();
 

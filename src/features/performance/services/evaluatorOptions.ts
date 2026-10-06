@@ -4,7 +4,7 @@ import { HIGH_LEVEL_ROLES } from '@/shared/lib/moduleGuard';
 export interface EvaluatorOption { id: string; name: string }
 
 /** Personas del tenant autorizadas para evaluar (rol de alto nivel o can_edit en payroll:performance). */
-export async function getEvaluatorOptions(tenantId: string): Promise<EvaluatorOption[]> {
+export async function getEvaluatorOptions(tenantId: string, excludeUserId?: string): Promise<EvaluatorOption[]> {
     const admin = createAdminClient();
     const [{ data: members }, { data: perms }] = await Promise.all([
         admin.from('user_tenants').select('user_id, role, role_id, status').eq('tenant_id', tenantId).eq('status', 'active'),
@@ -12,7 +12,8 @@ export async function getEvaluatorOptions(tenantId: string): Promise<EvaluatorOp
     ]);
     const allowedRoles = new Set((perms ?? []).map(p => p.role_id as string));
     const eligible = (members ?? []).filter(m =>
-        HIGH_LEVEL_ROLES.includes((m.role as string) || '') || allowedRoles.has(m.role_id as string)
+        m.user_id !== excludeUserId
+        && (HIGH_LEVEL_ROLES.includes((m.role as string) || '') || allowedRoles.has(m.role_id as string))
     );
     if (!eligible.length) return [];
 

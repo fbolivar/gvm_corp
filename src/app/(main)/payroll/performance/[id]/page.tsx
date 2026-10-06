@@ -103,7 +103,7 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
 
     const showEvaluatorManagement = isAnnual && isManager && isOpen;
     const evaluatorOptions = showEvaluatorManagement
-        ? (await getEvaluatorOptions(tenant.id as string)).filter(o => !evaluators.some(e => e.id === o.id))
+        ? (await getEvaluatorOptions(tenant.id as string, user.id)).filter(o => !evaluators.some(e => e.id === o.id))
         : [];
 
     return (
