@@ -110,3 +110,48 @@ export async function submitAnnualEvaluationAction(input: unknown): Promise<Acti
     return { success: true, value: data as string };
 }
 
+
+export async function requestSalaryIncreaseAction(evaluationId: unknown): Promise<ActionResult> {
+    const ctx = await requireEvaluatorContext();
+    if ('error' in ctx) return { error: ctx.error };
+
+    const parsed = z.string().uuid().safeParse(evaluationId);
+    if (!parsed.success) return { error: 'Evaluación inválida' };
+
+    const { error } = await ctx.supabase.rpc('request_salary_increase', { p_evaluation: parsed.data });
+    if (error) return { error: error.message };
+
+    revalidateAll(parsed.data);
+    return { success: true };
+}
+
+export async function decideSalaryIncreaseAction(approvalId: unknown, approve: unknown): Promise<ActionResult> {
+    const ctx = await requireEvaluatorContext();
+    if ('error' in ctx) return { error: ctx.error };
+
+    const parsed = z.object({ id: z.string().uuid(), approve: z.boolean() }).safeParse({ id: approvalId, approve });
+    if (!parsed.success) return { error: 'Solicitud inválida' };
+
+    const { error } = await ctx.supabase.rpc('decide_salary_increase', {
+        p_id: parsed.data.id,
+        p_approve: parsed.data.approve,
+    });
+    if (error) return { error: error.message };
+
+    revalidateAll();
+    return { success: true };
+}
+
+export async function applySalaryIncreaseAction(approvalId: unknown): Promise<ActionResult & { value?: number }> {
+    const ctx = await requireEvaluatorContext();
+    if ('error' in ctx) return { error: ctx.error };
+
+    const parsed = z.string().uuid().safeParse(approvalId);
+    if (!parsed.success) return { error: 'Solicitud inválida' };
+
+    const { data, error } = await ctx.supabase.rpc('apply_salary_increase', { p_id: parsed.data });
+    if (error) return { error: error.message };
+
+    revalidateAll();
+    return { success: true, value: Number(data) };
+}

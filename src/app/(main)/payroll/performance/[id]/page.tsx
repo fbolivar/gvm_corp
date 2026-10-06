@@ -5,6 +5,7 @@ import { partyName, canEvaluate } from '@/features/performance/services/performa
 import { getEvaluatorOptions } from '@/features/performance/services/evaluatorOptions';
 import { ProbationEvaluationForm } from '@/features/performance/components/ProbationEvaluationForm';
 import { AnnualEvaluatorsForm } from '@/features/performance/components/AnnualEvaluatorsForm';
+import { SalaryIncreasePanel, type SalaryApproval } from '@/features/performance/components/SalaryIncreasePanel';
 import { OUTCOME_LABEL } from '@/features/performance/types';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { Button } from '@/shared/components/ui/button';
@@ -58,6 +59,14 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
     const isManager = await canEvaluate(supabase, tenant.id as string, user.id);
     const { data: recommendation } = isAnnual && isManager
         ? await supabase.from('performance_salary_recommendations').select('pct').eq('evaluation_id', id).maybeSingle()
+        : { data: null };
+    const { data: canDecide } = isAnnual ? await supabase.rpc('is_salary_approver') : { data: false };
+    const { data: approval } = isAnnual && canDecide === true
+        ? await supabase
+            .from('salary_increase_approvals')
+            .select('id, status, previous_salary, new_salary, pct')
+            .eq('evaluation_id', id)
+            .maybeSingle()
         : { data: null };
 
     let evaluators: { id: string; status: string; weight: number; name: string }[] = [];
@@ -180,8 +189,23 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
                             <p className="text-base font-bold text-slate-900">
                                 {recommendation ? `${Number(recommendation.pct)}%` : '—'}
                             </p>
-                            <p className="text-xs text-slate-500">Calculada por bandas según la calificación final. No modifica el salario.</p>
+                            <p className="text-xs text-slate-500">Calculada por bandas según la calificación final.</p>
                         </div>
+                    )}
+                    {isAnnual && (isManager || canDecide === true) && (
+                        <SalaryIncreasePanel
+                            evaluationId={id}
+                            recommendedPct={recommendation ? Number(recommendation.pct) : null}
+                            approval={approval ? {
+                                id: approval.id as string,
+                                status: approval.status as SalaryApproval['status'],
+                                previousSalary: Number(approval.previous_salary),
+                                newSalary: Number(approval.new_salary),
+                                pct: Number(approval.pct),
+                            } : null}
+                            canRequest={isManager}
+                            canDecide={canDecide === true}
+                        />
                     )}
                 </div>
             )}
