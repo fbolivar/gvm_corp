@@ -6,6 +6,11 @@ export function addDaysISO(date: string, days: number): string {
     return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
+/** Ventana fija de la campaña anual: todo el mes de diciembre del año indicado. */
+export function annualCampaignWindow(year: number): { opensOn: string; closesOn: string } {
+    return { opensOn: `${year}-12-01`, closesOn: `${year}-12-31` };
+}
+
 /** Días completos entre dos fechas date-only (b − a). */
 export function diffDays(a: string, b: string): number {
     const [ay, am, ad] = a.split('-').map(Number);

@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { canEvaluate, partyName } from '@/features/performance/services/performanceService';
 import { ProbationCreateForm } from '@/features/performance/components/ProbationCreateForm';
 import { OUTCOME_LABEL, PROBATION_DAYS } from '@/features/performance/types';
-import { HIGH_LEVEL_ROLES } from '@/shared/lib/moduleGuard';
+import { annualCampaignWindow } from '@/features/performance/utils/dates';
+import { AnnualCampaignPanel } from '@/features/performance/components/AnnualCampaignPanel';
+import { getEvaluatorOptions } from '@/features/performance/services/evaluatorOptions';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { bogotaDateString } from '@/features/payroll/utils/bogotaTime';
 import { Button } from '@/shared/components/ui/button';
@@ -65,26 +66,47 @@ export default async function PerformancePage() {
             startDate: e.start_date as string,
         }));
 
-    let evaluatorOptions: { id: string; name: string }[] = [];
-    if (canCreate) {
-        const admin = createAdminClient();
-        const [{ data: members }, { data: perms }] = await Promise.all([
-            admin.from('user_tenants').select('user_id, role, role_id, status').eq('tenant_id', tenant.id).eq('status', 'active'),
-            admin.from('role_permissions').select('role_id').eq('module_key', 'payroll:performance').eq('can_edit', true),
-        ]);
-        const allowedRoles = new Set((perms ?? []).map(p => p.role_id as string));
-        const eligible = (members ?? []).filter(m =>
-            HIGH_LEVEL_ROLES.includes((m.role as string) || '') || allowedRoles.has(m.role_id as string)
-        );
-        const { data: profiles } = await admin
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', eligible.map(m => m.user_id as string));
-        const names = new Map((profiles ?? []).map(p => [p.id as string, (p.full_name as string) || 'Sin nombre']));
-        evaluatorOptions = eligible.map(m => ({ id: m.user_id as string, name: names.get(m.user_id as string) ?? 'Sin nombre' }));
-    }
+    const evaluatorOptions = canCreate ? await getEvaluatorOptions(tenant.id as string) : [];
 
     const today = bogotaDateString();
+
+    const { data: campaignRow } = await supabase
+        .from('performance_campaigns')
+        .select('id, name, opens_on, closes_on')
+        .eq('status', 'OPEN')
+        .maybeSingle();
+    const openCampaign = campaignRow
+        ? { id: campaignRow.id as string, name: campaignRow.name as string, opensOn: campaignRow.opens_on as string, closesOn: campaignRow.closes_on as string }
+        : null;
+
+    type AnnualRow = {
+        id: string;
+        status: string;
+        final_score: number | null;
+        employee: { party: { legal_name: string } | { legal_name: string }[] | null } | { party: { legal_name: string } | { legal_name: string }[] | null }[] | null;
+    };
+    const annualRows = openCampaign
+        ? ((await supabase
+            .from('performance_evaluations')
+            .select('id, status, final_score, employee:employees(party:parties(legal_name))')
+            .eq('campaign_id', openCampaign.id)).data ?? []) as unknown as AnnualRow[]
+        : [];
+    const annualIds = annualRows.map(r => r.id);
+    const { data: annualEvaluators } = annualIds.length
+        ? await supabase.from('performance_evaluators').select('evaluation_id, status').in('evaluation_id', annualIds)
+        : { data: [] as { evaluation_id: string; status: string }[] };
+    const { data: recommendationRows } = canCreate && annualIds.length
+        ? await supabase.from('performance_salary_recommendations').select('evaluation_id, pct').in('evaluation_id', annualIds)
+        : { data: [] as { evaluation_id: string; pct: number }[] };
+    const recommendationById = new Map((recommendationRows ?? []).map(r => [r.evaluation_id as string, Number(r.pct)]));
+    const evaluatorStats = new Map<string, { total: number; done: number }>();
+    for (const ev of annualEvaluators ?? []) {
+        const s = evaluatorStats.get(ev.evaluation_id as string) ?? { total: 0, done: 0 };
+        s.total += 1;
+        if (ev.status === 'DONE') s.done += 1;
+        evaluatorStats.set(ev.evaluation_id as string, s);
+    }
+    const windowDefaults = annualCampaignWindow(new Date().getUTCFullYear());
 
     return (
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
@@ -98,6 +120,58 @@ export default async function PerformancePage() {
                         subtitle={`Período de prueba (${PROBATION_DAYS} días)`}
                         tenant={tenant}
                     />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="col-span-12 lg:col-span-4">
+                    <AnnualCampaignPanel
+                        openCampaign={openCampaign}
+                        defaultWindow={windowDefaults}
+                        defaultName={`Evaluación anual ${new Date().getUTCFullYear()}`}
+                        canManage={canCreate}
+                    />
+                </div>
+                <div className="col-span-12 lg:col-span-8">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
+                                <tr>
+                                    <th className="text-left px-4 py-3">Empleado (anual)</th>
+                                    <th className="text-left px-4 py-3">Evaluadores</th>
+                                    <th className="text-left px-4 py-3">Estado</th>
+                                    <th className="text-left px-4 py-3">Final</th>
+                                    <th className="text-left px-4 py-3">Recomendación</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {annualRows.length === 0 && (
+                                    <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Sin evaluaciones anuales en la campaña abierta</td></tr>
+                                )}
+                                {annualRows.map(r => {
+                                    const emp = Array.isArray(r.employee) ? r.employee[0] : r.employee;
+                                    const st = evaluatorStats.get(r.id) ?? { total: 0, done: 0 };
+                                    return (
+                                        <tr key={r.id} className="hover:bg-slate-50">
+                                            <td className="px-4 py-3">
+                                                <Link href={`/payroll/performance/${r.id}`} className="font-medium text-slate-900 hover:underline">
+                                                    {partyName(emp?.party ?? null)}
+                                                </Link>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-600 tabular-nums">{st.done}/{st.total}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_CLASS[r.status] ?? ''}`}>
+                                                    {r.status === 'CLOSED' ? 'Cerrada' : r.status === 'IN_PROGRESS' ? 'En curso' : 'Pendiente'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 font-mono tabular-nums">{r.final_score !== null ? `${Number(r.final_score).toFixed(2)} / 5` : '—'}</td>
+                                            <td className="px-4 py-3 font-mono tabular-nums">{recommendationById.has(r.id) ? `${recommendationById.get(r.id)}%` : '—'}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

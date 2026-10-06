@@ -21,6 +21,34 @@ export const probationSubmitSchema = z.object({
     outcomeComments: z.string().max(2000).optional().nullable(),
 });
 
+const scoreItem = z.object({
+    criterionId: z.string().uuid(),
+    score: z.number().int().min(1).max(5),
+    comment: z.string().max(1000).optional().nullable(),
+});
+
+export const annualSubmitSchema = z.object({
+    evaluationId: z.string().uuid(),
+    scores: z.array(scoreItem).min(1),
+});
+
+export const annualCampaignSchema = z.object({
+    name: z.string().trim().min(3).max(120),
+    opensOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    closesOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export const addEvaluatorSchema = z.object({
+    evaluationId: z.string().uuid(),
+    evaluatorId: z.string().uuid(),
+    weight: z.number().positive().max(10),
+});
+
+export const recommendationSchema = z.object({
+    evaluationId: z.string().uuid(),
+    pct: z.number().min(0).max(100),
+});
+
 export const OUTCOME_LABEL: Record<string, string> = {
     MEETS: 'Cumple las condiciones del cargo',
     DOES_NOT_MEET: 'No cumple las condiciones del cargo',

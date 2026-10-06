@@ -3,26 +3,30 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitProbationEvaluationAction } from '../actions';
+import { submitAnnualEvaluationAction } from '../annualActions';
 import { Button } from '@/shared/components/ui/button';
 import { OUTCOME_LABEL, PROBATION_MIN_AVERAGE } from '../types';
 
 interface Criterion {
     id: string;
-    kind: 'COMPETENCY' | 'JOB_CONDITION';
+    kind: 'COMPETENCY' | 'JOB_CONDITION' | 'OBJECTIVE';
     criterion: string;
 }
 
 interface Props {
     evaluationId: string;
     criteria: Criterion[];
+    evalKind?: 'PROBATION' | 'ANNUAL';
 }
 
 const KIND_LABEL: Record<Criterion['kind'], string> = {
     COMPETENCY: 'Competencia',
     JOB_CONDITION: 'Condición del cargo',
+    OBJECTIVE: 'Objetivo',
 };
 
-export function ProbationEvaluationForm({ evaluationId, criteria }: Props) {
+export function ProbationEvaluationForm({ evaluationId, criteria, evalKind = 'PROBATION' }: Props) {
+    const isAnnual = evalKind === 'ANNUAL';
     const router = useRouter();
     const [scores, setScores] = useState<Record<string, number>>({});
     const [comments, setComments] = useState<Record<string, string>>({});
@@ -39,15 +43,14 @@ export function ProbationEvaluationForm({ evaluationId, criteria }: Props) {
     function submit() {
         setError(null);
         startTransition(async () => {
-            const res = await submitProbationEvaluationAction({
-                evaluationId,
-                scores: criteria.map(c => ({
-                    criterionId: c.id,
-                    score: scores[c.id],
-                    comment: comments[c.id] ?? null,
-                })),
-                outcomeComments,
-            });
+            const payloadScores = criteria.map(c => ({
+                criterionId: c.id,
+                score: scores[c.id],
+                comment: comments[c.id] ?? null,
+            }));
+            const res = isAnnual
+                ? await submitAnnualEvaluationAction({ evaluationId, scores: payloadScores })
+                : await submitProbationEvaluationAction({ evaluationId, scores: payloadScores, outcomeComments });
             if (res.error) {
                 setError(res.error);
                 return;
@@ -95,32 +98,44 @@ export function ProbationEvaluationForm({ evaluationId, criteria }: Props) {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4">
-                <p className="text-sm font-bold text-slate-900">Resultado del período de prueba</p>
+                <p className="text-sm font-bold text-slate-900">
+                    {isAnnual ? 'Tu calificación' : 'Resultado del período de prueba'}
+                </p>
                 <div className={`rounded-xl px-4 py-3 text-sm font-semibold ${
                     average === null
                         ? 'bg-slate-50 text-slate-500'
-                        : meets ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                        : isAnnual || meets ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
                 }`}>
                     {average === null
-                        ? `Califica todos los criterios para ver el resultado (mínimo ${PROBATION_MIN_AVERAGE.toFixed(1)} de promedio).`
-                        : `Promedio ${average.toFixed(2)} → ${meets ? OUTCOME_LABEL.MEETS : OUTCOME_LABEL.DOES_NOT_MEET}`}
+                        ? isAnnual
+                            ? 'Califica todos los criterios para ver tu promedio.'
+                            : `Califica todos los criterios para ver el resultado (mínimo ${PROBATION_MIN_AVERAGE.toFixed(1)} de promedio).`
+                        : isAnnual
+                            ? `Promedio ${average.toFixed(2)} sobre 5`
+                            : `Promedio ${average.toFixed(2)} → ${meets ? OUTCOME_LABEL.MEETS : OUTCOME_LABEL.DOES_NOT_MEET}`}
                 </div>
-                <textarea
-                    maxLength={2000}
-                    placeholder="Observaciones generales (opcional)"
-                    value={outcomeComments}
-                    onChange={e => setOutcomeComments(e.target.value)}
-                    className="w-full min-h-24 rounded-xl border border-slate-200 p-3 text-sm"
-                />
+                {!isAnnual && (
+                    <textarea
+                        maxLength={2000}
+                        placeholder="Observaciones generales (opcional)"
+                        value={outcomeComments}
+                        onChange={e => setOutcomeComments(e.target.value)}
+                        className="w-full min-h-24 rounded-xl border border-slate-200 p-3 text-sm"
+                    />
+                )}
                 {error && <p className="text-sm text-red-600">{error}</p>}
-                <p className="text-xs text-slate-500">Al enviar, la evaluación queda cerrada y no se puede modificar.</p>
+                <p className="text-xs text-slate-500">
+                    {isAnnual
+                        ? 'Al enviar, tu calificación queda registrada. La evaluación se cierra cuando todos los evaluadores terminen.'
+                        : 'Al enviar, la evaluación queda cerrada y no se puede modificar.'}
+                </p>
                 <Button
                     type="button"
                     onClick={submit}
                     disabled={pending || !complete}
                     className="w-full h-11 rounded-xl"
                 >
-                    {pending ? 'Enviando…' : 'Cerrar evaluación'}
+                    {pending ? 'Enviando…' : isAnnual ? 'Enviar mi calificación' : 'Cerrar evaluación'}
                 </Button>
             </div>
         </div>

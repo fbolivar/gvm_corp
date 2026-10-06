@@ -1,6 +1,6 @@
 # PRP-007: Evaluación de Desempeño (Período de Prueba + Anual)
 
-> **Estado**: EN PROGRESO — Fase 1 completa (criterios en BD). Fase 2 implementada y verificada en local (typecheck, 318 tests, schema audit, RLS probado); pendiente revisión de seguridad y despliegue
+> **Estado**: EN PROGRESO — Fases 1 y 2 desplegadas (2026-10-06). Fase 3 (campaña anual) implementada y verificada en local; pendiente revisión de seguridad y despliegue. Regla de recomendación de incremento pendiente de RRHH (hoy la fija un gestor, no se calcula)
 > **Fecha**: 2026-10-06
 > **Proyecto**: GVM Corp ERP
 

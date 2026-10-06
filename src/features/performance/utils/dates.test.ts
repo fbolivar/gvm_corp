@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { addDaysISO, diffDays } from './dates';
+import { addDaysISO, diffDays, annualCampaignWindow } from './dates';
+
+describe('annualCampaignWindow', () => {
+    it('cubre todo diciembre del año', () => {
+        expect(annualCampaignWindow(2026)).toEqual({ opensOn: '2026-12-01', closesOn: '2026-12-31' });
+    });
+});
 
 describe('addDaysISO', () => {
     it('suma 60 días de período de prueba cruzando de mes', () => {

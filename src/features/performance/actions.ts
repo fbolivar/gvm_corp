@@ -1,29 +1,13 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { settingsService } from '@/features/settings/services/settingsService';
-import { canViewModule } from '@/shared/lib/moduleGuard';
 import { canEvaluate, getRoleIdForUser } from './services/performanceService';
+import { requireEvaluatorContext } from './services/evaluatorContext';
 import { addDaysISO } from './utils/dates';
 import { probationCreateSchema, probationSubmitSchema, PROBATION_DAYS } from './types';
 
 type ActionResult = { success?: true; error?: string };
-
-async function requireEvaluatorContext() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: 'No autenticado' as const };
-
-    const tenant = await settingsService.getTenantInfo(supabase);
-    if (!tenant) return { error: 'Tenant no encontrado' as const };
-
-    const allowed = await canViewModule('payroll:performance') && await canEvaluate(supabase, tenant.id, user.id);
-    if (!allowed) return { error: 'No tienes permiso para gestionar evaluaciones de desempeño' as const };
-
-    return { supabase, user, tenantId: tenant.id as string };
-}
 
 /**
  * Crea la evaluación de período de prueba de un empleado activo y asigna su
