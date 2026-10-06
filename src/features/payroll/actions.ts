@@ -1,11 +1,18 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { parseLocalDate } from '@/shared/lib/dateFmt';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { overtimeService } from './services/overtimeService';
 import { absenceService, ABSENCE_TYPE_LABELS } from './services/absenceService';
 import { notificationService } from '@/features/notifications/services/notificationService';
+import { canViewModule } from '@/shared/lib/moduleGuard';
+
+// submitOvertimeRequest/submitAbsenceRequest NO se gatean por sub-función: son
+// autoservicio (cualquier empleado solicita desde /my-payroll). Las funciones
+// de revisión/administración sí, porque son las que "Permisos finos de Nómina"
+// debe poder restringir por rol.
 
 /** Empleado envía solicitud de hora extra */
 export async function submitOvertimeRequest(formData: FormData) {
@@ -66,6 +73,7 @@ export async function reviewOvertimeRequest(
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:overtime'))) throw new Error('No autorizado para revisar horas extra');
 
     const updated = await overtimeService.review(supabase, requestId, action, user.id, notes);
 
@@ -119,8 +127,10 @@ export async function submitAbsenceRequest(formData: FormData) {
 
     if (!absence_type || !start_date || !end_date) throw new Error('Campos requeridos');
 
-    const start = new Date(start_date);
-    const end   = new Date(end_date);
+    // Fechas de solo día como locales: `new Date('YYYY-MM-DD')` es medianoche UTC
+    // y el día de la semana se corre según la zona del servidor.
+    const start = parseLocalDate(start_date) ?? new Date(start_date);
+    const end   = parseLocalDate(end_date) ?? new Date(end_date);
     if (end < start) throw new Error('La fecha de fin debe ser mayor o igual a la de inicio');
 
     // Calcular días hábiles (approx: días naturales excluyendo fin de semana)
@@ -167,6 +177,7 @@ export async function reviewAbsenceRequest(
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:absences'))) throw new Error('No autorizado para revisar ausencias');
 
     const updated = await absenceService.review(supabase, requestId, action, user.id, notes);
 
@@ -201,6 +212,7 @@ export async function linkEmployeeToUserAction(employeeId: string, userId: strin
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:employees'))) throw new Error('No autorizado para gestionar empleados');
 
     // If linking (not unlinking), verify the user isn't already linked to another employee
     if (userId) {
@@ -265,6 +277,7 @@ export async function createEmployeeAction(input: CreateEmployeeInput): Promise<
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'No autenticado' };
+    if (!(await canViewModule('payroll:employees'))) return { success: false, error: 'No autorizado para crear empleados' };
 
     const { data: tenantId, error: tenantErr } = await supabase.rpc('get_my_tenant_id');
     if (tenantErr || !tenantId) return { success: false, error: 'No se pudo obtener el tenant' };
@@ -417,6 +430,7 @@ export async function deactivateEmployeeAction(employeeId: string): Promise<{ su
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'No autenticado' };
+    if (!(await canViewModule('payroll:employees'))) return { success: false, error: 'No autorizado para desactivar empleados' };
 
     const admin = createAdminClient(user.id);
 
@@ -451,6 +465,7 @@ export async function getTenantUsersAction() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:employees'))) throw new Error('No autorizado');
 
     // Use admin client to bypass RLS on profiles (profiles_own policy only allows
     // seeing your own profile, but we need to see all team members)

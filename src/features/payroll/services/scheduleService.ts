@@ -1,11 +1,11 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { WorkSchedule } from '../types';
+import { WorkSchedule, WorkScheduleDay } from '../types';
 
 export const scheduleService = {
     async getSchedules(client: SupabaseClient): Promise<WorkSchedule[]> {
         const { data, error } = await client
             .from('work_schedules')
-            .select('*')
+            .select('*, days:work_schedule_days(id, weekday, start_time, end_time)')
             .order('is_default', { ascending: false })
             .order('name');
 
@@ -16,7 +16,7 @@ export const scheduleService = {
     async getDefaultSchedule(client: SupabaseClient): Promise<WorkSchedule | null> {
         const { data, error } = await client
             .from('work_schedules')
-            .select('*')
+            .select('*, days:work_schedule_days(id, weekday, start_time, end_time)')
             .eq('is_default', true)
             .limit(1)
             .maybeSingle();
@@ -36,7 +36,7 @@ export const scheduleService = {
         if (emp?.schedule_id) {
             const { data } = await client
                 .from('work_schedules')
-                .select('*')
+                .select('*, days:work_schedule_days(id, weekday, start_time, end_time)')
                 .eq('id', emp.schedule_id)
                 .single();
             if (data) return data as WorkSchedule;
@@ -55,14 +55,39 @@ export const scheduleService = {
                 .eq('is_default', true);
         }
 
+        const { days: _days, ...row } = schedule;
         const { data, error } = await client
             .from('work_schedules')
-            .insert({ ...schedule, tenant_id: tenantId })
+            .insert({ ...row, tenant_id: tenantId })
             .select()
             .single();
 
         if (error) throw error;
         return data;
+    },
+
+    /**
+     * Reemplaza las excepciones por día de un turno. Se guardan solo los días
+     * que difieren del horario base; el resto se borra.
+     */
+    async setScheduleDays(client: SupabaseClient, scheduleId: string, days: WorkScheduleDay[]) {
+        const { error: delError } = await client
+            .from('work_schedule_days')
+            .delete()
+            .eq('schedule_id', scheduleId);
+        if (delError) throw delError;
+
+        if (days.length === 0) return;
+
+        const { error } = await client
+            .from('work_schedule_days')
+            .insert(days.map(d => ({
+                schedule_id: scheduleId,
+                weekday: d.weekday,
+                start_time: d.start_time,
+                end_time: d.end_time,
+            })));
+        if (error) throw error;
     },
 
     async updateSchedule(client: SupabaseClient, id: string, updates: Partial<WorkSchedule>) {
@@ -73,9 +98,10 @@ export const scheduleService = {
                 .eq('is_default', true);
         }
 
+        const { days: _days, ...row } = updates;
         const { data, error } = await client
             .from('work_schedules')
-            .update(updates)
+            .update(row)
             .eq('id', id)
             .select()
             .single();

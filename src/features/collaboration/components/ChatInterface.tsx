@@ -171,6 +171,12 @@ export function ChatInterface({ userId, userFullName, tenantId, members = [] }: 
         try {
             const data = await chatService.getChannels(supabase);
             setChannels(data);
+            // Llegó desde el dock o una notificación: abre ese canal directamente.
+            const wanted = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("c") : null;
+            if (wanted) {
+                const ch = data.find((c) => c.id === wanted);
+                if (ch) { setActiveChannel(ch); setShowSidebar(false); }
+            }
         } catch (err) {
             console.error("loadChannels:", err);
         } finally {
@@ -253,6 +259,8 @@ export function ChatInterface({ userId, userFullName, tenantId, members = [] }: 
 
         loadMessages(activeChannel.id);
         loadChannelMembers(activeChannel.id);
+        // Marca el canal como leído (baja el contador del dock y de la pestaña).
+        supabase.rpc("mark_chat_channel_read", { p_channel_id: activeChannel.id }).then(() => {});
 
         // Al abrir el chat, marca leídas sus notificaciones de la campana.
         supabase
@@ -279,6 +287,8 @@ export function ChatInterface({ userId, userFullName, tenantId, members = [] }: 
                     if (incoming.sender_id !== userId) {
                         const name = await resolveSenderName(incoming.sender_id);
                         incoming.sender = { full_name: name };
+                        // Lo estoy viendo: queda leído al instante.
+                        supabase.rpc("mark_chat_channel_read", { p_channel_id: activeChannel.id }).then(() => {});
                     } else {
                         incoming.sender = { full_name: "Tú" };
                     }

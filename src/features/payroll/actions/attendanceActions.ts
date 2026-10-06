@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ export async function upsertAttendanceAction(
         data: { user },
     } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'No autenticado' };
+    if (!(await canViewModule('payroll:attendance'))) return { success: false, error: 'No autorizado para editar asistencia' };
 
     // Resolve tenant
     const { data: userTenant, error: tenantError } = await supabase
@@ -64,6 +66,17 @@ export async function upsertAttendanceAction(
         sunday_hours,
         notes,
     } = parsed.data;
+
+    // El empleado debe pertenecer al tenant del usuario (RLS de session client ya
+    // lo exigiría al insertar, pero lo comprobamos antes para dar un error claro
+    // en vez de un choque de FK/RLS genérico — mismo patrón que crm_interactions).
+    const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('id', employee_id)
+        .eq('tenant_id', userTenant.tenant_id)
+        .maybeSingle();
+    if (!emp) return { success: false, error: 'Empleado no encontrado en este tenant' };
 
     // Upsert — conflict on (employee_id, work_date)
     const { data: record, error } = await supabase

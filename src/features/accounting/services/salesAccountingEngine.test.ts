@@ -237,3 +237,117 @@ describe('resolvePaymentForm', () => {
         expect(resolvePaymentForm(undefined, null)).toBe('CONTADO');
     });
 });
+
+// ─── Revisión del contador (2026-09-17) ───────────────────────────────────────
+
+import { isFreightLine } from './salesAccountingEngine';
+
+const REGLAS_FV_0_PJ_CON_FLETE: AccountingRule[] = [
+    { iva_rate: 0, account_code: '13050501', nature: 'D', concept: 'CARTERA' },
+    { iva_rate: 0, account_code: '41352201', nature: 'C', concept: 'INGRESO' },
+    { iva_rate: 0, account_code: '423510', nature: 'C', concept: 'INGRESO_FLETE' },
+    { iva_rate: 0, account_code: '13551501', nature: 'D', concept: 'RETEFUENTE' },
+    { iva_rate: 0, account_code: '13551511', nature: 'D', concept: 'AUTORRENTA_ANTICIPO' },
+    { iva_rate: 0, account_code: '23657501', nature: 'C', concept: 'AUTORRENTA_PASIVO' },
+];
+
+describe('flete cobrado al cliente (pedidos 847 y 899)', () => {
+    it('va a 423510, no es base de retefuente pero sí de autorretención', () => {
+        // Arrange — pedido 847: productos 408.343 + flete 15.500
+        const doc = {
+            doc_kind: 'FV' as const, payment_form: 'CONTADO' as const, taxpayer_code: 'PJ',
+            lines: [
+                { qty: 1, unit_price: 385653, iva_rate: 0 },
+                { qty: 1, unit_price: 22690, iva_rate: 0 },
+                { qty: 1, unit_price: 15500, iva_rate: 0, is_freight: true },
+            ],
+        };
+
+        // Act
+        const r = buildSalesEntry(doc, REGLAS_FV_0_PJ_CON_FLETE, CON_TARIFAS);
+
+        // Assert
+        expect(r.totals.base).toBe(408343);
+        expect(r.totals.freight).toBe(15500);
+        const flete = r.lines.find(l => l.concept === 'INGRESO_FLETE')!;
+        expect(flete.account_code).toBe('423510');
+        expect(flete.credit).toBe(15500);
+        // 408.343 no supera la base de retefuente ($524.000): no se practica
+        expect(r.totals.retefuente).toBe(0);
+        // autorretención sobre 423.843 (con flete) al 0,55 % = 2.331,14
+        expect(r.totals.autorrenta).toBe(2331.14);
+        expect(r.totals.cartera).toBe(423843);
+        expect(r.totals.debit).toBe(r.totals.credit);
+        expect(r.warnings).toEqual([]);
+    });
+
+    it('el flete no entra en la base de retefuente aunque el documento la supere', () => {
+        const doc = {
+            doc_kind: 'FV' as const, payment_form: 'CONTADO' as const, taxpayer_code: 'PJ',
+            lines: [
+                { qty: 1, unit_price: 600000, iva_rate: 0 },
+                { qty: 1, unit_price: 100000, iva_rate: 0, is_freight: true },
+            ],
+        };
+        const r = buildSalesEntry(doc, REGLAS_FV_0_PJ_CON_FLETE, CON_TARIFAS);
+        expect(r.totals.retefuente).toBe(15000);      // 2,5 % de 600.000, no de 700.000
+        expect(r.totals.autorrenta).toBe(3850);       // 0,55 % de 700.000
+        expect(r.totals.cartera).toBe(685000);
+        expect(r.totals.debit).toBe(r.totals.credit);
+    });
+
+    it('detecta el flete por SKU o por descripción de línea libre', () => {
+        expect(isFreightLine('flete', 'FLETE LOGISTICOS')).toBe(true);
+        expect(isFreightLine(null, 'FLETE ENVIO')).toBe(true);
+        expect(isFreightLine('VECFP-225', 'VECTORMUNE FP LT')).toBe(false);
+        expect(isFreightLine(null, 'Fletes y acarreos')).toBe(false); // "fletes" no es la línea de flete cobrado
+    });
+});
+
+describe('bonificación en $0 (pedido 859)', () => {
+    it('emite igual ingreso, autorretención y cartera con valor cero', () => {
+        const doc = {
+            doc_kind: 'FV' as const, payment_form: 'CONTADO' as const, taxpayer_code: 'PJ',
+            lines: [{ qty: 3, unit_price: 0, iva_rate: 0 }],
+        };
+        const r = buildSalesEntry(doc, REGLAS_FV_0_PJ_CON_FLETE, CON_TARIFAS);
+        const concepts = r.lines.map(l => l.concept).sort();
+        expect(concepts).toEqual(['AUTORRENTA_ANTICIPO', 'AUTORRENTA_PASIVO', 'CARTERA', 'INGRESO']);
+        expect(r.lines.every(l => l.debit === 0 && l.credit === 0)).toBe(true);
+        expect(r.warnings).toEqual([]);
+    });
+});
+
+describe('ReteICA: solo por tipo de contribuyente y base mínima', () => {
+    const reglasGC: AccountingRule[] = [
+        ...REGLAS_FV_19_PJ,
+        { iva_rate: 19, account_code: '13551801', nature: 'D', concept: 'RETEICA' },
+    ];
+    it('persona jurídica común sin regla de ICA: no se practica aunque sea de Bogotá', () => {
+        const r = buildSalesEntry(docFV([{ qty: 1, unit_price: 5_000_000, iva_rate: 19 }]), REGLAS_FV_19_PJ, CON_TARIFAS);
+        expect(r.totals.reteica).toBe(0);
+    });
+    it('gran contribuyente: se practica si supera $1.414.000 (REPRODUCIR GENETICA no superaba la base)', () => {
+        const chico = buildSalesEntry({ ...docFV([{ qty: 1, unit_price: 1_000_000, iva_rate: 19 }]), taxpayer_code: 'GC_AUTORRET' }, reglasGC, CON_TARIFAS);
+        expect(chico.totals.reteica).toBe(0);
+        const grande = buildSalesEntry({ ...docFV([{ qty: 1, unit_price: 2_000_000, iva_rate: 19 }]), taxpayer_code: 'GC_AUTORRET' }, reglasGC, CON_TARIFAS);
+        expect(grande.totals.reteica).toBe(19320);
+    });
+});
+
+describe('venta al exterior', () => {
+    it('ingreso, autorrenta y cartera en clientes del exterior; sin retenciones', () => {
+        const reglas: AccountingRule[] = [
+            { iva_rate: 0, account_code: '13051001', nature: 'D', concept: 'CARTERA' },
+            { iva_rate: 0, account_code: '41352201', nature: 'C', concept: 'INGRESO' },
+            { iva_rate: 0, account_code: '13551511', nature: 'D', concept: 'AUTORRENTA_ANTICIPO' },
+            { iva_rate: 0, account_code: '23657501', nature: 'C', concept: 'AUTORRENTA_PASIVO' },
+        ];
+        const r = buildSalesEntry({ ...docFV([{ qty: 1, unit_price: 10_000_000, iva_rate: 0 }]), taxpayer_code: 'EXTERIOR' }, reglas, CON_TARIFAS);
+        expect(r.lines.find(l => l.concept === 'CARTERA')!.account_code).toBe('13051001');
+        expect(r.totals.retefuente).toBe(0);
+        expect(r.totals.autorrenta).toBe(55000);
+        expect(r.totals.cartera).toBe(10_000_000);
+        expect(r.warnings).toEqual([]);
+    });
+});

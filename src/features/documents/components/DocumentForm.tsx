@@ -2,7 +2,7 @@
 
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { documentSchema, Document } from "../types"
+import { documentSchema, Document, missingCatalogProductLines } from "../types"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { MoneyInput } from "@/shared/components/ui/money-input"
@@ -169,6 +169,16 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
     // Las cotizaciones NO despachan mercancía: no requieren bodega ni control de stock.
     const needsWarehouse = ['INVOICE', 'SALES_ORDER', 'DELIVERY_NOTE', 'RECEIPT'].includes(docType);
     const isDeliveryNote = docType === 'DELIVERY_NOTE';
+    // Reunión con Andrés (contador), 2026-09-29: Factura y Nota Crédito — los
+    // únicos doc_type que hoy contabiliza el motor de ventas — exigen producto
+    // real del catálogo, nunca texto libre. Pedidos/cotizaciones/remisiones
+    // siguen permitiendo texto libre (así capturan los comerciales), pero con
+    // el IVA elegido a propósito (ver validación en documentSchema).
+    //
+    // Solo aplica a documentos NUEVOS (!initialData?.id): 3 facturas reales ya
+    // tienen 14 líneas de texto libre de antes de esta regla — exigirla también
+    // al editar las habría dejado imposibles de guardar.
+    const requiresCatalogProduct = !initialData?.id && (docType === 'INVOICE' || docType === 'CREDIT_NOTE');
     const [ignoreStock, setIgnoreStock] = useState(false);
     const supabase = createClient();
 
@@ -264,6 +274,16 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
     // Devuelve true solo si el documento se guardó (el llamador renueva la clave
     // de idempotencia). Las validaciones que abortan y los errores devuelven false.
     const runFormSubmit = async (data: Document): Promise<boolean> => {
+        // Solo al CREAR (ver requiresCatalogProduct): Factura y Nota Crédito
+        // exigen producto real del catálogo en cada línea.
+        if (!initialData?.id) {
+            const missing = missingCatalogProductLines(data);
+            if (missing.length > 0) {
+                toast.error(`Este tipo de documento exige producto del catálogo en cada línea (falta en el ítem ${missing.map(i => i + 1).join(', ')}).`);
+                return false;
+            }
+        }
+
         // Validación temprana: en ventas que despachan, toda línea con producto requiere bodega.
         if (needsWarehouse && warehouseItems.length > 0) {
             const missing = (data.lines || []).some(
@@ -337,6 +357,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                 warehouse_id: 'bodega',
                 lot_id: 'lote',
                 line_total: 'total',
+                tax_config: 'IVA',
             };
             const lineErrors = errors.lines as unknown as Array<Record<string, unknown> | undefined>;
             const detail: string[] = [];
@@ -646,7 +667,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                             </div>
                             <Button
                                 type="button"
-                                onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [{ rate: 0, type: 'IVA', name: 'IVA' }] })}
+                                onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [] })}
                                 size="sm"
                             >
                                 <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar línea
@@ -661,7 +682,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [{ rate: 0, type: 'IVA', name: 'IVA' }] })}
+                                    onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [] })}
                                 >
                                     <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar primera línea
                                 </Button>
@@ -743,10 +764,17 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                 </div>
 
                                                 {/* IVA por línea — FIJO según el producto (no editable).
-                                                    Para ítems de texto libre (sin producto del catálogo) sí se puede elegir. */}
+                                                    Para ítems de texto libre (sin producto del catálogo) hay que
+                                                    elegirlo a propósito: antes quedaba en 0% sin que nadie lo
+                                                    notara (Andrés, 2026-09-29) — ahora arranca vacío. */}
                                                 {(() => {
                                                     const lineRate = getLineTaxRate(form.watch(`lines.${index}`) ?? {}, products);
                                                     const hasProduct = !!form.watch(`lines.${index}.product_id`);
+                                                    const rawTaxConfig = form.watch(`lines.${index}.tax_config`);
+                                                    const chosenRate = Array.isArray(rawTaxConfig) && rawTaxConfig.length > 0
+                                                        ? rawTaxConfig[0]?.rate
+                                                        : undefined;
+                                                    const ivaMissing = !hasProduct && (chosenRate === undefined || chosenRate === null || chosenRate === '');
                                                     return (
                                                         <div className="col-span-6 md:col-span-2 space-y-1">
                                                             <label className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">IVA</label>
@@ -758,15 +786,24 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                                     {lineRate}% IVA
                                                                 </div>
                                                             ) : (
-                                                                <select
-                                                                    value={lineRate}
-                                                                    onChange={(e) => form.setValue(`lines.${index}.tax_config`, [{ rate: Number(e.target.value), type: 'IVA', name: 'IVA' }])}
-                                                                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                                                >
-                                                                    <option value={0}>0% IVA</option>
-                                                                    <option value={5}>5% IVA</option>
-                                                                    <option value={19}>19% IVA</option>
-                                                                </select>
+                                                                <>
+                                                                    <select
+                                                                        value={chosenRate ?? ''}
+                                                                        onChange={(e) => form.setValue(`lines.${index}.tax_config`, [{ rate: Number(e.target.value), type: 'IVA', name: 'IVA' }], { shouldValidate: true })}
+                                                                        className={cn(
+                                                                            "h-10 w-full rounded-lg border bg-white px-3 text-sm font-semibold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20",
+                                                                            ivaMissing ? "border-rose-300 bg-rose-50/30" : "border-slate-200"
+                                                                        )}
+                                                                    >
+                                                                        <option value="" disabled>Elegir…</option>
+                                                                        <option value={0}>0% IVA</option>
+                                                                        <option value={5}>5% IVA</option>
+                                                                        <option value={19}>19% IVA</option>
+                                                                    </select>
+                                                                    {ivaMissing && (
+                                                                        <p className="text-[10px] text-rose-600 font-medium">Requerido</p>
+                                                                    )}
+                                                                </>
                                                             )}
                                                         </div>
                                                     );
@@ -794,7 +831,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
 
                                             {/* Catálogo · Bodega · Lote — fila secundaria horizontal (ocupa el ancho) */}
                                             <div className="flex flex-wrap items-start gap-2">
-                                                <div className="flex-1 min-w-[200px]">
+                                                <div className="flex-1 min-w-[200px] space-y-1">
                                                     <SearchableSelect
                                                         items={productItems}
                                                         value={form.watch(`lines.${index}.product_id`) || ''}
@@ -805,10 +842,20 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                                             form.setValue(`lines.${index}.product_id`, v || null, { shouldValidate: true, shouldDirty: true })
                                                             handleProductChange(index, v)
                                                         }}
-                                                        placeholder="Del catálogo (opcional)"
+                                                        placeholder={requiresCatalogProduct ? 'Del catálogo (requerido)' : 'Del catálogo (opcional)'}
                                                         emptyMessage="Sin coincidencias en el catálogo"
-                                                        className="h-9 bg-slate-50 border border-slate-200 rounded-lg px-3 text-xs text-slate-600 hover:border-slate-300 transition"
+                                                        className={cn(
+                                                            "h-9 border rounded-lg px-3 text-xs text-slate-600 hover:border-slate-300 transition",
+                                                            requiresCatalogProduct && !form.watch(`lines.${index}.product_id`)
+                                                                ? "border-rose-300 bg-rose-50/30"
+                                                                : "bg-slate-50 border-slate-200"
+                                                        )}
                                                     />
+                                                    {requiresCatalogProduct && !form.watch(`lines.${index}.product_id`) && (
+                                                        <p className="text-[10px] text-rose-600 font-medium">
+                                                            Este documento exige producto del catálogo, no texto libre
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 {needsWarehouse && warehouseItems.length > 0 && (() => {
                                                     const whValue = form.watch(`lines.${index}.warehouse_id`) || '';
@@ -874,7 +921,7 @@ export function DocumentForm({ parties, products, warehouses = [], initialData, 
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [{ rate: 0, type: 'IVA', name: 'IVA' }] })}
+                                        onClick={() => append({ description: '', qty: 1, unit_price: 0, line_total: 0, warehouse_id: null, tax_config: [] })}
                                         className="w-full h-11"
                                     >
                                         <Plus className="mr-1.5 h-3.5 w-3.5" /> Agregar línea

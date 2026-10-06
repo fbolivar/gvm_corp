@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { documentService } from '@/features/documents/services/documentService';
-import { documentSchema, Document, DocumentType } from '@/features/documents/types';
+import { documentSchema, missingCatalogProductLines, Document, DocumentType } from '@/features/documents/types';
 import { purchasingService } from './services/purchasingService';
 import { purchaseOrderService } from './services/purchaseOrderService';
 
@@ -14,6 +14,14 @@ export async function createPurchasingDocumentAction(data: Document, redirectPat
     const parsed = documentSchema.safeParse(data);
     if (!parsed.success) {
         return { error: "Datos inválidos" };
+    }
+
+    // Solo al CREAR: hoy no aplica a ningún doc_type de compras (Andrés solo
+    // confirmó Factura/Nota Crédito de ventas), queda listo para cuando compras
+    // tenga su propio doc_type con contabilidad completa.
+    const missing = missingCatalogProductLines(parsed.data);
+    if (missing.length > 0) {
+        return { error: `Este tipo de documento exige producto del catálogo en cada línea (falta en el ítem ${missing.map(i => i + 1).join(', ')}).` };
     }
 
     try {

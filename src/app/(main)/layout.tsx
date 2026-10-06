@@ -16,6 +16,7 @@ const LicenseBanner = dynamic(() => import("@/features/settings/components/Licen
 const AnnouncementsBanner = dynamic(() => import("@/features/super-admin/components/AnnouncementsBanner").then(mod => mod.AnnouncementsBanner), { ssr: false })
 const TenantBrandingProvider = dynamic(() => import("@/shared/components/TenantBrandingProvider").then(mod => mod.TenantBrandingProvider), { ssr: false })
 const ChatPresence = dynamic(() => import("@/features/collaboration/components/ChatPresence").then(mod => mod.ChatPresence), { ssr: false })
+const ChatDock = dynamic(() => import("@/features/collaboration/components/ChatDock").then(mod => mod.ChatDock), { ssr: false })
 
 export default function MainLayout({
   children,
@@ -54,6 +55,7 @@ export default function MainLayout({
 
       {/* Presencia global + notificaciones de chat */}
       <ChatPresence />
+      <ChatDock />
 
       {/* PWA Service Worker Registration */}
       <PWARegister />

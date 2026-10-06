@@ -5,16 +5,17 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { kioskService } from '../services/kioskService';
 import { resolvePartyRow, resolveEmployeeName, resolveCargo, type PartyRow } from '../utils/carnetHelpers';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 
 /**
  * Devuelve el cargo (rol) de cada empleado por user_id. Usa admin client porque
  * necesita leer el rol de OTROS usuarios del tenant (no del que ejecuta). Solo
  * devuelve el nombre del rol — ningún dato sensible.
  */
-async function getCargosByUserId(tenantId: string, userIds: string[]): Promise<Record<string, string>> {
+async function getCargosByUserId(tenantId: string, userIds: string[], actorId: string): Promise<Record<string, string>> {
     const map: Record<string, string> = {};
     if (userIds.length === 0) return map;
-    const admin = createAdminClient();
+    const admin = createAdminClient(actorId);
     const { data: uts } = await admin
         .from('user_tenants')
         .select('user_id, role, role_id')
@@ -39,6 +40,7 @@ export async function createTerminalAction(name: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:terminals'))) throw new Error('No autorizado para gestionar terminales');
 
     const { data: ut } = await supabase
         .from('user_tenants')
@@ -56,6 +58,7 @@ export async function toggleTerminalAction(id: string, isActive: boolean) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:terminals'))) throw new Error('No autorizado para gestionar terminales');
 
     await kioskService.toggleTerminal(supabase, id, isActive);
     revalidatePath('/payroll/terminals');
@@ -66,6 +69,7 @@ export async function rotateTerminalTokenAction(id: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:terminals'))) throw new Error('No autorizado para gestionar terminales');
 
     const token = await kioskService.rotateTerminalToken(supabase, id);
     revalidatePath('/payroll/terminals');
@@ -76,6 +80,7 @@ export async function deleteTerminalAction(id: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:terminals'))) throw new Error('No autorizado para gestionar terminales');
 
     await kioskService.deleteTerminal(supabase, id);
     revalidatePath('/payroll/terminals');
@@ -85,6 +90,7 @@ export async function generateEmployeeQrPayloadsAction() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:employees'))) throw new Error('No autorizado');
 
     const secret = process.env.KIOSK_QR_SECRET;
     if (!secret) throw new Error('KIOSK_QR_SECRET no configurado en el servidor');
@@ -127,7 +133,7 @@ export async function generateEmployeeQrPayloadsAction() {
 
     // Cargo (rol) por empleado, para mostrarlo en el carnet en vez del contrato.
     const allUserIds = employees.map(e => e.user_id).filter(Boolean) as string[];
-    const cargoMap = await getCargosByUserId(ut.tenant_id as string, allUserIds);
+    const cargoMap = await getCargosByUserId(ut.tenant_id as string, allUserIds, user.id);
 
     return employees
         .map(emp => {
@@ -154,6 +160,7 @@ export async function getEmployeeCarnetAction(employeeId: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No autenticado');
+    if (!(await canViewModule('payroll:employees'))) throw new Error('No autorizado');
 
     const secret = process.env.KIOSK_QR_SECRET;
     if (!secret) throw new Error('KIOSK_QR_SECRET no configurado en el servidor');
@@ -187,7 +194,7 @@ export async function getEmployeeCarnetAction(employeeId: string) {
 
     const contract_type = (emp as { contract_type?: string }).contract_type || '';
     const cargoMap = emp.user_id
-        ? await getCargosByUserId(ut.tenant_id as string, [emp.user_id])
+        ? await getCargosByUserId(ut.tenant_id as string, [emp.user_id], user.id)
         : {};
 
     return {
@@ -222,6 +229,7 @@ export async function saveEmployeePhotoAction(employeeId: string, dataUrl: strin
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { ok: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' };
+        if (!(await canViewModule('payroll:employees'))) return { ok: false, error: 'No autorizado' };
 
         const { data: ut } = await supabase
             .from('user_tenants')
@@ -280,6 +288,7 @@ export async function removeEmployeePhotoAction(employeeId: string): Promise<Pho
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { ok: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' };
+        if (!(await canViewModule('payroll:employees'))) return { ok: false, error: 'No autorizado' };
 
         const { data: ut } = await supabase
             .from('user_tenants')

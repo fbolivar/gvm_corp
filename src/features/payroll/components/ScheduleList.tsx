@@ -1,6 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
+import { describeDayOverrides, normalize } from "../utils/scheduleDay"
 import { WorkSchedule } from "../types"
 import { deleteScheduleAction } from "../actions/scheduleActions"
 import { Button } from "@/shared/components/ui/button"
@@ -61,9 +62,16 @@ export function ScheduleList({ schedules, assignmentCounts }: Props) {
                                 )}
                             </div>
                             <div className="flex items-center gap-3 text-[10px] text-slate-400">
-                                <span className="font-mono font-bold">{schedule.start_time} — {schedule.end_time}</span>
+                                {schedule.is_flexible ? (
+                                    <span className="font-bold text-emerald-600">Sin hora fija · solo traza</span>
+                                ) : (
+                                    <span className="font-mono font-bold">{normalize(schedule.start_time)} — {normalize(schedule.end_time)}</span>
+                                )}
                                 <span>Break: {schedule.break_minutes}min</span>
                                 <span>Tolerancia: {schedule.grace_minutes}min</span>
+                                {describeDayOverrides(schedule.days).map((d) => (
+                                    <span key={d} className="font-mono text-indigo-600">{d}</span>
+                                ))}
                                 <span className="text-indigo-500 font-semibold">{count} empleado{count !== 1 ? 's' : ''}</span>
                             </div>
                         </div>

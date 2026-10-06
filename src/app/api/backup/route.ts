@@ -86,7 +86,9 @@ export async function POST(_request: NextRequest) {
             console.error('[Backup] Storage upload error:', uploadError.message);
         }
 
-        // 4. Registrar en tenant_backups
+        // 4. Registrar en tenant_backups — si la subida falló, el registro NO
+        // puede llamarse "completed": sin archivo en storage no hay nada que
+        // restaurar, aunque la recolección de datos haya ido perfecta.
         const { data: backupRecord } = await admin
             .from('tenant_backups')
             .insert({
@@ -94,24 +96,35 @@ export async function POST(_request: NextRequest) {
                 created_by: user.id,
                 created_by_email: user.email,
                 type: 'manual',
-                status: 'completed',
+                status: uploadError ? 'failed' : 'completed',
+                error_message: uploadError?.message ?? null,
                 file_path: uploadError ? null : filePath,
                 file_size_bytes: fileSizeBytes,
                 tables_included: backup.tables_included,
+                tables_skipped: backup.tables_skipped,
                 record_count: backup.record_count,
             })
             .select()
             .single();
 
-        // 5. Notificar en pantalla (notificación del tenant)
+        // 5. Notificar en pantalla (notificación del tenant) — la subida fallida
+        // es lo más grave (no queda nada que restaurar); las tablas saltadas
+        // también avisan con prioridad alta en vez de reportar éxito sin más.
+        const hasSkipped = backup.tables_skipped.length > 0;
         await admin.from('app_notifications').insert({
             tenant_id: tenantId,
             user_id: user.id,
-            title: 'Copia de seguridad creada',
-            body: `Se generó una copia cifrada (.gvm) con ${backup.record_count.toLocaleString('es-CO')} registros de ${backup.tables_included.length} tablas.`,
+            title: uploadError
+                ? 'Copia de seguridad FALLIDA (no se guardó el archivo)'
+                : hasSkipped ? 'Copia de seguridad creada con tablas incompletas' : 'Copia de seguridad creada',
+            body: uploadError
+                ? `Los datos se recolectaron (${backup.record_count.toLocaleString('es-CO')} registros) pero el archivo cifrado NO se pudo subir a storage: ${uploadError.message}. No hay copia restaurable de este intento.`
+                : hasSkipped
+                    ? `Se generó la copia cifrada (.gvm) con ${backup.record_count.toLocaleString('es-CO')} registros de ${backup.tables_included.length} tablas, pero ${backup.tables_skipped.length} tabla(s) fallaron: ${backup.tables_skipped.map((t) => t.table).join(', ')}. Revisa los logs.`
+                    : `Se generó una copia cifrada (.gvm) con ${backup.record_count.toLocaleString('es-CO')} registros de ${backup.tables_included.length} tablas.`,
             link: '/settings/backup',
             category: 'BACKUP',
-            priority: 'MEDIUM',
+            priority: uploadError ? 'CRITICAL' : hasSkipped ? 'HIGH' : 'MEDIUM',
             is_read: false,
         });
 

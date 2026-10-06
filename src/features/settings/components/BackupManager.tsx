@@ -22,6 +22,7 @@ interface BackupRecord {
     created_by_email?: string;
     record_count: number;
     tables_included: string[];
+    tables_skipped?: { table: string; error: string }[] | null;
     file_path: string | null;
 }
 
@@ -348,6 +349,15 @@ export function BackupManager({ tenantId }: { tenantId: string }) {
                                                 <Badge variant="secondary" className="text-[10px] bg-indigo-100 text-indigo-700 border-none px-2 h-5">
                                                     {record.type === 'manual' ? 'MANUAL' : 'AUTO'}
                                                 </Badge>
+                                                {record.tables_skipped && record.tables_skipped.length > 0 && (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-[10px] bg-amber-100 text-amber-700 border-none px-2 h-5"
+                                                        title={record.tables_skipped.map((t) => `${t.table}: ${t.error}`).join('\n')}
+                                                    >
+                                                        {record.tables_skipped.length} tabla(s) fallaron
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 font-medium font-mono">
                                                 <span>{new Date(record.created_at).toLocaleDateString()} {new Date(record.created_at).toLocaleTimeString()}</span>

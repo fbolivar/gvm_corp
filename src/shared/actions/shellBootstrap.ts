@@ -51,8 +51,12 @@ export async function getSidebarBootstrapAction(): Promise<SidebarBootstrap> {
                 .select('module_key, can_view')
                 .eq('role_id', ut.role_id)
             if (perms && perms.length > 0) {
+                // Guardamos también los `false` explícitos (no solo los `true`):
+                // el sidebar necesita distinguir "sin fila → hereda del módulo
+                // padre" de "fila explícita en falso → sub-función restringida"
+                // para las claves compuestas tipo "payroll:attendance".
                 perms.forEach((p: { module_key: string; can_view: boolean }) => {
-                    if (p.can_view) permissions[p.module_key] = true
+                    permissions[p.module_key] = p.can_view === true
                 })
             } else {
                 permissions = { dashboard: true }

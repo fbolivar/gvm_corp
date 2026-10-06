@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'No tenants found' });
         }
 
-        const results: Array<{ tenant: string; status: string; records: number }> = [];
+        const results: Array<{ tenant: string; status: string; records: number; skipped?: string[] }> = [];
 
         for (const tenant of tenants) {
             try {
@@ -41,35 +41,52 @@ export async function GET(request: NextRequest) {
                 const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 const filePath = `${tenantId}/auto-backup-${dateStr}.gvm`;
 
-                // 3. Subir
-                await admin.storage
+                // 3. Subir — el resultado SÍ se comprueba: antes se descartaba
+                // por completo (ni siquiera console.error), así que una subida
+                // rota (como el mimetype del bucket, ver migración 20260926130000)
+                // pasaba desapercibida semana tras semana.
+                const { error: uploadError } = await admin.storage
                     .from('backups')
                     .upload(filePath, gvm, {
                         contentType: 'application/octet-stream',
                         upsert: true,
                     });
+                if (uploadError) {
+                    console.error(`[Cron Backup] Storage upload error (${tenant.name}):`, uploadError.message);
+                }
 
-                // 4. Registrar
+                // 4. Registrar — 'failed' si no quedó archivo que restaurar.
                 await admin.from('tenant_backups').insert({
                     tenant_id: tenantId,
                     created_by_email: 'sistema@gvm.co (automático)',
                     type: 'auto',
-                    status: 'completed',
-                    file_path: filePath,
+                    status: uploadError ? 'failed' : 'completed',
+                    error_message: uploadError?.message ?? null,
+                    file_path: uploadError ? null : filePath,
                     file_size_bytes: fileSizeBytes,
                     tables_included: backup.tables_included,
+                    tables_skipped: backup.tables_skipped,
                     record_count: backup.record_count,
                 });
 
-                // 5. Notificar en pantalla (todo el tenant)
+                // 5. Notificar en pantalla (todo el tenant) — CRITICAL si no quedó
+                // archivo restaurable, HIGH si algo se saltó, para que no se
+                // acumulen fallas silenciosas semana tras semana.
+                const hasSkipped = backup.tables_skipped.length > 0;
                 await admin.from('app_notifications').insert({
                     tenant_id: tenantId,
                     user_id: null,
-                    title: 'Copia de seguridad automática lista',
-                    body: `Se guardó la copia semanal cifrada (.gvm): ${backup.record_count.toLocaleString('es-CO')} registros de ${backup.tables_included.length} tablas.`,
+                    title: uploadError
+                        ? 'Copia automática FALLIDA (no se guardó el archivo)'
+                        : hasSkipped ? 'Copia automática con tablas incompletas' : 'Copia de seguridad automática lista',
+                    body: uploadError
+                        ? `Los datos se recolectaron (${backup.record_count.toLocaleString('es-CO')} registros) pero el archivo cifrado NO se pudo subir: ${uploadError.message}. No hay copia restaurable de esta semana.`
+                        : hasSkipped
+                            ? `Copia semanal cifrada (.gvm): ${backup.record_count.toLocaleString('es-CO')} registros de ${backup.tables_included.length} tablas, pero fallaron: ${backup.tables_skipped.map((t) => t.table).join(', ')}.`
+                            : `Se guardó la copia semanal cifrada (.gvm): ${backup.record_count.toLocaleString('es-CO')} registros de ${backup.tables_included.length} tablas.`,
                     link: '/settings/backup',
                     category: 'BACKUP',
-                    priority: 'LOW',
+                    priority: uploadError ? 'CRITICAL' : hasSkipped ? 'HIGH' : 'LOW',
                     is_read: false,
                 });
 
@@ -90,7 +107,12 @@ export async function GET(request: NextRequest) {
                     }
                 }
 
-                results.push({ tenant: tenant.name, status: 'OK', records: backup.record_count });
+                results.push({
+                    tenant: tenant.name,
+                    status: uploadError ? `UPLOAD_FAILED: ${uploadError.message}` : 'OK',
+                    records: backup.record_count,
+                    skipped: backup.tables_skipped.length > 0 ? backup.tables_skipped.map((t) => t.table) : undefined,
+                });
             } catch (err) {
                 const msg = err instanceof Error ? err.message : 'Error';
                 results.push({ tenant: tenant.name, status: `ERROR: ${msg}`, records: 0 });

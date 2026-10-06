@@ -6,72 +6,86 @@ import { settingsService } from '@/features/settings/services/settingsService';
 import { technologyService } from '../services/technologyService';
 import { createAssetSchema, assignAssetSchema, returnAssetSchema, createMaintenanceSchema } from '../types';
 
-export async function createAssetAction(formData: FormData) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No autenticado');
+export async function createAssetAction(formData: FormData): Promise<{ success: true; id: string } | { error: string }> {
+    // Devuelve el error en vez de lanzarlo: en producción Next reemplaza los
+    // errores lanzados por una Server Action con un mensaje genérico
+    // ("An error occurred in the Server Components render…") y el usuario no
+    // sabe qué corregir.
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { error: 'Sesión expirada. Vuelve a iniciar sesión.' };
 
-    const tenant = await settingsService.getTenantInfo(supabase);
-    if (!tenant) throw new Error('Tenant no encontrado');
+        const tenant = await settingsService.getTenantInfo(supabase);
+        if (!tenant) return { error: 'Tu usuario no está vinculado a una empresa. Pide al administrador que revise tu acceso.' };
 
-    const raw = {
-        name: formData.get('name') as string,
-        category: formData.get('category') as string,
-        brand: formData.get('brand') as string,
-        model: formData.get('model') as string,
-        serial_number: formData.get('serial_number') as string,
-        purchase_date: formData.get('purchase_date') as string,
-        purchase_cost: formData.get('purchase_cost') as string,
-        warranty_expiry: formData.get('warranty_expiry') as string,
-        condition: formData.get('condition') as string,
-        notes: formData.get('notes') as string,
-    };
+        // formData.get devuelve null si el campo no viene; Zod .optional() no acepta null.
+        const str = (k: string) => { const v = formData.get(k); return typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined; };
 
-    // Parse specs from formData keys like specs_ram, specs_storage, etc.
-    const specs: Record<string, string> = {};
-    for (const [key, value] of formData.entries()) {
-        if (key.startsWith('specs_') && typeof value === 'string' && value.trim()) {
-            specs[key.replace('specs_', '')] = value.trim();
+        // Parse specs from formData keys like specs_ram, specs_storage, etc.
+        const specs: Record<string, string> = {};
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('specs_') && typeof value === 'string' && value.trim()) {
+                specs[key.replace('specs_', '')] = value.trim();
+            }
         }
-    }
 
-    const parsed = createAssetSchema.safeParse({
-        ...raw,
-        purchase_cost: raw.purchase_cost ? Number(raw.purchase_cost) : 0,
-        specs,
-    });
-
-    if (!parsed.success) {
-        throw new Error(parsed.error.issues[0].message);
-    }
-
-    const asset = await technologyService.createAsset(supabase, {
-        tenant_id: tenant.id,
-        name: parsed.data.name,
-        category: parsed.data.category,
-        brand: parsed.data.brand,
-        model: parsed.data.model,
-        serial_number: parsed.data.serial_number,
-        purchase_date: parsed.data.purchase_date,
-        purchase_cost: parsed.data.purchase_cost,
-        warranty_expiry: parsed.data.warranty_expiry,
-        condition: parsed.data.condition,
-        specs: parsed.data.specs as Record<string, string>,
-        notes: parsed.data.notes,
-    });
-
-    // If employee_id provided, assign asset immediately
-    const employeeId = formData.get('employee_id') as string;
-    if (employeeId) {
-        await technologyService.assignAsset(supabase, {
-            tenant_id: tenant.id,
-            asset_id: asset.id,
-            employee_id: employeeId,
-            assigned_by: user.id,
+        const parsed = createAssetSchema.safeParse({
+            name: str('name') ?? '',
+            category: str('category'),
+            brand: str('brand'),
+            model: str('model'),
+            serial_number: str('serial_number'),
+            purchase_date: str('purchase_date'),
+            purchase_cost: str('purchase_cost') ? Number(str('purchase_cost')) : 0,
+            warranty_expiry: str('warranty_expiry'),
+            condition: str('condition') ?? 'NEW',
+            notes: str('notes'),
+            specs,
         });
-    }
 
-    revalidatePath('/technology');
+        if (!parsed.success) {
+            const i = parsed.error.issues[0];
+            const field = String(i?.path?.[0] ?? '');
+            return { error: field === 'category' ? 'Elige la categoría del activo.' : `${field ? field + ': ' : ''}${i?.message ?? 'Datos inválidos'}` };
+        }
+
+        const asset = await technologyService.createAsset(supabase, {
+            tenant_id: tenant.id,
+            name: parsed.data.name,
+            category: parsed.data.category,
+            brand: parsed.data.brand,
+            model: parsed.data.model,
+            serial_number: parsed.data.serial_number,
+            purchase_date: parsed.data.purchase_date,
+            purchase_cost: parsed.data.purchase_cost,
+            warranty_expiry: parsed.data.warranty_expiry,
+            condition: parsed.data.condition,
+            specs: parsed.data.specs as Record<string, string>,
+            notes: parsed.data.notes,
+        });
+
+        // If employee_id provided, assign asset immediately
+        const employeeId = str('employee_id');
+        if (employeeId) {
+            await technologyService.assignAsset(supabase, {
+                tenant_id: tenant.id,
+                asset_id: asset.id,
+                employee_id: employeeId,
+                assigned_by: user.id,
+            });
+        }
+
+        revalidatePath('/technology');
+        return { success: true, id: asset.id };
+    } catch (e) {
+        const err = e as { code?: string; message?: string };
+        console.error('[technology] createAssetAction:', err?.code, err?.message);
+        if (err?.code === '23505' && String(err.message).includes('serial_number')) {
+            return { error: 'Ya existe un activo registrado con ese número de serie. Revisa el listado o cambia el serial.' };
+        }
+        return { error: err?.message || 'No se pudo registrar el activo' };
+    }
 }
 
 export async function updateAssetAction(id: string, formData: FormData) {

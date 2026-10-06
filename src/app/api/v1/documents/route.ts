@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { documentService } from '@/features/documents/services/documentService';
-import { documentFilterSchema, documentSchema, DocumentFilters, DocumentTypeEnum, DocumentStatusEnum } from '@/features/documents/types';
+import { documentFilterSchema, documentSchema, missingCatalogProductLines, DocumentFilters, DocumentTypeEnum, DocumentStatusEnum } from '@/features/documents/types';
 import { z } from 'zod';
 
 export async function GET(request: NextRequest) {
@@ -42,6 +42,16 @@ export async function POST(request: NextRequest) {
 
         // Basic validation
         const documentData = documentSchema.parse(body);
+
+        // Solo al CREAR: Factura y Nota Crédito exigen producto real del
+        // catálogo en cada línea (Andrés, 2026-09-29).
+        const missing = missingCatalogProductLines(documentData);
+        if (missing.length > 0) {
+            return NextResponse.json(
+                { error: `Este tipo de documento exige producto del catálogo en cada línea (falta en el ítem ${missing.map(i => i + 1).join(', ')}).` },
+                { status: 400 }
+            );
+        }
 
         // Recalculate totals to be safe
         if (documentData.lines) {

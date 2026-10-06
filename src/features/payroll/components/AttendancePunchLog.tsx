@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { MapPin, ScanLine, Search } from "lucide-react";
+import { MapPin, ScanLine, Search, Home, AlertTriangle, Smartphone } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import type { AttendanceRecord } from "../services/attendanceService";
 
@@ -53,10 +53,27 @@ function fmtDay(value: string): string {
     return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
 }
 
-function TerminalTag({ name }: { name?: string | null }) {
+function TerminalTag({ name, remote, reason, app }: { name?: string | null; remote?: boolean; reason?: string | null; app?: boolean }) {
+    if (app && !name) {
+        return (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700">
+                <Smartphone className="h-3 w-3 shrink-0" /> Desde la app
+            </span>
+        );
+    }
+    if (remote) {
+        return (
+            <span className="inline-flex flex-col gap-0.5">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-sky-700">
+                    <Home className="h-3 w-3 shrink-0" /> Fuera de la oficina
+                </span>
+                {reason && <span className="text-[11px] text-slate-500 max-w-[220px]">{reason}</span>}
+            </span>
+        );
+    }
     if (!name) {
         return (
-            <span className="text-[11px] text-slate-400 italic" title="Registro manual o anterior a la traza por sede">
+            <span className="text-[11px] text-slate-400 italic" title="Registro manual, desde la app o anterior a la traza por sede">
                 Sin terminal
             </span>
         );
@@ -158,13 +175,28 @@ export function AttendancePunchLog({ rows }: { rows: PunchRow[] }) {
                                         {fmtTime(r.check_in)}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <TerminalTag name={r.check_in_terminal_name} />
+                                        <TerminalTag
+                                            name={r.check_in_terminal_name}
+                                            remote={r.check_in_mode === 'REMOTE'}
+                                            app={r.check_in_mode === 'APP'}
+                                            reason={r.remote_reason}
+                                        />
                                     </td>
                                     <td className="px-4 py-3 text-xs font-semibold text-slate-800 tabular-nums">
                                         {fmtTime(r.check_out)}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <TerminalTag name={r.check_out_terminal_name} />
+                                        {r.check_out && r.check_in_mode === 'REMOTE' && !r.check_out_terminal_name ? (
+                                            <TerminalTag remote reason={null} />
+                                        ) : (
+                                            <TerminalTag name={r.check_out ? r.check_out_terminal_name : null} />
+                                        )}
+                                        {r.early_leave_reason && (
+                                            <span className="mt-1 inline-flex items-start gap-1 text-[11px] text-amber-700 max-w-[220px]">
+                                                <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+                                                <span>Salida anticipada: {r.early_leave_reason}</span>
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         <span

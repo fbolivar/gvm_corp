@@ -3,6 +3,7 @@ import { JournalEntry, Account, AccountFormData } from '../types';
 import {
     buildSalesEntry,
     resolveLineIvaRate,
+    isFreightLine,
     resolvePaymentForm,
     type AccountingRule,
     type DocKind,
@@ -351,7 +352,7 @@ export const accountingService = {
         // aunque tuvieran la marca traída de WorldOffice.
         const { data: party } = await client
             .from('parties')
-            .select('taxpayer_type, payment_term_days, city, applies_reteica')
+            .select('taxpayer_type, payment_term_days, city')
             .eq('id', document.party_id)
             .maybeSingle();
 
@@ -389,14 +390,14 @@ export const accountingService = {
             .eq('year', year)
             .eq('is_active', true);
 
-        // ReteICA solo se practica a los terceros marcados como agentes de retencion
-        // de ICA (dato traido de WorldOffice). Para el resto, aunque esten en Bogota,
-        // la factura NO lleva ReteICA.
-        const partyAppliesReteica = (party as { applies_reteica?: boolean } | null)?.applies_reteica === true;
+        // ReteICA en VENTAS se decide por el tipo de contribuyente del cliente
+        // (reglas de la matriz: grandes contribuyentes, entidades del Estado) y
+        // por su municipio. La marca `applies_reteica` de WorldOffice es para
+        // PROVEEDORES (compras), no para clientes — Andrés, 2026-09-17. Usarla
+        // aquí hacía que a personas jurídicas comunes se les practicara ICA.
 
         const taxes: TaxRates = {};
         for (const t of (taxRows ?? []) as Array<{ tax_type: string; rate: number; min_base: number; city: string | null }>) {
-            if (t.tax_type === 'RETEICA' && !partyAppliesReteica) continue;
             // ReteICA depende del municipio: gana la tarifa de la ciudad del
             // tercero y, si no hay, la general (city NULL).
             if (t.tax_type === 'RETEICA' && t.city && t.city !== party?.city) continue;
@@ -415,6 +416,7 @@ export const accountingService = {
                     qty: Number(l.qty) || 0,
                     unit_price: Number(l.unit_price) || 0,
                     iva_rate: resolveLineIvaRate(l.tax_config, l.product?.tax_category),
+                    is_freight: isFreightLine(l.product?.sku, l.description),
                 })),
             },
             (ruleRows ?? []) as AccountingRule[],

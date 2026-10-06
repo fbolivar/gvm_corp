@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { documentService } from "./services/documentService";
-import { Document, documentSchema } from "./types";
+import { Document, documentSchema, missingCatalogProductLines } from "./types";
 import { checkMarginViolations } from "./marginGuard";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -14,6 +14,13 @@ export async function createDocumentAction(data: Document) {
     const parsed = documentSchema.safeParse(data);
     if (!parsed.success) {
         return { error: "Datos inválidos: " + JSON.stringify(parsed.error.format()) };
+    }
+
+    // Solo al CREAR: Factura y Nota Crédito exigen producto real del catálogo
+    // en cada línea (Andrés, 2026-09-29).
+    const missing = missingCatalogProductLines(parsed.data);
+    if (missing.length > 0) {
+        return { error: `Este tipo de documento exige producto del catálogo en cada línea (falta en el ítem ${missing.map(i => i + 1).join(', ')}).` };
     }
 
     const marginError = await checkMarginViolations(supabase, parsed.data as any);

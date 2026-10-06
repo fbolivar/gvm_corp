@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "audit:schema": "node scripts/audit-schema.mjs",
-    "preflight": "npm run typecheck && npm run audit:schema && npm run test"
+    "audit:rpc": "node scripts/audit-rpc-grants.mjs",
+    "preflight": "npm run typecheck && npm run audit:schema && npm run audit:rpc && npm run test",
+    "deploy": "npm run preflight && npx vercel --prod --yes"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.41",

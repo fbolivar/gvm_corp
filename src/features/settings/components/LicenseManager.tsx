@@ -26,13 +26,13 @@ import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/shared/lib/utils'
 import { toast } from 'sonner'
 import {
-  getLicense,
   getLicenseStatus,
   getDaysRemaining,
   getPlanLabel,
   getModuleLabel,
   type TenantLicense,
 } from '@/features/settings/services/licenseService'
+import { getLicenseAction } from '@/features/settings/actions/licenseActions'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -356,7 +356,7 @@ export function LicenseManager() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    getLicense()
+    getLicenseAction()
       .then(setLicense)
       .finally(() => setLoading(false))
   }, [])

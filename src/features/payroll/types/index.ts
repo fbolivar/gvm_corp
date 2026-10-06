@@ -192,6 +192,15 @@ export interface PayrollSettlement {
 }
 
 // ─── WORK SCHEDULES ──────────────────────────────────────────────────────────
+/** Excepción de horario para un día de la semana (0 = domingo … 6 = sábado). */
+export interface WorkScheduleDay {
+    id?: string;
+    schedule_id?: string;
+    weekday: number;
+    start_time: string;  // HH:MM
+    end_time: string;    // HH:MM
+}
+
 export interface WorkSchedule {
     id: string;
     tenant_id: string;
@@ -202,7 +211,11 @@ export interface WorkSchedule {
     grace_minutes: number;
     is_night_shift: boolean;
     is_default: boolean;
+    /** Sin hora fija (comerciales, socios): nunca retardo ni horas extra. */
+    is_flexible?: boolean;
     created_at?: string;
+    /** Días que difieren del horario base. Vacío = igual todos los días. */
+    days?: WorkScheduleDay[];
 }
 
 // ─── ATTENDANCE GEO ZONES ────────────────────────────────────────────────────

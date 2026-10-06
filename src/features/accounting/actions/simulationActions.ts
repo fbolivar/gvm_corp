@@ -81,7 +81,7 @@ export async function simulateSalesAccountingAction(
     // contador revise asientos sobre clientes, IVA y retenciones de verdad.
     const { data: docs, error } = await supabase
         .from('documents')
-        .select('id, number, doc_type, status, invoice_numbers, issue_date, total, party_id, payment_form, party:parties(legal_name, doc_number), lines:document_lines(qty, unit_price, tax_config, product:products(tax_category))')
+        .select('id, number, doc_type, status, invoice_numbers, issue_date, total, party_id, payment_form, party:parties(legal_name, doc_number), lines:document_lines(qty, unit_price, tax_config, description, product:products(tax_category, sku))')
         .or('doc_type.eq.INVOICE,doc_type.eq.CREDIT_NOTE,and(doc_type.eq.SALES_ORDER,status.eq.ACCEPTED)')
         .gte('issue_date', from)
         .lte('issue_date', to)

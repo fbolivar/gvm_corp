@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { KioskTerminal } from '../types';
 
 export interface ParsedQrCode {
@@ -22,7 +22,11 @@ export const kioskService = {
      */
     verifyQrSignature(employeeId: string, signature: string, secret: string): boolean {
         const expected = createHmac('sha256', secret).update(employeeId).digest('hex').slice(0, 16);
-        return expected === signature;
+        // Comparación en tiempo constante: `===` termina en el primer carácter
+        // distinto y filtra información por tiempo de respuesta.
+        const a = Buffer.from(expected, 'utf8');
+        const b = Buffer.from(String(signature), 'utf8');
+        return a.length === b.length && timingSafeEqual(a, b);
     },
 
     /**

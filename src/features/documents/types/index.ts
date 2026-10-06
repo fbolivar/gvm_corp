@@ -105,9 +105,54 @@ export const documentSchema = z.object({
     warehouse: z.object({ id: z.string(), name: z.string(), code: z.string().optional().nullable() }).optional().nullable(),
     lines: z.array(documentLineSchema).optional(),
     electronic_document: electronicDocumentSchema.optional().nullable(),
+}).superRefine((data, ctx) => {
+    // OJO: esta regla corre en CREATE y en EDIT por igual (el schema no sabe
+    // distinguirlos). Por eso aquí solo va la regla del IVA, que es segura en
+    // ambos casos (verificado: las 970 líneas de texto libre que ya existen en
+    // producción tienen tax_config con una tarifa, nunca vacío). La regla de
+    // "producto de catálogo obligatorio" para Factura/Nota Crédito SÍ hubiera
+    // bloqueado editar 3 facturas reales con 14 líneas de texto libre viejas —
+    // por eso vive aparte, en missingCatalogProductLines(), y solo se aplica al
+    // CREAR un documento nuevo (ver createSalesDocumentAction/DocumentForm).
+    (data.lines ?? []).forEach((line, i) => {
+        // Para líneas SIN producto (pedidos, cotizaciones, remisiones): antes el
+        // IVA quedaba en 0% por defecto sin que nadie lo eligiera a propósito —
+        // Andrés detectó que eso venía afectando la contabilización. Ahora hay
+        // que elegirlo explícitamente.
+        if (!line.product_id) {
+            const rate = Array.isArray(line.tax_config) && line.tax_config.length > 0
+                ? line.tax_config[0]?.rate
+                : undefined;
+            if (rate === undefined || rate === null || rate === '') {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Selecciona el IVA de esta línea (no tiene producto del catálogo que lo determine).',
+                    path: ['lines', i, 'tax_config'],
+                });
+            }
+        }
+    });
 });
 
 export type Document = z.infer<typeof documentSchema>;
+
+// Reunión con Andrés (contador), 2026-09-29: en Factura y Nota Crédito — los
+// ÚNICOS doc_type que hoy contabiliza salesAccountingEngine — solo se permiten
+// productos reales del catálogo (nunca texto libre), porque una línea sin
+// producto real es una línea sin cuenta de ingreso identificable.
+//
+// A propósito NO vive en el .superRefine() de arriba: ese corre también al
+// EDITAR, y 3 facturas reales ya tienen 14 líneas de texto libre de antes de
+// esta regla — aplicarla ahí las habría dejado imposibles de guardar. Los
+// llamadores deben invocar esto SOLO al crear un documento nuevo.
+export const CATALOG_REQUIRED_DOC_TYPES: DocumentType[] = ['INVOICE', 'CREDIT_NOTE'];
+
+export function missingCatalogProductLines(doc: Pick<Document, 'doc_type' | 'lines'>): number[] {
+    if (!CATALOG_REQUIRED_DOC_TYPES.includes(doc.doc_type)) return [];
+    return (doc.lines ?? [])
+        .map((line, i) => (line.product_id ? -1 : i))
+        .filter((i) => i >= 0);
+}
 
 export const documentFilterSchema = z.object({
     search: z.string().optional(),

@@ -160,67 +160,77 @@ export async function POST(request: NextRequest) {
         });
 
         if (createError) {
-            // debug: [API /team/members] createUser failed:', createError.message, '— status:', createError.status);
+            console.error('[API /team/members] createUser failed:', createError.message, '— status:', createError.status);
 
-            // If user already exists, find and link
+            // Si el usuario ya existe, buscarlo y vincularlo.
+            //
+            // BUG corregido (2026-10-01): antes CUALQUIER 422 se trataba como
+            // "ya existe". GoTrue devuelve 422 para MUCHAS causas distintas —
+            // contraseña débil, contraseña filtrada (leaked password
+            // protection), email inválido, etc. — no solo duplicados. Eso
+            // hacía que un error real (ej. "esta contraseña fue filtrada")
+            // cayera en la rama de "buscar usuario existente", no lo
+            // encontrara (porque nunca se creó nada) y mostrara el mensaje
+            // sin sentido "reportado como existente pero no encontrado" —
+            // ocultando la causa real. Ahora solo se asume duplicado si el
+            // MENSAJE realmente lo dice.
+            const msg = (createError.message || '').toLowerCase();
             const isAlreadyExists =
-                createError.message?.toLowerCase().includes('already') ||
-                createError.message?.toLowerCase().includes('existe') ||
-                createError.message?.toLowerCase().includes('duplicate') ||
-                createError.status === 422;
+                msg.includes('already registered') ||
+                msg.includes('already been registered') ||
+                msg.includes('user already exists') ||
+                msg.includes('already exists') ||
+                msg.includes('ya existe');
 
-            if (isAlreadyExists) {
-                // debug: [API /team/members] User already exists, searching...');
+            if (!isAlreadyExists) {
+                return NextResponse.json({ error: translateAuthError(createError.message) }, { status: 400 });
+            }
 
-                // Search existing user by email
-                const { data: listData, error: listError } = await adminClient.auth.admin.listUsers({
-                    page: 1,
-                    perPage: 1000,
-                });
+            // Search existing user by email
+            const { data: listData, error: listError } = await adminClient.auth.admin.listUsers({
+                page: 1,
+                perPage: 1000,
+            });
 
-                if (listError) {
-                    console.error('[API /team/members] listUsers error:', listError.message);
-                    return NextResponse.json({ error: `Error listando usuarios: ${listError.message}` }, { status: 500 });
+            if (listError) {
+                console.error('[API /team/members] listUsers error:', listError.message);
+                return NextResponse.json({ error: `Error listando usuarios: ${listError.message}` }, { status: 500 });
+            }
+
+            const existingUser = listData?.users?.find(u => u.email === email);
+
+            if (!existingUser) {
+                console.error('[API /team/members] User not found after "already exists":', email);
+                return NextResponse.json({
+                    error: `Supabase dijo "${createError.message}" pero no encontré a ${email} entre los usuarios. Puede ser un usuario eliminado hace poco (reemplazo aún no propagado) — espera un minuto e intenta de nuevo; si persiste, avísame.`
+                }, { status: 500 });
+            }
+
+            targetUserId = existingUser.id;
+            // debug: [API /team/members] Found existing user:', targetUserId);
+
+            // Update password if provided
+            if (password) {
+                await adminClient.auth.admin.updateUserById(targetUserId, { password });
+            }
+
+            // Ensure profile exists (preserva username existente si no se envía nuevo)
+            const profilePayload: Record<string, unknown> = {
+                id: targetUserId,
+                email,
+                full_name: fullName || existingUser.user_metadata?.full_name || displayName,
+            };
+            if (username) profilePayload.username = username;
+
+            const { error: profileErr } = await adminClient
+                .from('profiles')
+                .upsert(profilePayload, { onConflict: 'id' });
+
+            if (profileErr) {
+                console.error('[API /team/members] profile upsert error:', profileErr.message);
+                if (profileErr.message?.toLowerCase().includes('unique') && username) {
+                    return NextResponse.json({ error: `El usuario "${username}" ya está en uso` }, { status: 409 });
                 }
-
-                const existingUser = listData?.users?.find(u => u.email === email);
-
-                if (!existingUser) {
-                    console.error('[API /team/members] User not found after "already exists":', email);
-                    return NextResponse.json({
-                        error: `Usuario ${email} reportado como existente pero no encontrado. Intente de nuevo.`
-                    }, { status: 500 });
-                }
-
-                targetUserId = existingUser.id;
-                // debug: [API /team/members] Found existing user:', targetUserId);
-
-                // Update password if provided
-                if (password) {
-                    await adminClient.auth.admin.updateUserById(targetUserId, { password });
-                }
-
-                // Ensure profile exists (preserva username existente si no se envía nuevo)
-                const profilePayload: Record<string, unknown> = {
-                    id: targetUserId,
-                    email,
-                    full_name: fullName || existingUser.user_metadata?.full_name || displayName,
-                };
-                if (username) profilePayload.username = username;
-
-                const { error: profileErr } = await adminClient
-                    .from('profiles')
-                    .upsert(profilePayload, { onConflict: 'id' });
-
-                if (profileErr) {
-                    console.error('[API /team/members] profile upsert error:', profileErr.message);
-                    if (profileErr.message?.toLowerCase().includes('unique') && username) {
-                        return NextResponse.json({ error: `El usuario "${username}" ya está en uso` }, { status: 409 });
-                    }
-                }
-            } else {
-                console.error('[API /team/members] createUser unexpected error:', createError.message);
-                return NextResponse.json({ error: `Error creando usuario: ${createError.message}` }, { status: 500 });
             }
         } else {
             if (!newUser.user) {

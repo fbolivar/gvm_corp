@@ -3,7 +3,12 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { analyticsService } from '../../analytics/services/analyticsService';
 import { notificationService } from './notificationService';
 
+import { getProbationAlertCandidates } from '@/features/performance/services/performanceService';
+import { PROBATION_CRITICAL_DAYS } from '@/features/performance/types';
+
 interface AlertData {
+    /** Clave ESTABLE del tipo de alerta (nunca cambia aunque cambie el conteo del título). */
+    alertKey: string;
     title: string;
     body: string;
     category: string;
@@ -33,6 +38,51 @@ export const smartAlertService = {
         ]);
     },
 
+    // ─── Período de prueba (PRP-007) ──────────────────────────────────────────
+
+    /**
+     * Aviso agregado de evaluaciones de período de prueba pendientes. Sin nombres de
+     * empleados (la alerta la ve todo el tenant) y solo la dispara quien puede evaluar.
+     * Si ya se leyó y no hay una sin leer, no se repite.
+     */
+    async checkProbationEvaluationAlerts(client: SupabaseClient) {
+        try {
+            const candidates = await getProbationAlertCandidates(client);
+            if (!candidates.length) return;
+
+            const alertKey = 'PROBATION_EVAL_PENDING';
+            const { data: unread } = await client
+                .from('app_notifications')
+                .select('id')
+                .eq('alert_key', alertKey)
+                .eq('is_read', false)
+                .limit(1)
+                .maybeSingle();
+            if (!unread) {
+                const { data: seen } = await client
+                    .from('app_notifications')
+                    .select('id')
+                    .eq('alert_key', alertKey)
+                    .eq('is_read', true)
+                    .limit(1)
+                    .maybeSingle();
+                if (seen) return;
+            }
+
+            const count = candidates.length;
+            const urgent = candidates.some(c => c.daysLeft <= PROBATION_CRITICAL_DAYS);
+            await this.triggerAlert(client, {
+                alertKey,
+                title: `${count} Evaluación${count > 1 ? 'es' : ''} de Período de Prueba Pendiente${count > 1 ? 's' : ''}`,
+                body: `Hay ${count} empleado${count > 1 ? 's' : ''} con período de prueba próximo a vencer sin evaluar. Revísalo en Nómina → Evaluación de desempeño.`,
+                category: 'OPERATIONS',
+                link: '/payroll/performance',
+            }, urgent ? 'CRITICAL' : 'HIGH');
+        } catch (err) {
+            console.error('[smartAlert] período de prueba:', err);
+        }
+    },
+
     // ─── Liquidity ────────────────────────────────────────────────────────────
 
     async checkLiquidityAlert(client: SupabaseClient) {
@@ -41,6 +91,7 @@ export const smartAlertService = {
             const survivalDays = summary.liquidity_metrics?.survival_days || 0;
             if (survivalDays > 0 && survivalDays < 15) {
                 await this.triggerAlert(client, {
+                    alertKey: 'LIQUIDITY_RISK',
                     title: 'Riesgo de Liquidez Detectado',
                     body: `Días de supervivencia proyectados: ${survivalDays} días. El nivel está por debajo del umbral de seguridad (15 días).`,
                     category: 'LIQUIDITY',
@@ -60,6 +111,7 @@ export const smartAlertService = {
             const pendingDispatch = summary.logistics_metrics?.pending_dispatch || 0;
             if (pendingDispatch > 20) {
                 await this.triggerAlert(client, {
+                    alertKey: 'LOGISTICS_PENDING_DISPATCH',
                     title: 'Pico en Logística Detectado',
                     body: `Hay ${pendingDispatch} órdenes pendientes de despacho. Se recomienda reforzar la operación de salida.`,
                     category: 'LOGISTICS',
@@ -79,6 +131,7 @@ export const smartAlertService = {
             const overdue90 = summary.ar_aging['90+'];
             if (overdue90 > 5_000_000) {
                 await this.triggerAlert(client, {
+                    alertKey: 'AR_AGING_CRITICAL',
                     title: 'Cartera Crítica Detectada',
                     body: `Existen más de $${overdue90.toLocaleString('es-CO')} COP en cartera vencida de más de 90 días. Se recomienda ejecutar acciones de cobro.`,
                     category: 'BILLING',
@@ -127,6 +180,7 @@ export const smartAlertService = {
             const suffix = count > 3 ? ` y ${count - 3} más` : '';
 
             await this.triggerAlert(client, {
+                alertKey: 'CRITICAL_STOCK',
                 title: `Stock Crítico: ${count} Producto${count > 1 ? 's' : ''}`,
                 body: `Los siguientes productos están por debajo del stock mínimo: ${sample}${suffix}. Revisa y reabastece.`,
                 category: 'INVENTORY',
@@ -155,6 +209,7 @@ export const smartAlertService = {
             const count = overdue.length;
 
             await this.triggerAlert(client, {
+                alertKey: 'OVERDUE_INVOICES',
                 title: `${count} Factura${count > 1 ? 's' : ''} Vencida${count > 1 ? 's' : ''}`,
                 body: `Tienes ${count} factura${count > 1 ? 's' : ''} por cobrar con fecha de vencimiento pasada. Total: $${totalOverdue.toLocaleString('es-CO')} COP.`,
                 category: 'BILLING',
@@ -190,6 +245,7 @@ export const smartAlertService = {
             const count = upcoming.length;
 
             await this.triggerAlert(client, {
+                alertKey: 'UPCOMING_PAYMENTS',
                 title: `${count} Pago${count > 1 ? 's' : ''} por Vencer esta Semana`,
                 body: `Tienes ${count} factura${count > 1 ? 's' : ''} de proveedor por pagar en los próximos 7 días. Total: $${totalDue.toLocaleString('es-CO')} COP.`,
                 category: 'BILLING',
@@ -218,6 +274,7 @@ export const smartAlertService = {
             const suffix = count > 2 ? ` y ${count - 2} más` : '';
 
             await this.triggerAlert(client, {
+                alertKey: 'RECURRING_INVOICES_DUE',
                 title: `${count} Factura${count > 1 ? 's' : ''} Recurrente${count > 1 ? 's' : ''} por Generar`,
                 body: `Tienes plantillas de facturación recurrente con fecha de ejecución vencida: ${sample}${suffix}. Genera las facturas pendientes.`,
                 category: 'BILLING',
@@ -247,6 +304,7 @@ export const smartAlertService = {
 
             const count = pending.length;
             await this.triggerAlert(client, {
+                alertKey: 'BANK_RECONCILIATION_PENDING',
                 title: `${count} Extracto${count > 1 ? 's' : ''} Bancario${count > 1 ? 's' : ''} sin Conciliar`,
                 body: `Tienes ${count} extracto${count > 1 ? 's' : ''} de períodos anteriores pendiente${count > 1 ? 's' : ''} de conciliación. Completa la conciliación bancaria para cerrar los libros.`,
                 category: 'OPERATIONS',
@@ -274,6 +332,7 @@ export const smartAlertService = {
             const sample = stuckPeriods.slice(0, 2).map((p: { period: string }) => p.period).join(', ');
 
             await this.triggerAlert(client, {
+                alertKey: 'FISCAL_PERIOD_CLOSING',
                 title: `${count} Período${count > 1 ? 's' : ''} Contable${count > 1 ? 's' : ''} sin Cerrar`,
                 body: `El período ${sample} está en estado "En Cierre" desde el mes anterior. Completa el checklist de cierre para bloquearlo.`,
                 category: 'OPERATIONS',
@@ -308,6 +367,7 @@ export const smartAlertService = {
             const suffix = count > 2 ? ` y ${count - 2} más` : '';
 
             await this.triggerAlert(client, {
+                alertKey: 'FIXED_ASSETS_NEVER_DEPRECIATED',
                 title: `${count} Activo${count > 1 ? 's' : ''} Fijo${count > 1 ? 's' : ''} sin Depreciar`,
                 body: `Los siguientes activos están activos hace más de 30 días y aún no tienen depreciación registrada: ${sample}${suffix}.`,
                 category: 'OPERATIONS',
@@ -342,6 +402,7 @@ export const smartAlertService = {
             const suffix = count > 2 ? ` y ${count - 2} más` : '';
 
             await this.triggerAlert(client, {
+                alertKey: 'CONTRACTS_EXPIRING',
                 title: `${count} Contrato${count > 1 ? 's' : ''} por Vencer en 30 Días`,
                 body: `Los siguientes contratos vencen pronto: ${sample}${suffix}. Gestiona la renovación o terminación a tiempo.`,
                 category: 'OPERATIONS',
@@ -388,6 +449,7 @@ export const smartAlertService = {
             const priority = minDays <= 7 ? 'CRITICAL' as const : 'HIGH' as const;
 
             await this.triggerAlert(client, {
+                alertKey: 'EXPIRING_LOTS',
                 title: `${count} Lote${count > 1 ? 's' : ''} por Vencer (${totalUnits} UND)`,
                 body: `Los siguientes lotes vencen en los próximos 30 días: ${sample}${suffix}. Gestiona rotación FEFO o cuarentena.`,
                 category: 'INVENTORY',
@@ -449,6 +511,7 @@ export const smartAlertService = {
             const suffix = count > 3 ? ` y ${count - 3} mas` : '';
 
             await this.triggerAlert(client, {
+                alertKey: 'ABSENCE_MISSING_CHECKIN',
                 title: `${count} Empleado${count > 1 ? 's' : ''} sin Marcar Entrada`,
                 body: `Los siguientes empleados no han registrado entrada hoy: ${sample}${suffix}. Verifica su situacion.`,
                 category: 'OPERATIONS',
@@ -461,20 +524,43 @@ export const smartAlertService = {
 
     // ─── Shared helpers ───────────────────────────────────────────────────────
 
+    /**
+     * Crea o ACTUALIZA la alerta de un tipo (`alertKey`). Antes deduplicaba por
+     * el texto exacto del título, pero varios títulos incluyen un conteo en
+     * vivo ("33 Empleados sin Marcar Entrada"): en cuanto el conteo cambiaba
+     * (alguien marcaba entrada entre una carga del dashboard y la siguiente) el
+     * `eq('title', ...)` dejaba de coincidir y nacía una notificación nueva en
+     * vez de refrescar la existente — duplicados acumulados desde mayo, uno por
+     * cada carga del dashboard en que el conteo variaba (`evaluateAndTriggerAlerts`
+     * corre en cada visita a /dashboard, no en un cron). Con `alertKey` fijo por
+     * tipo de alerta, si ya hay una sin leer se actualiza en el mismo lugar
+     * (título/cuerpo/prioridad/fecha) en vez de crear otra.
+     */
     async triggerAlert(
         client: SupabaseClient,
         data: AlertData,
         priority: 'CRITICAL' | 'HIGH' | 'MEDIUM'
     ) {
-        // Deduplicate: skip if there's already an unread alert with the same title
         const { data: existing } = await client
             .from('app_notifications')
             .select('id')
-            .eq('title', data.title)
+            .eq('alert_key', data.alertKey)
             .eq('is_read', false)
-            .limit(1);
+            .limit(1)
+            .maybeSingle();
 
-        if (existing && existing.length > 0) return;
+        if (existing) {
+            await client
+                .from('app_notifications')
+                .update({
+                    title: data.title,
+                    body: data.body,
+                    priority,
+                    created_at: new Date().toISOString(),
+                })
+                .eq('id', existing.id);
+            return;
+        }
 
         await notificationService.createInAppNotification(client, {
             title: data.title,
@@ -482,15 +568,7 @@ export const smartAlertService = {
             category: data.category,
             priority,
             link: data.link,
+            alert_key: data.alertKey,
         });
-    },
-
-    // Legacy helpers kept for backward compatibility
-    async triggerCriticalAlert(client: SupabaseClient, data: AlertData) {
-        return this.triggerAlert(client, data, 'CRITICAL');
-    },
-
-    async triggerHighPriorityAlert(client: SupabaseClient, data: AlertData) {
-        return this.triggerAlert(client, data, 'HIGH');
     },
 };

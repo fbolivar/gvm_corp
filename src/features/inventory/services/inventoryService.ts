@@ -1,7 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { InventoryMovement, Warehouse } from '../types';
 
-import { accountingService } from '../../accounting/services/accountingService';
 import { notificationService } from '../../notifications/services/notificationService';
 
 export const inventoryService = {
@@ -28,84 +27,23 @@ export const inventoryService = {
                 .catch(err => console.error("Error in low stock check:", err));
         }
 
-        // Integración Contable Automática
-        if (movement.cost > 0 && ['IN', 'OUT'].includes(movement.type)) {
-            try {
-                const totalValue = movement.qty * movement.cost;
-                const entryDate = movement.occurred_at || new Date().toISOString();
-
-                // Obtener cuentas (Hardcoded MVP)
-                const inventoryAccount = await accountingService.getAccountByCode(client, '1435'); // Inventario
-                const costAccount = await accountingService.getAccountByCode(client, '6135');      // Costo Ventas
-                const bridgeAccount = await accountingService.getAccountByCode(client, '9999');     // Puente/Contrapartida
-
-                if (inventoryAccount && costAccount && bridgeAccount) {
-                    const lines: any[] = [];
-                    const description = `Inv: ${movement.type} - Art: ${movement.product_id?.substring(0, 8)}...`;
-
-                    if (movement.type === 'IN') {
-                        // Entrada: Debito Inventario (Activo aumenta) vs Credito Puente
-                        lines.push({
-                            account_id: inventoryAccount.id,
-                            debit: totalValue,
-                            credit: 0,
-                            description: 'Entrada Almacén'
-                        });
-                        lines.push({
-                            account_id: bridgeAccount.id,
-                            debit: 0,
-                            credit: totalValue,
-                            description: 'Contrapartida Entrada'
-                        });
-                    } else if (movement.type === 'OUT') {
-                        // Salida: Debito Costo (Gasto aumenta) vs Credito Inventario (Activo disminuye)
-                        lines.push({
-                            account_id: costAccount.id,
-                            debit: totalValue,
-                            credit: 0,
-                            description: 'Costo de Ventas'
-                        });
-                        lines.push({
-                            account_id: inventoryAccount.id,
-                            debit: 0,
-                            credit: totalValue,
-                            description: 'Salida Almacén'
-                        });
-                    }
-
-                    if (lines.length > 0) {
-                        await accountingService.createEntry(client, {
-                            entry_date: entryDate,
-                            description,
-                            lines
-                        });
-                    }
-                } else {
-                    console.warn("Inventory Accounting Skipped: Missing accounts 1435, 6135 or 9999");
-                    // ALERTA visible: no dejar el descuadre Kardex vs Contabilidad en silencio.
-                    notificationService.createInAppNotification(client, {
-                        title: '⚠️ Inventario sin asiento contable',
-                        body: `Un movimiento de inventario (${movement.type}) NO generó asiento porque faltan cuentas contables (1435 / 6135 / 9999). Configúralas para no descuadrar el Kardex vs. Contabilidad.`,
-                        category: 'GENERAL',
-                        priority: 'HIGH',
-                        link: '/accounting/accounts',
-                    }).catch(e => console.error('[inventory] alerta contable falló:', e));
-                }
-            } catch (err: any) {
-                console.error("Error generating inventory accounting entry:", err);
-                // ALERTA visible: el asiento falló → avisar para cuadrar (antes era silencioso).
-                notificationService.createInAppNotification(client, {
-                    title: '⚠️ Falló el asiento contable de inventario',
-                    body: `Un movimiento de inventario (${movement.type}) se registró, pero su asiento contable falló: ${err?.message ?? 'error desconocido'}. Revisa Contabilidad para cuadrar.`,
-                    category: 'GENERAL',
-                    priority: 'HIGH',
-                    link: '/accounting/entries',
-                }).catch(e => console.error('[inventory] alerta contable falló:', e));
-                if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
-                    console.error("ACCOUNTING ERROR DETAIL:", JSON.stringify(err, null, 2));
-                }
-            }
-        }
+        // NO auto-contabilización por movimiento de inventario.
+        //
+        // Hasta 2026-09-18 había aquí un intento "MVP hardcoded" de generar un
+        // asiento por cada movimiento IN/OUT contra las cuentas 1435/6135/9999.
+        // Nunca funcionó (0 asientos creados desde julio: 1435 y 6135 están
+        // INACTIVAS en el PUC y 9999 no existe), y en vez de fallar en silencio
+        // generaba una notificación HIGH por cada movimiento — 1.010 alertas
+        // idénticas acumuladas en dos meses, 78 sin leer, desplazando del
+        // dashboard alertas que sí importan (ver Alertas Críticas, 2026-09-18).
+        //
+        // La contabilización real de GVM es por DOCUMENTO (accounting_rules,
+        // matriz del contador Andrés — ver salesAccountingEngine.ts), no por
+        // movimiento de inventario suelto; esa matriz no incluye costo de venta
+        // todavía. Si en el futuro se necesita costear inventario automáticamente,
+        // debe ser una regla explícita del contador (cuentas reales del PUC,
+        // p. ej. 143501/613505), no cuentas genéricas inventadas, y con una
+        // alerta agregada (una vez al día, no una por movimiento).
 
         return data as InventoryMovement;
     },

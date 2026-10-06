@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react"
+import { usePathname } from "next/navigation"
 
 /**
  * Protección contra "version skew" (desfase de versión).
@@ -11,9 +12,14 @@ import { useEffect, useState, useCallback, useRef } from "react"
  * pierde lo que escribió sin entender por qué.
  *
  * Dos capas:
- *  1. AVISO PREVIO: consulta /api/version (al volver a la pestaña y cada 5 min).
- *     Si el deploy cambió, muestra una barra discreta invitando a recargar cuando
- *     el usuario termine — antes de que algo falle.
+ *  1. ACTUALIZACIÓN SILENCIOSA: consulta /api/version (al volver a la pestaña y
+ *     cada 5 min). Si el deploy cambió, NO avisa: espera a que el usuario cambie
+ *     de pantalla y en ese momento recarga la página completa, que ya trae el
+ *     bundle nuevo. El usuario no pierde nada (acaba de salir de la pantalla) y
+ *     no ve ningún mensaje. Con Skew Protection activa en Vercel, mientras tanto
+ *     la pestaña vieja sigue funcionando contra su propio deploy.
+ *     (Antes había una barra "Hay una versión nueva…": con varios deploys al día
+ *     confundía a los empleados. 2026-09-17.)
  *  2. RED DE SEGURIDAD: intercepta las respuestas de Server Actions. Si una vuelve
  *     404 (acción inexistente), corta el error técnico y muestra un aviso claro.
  */
@@ -24,10 +30,11 @@ export function AppUpdateGuard() {
     const buildId = BUILD_ID
     const [updateAvailable, setUpdateAvailable] = useState(false)
     const [skewDetected, setSkewDetected] = useState(false)
-    const dismissedRef = useRef(false)
+    const pathname = usePathname()
+    const lastPathRef = useRef(pathname)
 
     const checkVersion = useCallback(async () => {
-        if (dismissedRef.current || !buildId || buildId === 'dev') return
+        if (!buildId || buildId === 'dev') return
         try {
             const res = await fetch('/api/version', { cache: 'no-store' })
             if (!res.ok) return
@@ -52,6 +59,14 @@ export function AppUpdateGuard() {
             clearInterval(timer)
         }
     }, [checkVersion])
+
+    // Capa 1b — al cambiar de pantalla con una versión nueva pendiente, recarga
+    // completa: la página destino se carga ya con el bundle nuevo.
+    useEffect(() => {
+        if (pathname === lastPathRef.current) return
+        lastPathRef.current = pathname
+        if (updateAvailable) window.location.reload()
+    }, [pathname, updateAvailable])
 
     // Capa 2 — intercepta las llamadas a Server Actions (llevan header Next-Action).
     // Un 404 en una de ellas SIEMPRE es desfase de versión.
@@ -129,31 +144,6 @@ export function AppUpdateGuard() {
         )
     }
 
-    // Aviso preventivo, no bloqueante.
-    if (updateAvailable) {
-        return (
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9998] max-w-[92vw]">
-                <div className="flex items-center gap-3 bg-slate-900 text-white rounded-2xl shadow-lg px-4 py-3">
-                    <span className="text-xs font-semibold">
-                        Hay una versión nueva del sistema. Recarga cuando termines lo que estás haciendo.
-                    </span>
-                    <button
-                        onClick={reload}
-                        className="h-8 px-3 rounded-lg bg-white text-slate-900 text-[11px] font-black shrink-0"
-                    >
-                        Recargar
-                    </button>
-                    <button
-                        onClick={() => { dismissedRef.current = true; setUpdateAvailable(false) }}
-                        className="text-white/60 hover:text-white text-xs px-1 shrink-0"
-                        aria-label="Descartar aviso"
-                    >
-                        ✕
-                    </button>
-                </div>
-            </div>
-        )
-    }
-
+    // Sin aviso preventivo: la versión nueva se aplica sola en la siguiente navegación.
     return null
 }

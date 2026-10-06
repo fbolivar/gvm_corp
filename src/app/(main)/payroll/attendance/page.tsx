@@ -43,6 +43,7 @@ export default async function AttendancePage() {
                 id, employee_id, work_date, check_in, check_out, status,
                 overtime_hours, night_hours, sunday_hours, late_minutes, notes,
                 check_in_terminal_id, check_out_terminal_id,
+                check_in_mode, remote_reason, early_leave_reason,
                 check_in_terminal:kiosk_terminals!check_in_terminal_id(name),
                 check_out_terminal:kiosk_terminals!check_out_terminal_id(name)
             `)

@@ -92,6 +92,7 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
             doc_number: '',
             email: '',
             phone: '',
+            contact_name: '',
             address: '',
             city: '',
             department: '',
@@ -411,6 +412,18 @@ export function PartyForm({ initialData, onSubmit, isLoading, priceLists = [], s
                                     {...register('phone')}
                                     placeholder="+57 300 000 0000"
                                     className="pl-9 font-mono tracking-wider"
+                                />
+                            </div>
+                        </FormField>
+
+                        <FormField label="Persona de contacto" htmlFor="contact_name" colSpan={2}>
+                            <div className="relative">
+                                <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                                <Input
+                                    id="contact_name"
+                                    {...register('contact_name')}
+                                    placeholder="Ej: Julián Pérez — administrador de la granja"
+                                    className="pl-9"
                                 />
                             </div>
                         </FormField>

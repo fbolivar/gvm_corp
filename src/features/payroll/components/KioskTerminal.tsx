@@ -128,7 +128,7 @@ export function KioskTerminal({ token, terminalName, tenantName, employeeCount }
                 setState('scanning')
                 setResult(null)
                 setErrorMessage('')
-            }, 5000)
+            }, state === 'error' ? 3000 : 3500)
         }
         return () => {
             if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
@@ -151,7 +151,7 @@ export function KioskTerminal({ token, terminalName, tenantName, employeeCount }
                 throw new Error("UNSUPPORTED_BROWSER")
             }
 
-            const { Html5Qrcode } = await import("html5-qrcode")
+            const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode")
 
             // Detener/limpiar cualquier instancia previa y liberar la cámara.
             if (scannerRef.current) {
@@ -181,12 +181,49 @@ export function KioskTerminal({ token, terminalName, tenantName, employeeCount }
             // Pequeña pausa para que el sistema libere la cámara antes de reabrirla.
             await new Promise((r) => setTimeout(r, 400))
 
-            const scanner = new Html5Qrcode(containerId)
+            // Velocidad de lectura. Antes el carnet tardaba o no se capturaba:
+            //  - solo QR: sin esto el decodificador prueba códigos de barras 1D en
+            //    cada cuadro y desperdicia la mayor parte del tiempo;
+            //  - BarcodeDetector nativo cuando el navegador lo trae (Chrome en
+            //    Android): decodifica por hardware, muchísimo más rápido que el JS;
+            //  - sin intento de imagen espejada (disableFlip): el cuadro de la
+            //    cámara no viene invertido aunque la vista previa sí, y probar
+            //    ambos duplica el trabajo.
+            const scanner = new Html5Qrcode(containerId, {
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+                useBarCodeDetectorIfSupported: true,
+                verbose: false,
+            })
             scannerRef.current = scanner
 
             await scanner.start(
                 cameraId,
-                { fps: 10, qrbox: { width: 250, height: 250 } },
+                {
+                    // 10 cuadros/s obligaba a sostener el carnet quieto; a 30 se
+                    // captura en el primer instante en que queda enfocado.
+                    fps: 30,
+                    // El decodificador SOLO mira dentro de qrbox. Con 250 px fijos
+                    // el carnet tenía que caer justo en el centro; ahora es el 75 %
+                    // del visor, así basta con acercarlo.
+                    qrbox: (viewW: number, viewH: number) => {
+                        const side = Math.max(200, Math.floor(Math.min(viewW, viewH) * 0.75))
+                        return { width: side, height: side }
+                    },
+                    disableFlip: true,
+                    // Más resolución para un QR pequeño impreso en un carnet, y
+                    // enfoque continuo donde la cámara lo soporte. aspectRatio 16:9
+                    // fijo para que el video llene EXACTO el recuadro (ver clase
+                    // aspect-video abajo) — si no coincide, el video queda más
+                    // chico que el contenedor y el área de lectura visual (esquinas)
+                    // no coincide con donde el decodificador realmente mira.
+                    videoConstraints: {
+                        deviceId: { exact: cameraId },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        aspectRatio: { ideal: 16 / 9 },
+                        advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet],
+                    },
+                },
                 (decodedText: string) => handleScan(decodedText),
                 () => { /* ignore scan errors */ }
             )
@@ -279,7 +316,11 @@ export function KioskTerminal({ token, terminalName, tenantName, employeeCount }
                     fallaría al removerlo (causa del "Application error"). Solo lo ocultamos. */}
                 <div className={cn("w-full max-w-xs space-y-4", state !== 'scanning' && "hidden")}>
                         <div className="relative rounded-2xl overflow-hidden border-2 border-indigo-500/50 shadow-[0_0_40px_rgba(99,102,241,0.15)]">
-                            <div id={containerId} className="w-full aspect-square bg-slate-900" />
+                            {/* aspect-video (16:9) para que coincida con videoConstraints:
+                                antes el contenedor era cuadrado y la cámara (16:9) dejaba
+                                una franja vacía abajo — el recuadro de esquinas quedaba
+                                "cortado"/desalineado del área real donde lee el QR. */}
+                            <div id={containerId} className="w-full aspect-video bg-slate-900 [&_video]:!h-full [&_video]:!w-full [&_video]:object-cover" />
                             {/* Scan line animation */}
                             <div className="absolute inset-0 pointer-events-none">
                                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-400 animate-scan-line" />

@@ -43,7 +43,13 @@ export function AssetForm({ employees = [] }: AssetFormProps) {
         setError('');
         try {
             const fd = new FormData(formRef.current!);
-            await createAssetAction(fd);
+            const res = await createAssetAction(fd);
+            if ('error' in res) {
+                setError(res.error);
+                toast.error(res.error);
+                setLoading(false);
+                return;
+            }
             toast.success('Activo registrado correctamente');
             router.push('/technology');
             // No liberamos loading: dejamos el botón deshabilitado mientras navega,

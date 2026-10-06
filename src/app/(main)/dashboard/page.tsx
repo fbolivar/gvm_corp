@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
 
 import { smartAlertService } from '@/features/notifications/services/smartAlertService';
+import { canEvaluate } from '@/features/performance/services/performanceService';
 import { CriticalAlertsPanel } from '@/features/dashboard/components/CriticalAlertsPanel';
 import { ActiveUsersWidget } from '@/features/dashboard/components/ActiveUsersWidget';
 
@@ -108,6 +109,9 @@ export default async function DashboardPage() {
         ]);
 
         const tenantId = userTenant?.tenant_id;
+        if (tenantId && await canEvaluate(supabase, tenantId, user.id)) {
+            smartAlertService.checkProbationEvaluationAlerts(supabase).catch(console.error);
+        }
         const userFullName = profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario';
 
         const calcTrend = (current: number, previous: number): number => {

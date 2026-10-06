@@ -134,6 +134,10 @@ interface SubLink {
     title: string
     href: string
     icon: React.ComponentType<{ className?: string }>
+    /** Sub-función restringible dentro del módulo padre (ver "Permisos finos"
+     *  en Configuración → Equipo). Si se omite, hereda la visibilidad del
+     *  módulo padre sin más chequeos (comportamiento de siempre). */
+    featureKey?: string
 }
 
 interface SidebarLink {
@@ -225,9 +229,13 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     icon: Heart,
                     moduleKey: 'crm',
                     children: [
+                        // Pipeline y Forecast (CRM de oportunidades) siguen accesibles por
+                        // URL pero fuera del menú: el negocio es recurrente y se gestiona
+                        // por cartera + visitas. Volver a mostrarlos cuando haya negocios
+                        // grandes (licitaciones, contratos) que ameriten etapas.
+                        { title: 'Cartera de clientes', href: "/crm/accounts", icon: Building2 },
+                        { title: 'Visitas', href: "/crm/visits", icon: CalendarCheck },
                         { title: t.sidebar.leads, href: "/crm/leads", icon: UserPlus },
-                        { title: t.sidebar.pipeline, href: "/crm/pipeline", icon: Target },
-                        { title: 'Forecast', href: "/crm/forecast", icon: TrendingUp },
                     ]
                 },
                 {
@@ -270,6 +278,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.sidebar.bills, href: "/purchasing/bills", icon: Receipt },
                         { title: 'Devoluciones', href: "/purchasing/returns", icon: RotateCcw },
                         { title: 'Proveedores', href: "/purchasing/vendors", icon: Building2 },
+                        { title: 'Encuestas a Proveedores', href: "/purchasing/vendor-surveys", icon: Star, featureKey: 'vendor-surveys' },
                     ]
                 },
                 { title: t.sidebar.reports, href: "/documents", icon: Receipt, moduleKey: 'documents' },
@@ -280,21 +289,21 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     icon: Calculator,
                     moduleKey: 'payroll',
                     children: [
-                        { title: 'Empleados', href: "/payroll/employees", icon: UsersRound },
-                        { title: t.payroll.settlement, href: "/payroll/settlement", icon: Calculator },
-                        { title: 'Consolidada', href: "/payroll/summary", icon: FileBarChart },
-                        { title: t.payroll.social_security, href: "/payroll/social-security", icon: ShieldCheck },
-                        { title: 'Control de Asistencia', href: "/payroll/attendance", icon: ClipboardList },
-                        { title: 'Dispersión', href: "/payroll/dispersion", icon: Send },
-                        { title: t.payroll.finance_portal, href: "/payroll/finance", icon: Wallet },
-                        { title: t.payroll.simulator, href: "/payroll/simulator", icon: Sparkles },
-                        { title: t.payroll.terminations, href: "/payroll/settlement/termination", icon: TrendingDown },
-                        { title: 'Horas Extra', href: "/payroll/overtime", icon: Clock },
-                        { title: 'Ausencias', href: "/payroll/absences", icon: CalendarDays },
-                        { title: 'Turnos', href: "/payroll/schedules", icon: CalendarClock },
-                        { title: 'Puntualidad', href: "/payroll/punctuality", icon: Timer },
-                        { title: 'Terminales QR', href: "/payroll/terminals", icon: QrCode },
-                        { title: 'Capacitación', href: "/payroll/training", icon: GraduationCap },
+                        { title: 'Empleados', href: "/payroll/employees", icon: UsersRound, featureKey: 'employees' },
+                        { title: t.payroll.settlement, href: "/payroll/settlement", icon: Calculator, featureKey: 'settlement' },
+                        { title: 'Consolidada', href: "/payroll/summary", icon: FileBarChart, featureKey: 'summary' },
+                        { title: t.payroll.social_security, href: "/payroll/social-security", icon: ShieldCheck, featureKey: 'social-security' },
+                        { title: 'Control de Asistencia', href: "/payroll/attendance", icon: ClipboardList, featureKey: 'attendance' },
+                        { title: 'Dispersión', href: "/payroll/dispersion", icon: Send, featureKey: 'dispersion' },
+                        { title: t.payroll.finance_portal, href: "/payroll/finance", icon: Wallet, featureKey: 'finance' },
+                        { title: t.payroll.simulator, href: "/payroll/simulator", icon: Sparkles, featureKey: 'simulator' },
+                        { title: t.payroll.terminations, href: "/payroll/settlement/termination", icon: TrendingDown, featureKey: 'settlement' },
+                        { title: 'Horas Extra', href: "/payroll/overtime", icon: Clock, featureKey: 'overtime' },
+                        { title: 'Ausencias', href: "/payroll/absences", icon: CalendarDays, featureKey: 'absences' },
+                        { title: 'Turnos', href: "/payroll/schedules", icon: CalendarClock, featureKey: 'schedules' },
+                        { title: 'Puntualidad', href: "/payroll/punctuality", icon: Timer, featureKey: 'punctuality' },
+                        { title: 'Terminales QR', href: "/payroll/terminals", icon: QrCode, featureKey: 'terminals' },
+                        { title: 'Capacitación', href: "/payroll/training", icon: GraduationCap, featureKey: 'training' },
                     ]
                 },
                 {
@@ -396,6 +405,21 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
             })
             .catch((error) => {
                 console.error("Error cargando datos del sidebar:", error);
+                // Incidente 2026-09-18: tras un deploy, una pestaña ya abierta llama
+                // esta Server Action con un ID de bundle viejo. AppUpdateGuard solo
+                // detecta el 404 de OTRAS acciones (guardar, etc.); esta se dispara
+                // sola al montar el sidebar y su catch se quedaba en silencio,
+                // dejando rol "Miembro" y permisos vacíos — el usuario veía el menú y
+                // el dashboard vacíos sin ningún aviso. Un solo recargo automático
+                // (nunca en bucle: si ya se intentó en esta pestaña, no se repite)
+                // basta para traer el bundle nuevo y resolverlo sin que nadie tenga
+                // que saber que hay que refrescar.
+                try {
+                    if (!sessionStorage.getItem('gvm_sidebar_retry')) {
+                        sessionStorage.setItem('gvm_sidebar_retry', '1');
+                        window.location.reload();
+                    }
+                } catch { /* sessionStorage no disponible: seguir sin recargar */ }
             });
     }, []);
 
@@ -426,6 +450,19 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
 
         // Solo lo que está explícitamente en el permMap para roles operativos
         return permissions[moduleKey] === true;
+    };
+
+    // Sub-función dentro de un módulo (ej. "payroll" → "attendance"): si el rol
+    // tiene una fila EXPLÍCITA para "payroll:attendance" manda esa; si no existe
+    // ninguna fila, hereda la visibilidad del módulo padre (mismo fallback que
+    // canViewModule en el servidor — ver moduleGuard.ts).
+    const isFeatureAuthorized = (parentModuleKey: string | undefined, featureKey?: string) => {
+        if (!featureKey || !parentModuleKey) return true;
+        const isStrictAdmin = ['SUPER ADMINISTRADOR', 'ADMINISTRADOR', 'owner', 'admin'].includes(role);
+        if (permissions.all && isStrictAdmin) return true;
+        const compoundKey = `${parentModuleKey}:${featureKey}`;
+        if (compoundKey in permissions) return permissions[compoundKey] === true;
+        return permissions[parentModuleKey] === true;
     };
 
     const handleSignOut = async () => {
@@ -485,9 +522,11 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         .filter(link => isAuthorized(link.moduleKey))
                         .filter(link => !(HIDE_IMMATURE && IMMATURE_HREFS.has(link.href)))
                         .map(link => {
-                            if (!link.children || !HIDE_IMMATURE) return link;
-                            const filteredChildren = link.children.filter(c => !IMMATURE_HREFS.has(c.href));
-                            return filteredChildren.length === 0 && IMMATURE_HREFS.has(link.href)
+                            if (!link.children) return link;
+                            const filteredChildren = link.children
+                                .filter(c => !HIDE_IMMATURE || !IMMATURE_HREFS.has(c.href))
+                                .filter(c => isFeatureAuthorized(link.moduleKey, c.featureKey));
+                            return filteredChildren.length === 0 && HIDE_IMMATURE && IMMATURE_HREFS.has(link.href)
                                 ? null
                                 : { ...link, children: filteredChildren };
                         })

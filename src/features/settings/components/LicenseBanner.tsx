@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, XCircle } from 'lucide-react'
 import Link from 'next/link'
-import { getLicense, getLicenseStatus, getDaysRemaining, type TenantLicense } from '@/features/settings/services/licenseService'
+import { getLicenseStatus, getDaysRemaining, type TenantLicense } from '@/features/settings/services/licenseService'
+import { getLicenseAction } from '@/features/settings/actions/licenseActions'
 
 export function LicenseBanner() {
   const [license, setLicense] = useState<TenantLicense | null>(null)
@@ -11,7 +12,7 @@ export function LicenseBanner() {
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    getLicense().then(l => { setLicense(l); setLoaded(true) })
+    getLicenseAction().then(l => { setLicense(l); setLoaded(true) })
   }, [])
 
   if (!loaded || dismissed) return null

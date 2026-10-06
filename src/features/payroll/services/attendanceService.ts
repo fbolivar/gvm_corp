@@ -1,6 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { WorkSchedule, PunctualityRecord } from '../types';
 import { scheduleService } from './scheduleService';
+import { bogotaDateString, bogotaHour, bogotaMinutesOfDay, bogotaWeekday, scheduleTimeToMinutes } from '../utils/bogotaTime';
+import { parseLocalDate } from '@/shared/lib/dateFmt';
+import { effectiveTimes } from '../utils/scheduleDay';
 
 export interface AttendanceRecord {
     id: string;
@@ -21,7 +24,22 @@ export interface AttendanceRecord {
     /** Terminal QR donde se marcó. Nulo si el registro se hizo a mano. */
     check_in_terminal_id?: string | null;
     check_out_terminal_id?: string | null;
+    /** KIOSK (carnet en tablet) · REMOTE (desde Mi nómina, sin ir a la oficina) · MANUAL. */
+    check_in_mode?: 'KIOSK' | 'APP' | 'REMOTE' | 'MANUAL';
+    /** Motivo por el que no fue a la oficina (entrada REMOTE). */
+    remote_reason?: string | null;
+    /** Justificación cuando salió antes de la hora de fin del turno. */
+    early_leave_reason?: string | null;
     notes?: string;
+}
+
+export interface ClockInExtra {
+    mode?: 'KIOSK' | 'APP' | 'REMOTE' | 'MANUAL';
+    remoteReason?: string | null;
+}
+
+export interface ClockOutExtra {
+    earlyLeaveReason?: string | null;
 }
 
 interface GeoPosition {
@@ -71,8 +89,9 @@ export const attendanceService = {
         tenantId: string,
         geo?: GeoPosition,
         terminalId?: string,
+        extra: ClockInExtra = {},
     ) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = bogotaDateString();
         const now = new Date();
         const nowIso = now.toISOString();
 
@@ -100,6 +119,11 @@ export const attendanceService = {
         // manuales (sin terminal) para no pisar el dato con un nulo.
         if (terminalId) record.check_in_terminal_id = terminalId;
 
+        // Entrada sin ir a la oficina: queda marcada como REMOTE con su motivo,
+        // para que en el reporte no se confunda con una marcación de tablet.
+        record.check_in_mode = extra.mode ?? (terminalId ? 'KIOSK' : 'MANUAL');
+        if (extra.remoteReason) record.remote_reason = extra.remoteReason;
+
         const { data, error } = await client
             .from('payroll_attendance')
             .upsert(record, { onConflict: 'employee_id, work_date' })
@@ -115,8 +139,9 @@ export const attendanceService = {
         employeeId: string,
         geo?: GeoPosition,
         terminalId?: string,
+        extra: ClockOutExtra = {},
     ) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = bogotaDateString();
         const now = new Date();
         const nowIso = now.toISOString();
 
@@ -130,6 +155,11 @@ export const attendanceService = {
 
         if (fetchError) throw fetchError;
         if (!current?.check_in) throw new Error('No hay registro de entrada para hoy');
+        // Una sola salida por jornada. Sin esto, un segundo clockOut desde la app
+        // pisaba la salida real (y su justificación de salida anticipada) con una
+        // hora posterior, inflando las horas trabajadas. El kiosco ya lo bloqueaba;
+        // el guard debe vivir aquí para que ningún llamador lo olvide.
+        if (current.check_out) throw new Error('La salida de hoy ya está registrada.');
 
         // Get schedule for hour calculations
         const schedule = await scheduleService.getEmployeeSchedule(client, employeeId) || DEFAULT_SCHEDULE;
@@ -156,6 +186,8 @@ export const attendanceService = {
         // La salida puede marcarse en una sede distinta a la de entrada.
         if (terminalId) updates.check_out_terminal_id = terminalId;
 
+        if (extra.earlyLeaveReason) updates.early_leave_reason = extra.earlyLeaveReason;
+
         const { data, error } = await client
             .from('payroll_attendance')
             .update(updates)
@@ -168,20 +200,36 @@ export const attendanceService = {
     },
 
     /**
+     * ¿Salir en este instante es antes de la hora de fin del turno de HOY?
+     * Un turno flexible nunca tiene salida anticipada. Devuelve también la hora
+     * esperada para mostrarla en el mensaje al empleado.
+     */
+    isEarlyLeave(at: Date, schedule: WorkSchedule): { early: boolean; expectedEnd: string; minutesEarly: number } {
+        const times = effectiveTimes(schedule, bogotaWeekday(at));
+        if (schedule.is_flexible) return { early: false, expectedEnd: times.end_time, minutesEarly: 0 };
+        const diff = scheduleTimeToMinutes(times.end_time) - bogotaMinutesOfDay(at);
+        return { early: diff > 0, expectedEnd: times.end_time, minutesEarly: Math.max(0, diff) };
+    },
+
+    /**
      * Calcula tardanza basada en hora de entrada vs horario
      */
     calculateLateness(checkInTime: Date, schedule: WorkSchedule): { lateMinutes: number; status: 'PRESENT' | 'LATE' } {
-        const [startH, startM] = schedule.start_time.split(':').map(Number);
-        const scheduledStart = new Date(checkInTime);
-        scheduledStart.setHours(startH, startM, 0, 0);
+        // Sin hora fija no existe "llegar tarde".
+        if (schedule.is_flexible) return { lateMinutes: 0, status: 'PRESENT' };
 
-        // Add grace period
-        const graceEnd = new Date(scheduledStart.getTime() + schedule.grace_minutes * 60000);
+        // Minutos del día en hora Bogotá: `setHours`/`getHours` usan la zona del
+        // proceso, y en Vercel eso es UTC (+5 h) — una entrada a las 09:48 salía
+        // con 409 minutos de retardo.
+        const arrived = bogotaMinutesOfDay(checkInTime);
+        // Horario del día concreto: el turno puede tener excepciones (viernes
+        // corto, entrada distinta ciertos días).
+        const times = effectiveTimes(schedule, bogotaWeekday(checkInTime));
+        const scheduledStart = scheduleTimeToMinutes(times.start_time);
+        const graceEnd = scheduledStart + (schedule.grace_minutes || 0);
 
-        if (checkInTime > graceEnd) {
-            const lateMs = checkInTime.getTime() - scheduledStart.getTime();
-            const lateMinutes = Math.round(lateMs / 60000);
-            return { lateMinutes, status: 'LATE' };
+        if (arrived > graceEnd) {
+            return { lateMinutes: arrived - scheduledStart, status: 'LATE' };
         }
 
         return { lateMinutes: 0, status: 'PRESENT' };
@@ -201,22 +249,24 @@ export const attendanceService = {
         const breakHours = schedule.break_minutes / 60;
         const totalWorked = Math.max(0, Math.round((totalHoursRaw - breakHours) * 100) / 100);
 
-        // Calculate standard work hours from schedule
-        const [startH, startM] = schedule.start_time.split(':').map(Number);
-        const [endH, endM] = schedule.end_time.split(':').map(Number);
-        const scheduleHours = ((endH * 60 + endM) - (startH * 60 + startM)) / 60 - breakHours;
+        // Jornada esperada según el horario de ESE día (con excepciones).
+        const times = effectiveTimes(schedule, bogotaWeekday(checkIn));
+        const scheduleHours = (scheduleTimeToMinutes(times.end_time) - scheduleTimeToMinutes(times.start_time)) / 60 - breakHours;
 
         // Lateness
         const { lateMinutes, status } = this.calculateLateness(checkIn, schedule);
 
-        // Overtime: hours beyond standard schedule
-        const overtimeHours = Math.max(0, Math.round((totalWorked - scheduleHours) * 100) / 100);
+        // Overtime: hours beyond standard schedule. Un turno flexible no tiene
+        // jornada esperada contra la cual medir extras.
+        const overtimeHours = schedule.is_flexible
+            ? 0
+            : Math.max(0, Math.round((totalWorked - scheduleHours) * 100) / 100);
 
         // Night hours: segments between 21:00-06:00 (Colombian law Art. 160 CST)
         const nightHours = this.calculateNightHours(checkIn, checkOut);
 
         // Sunday hours: if day is Sunday (0), all worked hours count as sunday
-        const isSunday = checkIn.getDay() === 0;
+        const isSunday = bogotaWeekday(checkIn) === 0;
         const sundayHours = isSunday ? totalWorked : 0;
 
         return {
@@ -237,7 +287,7 @@ export const attendanceService = {
         const current = new Date(checkIn);
 
         while (current < checkOut) {
-            const hour = current.getHours();
+            const hour = bogotaHour(current);
             const isNight = hour >= 21 || hour < 6;
 
             if (isNight) {
@@ -336,8 +386,9 @@ export const attendanceService = {
         if (!records) return [];
 
         // Calculate working days in range
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        // Fechas de solo día: parsearlas como locales evita el corrimiento UTC.
+        const start = parseLocalDate(startDate) ?? new Date(startDate);
+        const end = parseLocalDate(endDate) ?? new Date(endDate);
         let workingDays = 0;
         const d = new Date(start);
         while (d <= end) {
@@ -378,7 +429,7 @@ export const attendanceService = {
      * Obtener estado actual del dia para un empleado
      */
     async getTodayStatus(client: SupabaseClient, employeeId: string) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = bogotaDateString();
         const { data } = await client
             .from('payroll_attendance')
             .select('*')

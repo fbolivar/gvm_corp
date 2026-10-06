@@ -1,15 +1,20 @@
 "use client"
 
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { createScheduleAction } from "../actions/scheduleActions"
-import { Loader2, Plus } from "lucide-react"
+import { Loader2, Plus, CalendarDays } from "lucide-react"
+import { WEEKDAY_LABELS } from "../utils/scheduleDay"
 import { toast } from "sonner"
+
+// Lunes a sábado; el domingo rara vez tiene turno propio y se puede agregar después.
+const DAY_ROWS = [1, 2, 3, 4, 5, 6] as const
 
 export function ScheduleForm() {
     const [isPending, startTransition] = useTransition()
+    const [perDay, setPerDay] = useState(false)
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -21,6 +26,7 @@ export function ScheduleForm() {
                 await createScheduleAction(formData)
                 toast.success("Turno creado exitosamente")
                 form.reset()
+                setPerDay(false)
             } catch {
                 toast.error("Error al crear turno")
             }
@@ -92,6 +98,36 @@ export function ScheduleForm() {
                 </div>
             </div>
 
+            {/* Excepciones por día: solo se guardan los días que se llenen. */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={perDay}
+                        onChange={(e) => setPerDay(e.target.checked)}
+                        className="rounded border-slate-300"
+                    />
+                    <CalendarDays className="h-3.5 w-3.5 text-indigo-500" />
+                    <span className="text-xs font-semibold text-slate-600">El horario cambia según el día</span>
+                </label>
+                {perDay && (
+                    <div className="space-y-2">
+                        <p className="text-[11px] text-slate-500">
+                            Llena solo los días distintos al horario de arriba; los demás quedan con el horario base.
+                        </p>
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 gap-y-2 items-center">
+                            {DAY_ROWS.map((d) => (
+                                <div key={d} className="contents">
+                                    <span className="text-xs font-medium text-slate-700">{WEEKDAY_LABELS[d]}</span>
+                                    <Input name={`day_${d}_start`} type="time" className="h-8 w-28 rounded-lg text-xs" />
+                                    <Input name={`day_${d}_end`} type="time" className="h-8 w-28 rounded-lg text-xs" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="is_night_shift" value="true" className="rounded border-slate-300" />
@@ -100,6 +136,10 @@ export function ScheduleForm() {
                 <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" name="is_default" value="true" className="rounded border-slate-300" />
                     <span className="text-xs font-semibold text-slate-600">Por Defecto</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer" title="Comerciales y socios: la marcación deja traza pero no cuenta retardo ni horas extra">
+                    <input type="checkbox" name="is_flexible" value="true" className="rounded border-slate-300" />
+                    <span className="text-xs font-semibold text-slate-600">Sin hora fija</span>
                 </label>
             </div>
 

@@ -15,6 +15,8 @@ export const notificationService = {
         link?: string;
         category?: string;
         priority?: string;
+        /** Clave estable para deduplicar (ver smartAlertService.triggerAlert). */
+        alert_key?: string;
     }) {
         let finalTenantId = data.tenant_id;
         if (!finalTenantId) {
@@ -32,7 +34,8 @@ export const notificationService = {
                 link: data.link,
                 category: data.category || 'GENERAL',
                 priority: data.priority || 'MEDIUM',
-                is_read: false
+                is_read: false,
+                alert_key: data.alert_key ?? null,
             });
 
         if (error) {
@@ -86,14 +89,34 @@ export const notificationService = {
                 .replace('{qty}', currentStock.toString())
                 .replace('{min}', product.min_stock.toString());
 
-            // 4. Notificar internamente
-            await this.createInAppNotification(client, {
-                tenant_id: tid,
-                title,
-                body,
-                category: 'INVENTORY',
-                link: `/inventory/products?id=${productId}`
-            });
+            // Un producto por debajo del mínimo puede moverse varias veces
+            // (varios pedidos el mismo día) sin que nadie lea la alerta aún:
+            // sin esta clave se creaba una notificación nueva por cada
+            // movimiento en vez de refrescar la que ya existe para ESE producto.
+            const alertKey = `LOW_STOCK:${productId}`;
+            const { data: existing } = await client
+                .from('app_notifications')
+                .select('id')
+                .eq('alert_key', alertKey)
+                .eq('is_read', false)
+                .limit(1)
+                .maybeSingle();
+
+            if (existing) {
+                await client.from('app_notifications')
+                    .update({ title, body, created_at: new Date().toISOString() })
+                    .eq('id', existing.id);
+            } else {
+                // 4. Notificar internamente
+                await this.createInAppNotification(client, {
+                    tenant_id: tid,
+                    title,
+                    body,
+                    category: 'INVENTORY',
+                    link: `/inventory/products?id=${productId}`,
+                    alert_key: alertKey,
+                });
+            }
 
             // 5. Enviar email a los responsables (usando profiles, accesible vía PostgREST)
             if (tid) {

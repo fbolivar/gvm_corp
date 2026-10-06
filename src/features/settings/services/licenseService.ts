@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/client'
-
 export interface TenantLicense {
   id: string
   tenant_id: string
@@ -20,16 +18,6 @@ export interface TenantLicense {
 }
 
 export type LicenseStatus = 'VALID' | 'EXPIRING_SOON' | 'EXPIRED' | 'SUSPENDED' | 'NOT_FOUND'
-
-export async function getLicense(): Promise<TenantLicense | null> {
-  const supabase = createClient()
-  const { data } = await supabase
-    .from('tenant_licenses')
-    .select('*')
-    .limit(1)
-    .single()
-  return data
-}
 
 export function getLicenseStatus(license: TenantLicense | null): LicenseStatus {
   if (!license) return 'NOT_FOUND'

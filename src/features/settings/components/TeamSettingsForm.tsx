@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -44,7 +44,8 @@ import {
     BarChart3,
     Settings as SettingsIcon,
     ShoppingBag,
-    Briefcase
+    Briefcase,
+    ChevronRight
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { settingsService, TeamMember, AppRole, AppModule, RolePermission, Zone, TenantInfo } from "../services/settingsService";
@@ -86,6 +87,42 @@ const MOD_ICONS: Record<string, any> = {
     settings: SettingsIcon
 };
 
+// Permisos finos (2026-09-18): dentro de un módulo se pueden restringir
+// pantallas puntuales por rol (module_key compuesto "payroll:attendance").
+// Si un rol no tiene fila explícita para la sub-función, hereda el can_view
+// del módulo padre (ver moduleGuard.ts) — por eso los roles existentes no
+// cambian de comportamiento hasta que un admin toque una sub-función aquí.
+const MODULE_FEATURES: Record<string, { key: string; label: string }[]> = {
+    payroll: [
+        { key: 'employees', label: 'Empleados' },
+        { key: 'settlement', label: 'Liquidación (y Terminaciones)' },
+        { key: 'summary', label: 'Nómina Consolidada' },
+        { key: 'social-security', label: 'Seguridad Social' },
+        { key: 'attendance', label: 'Control de Asistencia' },
+        { key: 'dispersion', label: 'Dispersión de Pagos' },
+        { key: 'finance', label: 'Portal Financiero' },
+        { key: 'simulator', label: 'Simulador de Liquidación' },
+        { key: 'overtime', label: 'Horas Extra' },
+        { key: 'absences', label: 'Ausencias' },
+        { key: 'schedules', label: 'Turnos y Horarios' },
+        { key: 'punctuality', label: 'Puntualidad' },
+        { key: 'terminals', label: 'Terminales QR / Kiosco' },
+        { key: 'training', label: 'Capacitación' },
+    ],
+};
+
+// Sub-funciones cuyas acciones de guardado ya verifican el permiso en el
+// servidor (Server Action), no solo en la pantalla. Las que NO están aquí
+// (Liquidación, Consolidada, Seguridad Social, Dispersión, Portal Financiero,
+// Simulador, Puntualidad, Capacitación) hoy solo ocultan el menú/la pantalla:
+// esas pantallas leen y escriben directo contra Supabase con el cliente del
+// navegador, protegidas solo por RLS de tenant (no por rol). Restringirlas
+// aquí reduce quién las ve, pero NO es una barrera real todavía — pendiente
+// de mover a Server Actions (ver Auto-Blindaje 2026-09-18 en CLAUDE.md).
+const SERVER_ENFORCED_FEATURES: Record<string, Set<string>> = {
+    payroll: new Set(['employees', 'overtime', 'absences', 'schedules', 'terminals', 'attendance']),
+};
+
 const ROLE_FALLBACK = { label: "Personal", icon: Shield, color: "text-slate-500", bg: "bg-slate-100" };
 const ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
     admin: { label: "Admin", icon: Crown, color: "text-amber-600", bg: "bg-amber-50" },
@@ -117,6 +154,8 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
     const [addZone, setAddZone] = useState("");
     const [moduleFilter, setModuleFilter] = useState("");
     const [roleFilter, setRoleFilter] = useState("");
+    // Módulo con sub-funciones expandidas en la matriz (null = ninguno).
+    const [expandedModule, setExpandedModule] = useState<string | null>(null);
     const [passwordModal, setPasswordModal] = useState<{ userId: string; email: string } | null>(null);
     const [newPassword, setNewPassword] = useState("");
     const [showNewPassword, setShowNewPassword] = useState(false);
@@ -1067,18 +1106,35 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                         <tbody className="divide-y divide-slate-50">
                                             {modules.filter(m => !moduleFilter || m.name.toLowerCase().includes(moduleFilter) || m.key.toLowerCase().includes(moduleFilter)).map((mod) => {
                                                 const Icon = MOD_ICONS[mod.key] || LayoutGrid;
+                                                const features = MODULE_FEATURES[mod.key];
+                                                const isExpanded = expandedModule === mod.key;
                                                 return (
-                                                    <tr key={mod.id} className="group/row hover:bg-slate-50/50 transition-all duration-300">
+                                                <Fragment key={mod.id}>
+                                                    <tr className="group/row hover:bg-slate-50/50 transition-all duration-300">
                                                         <td className="sticky left-0 z-30 bg-white p-4 border-r border-slate-50 shadow-[4px_0_12px_-6px_rgba(0,0,0,0.05)] group-hover/row:bg-slate-50 transition-colors">
                                                             <div className="flex items-center justify-between gap-4">
                                                                 <div className="flex items-center gap-4">
-                                                                    <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 group-hover/row:bg-slate-900 group-hover/row:text-white shadow-sm transition-all duration-300">
-                                                                        <Icon className="h-5 w-5" />
-                                                                    </div>
+                                                                    {features ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            title="Ver permisos finos de este módulo"
+                                                                            onClick={() => setExpandedModule(isExpanded ? null : mod.key)}
+                                                                            className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 shadow-sm transition-all duration-300 shrink-0"
+                                                                        >
+                                                                            <ChevronRight className={cn("h-4 w-4 transition-transform duration-300", isExpanded && "rotate-90")} />
+                                                                        </button>
+                                                                    ) : (
+                                                                        <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 group-hover/row:bg-slate-900 group-hover/row:text-white shadow-sm transition-all duration-300">
+                                                                            <Icon className="h-5 w-5" />
+                                                                        </div>
+                                                                    )}
                                                                     <div className="space-y-1">
                                                                         <span className="text-[12px] font-black uppercase tracking-tight text-slate-800 italic block leading-none">{mod.name}</span>
                                                                         <div className="flex items-center gap-2">
                                                                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none bg-slate-100 px-1.5 py-0.5 rounded-full">{permissions.filter(p => p.module_key === mod.key && p.can_view).length} ROLES ACTIVOS</span>
+                                                                            {features && (
+                                                                                <span className="text-[7px] font-bold text-indigo-400 uppercase tracking-widest leading-none">{features.length} sub-funciones</span>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -1140,9 +1196,58 @@ export function TeamSettingsForm({ initialMembers, currentUserId, tenantId, tena
                                                                         )}
                                                                     </div>
                                                                 </td>
-                                                            );
+                                            );
                                                         })}
                                                     </tr>
+                                                    {isExpanded && features && features.map((feature) => {
+                                                        const featureModuleKey = `${mod.key}:${feature.key}`;
+                                                        return (
+                                                            <tr key={featureModuleKey} className="bg-slate-50/40">
+                                                                <td className="sticky left-0 z-30 bg-slate-50/40 py-2.5 pl-8 pr-4 border-r border-slate-50">
+                                                                    <div className="flex items-center gap-2.5">
+                                                                        <div className="h-1 w-1 rounded-full bg-indigo-300 shrink-0" />
+                                                                        <span className="text-[10px] font-bold text-slate-500 tracking-tight">{feature.label}</span>
+                                                                        {!SERVER_ENFORCED_FEATURES[mod.key]?.has(feature.key) && (
+                                                                            <span title="Esta restricción solo oculta la pantalla; no bloquea el guardado en el servidor todavía." className="text-[7px] font-bold text-amber-500 uppercase tracking-widest bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-100">
+                                                                                Solo interfaz
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                {roles.filter(r => !roleFilter || r.name.toLowerCase().includes(roleFilter)).map((role) => {
+                                                                    const parentHasView = permissions.some(p => p.role_id === role.id && p.module_key === mod.key && p.can_view);
+                                                                    const explicitRow = permissions.find(p => p.role_id === role.id && p.module_key === featureModuleKey);
+                                                                    const effective = explicitRow ? explicitRow.can_view : parentHasView;
+                                                                    const isOverride = explicitRow !== undefined;
+                                                                    const isSuperAdmin = role.name === "SUPER ADMINISTRADOR";
+
+                                                                    return (
+                                                                        <td key={role.id} className="py-2.5 text-center">
+                                                                            <button
+                                                                                type="button"
+                                                                                disabled={isSuperAdmin}
+                                                                                title={isOverride ? "Restricción explícita para este rol" : "Heredado del módulo Nómina"}
+                                                                                onClick={() => handleTogglePermission(role.id, featureModuleKey, effective)}
+                                                                                className={cn(
+                                                                                    "h-6 w-11 rounded-full p-0.5 transition-all duration-300 relative shadow-inner inline-flex items-center shrink-0",
+                                                                                    effective
+                                                                                        ? (isOverride ? "bg-emerald-500 border-emerald-500" : "bg-emerald-300 border-emerald-300")
+                                                                                        : "bg-slate-200 border border-slate-200",
+                                                                                    isSuperAdmin && "opacity-30 cursor-not-allowed grayscale"
+                                                                                )}
+                                                                            >
+                                                                                <div className={cn(
+                                                                                    "h-5 w-5 rounded-full transition-all duration-300 shadow-sm shrink-0",
+                                                                                    effective ? "bg-white translate-x-5" : "bg-white translate-x-0"
+                                                                                )} />
+                                                                            </button>
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </Fragment>
                                                 );
                                             })}
                                         </tbody>

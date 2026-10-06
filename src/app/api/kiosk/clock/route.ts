@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { attendanceService } from '@/features/payroll/services/attendanceService';
 import { kioskService } from '@/features/payroll/services/kioskService';
+import { bogotaDateString, bogotaTimeLabel } from '@/features/payroll/utils/bogotaTime';
 
 const clockSchema = z.object({
     token: z.string().min(1),
@@ -78,7 +79,8 @@ export async function POST(req: NextRequest) {
         }
 
         // 4. Get today's attendance status
-        const today = new Date().toISOString().split('T')[0];
+        // Fecha calendario de Bogotá: en UTC, a partir de las 7 pm ya es mañana.
+        const today = bogotaDateString();
         const { data: todayRecord } = await adminClient
             .from('payroll_attendance')
             .select('*')
@@ -140,7 +142,7 @@ export async function POST(req: NextRequest) {
             action,
             employee_name: employeeName || 'Empleado',
             terminal_name: terminal.name,
-            time: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+            time: bogotaTimeLabel(),
             data: {
                 status: resultData.status,
                 late_minutes: resultData.late_minutes || 0,

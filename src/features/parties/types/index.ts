@@ -110,6 +110,7 @@ export const partySchema = z.object({
     // Contact
     email: z.string().email("Email inválido").optional().nullable().or(z.literal('')),
     phone: z.string().optional().nullable(),
+    contact_name: z.string().max(120).optional().nullable(),
 
     // Address
     address: z.string().optional().nullable(),

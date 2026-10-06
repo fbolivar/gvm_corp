@@ -17,6 +17,7 @@ export type Nature = 'D' | 'C';
 export type RuleConcept =
     | 'CARTERA'
     | 'INGRESO'
+    | 'INGRESO_FLETE'
     | 'IVA'
     | 'RETEFUENTE'
     | 'RETEICA'
@@ -49,6 +50,12 @@ export interface EngineLine {
     unit_price: number;
     /** Tarifa de IVA de la línea (0 | 5 | 19). */
     iva_rate: number;
+    /**
+     * Flete cobrado al cliente: va a la cuenta de ingreso por transporte
+     * (423510) y NO es base de retefuente, ReteICA ni reteIVA (sí de
+     * autorretención). Regla del contador, 2026-09-17.
+     */
+    is_freight?: boolean;
 }
 
 export interface EngineDocument {
@@ -71,6 +78,7 @@ export interface EngineResult {
     lines: JournalLineDraft[];
     totals: {
         base: number;
+        freight: number;
         iva: number;
         retefuente: number;
         reteica: number;
@@ -124,18 +132,26 @@ export function buildSalesEntry(
         );
         return {
             lines,
-            totals: { base: 0, iva: 0, retefuente: 0, reteica: 0, reteiva: 0, autorrenta: 0, cartera: 0, debit: 0, credit: 0 },
+            totals: { base: 0, freight: 0, iva: 0, retefuente: 0, reteica: 0, reteiva: 0, autorrenta: 0, cartera: 0, debit: 0, credit: 0 },
             warnings,
         };
     }
 
     // ── Bases por tarifa ───────────────────────────────────────────────────
     const baseByRate = new Map<number, number>();
+    let freight = 0;
     for (const l of doc.lines) {
         const amount = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
+        if (l.is_freight) { freight += amount; continue; }
         const rate = Number(l.iva_rate) || 0;
         baseByRate.set(rate, (baseByRate.get(rate) ?? 0) + amount);
     }
+    freight = round2(freight);
+    // Bonificación (todo en $0): el contador quiere el asiento con sus cuentas
+    // aunque los valores sean cero. Se fuerza la tarifa 0 para que salga la
+    // línea de ingreso.
+    const isZeroDoc = [...baseByRate.values()].every(v => v === 0) && freight === 0;
+    if (baseByRate.size === 0) baseByRate.set(0, 0);
 
     let totalBase = 0;
     let totalIva = 0;
@@ -172,6 +188,16 @@ export function buildSalesEntry(
         }
     }
 
+    // ── Flete (ingreso por transporte, fuera de la base de retenciones) ───
+    if (freight !== 0) {
+        const freightRule = ruleFor('INGRESO_FLETE');
+        if (!freightRule) {
+            warnings.push(`El documento cobra flete pero no hay cuenta de ingreso por transporte (INGRESO_FLETE) para ${doc.doc_kind}/${doc.payment_form}/${doc.taxpayer_code}.`);
+        } else {
+            lines.push({ account_code: freightRule.account_code, ...split(freight, freightRule.nature), concept: 'INGRESO_FLETE', iva_rate: null });
+        }
+    }
+
     // ── Retenciones ────────────────────────────────────────────────────────
     // Se practican solo si el contador las incluyó para este cliente Y la base
     // supera el mínimo. Con tarifa 0 (aún sin confirmar) el valor da 0 y el
@@ -190,13 +216,14 @@ export function buildSalesEntry(
 
     // Autorretención: no la retiene el cliente, la declara GVM. Por eso va doble
     // (anticipo al débito y pasivo al crédito) y NO afecta el valor de la cartera.
+    // El flete sí es base de autorretención (regla del contador).
     const autorrentaCfg = taxes.AUTORRENTA;
     const autorrenta = ruleFor('AUTORRENTA_ANTICIPO') && autorrentaCfg?.rate
-        ? round2(totalBase * (autorrentaCfg.rate / 100))
+        ? round2((totalBase + freight) * (autorrentaCfg.rate / 100))
         : 0;
 
-    const emit = (concept: RuleConcept, amount: number) => {
-        if (amount === 0) return;
+    const emit = (concept: RuleConcept, amount: number, keepZero = false) => {
+        if (amount === 0 && !keepZero) return;
         const rule = ruleFor(concept);
         if (!rule) return;
         lines.push({ account_code: rule.account_code, ...split(amount, rule.nature), concept, iva_rate: null });
@@ -205,15 +232,15 @@ export function buildSalesEntry(
     emit('RETEFUENTE', retefuente);
     emit('RETEICA', reteica);
     emit('RETEIVA', reteiva);
-    emit('AUTORRENTA_ANTICIPO', autorrenta);
-    emit('AUTORRENTA_PASIVO', autorrenta);
+    emit('AUTORRENTA_ANTICIPO', autorrenta, isZeroDoc);
+    emit('AUTORRENTA_PASIVO', autorrenta, isZeroDoc);
 
     // ── Cartera (lo que queda por cobrar) ──────────────────────────────────
-    const cartera = round2(totalBase + totalIva - retefuente - reteica - reteiva);
+    const cartera = round2(totalBase + freight + totalIva - retefuente - reteica - reteiva);
     const carteraRule = ruleFor('CARTERA');
     if (!carteraRule) {
         warnings.push(`No hay cuenta de cartera para ${doc.doc_kind}/${doc.payment_form}/${doc.taxpayer_code}: el asiento quedaría descuadrado.`);
-    } else if (cartera !== 0) {
+    } else if (cartera !== 0 || isZeroDoc) {
         lines.push({ account_code: carteraRule.account_code, ...split(cartera, carteraRule.nature), concept: 'CARTERA', iva_rate: null });
     }
 
@@ -238,7 +265,7 @@ export function buildSalesEntry(
 
     return {
         lines,
-        totals: { base: totalBase, iva: totalIva, retefuente, reteica, reteiva, autorrenta, cartera, debit, credit },
+        totals: { base: totalBase, freight, iva: totalIva, retefuente, reteica, reteiva, autorrenta, cartera, debit, credit },
         warnings,
     };
 }
@@ -262,4 +289,13 @@ export function resolvePaymentForm(
 ): PaymentForm {
     if (docPaymentForm === 'CONTADO' || docPaymentForm === 'CREDITO') return docPaymentForm;
     return (Number(partyPaymentTermDays) || 0) > 0 ? 'CREDITO' : 'CONTADO';
+}
+
+/**
+ * ¿La línea es un flete cobrado al cliente? Por producto (SKU "flete") o, para
+ * las líneas libres sin producto, por la descripción ("FLETE ENVIO").
+ */
+export function isFreightLine(sku: string | null | undefined, description: string | null | undefined): boolean {
+    if (sku && /^flete/i.test(sku.trim())) return true;
+    return /\bflete\b/i.test(String(description ?? ''));
 }
