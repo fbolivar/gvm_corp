@@ -20,6 +20,7 @@ import {
     ChevronUp,
     ChevronDown,
     ClipboardList,
+    ClipboardCheck,
     FileBarChart,
     BookOpen,
     Scale,
@@ -304,6 +305,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Puntualidad', href: "/payroll/punctuality", icon: Timer, featureKey: 'punctuality' },
                         { title: 'Terminales QR', href: "/payroll/terminals", icon: QrCode, featureKey: 'terminals' },
                         { title: 'Capacitación', href: "/payroll/training", icon: GraduationCap, featureKey: 'training' },
+                        { title: 'Evaluación de desempeño', href: "/payroll/performance", icon: ClipboardCheck, featureKey: 'performance' },
                     ]
                 },
                 {

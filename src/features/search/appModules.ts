@@ -66,6 +66,7 @@ export const APP_MODULES: AppModule[] = [
     { label: "Turnos", href: "/payroll/schedules", group: "Nómina", keywords: "turnos horarios" },
     { label: "Terminales QR", href: "/payroll/terminals", group: "Nómina", keywords: "terminales qr kiosco marcacion" },
     { label: "Capacitación", href: "/payroll/training", group: "Nómina", keywords: "capacitacion formacion cursos" },
+    { label: "Evaluación de desempeño", href: "/payroll/performance", group: "Nómina", keywords: "evaluacion desempeño periodo prueba anual incremento" },
     { label: "Contabilidad", href: "/accounting/reports", group: "Operaciones", keywords: "contabilidad reportes informes estados financieros" },
     { label: "Estado de Resultados (P&G)", href: "/accounting/reports/p-and-l", group: "Contabilidad", keywords: "estado de resultados pyg p&g perdidas ganancias" },
     { label: "Balance de Prueba", href: "/accounting/reports/trial-balance", group: "Contabilidad", keywords: "balance de prueba" },
