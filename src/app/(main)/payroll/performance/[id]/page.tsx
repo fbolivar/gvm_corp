@@ -5,7 +5,6 @@ import { partyName, canEvaluate } from '@/features/performance/services/performa
 import { getEvaluatorOptions } from '@/features/performance/services/evaluatorOptions';
 import { ProbationEvaluationForm } from '@/features/performance/components/ProbationEvaluationForm';
 import { AnnualEvaluatorsForm } from '@/features/performance/components/AnnualEvaluatorsForm';
-import { AnnualRecommendationForm } from '@/features/performance/components/AnnualRecommendationForm';
 import { OUTCOME_LABEL } from '@/features/performance/types';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { Button } from '@/shared/components/ui/button';
@@ -176,10 +175,13 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
                         })}
                     </div>
                     {isAnnual && isManager && (
-                        <AnnualRecommendationForm
-                            evaluationId={id}
-                            currentPct={recommendation ? Number(recommendation.pct) : null}
-                        />
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Recomendación de incremento</p>
+                            <p className="text-base font-bold text-slate-900">
+                                {recommendation ? `${Number(recommendation.pct)}%` : '—'}
+                            </p>
+                            <p className="text-xs text-slate-500">Calculada por bandas según la calificación final. No modifica el salario.</p>
+                        </div>
                     )}
                 </div>
             )}

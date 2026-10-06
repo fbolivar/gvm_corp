@@ -9,7 +9,6 @@ import {
     annualCampaignSchema,
     addEvaluatorSchema,
     annualSubmitSchema,
-    recommendationSchema,
 } from './types';
 
 type ActionResult = { success?: true; error?: string; value?: number | string };
@@ -111,20 +110,3 @@ export async function submitAnnualEvaluationAction(input: unknown): Promise<Acti
     return { success: true, value: data as string };
 }
 
-/** Registra la recomendación de incremento. NO modifica el salario del empleado. */
-export async function setAnnualRecommendationAction(input: unknown): Promise<ActionResult> {
-    const ctx = await requireEvaluatorContext();
-    if ('error' in ctx) return { error: ctx.error };
-
-    const parsed = recommendationSchema.safeParse(input);
-    if (!parsed.success) return { error: 'El porcentaje debe estar entre 0 y 100' };
-
-    const { error } = await ctx.supabase.rpc('set_annual_recommendation', {
-        p_evaluation: parsed.data.evaluationId,
-        p_pct: parsed.data.pct,
-    });
-    if (error) return { error: error.message };
-
-    revalidateAll(parsed.data.evaluationId);
-    return { success: true };
-}

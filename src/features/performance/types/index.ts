@@ -44,11 +44,6 @@ export const addEvaluatorSchema = z.object({
     weight: z.number().positive().max(10),
 });
 
-export const recommendationSchema = z.object({
-    evaluationId: z.string().uuid(),
-    pct: z.number().min(0).max(100),
-});
-
 export const OUTCOME_LABEL: Record<string, string> = {
     MEETS: 'Cumple las condiciones del cargo',
     DOES_NOT_MEET: 'No cumple las condiciones del cargo',
