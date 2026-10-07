@@ -1,6 +1,7 @@
 # PRP-008: Forecast de Compras / Planeación de Demanda
 
-> **Estado**: DISEÑO CERRADO — todas las decisiones confirmadas (2026-10-07). Listo para que Fernando apruebe y se construya la Fase 1.
+> **Estado**: EN PROGRESO — Fases 1 (importador) y 2 (ABC por comercial) construidas, verificadas y desplegadas (2026-10-07). Siguen: Fase 3 (editor del comercial), 4 (consolidado), 5 (precisión).
+> **Pendiente a validar con Julián:** el ABC se calcula hoy con el valor de venta (Neto del informe); Julián clasifica por costo. La lógica es configurable; confirmar si se cambia a costo (requiere costo del catálogo).
 > **Fecha**: 2026-10-07
 > **Proyecto**: GVM Corp ERP
 > **Origen**: Reunión con Julián Martínez (Director de Compras y Comercio Exterior), 2026-10-07.
