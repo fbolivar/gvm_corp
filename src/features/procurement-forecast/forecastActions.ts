@@ -84,6 +84,18 @@ export async function closeForecastPeriodAction(periodId: unknown): Promise<Resu
     return { success: true };
 }
 
+export async function reopenForecastPeriodAction(periodId: unknown): Promise<Result> {
+    const ctx = await managerCtx();
+    if ('error' in ctx) return { error: ctx.error };
+    const parsed = z.string().uuid().safeParse(periodId);
+    if (!parsed.success) return { error: 'Período inválido' };
+    const { error } = await ctx.supabase
+        .from('forecast_periods').update({ status: 'OPEN' }).eq('id', parsed.data).eq('status', 'CLOSED');
+    if (error) return { error: 'No se pudo reabrir el período' };
+    revalidatePath('/purchasing/forecast');
+    return { success: true };
+}
+
 const submitSchema = z.object({
     lineId: z.string().uuid(),
     qty: z.number().min(0).max(1e9),

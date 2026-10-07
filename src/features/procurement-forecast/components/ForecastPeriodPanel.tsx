@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { openForecastPeriodAction, closeForecastPeriodAction } from '../forecastActions';
+import { openForecastPeriodAction, closeForecastPeriodAction, reopenForecastPeriodAction } from '../forecastActions';
 import { Button } from '@/shared/components/ui/button';
 
 const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -39,6 +39,15 @@ export function ForecastPeriodPanel({ period, isManager, defaultYear, defaultMon
             router.refresh();
         });
     }
+    function reopen() {
+        if (!period) return;
+        setMsg(null);
+        start(async () => {
+            const r = await reopenForecastPeriodAction(period.id);
+            if (r.error) return setMsg({ t: 'err', m: r.error });
+            router.refresh();
+        });
+    }
 
     if (period) {
         return (
@@ -50,6 +59,11 @@ export function ForecastPeriodPanel({ period, isManager, defaultYear, defaultMon
                 {isManager && period.status === 'OPEN' && (
                     <Button variant="outline" onClick={close} disabled={pending} className="h-10 rounded-xl text-sm">
                         {pending ? 'Cerrando…' : 'Cerrar período'}
+                    </Button>
+                )}
+                {isManager && period.status === 'CLOSED' && (
+                    <Button variant="outline" onClick={reopen} disabled={pending} className="h-10 rounded-xl text-sm">
+                        {pending ? 'Reabriendo…' : 'Reabrir período'}
                     </Button>
                 )}
                 {msg && <p className={`text-sm ${msg.t === 'ok' ? 'text-emerald-700' : 'text-red-600'}`}>{msg.m}</p>}
