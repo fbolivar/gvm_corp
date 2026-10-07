@@ -278,6 +278,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Devoluciones', href: "/purchasing/returns", icon: RotateCcw },
                         { title: 'Proveedores', href: "/purchasing/vendors", icon: Building2 },
                         { title: 'Encuestas a Proveedores', href: "/purchasing/vendor-surveys", icon: Star, featureKey: 'vendor-surveys' },
+                        { title: 'Forecast de Compras', href: "/purchasing/forecast", icon: TrendingUp, featureKey: 'forecast' },
                     ]
                 },
                 { title: t.sidebar.reports, href: "/documents", icon: Receipt, moduleKey: 'documents' },

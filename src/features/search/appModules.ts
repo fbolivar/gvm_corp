@@ -38,6 +38,7 @@ export const APP_MODULES: AppModule[] = [
     { label: "CRM", href: "/crm", group: "Comercial", keywords: "crm clientes oportunidades embudo relaciones" },
     { label: "Leads / Prospectos", href: "/crm/leads", group: "CRM", keywords: "leads prospectos oportunidades" },
     { label: "Pipeline (Oportunidades)", href: "/crm/pipeline", group: "CRM", keywords: "pipeline embudo etapas oportunidades negocios deals seguimiento comercial" },
+    { label: "Forecast de Compras", href: "/purchasing/forecast", group: "Compras", keywords: "forecast compras demanda pronostico ventas comercial abc planeacion" },
     { label: "Forecast", href: "/crm/forecast", group: "CRM", keywords: "forecast pronostico proyeccion ventas" },
     { label: "Soporte", href: "/support", group: "Comercial", keywords: "soporte tickets ayuda mesa de ayuda" },
     { label: "Tickets", href: "/support/tickets", group: "Soporte", keywords: "tickets casos soporte" },
