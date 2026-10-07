@@ -19,6 +19,7 @@ export function ForecastPeriodPanel({ period, isManager, defaultYear, defaultMon
     const [year, setYear] = useState(defaultYear);
     const [month, setMonth] = useState(defaultMonth);
     const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
+    const [confirmingClose, setConfirmingClose] = useState(false);
     const [pending, start] = useTransition();
 
     function open() {
@@ -33,6 +34,7 @@ export function ForecastPeriodPanel({ period, isManager, defaultYear, defaultMon
     function close() {
         if (!period) return;
         setMsg(null);
+        setConfirmingClose(false);
         start(async () => {
             const r = await closeForecastPeriodAction(period.id);
             if (r.error) return setMsg({ t: 'err', m: r.error });
@@ -56,10 +58,23 @@ export function ForecastPeriodPanel({ period, isManager, defaultYear, defaultMon
                     <p className="text-sm font-bold text-slate-900">Período {MONTHS[period.month - 1]} {period.year}</p>
                     <p className="text-xs text-slate-500">{period.status === 'OPEN' ? 'Abierto para ajustes' : 'Cerrado'}</p>
                 </div>
-                {isManager && period.status === 'OPEN' && (
-                    <Button variant="outline" onClick={close} disabled={pending} className="h-10 rounded-xl text-sm">
-                        {pending ? 'Cerrando…' : 'Cerrar período'}
+                {isManager && period.status === 'OPEN' && !confirmingClose && (
+                    <Button variant="outline" onClick={() => setConfirmingClose(true)} disabled={pending} className="h-10 rounded-xl text-sm">
+                        Cerrar período
                     </Button>
+                )}
+                {isManager && period.status === 'OPEN' && confirmingClose && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="text-xs text-slate-600">¿Cerrar el período? Los comerciales ya no podrán ajustar su pronóstico.</span>
+                        <div className="flex gap-2">
+                            <Button onClick={close} disabled={pending} className="h-10 rounded-xl text-sm bg-rose-600 hover:bg-rose-700">
+                                {pending ? 'Cerrando…' : 'Sí, cerrar'}
+                            </Button>
+                            <Button variant="outline" onClick={() => setConfirmingClose(false)} disabled={pending} className="h-10 rounded-xl text-sm">
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
                 )}
                 {isManager && period.status === 'CLOSED' && (
                     <Button variant="outline" onClick={reopen} disabled={pending} className="h-10 rounded-xl text-sm">
