@@ -1,6 +1,6 @@
 # PRP-008: Forecast de Compras / Planeación de Demanda
 
-> **Estado**: EN PROGRESO — Fases 1–4 desplegadas (2026-10-07). Histórico de Viviana importado a producción (8.939 filas, ene–sep 2026). Falta Fase 5 (precisión: pronosticado vs. vendido).
+> **Estado**: COMPLETADO — Fases 1–5 desplegadas (2026-10-07). Histórico de Viviana importado a producción (8.939 filas, ene–sep 2026). Falta solo la Fase 6 opcional (conexión con punto de reorden).
 > **Acceso del comercial:** `/my-forecast` ("Mi Pronóstico", siempre visible); el gestor usa `/purchasing/forecast`.
 > **Pendientes a validar con Julián:** (1) ABC por venta (Neto) vs. costo — hoy venta, configurable. (2) Mapear los 7 vendedores sin usuario (ex-comerciales ANA MARIA/LUISA/SIMON y 4 zonas vacantes) y marcar a Víctor y Miguel como "aparte" (is_separate). (3) ~17% de SKU del informe no están en el catálogo.
 > **Fecha**: 2026-10-07
