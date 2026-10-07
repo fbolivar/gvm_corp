@@ -69,24 +69,18 @@ export default async function ProcurementForecastPage() {
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
             <VisualReportHeader
                 title="Forecast de Compras"
-                subtitle="Planeación de demanda — histórico de ventas por comercial (informe de Viviana)"
+                subtitle="Panel de Compras — planeación de demanda por comercial"
                 tenant={tenant}
             />
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4 max-w-3xl">
-                <div>
-                    <h2 className="text-sm font-bold text-slate-900">Importar informe de ventas</h2>
-                    <p className="text-xs text-slate-500">
-                        Sube el informe general de Viviana (hoja BASE). El sistema carga el histórico por comercial y producto.
-                        Reimportar un mes reemplaza sus datos, no los duplica.
-                    </p>
-                    {lastImport && (
-                        <p className="text-[11px] text-slate-400 mt-1">
-                            Última importación: {new Date(lastImport.imported_at as string).toLocaleString('es-CO')}
-                        </p>
-                    )}
-                </div>
-                <SalesReportImporter />
+            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
+                <p className="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-2">Cómo funciona el mes</p>
+                <ol className="text-xs text-indigo-900/80 space-y-1 list-decimal pl-4">
+                    <li><strong>Compras</strong> importa el informe de ventas del mes (abajo) y <strong>abre el período</strong>.</li>
+                    <li>Cada <strong>comercial</strong> entra a <strong>&quot;Mi Pronóstico&quot;</strong> (en su menú) y ajusta sus cantidades.</li>
+                    <li><strong>Compras</strong> revisa el <strong>consolidado</strong>, compra, y al final <strong>cierra el período</strong>.</li>
+                </ol>
+                <p className="text-[11px] text-indigo-900/60 mt-2">Esta pantalla es para Compras. Los comerciales no entran aquí: ellos usan &quot;Mi Pronóstico&quot;.</p>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
@@ -94,11 +88,30 @@ export default async function ProcurementForecastPage() {
                 <ForecastPeriodPanel period={period ?? null} isManager={isManager} defaultYear={nextYear} defaultMonth={nextMonth} />
             </div>
 
-            {period && (
+            <details className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 group">
+                <summary className="cursor-pointer text-sm font-bold text-slate-900 flex items-center justify-between">
+                    <span>Importar informe de ventas <span className="font-normal text-slate-400">· una vez al mes</span></span>
+                    <span className="text-xs text-slate-400 group-open:hidden">mostrar</span>
+                </summary>
+                <div className="mt-4 space-y-4">
+                    <p className="text-xs text-slate-500">
+                        Sube el informe de ventas exportado de WorldOffice (la hoja de detalle de ventas). El sistema carga el histórico
+                        por comercial y producto. Reimportar un mes reemplaza sus datos, no los duplica.
+                    </p>
+                    {lastImport && (
+                        <p className="text-[11px] text-slate-400">
+                            Última importación: {new Date(lastImport.imported_at as string).toLocaleString('es-CO')}
+                        </p>
+                    )}
+                    <SalesReportImporter />
+                </div>
+            </details>
+
+            {period && myLines.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
                     <div>
                         <h2 className="text-sm font-bold text-slate-900">Mi pronóstico</h2>
-                        <p className="text-xs text-slate-500">Ajusta las cantidades del próximo mes. Marca &quot;puntual&quot; lo que no se debe reponer.</p>
+                        <p className="text-xs text-slate-500">Tus productos como comercial. Ajusta las cantidades y marca &quot;puntual&quot; lo que no se debe reponer.</p>
                     </div>
                     <MyForecastEditor lines={myLines} readOnly={period.status !== 'OPEN'} />
                 </div>
