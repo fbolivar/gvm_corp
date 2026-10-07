@@ -37,6 +37,7 @@ export const APP_MODULES: AppModule[] = [
     { label: "Importar Stock", href: "/inventory/import-stock", group: "Inventario", keywords: "importar stock cargar inventario excel" },
     { label: "CRM", href: "/crm", group: "Comercial", keywords: "crm clientes oportunidades embudo relaciones" },
     { label: "Leads / Prospectos", href: "/crm/leads", group: "CRM", keywords: "leads prospectos oportunidades" },
+    { label: "Oportunidades", href: "/crm/opportunities", group: "CRM", keywords: "oportunidades negocios deals seguimiento comercial" },
     { label: "Pipeline", href: "/crm/pipeline", group: "CRM", keywords: "pipeline embudo etapas" },
     { label: "Forecast", href: "/crm/forecast", group: "CRM", keywords: "forecast pronostico proyeccion ventas" },
     { label: "Soporte", href: "/support", group: "Comercial", keywords: "soporte tickets ayuda mesa de ayuda" },

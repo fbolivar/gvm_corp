@@ -230,13 +230,12 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     icon: Heart,
                     moduleKey: 'crm',
                     children: [
-                        // Pipeline y Forecast (CRM de oportunidades) siguen accesibles por
-                        // URL pero fuera del menú: el negocio es recurrente y se gestiona
-                        // por cartera + visitas. Volver a mostrarlos cuando haya negocios
-                        // grandes (licitaciones, contratos) que ameriten etapas.
                         { title: 'Cartera de clientes', href: "/crm/accounts", icon: Building2 },
                         { title: 'Visitas', href: "/crm/visits", icon: CalendarCheck },
                         { title: t.sidebar.leads, href: "/crm/leads", icon: UserPlus },
+                        { title: 'Oportunidades', href: "/crm/opportunities", icon: Briefcase },
+                        { title: 'Pipeline', href: "/crm/pipeline", icon: BarChart2 },
+                        { title: 'Forecast', href: "/crm/forecast", icon: TrendingUp },
                     ]
                 },
                 {
