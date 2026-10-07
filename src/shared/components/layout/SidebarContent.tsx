@@ -262,6 +262,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                 { title: 'Portal Cliente', href: "/client-portal", icon: UserPlus, moduleKey: 'crm' },
                 { title: 'Catálogo', href: "/catalog", icon: Tag, moduleKey: 'sales' },
                 { title: t.sidebar.my_payroll, href: "/my-payroll", icon: Banknote }, // siempre visible
+                { title: 'Mi Pronóstico', href: "/my-forecast", icon: TrendingUp }, // siempre visible (comerciales)
             ]
         },
         {

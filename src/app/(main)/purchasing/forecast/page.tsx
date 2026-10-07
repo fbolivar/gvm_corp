@@ -7,6 +7,8 @@ import { PortfolioExplorer } from '@/features/procurement-forecast/components/Po
 import { getPortfolios } from '@/features/procurement-forecast/services/forecastHistoryService';
 import { ForecastPeriodPanel } from '@/features/procurement-forecast/components/ForecastPeriodPanel';
 import { MyForecastEditor, type EditorLine } from '@/features/procurement-forecast/components/MyForecastEditor';
+import { ConsolidatedTable } from '@/features/procurement-forecast/components/ConsolidatedTable';
+import { getConsolidatedForecast, type Consolidated } from '@/features/procurement-forecast/services/consolidatedService';
 
 export const metadata = { title: 'Forecast de Compras — GVM Corp' };
 
@@ -49,6 +51,11 @@ export default async function ProcurementForecastPage() {
         myLines = (data ?? []) as EditorLine[];
     }
 
+    let consolidated: Consolidated | null = null;
+    if (period && isManager) {
+        consolidated = await getConsolidatedForecast(supabase, period.id).catch(() => null);
+    }
+
     const now = new Date();
     const nextMonth = now.getUTCMonth() + 2 > 12 ? 1 : now.getUTCMonth() + 2;
     const nextYear = now.getUTCMonth() + 2 > 12 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
@@ -89,6 +96,16 @@ export default async function ProcurementForecastPage() {
                         <p className="text-xs text-slate-500">Ajusta las cantidades del próximo mes. Marca &quot;puntual&quot; lo que no se debe reponer.</p>
                     </div>
                     <MyForecastEditor lines={myLines} readOnly={period.status !== 'OPEN'} />
+                </div>
+            )}
+
+            {consolidated && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+                    <div>
+                        <h2 className="text-sm font-bold text-slate-900">Consolidado para compra</h2>
+                        <p className="text-xs text-slate-500">Suma del pronóstico de todos los comerciales por producto (excluye lo marcado puntual). Exportable a CSV.</p>
+                    </div>
+                    <ConsolidatedTable data={consolidated} />
                 </div>
             )}
 
