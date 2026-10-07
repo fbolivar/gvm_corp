@@ -5,6 +5,8 @@ import { VisualReportHeader } from '@/features/accounting/components/VisualRepor
 import { SalesReportImporter } from '@/features/procurement-forecast/components/SalesReportImporter';
 import { PortfolioExplorer } from '@/features/procurement-forecast/components/PortfolioExplorer';
 import { getPortfolios } from '@/features/procurement-forecast/services/forecastHistoryService';
+import { ForecastPeriodPanel } from '@/features/procurement-forecast/components/ForecastPeriodPanel';
+import { MyForecastEditor, type EditorLine } from '@/features/procurement-forecast/components/MyForecastEditor';
 
 export const metadata = { title: 'Forecast de Compras — GVM Corp' };
 
@@ -24,6 +26,32 @@ export default async function ProcurementForecastPage() {
         .maybeSingle();
 
     const portfolios = await getPortfolios(supabase).catch(() => []);
+
+    const { data: isMgr } = await supabase.rpc('is_purchasing_manager');
+    const isManager = isMgr === true;
+
+    const { data: period } = await supabase
+        .from('forecast_periods')
+        .select('id, year, month, status')
+        .order('year', { ascending: false }).order('month', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    let myLines: EditorLine[] = [];
+    if (period) {
+        const { data } = await supabase
+            .from('forecast_lines')
+            .select('id, product_label, abc_class, suggested_qty, forecast_qty, is_one_off, submitted_at')
+            .eq('period_id', period.id)
+            .eq('salesperson_id', user.id)
+            .order('abc_class', { ascending: true })
+            .order('suggested_qty', { ascending: false });
+        myLines = (data ?? []) as EditorLine[];
+    }
+
+    const now = new Date();
+    const nextMonth = now.getUTCMonth() + 2 > 12 ? 1 : now.getUTCMonth() + 2;
+    const nextYear = now.getUTCMonth() + 2 > 12 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
 
     return (
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
@@ -48,6 +76,21 @@ export default async function ProcurementForecastPage() {
                 </div>
                 <SalesReportImporter />
             </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+                <h2 className="text-sm font-bold text-slate-900">Período de pronóstico</h2>
+                <ForecastPeriodPanel period={period ?? null} isManager={isManager} defaultYear={nextYear} defaultMonth={nextMonth} />
+            </div>
+
+            {period && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+                    <div>
+                        <h2 className="text-sm font-bold text-slate-900">Mi pronóstico</h2>
+                        <p className="text-xs text-slate-500">Ajusta las cantidades del próximo mes. Marca &quot;puntual&quot; lo que no se debe reponer.</p>
+                    </div>
+                    <MyForecastEditor lines={myLines} readOnly={period.status !== 'OPEN'} />
+                </div>
+            )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
                 <div>

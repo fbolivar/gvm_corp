@@ -12,10 +12,13 @@ AS $$
           AND ut.tenant_id = get_my_tenant_id()
           AND ut.status = 'active'
           AND (
+              -- Gestión del forecast + acceso al histórico/pronóstico de TODOS los comerciales:
+              -- solo dirección de compras, gerencia y administradores. NO el can_edit general
+              -- de 'purchasing' (lo tienen logística, tesorería, marketing, etc.).
               ut.role IN ('SUPER ADMINISTRADOR','ADMINISTRADOR','owner','admin','GENERAL MANAGER','DIRECTOR DE COMPRAS Y COMERCIO EXTERIOR')
               OR EXISTS (
                   SELECT 1 FROM role_permissions rp
-                  WHERE rp.role_id = ut.role_id AND rp.module_key = 'purchasing' AND rp.can_edit = true
+                  WHERE rp.role_id = ut.role_id AND rp.module_key = 'purchasing' AND rp.can_admin = true
               )
           )
     );
