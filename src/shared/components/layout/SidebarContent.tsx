@@ -233,8 +233,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Cartera de clientes', href: "/crm/accounts", icon: Building2 },
                         { title: 'Visitas', href: "/crm/visits", icon: CalendarCheck },
                         { title: t.sidebar.leads, href: "/crm/leads", icon: UserPlus },
-                        { title: 'Oportunidades', href: "/crm/opportunities", icon: Briefcase },
-                        { title: 'Pipeline', href: "/crm/pipeline", icon: BarChart2 },
+                        { title: 'Pipeline (Oportunidades)', href: "/crm/pipeline", icon: BarChart2 },
                         { title: 'Forecast', href: "/crm/forecast", icon: TrendingUp },
                     ]
                 },
