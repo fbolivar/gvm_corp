@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { SalesReportImporter } from '@/features/procurement-forecast/components/SalesReportImporter';
+import { PortfolioExplorer } from '@/features/procurement-forecast/components/PortfolioExplorer';
+import { getPortfolios } from '@/features/procurement-forecast/services/forecastHistoryService';
 
 export const metadata = { title: 'Forecast de Compras — GVM Corp' };
 
@@ -20,6 +22,8 @@ export default async function ProcurementForecastPage() {
         .order('imported_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+
+    const portfolios = await getPortfolios(supabase).catch(() => []);
 
     return (
         <div className="page-container space-y-6 pb-20 animate-in fade-in duration-500">
@@ -43,6 +47,17 @@ export default async function ProcurementForecastPage() {
                     )}
                 </div>
                 <SalesReportImporter />
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+                <div>
+                    <h2 className="text-sm font-bold text-slate-900">Histórico y clasificación ABC por comercial</h2>
+                    <p className="text-xs text-slate-500">
+                        Últimos 6 meses con datos. ABC por valor (A hasta 92%, B hasta 99% o más de $600.000, C el resto).
+                        El promedio es la base del pronóstico sugerido.
+                    </p>
+                </div>
+                <PortfolioExplorer portfolios={portfolios} />
             </div>
         </div>
     );
