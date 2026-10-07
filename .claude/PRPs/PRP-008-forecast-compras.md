@@ -1,7 +1,8 @@
 # PRP-008: Forecast de Compras / Planeación de Demanda
 
-> **Estado**: EN PROGRESO — Fases 1 (importador) y 2 (ABC por comercial) construidas, verificadas y desplegadas (2026-10-07). Siguen: Fase 3 (editor del comercial), 4 (consolidado), 5 (precisión).
-> **Pendiente a validar con Julián:** el ABC se calcula hoy con el valor de venta (Neto del informe); Julián clasifica por costo. La lógica es configurable; confirmar si se cambia a costo (requiere costo del catálogo).
+> **Estado**: EN PROGRESO — Fases 1–4 desplegadas (2026-10-07). Histórico de Viviana importado a producción (8.939 filas, ene–sep 2026). Falta Fase 5 (precisión: pronosticado vs. vendido).
+> **Acceso del comercial:** `/my-forecast` ("Mi Pronóstico", siempre visible); el gestor usa `/purchasing/forecast`.
+> **Pendientes a validar con Julián:** (1) ABC por venta (Neto) vs. costo — hoy venta, configurable. (2) Mapear los 7 vendedores sin usuario (ex-comerciales ANA MARIA/LUISA/SIMON y 4 zonas vacantes) y marcar a Víctor y Miguel como "aparte" (is_separate). (3) ~17% de SKU del informe no están en el catálogo.
 > **Fecha**: 2026-10-07
 > **Proyecto**: GVM Corp ERP
 > **Origen**: Reunión con Julián Martínez (Director de Compras y Comercio Exterior), 2026-10-07.
