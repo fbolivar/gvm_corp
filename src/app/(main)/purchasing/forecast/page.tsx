@@ -9,6 +9,9 @@ import { ForecastPeriodPanel } from '@/features/procurement-forecast/components/
 import { MyForecastEditor, type EditorLine } from '@/features/procurement-forecast/components/MyForecastEditor';
 import { ConsolidatedTable } from '@/features/procurement-forecast/components/ConsolidatedTable';
 import { getConsolidatedForecast, type Consolidated } from '@/features/procurement-forecast/services/consolidatedService';
+import { AccuracyTable } from '@/features/procurement-forecast/components/AccuracyTable';
+import { getForecastAccuracy } from '@/features/procurement-forecast/services/accuracyService';
+import type { SalespersonAccuracy } from '@/features/procurement-forecast/services/forecastAccuracy';
 
 export const metadata = { title: 'Forecast de Compras — GVM Corp' };
 
@@ -52,8 +55,10 @@ export default async function ProcurementForecastPage() {
     }
 
     let consolidated: Consolidated | null = null;
+    let accuracy: { rows: SalespersonAccuracy[]; hasActuals: boolean } | null = null;
     if (period && isManager) {
         consolidated = await getConsolidatedForecast(supabase, period.id).catch(() => null);
+        accuracy = await getForecastAccuracy(supabase, period).catch(() => null);
     }
 
     const now = new Date();
@@ -106,6 +111,16 @@ export default async function ProcurementForecastPage() {
                         <p className="text-xs text-slate-500">Suma del pronóstico de todos los comerciales por producto (excluye lo marcado puntual). Exportable a CSV.</p>
                     </div>
                     <ConsolidatedTable data={consolidated} />
+                </div>
+            )}
+
+            {accuracy && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
+                    <div>
+                        <h2 className="text-sm font-bold text-slate-900">Precisión del pronóstico</h2>
+                        <p className="text-xs text-slate-500">Pronosticado vs. vendido real del mes del período. Toca un comercial para ver el detalle por producto.</p>
+                    </div>
+                    <AccuracyTable rows={accuracy.rows} hasActuals={accuracy.hasActuals} />
                 </div>
             )}
 
