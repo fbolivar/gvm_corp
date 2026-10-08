@@ -4,6 +4,7 @@ import { EditEmployeeFormWrapper } from "@/features/payroll/components/EditEmplo
 import { EmployeeCarnet } from "@/features/payroll/components/EmployeeCarnet"
 import { CertificateButtons } from "@/features/payroll/components/CertificateButtons"
 import { employeeService } from "@/features/payroll/services/employeeService"
+import { getEmployeeCargo } from "@/features/payroll/services/cargoService"
 import { settingsService } from "@/features/settings/services/settingsService"
 import { AuditTrail } from "@/shared/components/ui/audit-trail"
 import { Button } from "@/shared/components/ui/button"
@@ -27,6 +28,9 @@ export default async function EditEmployeePage({ params }: PageProps) {
     // Datos para los certificados (empleado + empresa + firmante RRHH)
     const employee = await employeeService.getEmployeeById(supabase, id).catch(() => null)
     const tenant = await settingsService.getTenantInfo(supabase)
+    const cargo = employee && tenant
+        ? await getEmployeeCargo(tenant.id, employee.user_id, employee.contract_type, user.id).catch(() => undefined)
+        : undefined
     const companyNit = tenant?.nit ? `${tenant.nit}${tenant.dv ? `-${tenant.dv}` : ''}` : undefined
     const companyAddress = [tenant?.address, tenant?.city, tenant?.department].filter(Boolean).join(', ') || undefined
     const companyContact = [tenant?.phone, tenant?.email, tenant?.website].filter(Boolean).join(' · ') || undefined
@@ -85,6 +89,7 @@ export default async function EditEmployeePage({ params }: PageProps) {
                                 employeeName:       (employee.party as { legal_name?: string }).legal_name ?? '',
                                 employeeDoc:        (employee.party as { doc_number?: string }).doc_number ?? '',
                                 employeeDocType:    (employee.party as { doc_type?: string }).doc_type ?? 'C.C.',
+                                position:           cargo,
                                 contractType:       employee.contract_type,
                                 startDate:          employee.start_date,
                                 salary:             Number(employee.salary),

@@ -15,6 +15,7 @@ import { trainingService } from "@/features/training/services/trainingService"
 import { MyAssets } from "@/features/technology/components/MyAssets"
 import { technologyService } from "@/features/technology/services/technologyService"
 import { settingsService } from "@/features/settings/services/settingsService"
+import { getEmployeeCargo } from "@/features/payroll/services/cargoService"
 import {
     Wallet,
     FileText,
@@ -78,6 +79,9 @@ export default async function MyPayrollPage() {
     // Solo resultados cerrados, por la función de la base (sin recomendaciones ni aprobaciones).
     const { data: performanceResults, error: performanceError } = await supabase.rpc('my_performance_results')
     if (performanceError) console.error('[my-payroll] resultados de desempeño:', performanceError.message)
+
+    // Cargo del empleado (rol) para el certificado laboral.
+    const cargo = await getEmployeeCargo(employee.tenant_id || '', employee.user_id ?? user.id, employee.contract_type, user.id).catch(() => undefined)
 
     return (
         <div className="space-y-8 pb-16 animate-in fade-in duration-500 px-4 md:px-0">
@@ -329,6 +333,7 @@ export default async function MyPayrollPage() {
                                 employeeName:      employee.party?.legal_name ?? '',
                                 employeeDoc:       (employee.party as { doc_number?: string } | undefined)?.doc_number ?? '',
                                 employeeDocType:   (employee.party as { doc_type?: string } | undefined)?.doc_type ?? 'C.C.',
+                                position:          cargo,
                                 contractType:      employee.contract_type,
                                 startDate:         employee.start_date,
                                 salary:            Number(employee.salary),

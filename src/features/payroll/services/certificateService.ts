@@ -5,6 +5,7 @@ export interface CertificateData {
     employeeName: string;
     employeeDoc: string;
     employeeDocType: string;
+    position?: string;        // cargo del empleado (rol)
     contractType: string;
     startDate: string;
     salary: number;
@@ -132,6 +133,7 @@ function employeeBox(doc: jsPDF, data: CertificateData, y: number): number {
     const rows: [string, string][] = [
         ['Nombre', data.employeeName.toUpperCase()],
         ['Identificación', `${data.employeeDocType || 'C.C.'} No. ${data.employeeDoc}`],
+        ...(data.position ? [['Cargo', data.position] as [string, string]] : []),
         ['Tipo de contrato', `Contrato de trabajo a ${CONTRACT_LABELS[data.contractType] ?? data.contractType}`],
         ['Fecha de ingreso', fmtDate(data.startDate)],
         ['Salario mensual', fmtCOP(data.salary)],
