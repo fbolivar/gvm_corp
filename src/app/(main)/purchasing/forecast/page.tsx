@@ -141,7 +141,7 @@ export default async function ProcurementForecastPage() {
                 <div>
                     <h2 className="text-sm font-bold text-slate-900">Histórico y clasificación ABC por comercial</h2>
                     <p className="text-xs text-slate-500">
-                        Últimos 6 meses con datos. ABC por valor (A hasta 92%, B hasta 99% o más de $600.000, C el resto).
+                        Últimos 6 meses con datos. ABC por costo (A hasta 92%, B hasta 99% o más de $600.000, C el resto).
                         El promedio es la base del pronóstico sugerido.
                     </p>
                 </div>

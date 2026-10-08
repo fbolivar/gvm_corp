@@ -65,6 +65,15 @@ export async function getPortfolios(
     const windowMonths = allMonths.slice(-WINDOW);
     const windowSet = new Set(windowMonths);
 
+    // Costo por producto, para clasificar el ABC por costo (más estable que el precio
+    // de venta, que varía por cliente). Fallback al valor de venta si falta el costo.
+    const products = await fetchAllRows<{ id: string; cost: number | null }>(
+        ({ from, to }) => client.from('products').select('id, cost').order('id').range(from, to),
+        { label: 'products-cost' },
+    );
+    const costById = new Map<string, number>();
+    for (const p of products) if (p.cost && Number(p.cost) > 0) costById.set(p.id, Number(p.cost));
+
     const aliasRes = await client.from('forecast_salesperson_aliases').select('report_label, salesperson_id, is_separate');
     const aliasInfo = new Map<string, { id: string | null; sep: boolean }>();
     for (const a of aliasRes.data ?? []) aliasInfo.set(a.report_label, { id: a.salesperson_id, sep: a.is_separate });
@@ -89,7 +98,12 @@ export async function getPortfolios(
     const result: SalespersonPortfolio[] = [];
     for (const [label, prodMap] of bySalesperson) {
         const products = [...prodMap.values()];
-        const classified = classifyAbc(products.map(p => ({ key: p.sku, value: p.totalValue })), abcOptions);
+        // Valor para ABC = cantidad × costo (si hay costo); si no, el valor de venta.
+        const abcValue = (p: PortfolioProduct) => {
+            const cost = p.productId ? costById.get(p.productId) : undefined;
+            return cost ? p.totalQty * cost : p.totalValue;
+        };
+        const classified = classifyAbc(products.map(p => ({ key: p.sku, value: abcValue(p) })), abcOptions);
         const abcBySku = new Map(classified.map(c => [c.key, c]));
         for (const p of products) {
             const c = abcBySku.get(p.sku);
