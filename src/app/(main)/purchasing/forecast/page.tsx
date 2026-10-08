@@ -12,6 +12,8 @@ import { getConsolidatedForecast, type Consolidated } from '@/features/procureme
 import { AccuracyTable } from '@/features/procurement-forecast/components/AccuracyTable';
 import { getForecastAccuracy } from '@/features/procurement-forecast/services/accuracyService';
 import type { SalespersonAccuracy } from '@/features/procurement-forecast/services/forecastAccuracy';
+import { MissingProductsPanel } from '@/features/procurement-forecast/components/MissingProductsPanel';
+import { getMissingProducts, type MissingProduct } from '@/features/procurement-forecast/services/missingProductsService';
 
 export const metadata = { title: 'Forecast de Compras — GVM Corp' };
 
@@ -56,9 +58,13 @@ export default async function ProcurementForecastPage() {
 
     let consolidated: Consolidated | null = null;
     let accuracy: { rows: SalespersonAccuracy[]; hasActuals: boolean } | null = null;
+    let missing: MissingProduct[] = [];
     if (period && isManager) {
         consolidated = await getConsolidatedForecast(supabase, period.id).catch(() => null);
         accuracy = await getForecastAccuracy(supabase, period).catch(() => null);
+    }
+    if (isManager) {
+        missing = await getMissingProducts(supabase).catch(() => []);
     }
 
     const now = new Date();
@@ -147,6 +153,18 @@ export default async function ProcurementForecastPage() {
                 </div>
                 <PortfolioExplorer portfolios={portfolios} />
             </div>
+
+            {isManager && (
+                <details className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 group">
+                    <summary className="cursor-pointer text-sm font-bold text-slate-900 flex items-center justify-between">
+                        <span>Productos por cargar en el catálogo {missing.length > 0 && <span className="ml-1 text-rose-600">({missing.length})</span>}</span>
+                        <span className="text-xs text-slate-400 group-open:hidden">mostrar</span>
+                    </summary>
+                    <div className="mt-4">
+                        <MissingProductsPanel products={missing} />
+                    </div>
+                </details>
+            )}
         </div>
     );
 }
