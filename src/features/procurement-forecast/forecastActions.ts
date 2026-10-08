@@ -96,6 +96,41 @@ export async function reopenForecastPeriodAction(periodId: unknown): Promise<Res
     return { success: true };
 }
 
+const aliasSchema = z.object({
+    reportLabel: z.string().min(1).max(200),
+    salespersonId: z.string().uuid().nullable(),
+    isSeparate: z.boolean(),
+});
+
+/**
+ * Enlaza un vendedor del informe con un usuario del sistema (o lo deja sin dueño)
+ * y define si va "aparte" en el consolidado. Solo gestión de Compras.
+ */
+export async function updateSalespersonAliasAction(input: unknown): Promise<Result> {
+    const ctx = await managerCtx();
+    if ('error' in ctx) return { error: ctx.error };
+    const parsed = aliasSchema.safeParse(input);
+    if (!parsed.success) return { error: 'Datos inválidos' };
+    const { reportLabel, salespersonId, isSeparate } = parsed.data;
+    const { supabase, tenantId } = ctx;
+
+    // El usuario asignado debe pertenecer a este tenant (no aceptar ids de fuera).
+    if (salespersonId) {
+        const { data: member } = await supabase
+            .from('user_tenants').select('user_id').eq('tenant_id', tenantId).eq('user_id', salespersonId).maybeSingle();
+        if (!member) return { error: 'La persona seleccionada no pertenece a la empresa' };
+    }
+
+    const { error } = await supabase
+        .from('forecast_salesperson_aliases')
+        .update({ salesperson_id: salespersonId, is_separate: isSeparate })
+        .eq('tenant_id', tenantId).eq('report_label', reportLabel);
+    if (error) return { error: 'No se pudo guardar el enlace del vendedor' };
+
+    revalidatePath('/purchasing/forecast');
+    return { success: true };
+}
+
 const submitSchema = z.object({
     lineId: z.string().uuid(),
     qty: z.number().min(0).max(1e9),

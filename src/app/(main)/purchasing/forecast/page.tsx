@@ -14,6 +14,8 @@ import { getForecastAccuracy } from '@/features/procurement-forecast/services/ac
 import type { SalespersonAccuracy } from '@/features/procurement-forecast/services/forecastAccuracy';
 import { MissingProductsPanel } from '@/features/procurement-forecast/components/MissingProductsPanel';
 import { getMissingProducts, type MissingProduct } from '@/features/procurement-forecast/services/missingProductsService';
+import { SalespersonMapping, type AliasRow, type UserOption } from '@/features/procurement-forecast/components/SalespersonMapping';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const metadata = { title: 'Forecast de Compras — GVM Corp' };
 
@@ -63,8 +65,32 @@ export default async function ProcurementForecastPage() {
         consolidated = await getConsolidatedForecast(supabase, period.id).catch(() => null);
         accuracy = await getForecastAccuracy(supabase, period).catch(() => null);
     }
+    let aliasRows: AliasRow[] = [];
+    let userOptions: UserOption[] = [];
     if (isManager) {
         missing = await getMissingProducts(supabase).catch(() => []);
+
+        const { data: aliases } = await supabase
+            .from('forecast_salesperson_aliases')
+            .select('report_label, salesperson_id, is_separate')
+            .order('report_label');
+        aliasRows = (aliases ?? []).map(a => ({
+            reportLabel: a.report_label as string,
+            salespersonId: (a.salesperson_id as string | null) ?? null,
+            isSeparate: a.is_separate as boolean,
+        }));
+
+        const admin = createAdminClient();
+        const { data: members } = await admin
+            .from('user_tenants').select('user_id').eq('tenant_id', tenant.id).eq('status', 'active');
+        const memberIds = (members ?? []).map(m => m.user_id as string);
+        if (memberIds.length > 0) {
+            const { data: profs } = await admin.from('profiles').select('id, full_name').in('id', memberIds);
+            userOptions = (profs ?? [])
+                .filter(p => p.full_name)
+                .map(p => ({ id: p.id as string, name: p.full_name as string }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        }
     }
 
     const now = new Date();
@@ -162,6 +188,22 @@ export default async function ProcurementForecastPage() {
                     </summary>
                     <div className="mt-4">
                         <MissingProductsPanel products={missing} />
+                    </div>
+                </details>
+            )}
+
+            {isManager && aliasRows.length > 0 && (
+                <details className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 group">
+                    <summary className="cursor-pointer text-sm font-bold text-slate-900 flex items-center justify-between">
+                        <span>Enlazar comerciales del informe con usuarios</span>
+                        <span className="text-xs text-slate-400 group-open:hidden">mostrar</span>
+                    </summary>
+                    <div className="mt-4 space-y-3">
+                        <p className="text-xs text-slate-500">
+                            Cuando entra un comercial nuevo, enlaza su nombre del informe con su usuario para que vea su pronóstico.
+                            Marca &quot;aparte&quot; a quienes van separados del consolidado general.
+                        </p>
+                        <SalespersonMapping aliases={aliasRows} users={userOptions} />
                     </div>
                 </details>
             )}
