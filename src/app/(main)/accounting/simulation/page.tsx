@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
-import { AccountingSimulation } from '@/features/accounting/components/AccountingSimulation';
+import { SimulationTabs } from '@/features/accounting/components/SimulationTabs';
 import { Button } from '@/shared/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -30,13 +30,13 @@ export default async function AccountingSimulationPage() {
                 <div className="flex-1">
                     <VisualReportHeader
                         title="Simulación de contabilización"
-                        subtitle="Qué asiento generaría cada factura con la parametrización actual — no guarda nada"
+                        subtitle="Qué asiento generaría cada documento con la parametrización actual — no guarda nada"
                         tenant={tenant}
                     />
                 </div>
             </div>
 
-            <AccountingSimulation defaultFrom={from} defaultTo={to} />
+            <SimulationTabs defaultFrom={from} defaultTo={to} />
         </div>
     );
 }
