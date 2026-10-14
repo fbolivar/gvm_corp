@@ -496,89 +496,33 @@ export const accountingService = {
             return entry;
         }
 
-        let lines: any[] = [];
-        let description = `Contabilización ${document.doc_type} ${document.number || document.id?.substring(0, 8)}`;
-
-        // Aggregate Taxes from Lines if available
-        let ivaAmount = 0;
-        let reteFuenteAmount = 0;
-        let reteIcaAmount = 0;
-        let cxAmount = 0; // Total to CXC / CXP
-
-        if (document.lines && Array.isArray(document.lines) && document.lines.length > 0) {
-            document.lines.forEach((line: any) => {
-                const lineTotal = Number(line.qty) * Number(line.unit_price);
-
-                // Flexible parsing of tax_config. It can be an array of objects or a single object.
-                const configs = Array.isArray(line.tax_config) ? line.tax_config : (line.tax_config ? [line.tax_config] : []);
-
-                configs.forEach((tax: any) => {
-                    const rate = Number(tax.rate) || 0;
-                    const taxVal = lineTotal * (rate / 100);
-
-                    const tType = (tax.type || tax.name || 'IVA').toUpperCase();
-
-                    if (tType.includes('IVA')) {
-                        ivaAmount += taxVal;
-                    } else if (tType.includes('RETEFUENTE') || tType.includes('FUENTE') || tType.includes('RF')) {
-                        reteFuenteAmount += taxVal;
-                    } else if (tType.includes('ICA')) {
-                        reteIcaAmount += taxVal;
-                    } else {
-                        // Fallback assumes additive tax
-                        ivaAmount += taxVal;
-                    }
-                });
-            });
-            // Recompute total based on standard structure: subtotal + IVA - Retenciones
-            cxAmount = Number(document.subtotal) + ivaAmount - reteFuenteAmount - reteIcaAmount;
-        } else {
-            // Fallback for docs without lines (legacy or quick created)
-            ivaAmount = Number(document.taxes) || 0;
-            cxAmount = Number(document.total) || 0;
-        }
-
+        // Compras: la compra remisionada (VENDOR_BILL → CREM) se contabiliza con el
+        // motor de reglas del contador (purchase_accounting_rules). El inventario
+        // físico lo mueve la recepción de la OC (la "remisión de proveedores" del
+        // contador), no este documento: aquí solo va el asiento contable, por eso
+        // no se duplica inventario.
+        //
+        // GATED por tenants.auto_post_purchases: mientras esté en false (default),
+        // registrar una compra NO genera asiento —igual que hoy— hasta que el
+        // contador dé el visto bueno y lo encienda, sin re-desplegar.
         if (document.doc_type === 'VENDOR_BILL') {
-            const payableAccount = await this.getAccountByCode(client, '2205'); // Proveedores
-            const expenseAccount = await this.getAccountByCode(client, '6135'); // Costo de Ventas
-            const ivaAccount = await this.getAccountByCode(client, '2408'); // IVA Descontable
-            const reteFuenteAccount = await this.getAccountByCode(client, '2365'); // Retefuente por Pagar (Pasivo)
-            const reteIcaAccount = await this.getAccountByCode(client, '2368'); // ReteICA por Pagar (Pasivo)
+            const { data: t } = await client
+                .from('tenants')
+                .select('auto_post_purchases')
+                .limit(1)
+                .maybeSingle();
+            if (!t?.auto_post_purchases) return;
 
-            if (!payableAccount || !expenseAccount) return;
-
-            // Debits (Expense / Cost) -> Subtotal
-            lines.push({ account_id: expenseAccount.id, party_id: document.party_id, debit: document.subtotal, credit: 0, description: `Costo/Gasto ${document.number}` });
-
-            // Debits (IVA Descontable)
-            if (ivaAmount > 0 && ivaAccount) {
-                lines.push({ account_id: ivaAccount.id, party_id: document.party_id, debit: ivaAmount, credit: 0, description: `IVA Descontable ${document.number}` });
-            }
-
-            // Credits (Retenciones por pgar)
-            if (reteFuenteAmount > 0 && reteFuenteAccount) {
-                lines.push({ account_id: reteFuenteAccount.id, party_id: document.party_id, debit: 0, credit: reteFuenteAmount, description: `Retefuente por Pagar Fr ${document.number}` });
-            }
-            if (reteIcaAmount > 0 && reteIcaAccount) {
-                lines.push({ account_id: reteIcaAccount.id, party_id: document.party_id, debit: 0, credit: reteIcaAmount, description: `ReteICA por Pagar Fr ${document.number}` });
-            }
-
-            // Credits (Payable / CXP) -> Total a pagar
-            lines.push({ account_id: payableAccount.id, party_id: document.party_id, debit: 0, credit: cxAmount, description: `CXP Prov ${document.number}` });
-        }
-        // Orders and Quotes do not generate accounting entries.
-        else if (['PURCHASE_ORDER', 'SALES_ORDER', 'QUOTATION'].includes(document.doc_type)) {
-            return;
+            const { purchaseAccountingService } = await import('./purchaseAccountingService');
+            const { entry, warnings } = await purchaseAccountingService.createPurchaseEntry(client, document);
+            if (warnings.length > 0) console.warn('[contabilización compra]', document.number, warnings.join(' | '));
+            return entry;
         }
 
-        if (lines.length === 0) return;
-
-        return await this.createEntry(client, {
-            entry_date: document.issue_date,
-            description,
-            document_id: document.id,
-            lines
-        });
+        // Los demás documentos (pedidos, cotizaciones, remisiones, notas débito,
+        // recibos…) no generan asiento por este camino. La nómina se contabiliza
+        // aparte con createEntryFromPayroll.
+        return;
     },
 
     async getTrialBalance(client: SupabaseClient, startDate: string, endDate: string, dimensionValueId?: string) {

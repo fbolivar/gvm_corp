@@ -4,6 +4,8 @@ import {
     type PurchaseRule, type TaxRates, type PurchaseDocKind,
 } from './purchaseAccountingEngine';
 import { resolveLineIvaRate, resolvePaymentForm } from './salesAccountingEngine';
+import { accountingService } from './accountingService';
+import type { JournalEntry } from '../types';
 
 export interface PurchaseEntryDraft {
     entry_date: string;
@@ -115,5 +117,48 @@ export const purchaseAccountingService = {
             },
             warnings,
         };
+    },
+
+    /**
+     * Contabiliza una compra remisionada (VENDOR_BILL → CREM): calcula el asiento
+     * con previewPurchaseEntry, traduce los códigos de cuenta a ids y lo guarda.
+     * La simulación usa el MISMO cálculo (previewPurchaseEntry), por eso el
+     * borrador está separado del guardado. Devuelve el asiento creado o null,
+     * junto con los avisos, para que el llamador alerte en vez de fallar en silencio.
+     */
+    async createPurchaseEntry(
+        client: SupabaseClient,
+        document: Record<string, unknown>,
+    ): Promise<{ entry: unknown | null; warnings: string[] }> {
+        const { draft, warnings } = await this.previewPurchaseEntry(client, document);
+        if (!draft) return { entry: null, warnings };
+
+        // Códigos de cuenta → ids del PUC (el borrador trae códigos para la simulación).
+        const codes = [...new Set(draft.lines.map(l => l.account_code))];
+        const { data: accounts } = await client
+            .from('chart_accounts')
+            .select('id, code')
+            .in('code', codes);
+        const idByCode = new Map((accounts ?? []).map((a: { id: string; code: string }) => [a.code, a.id]));
+        const missing = codes.filter(c => !idByCode.has(c));
+        if (missing.length > 0) {
+            warnings.push(`Faltan cuentas en el PUC: ${missing.join(', ')}. No se contabilizó la compra.`);
+            return { entry: null, warnings };
+        }
+
+        const partyId = (document.party_id as string) ?? null;
+        const entry = await accountingService.createEntry(client, {
+            entry_date: draft.entry_date,
+            description: draft.description,
+            document_id: draft.document_id,
+            lines: draft.lines.map(l => ({
+                account_id: idByCode.get(l.account_code)!,
+                party_id: partyId,
+                debit: l.debit,
+                credit: l.credit,
+                description: `${l.concept}${l.iva_rate != null ? ` ${l.iva_rate}%` : ''} — ${draft.description}`,
+            })),
+        } as JournalEntry);
+        return { entry, warnings };
     },
 };
