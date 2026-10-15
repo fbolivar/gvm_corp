@@ -506,10 +506,12 @@ export const accountingService = {
         // registrar una compra NO genera asiento —igual que hoy— hasta que el
         // contador dé el visto bueno y lo encienda, sin re-desplegar.
         if (document.doc_type === 'VENDOR_BILL') {
+            // Leer el flag DEL TENANT DEL DOCUMENTO (no `limit(1)`): evita ambigüedad
+            // si la consulta no está acotada por RLS a un único tenant.
             const { data: t } = await client
                 .from('tenants')
                 .select('auto_post_purchases')
-                .limit(1)
+                .eq('id', document.tenant_id)
                 .maybeSingle();
             if (!t?.auto_post_purchases) return;
 
