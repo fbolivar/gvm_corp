@@ -566,7 +566,9 @@ export const accountingService = {
         // GATED por tenants.auto_post_purchases: mientras esté en false (default),
         // registrar una compra NO genera asiento —igual que hoy— hasta que el
         // contador dé el visto bueno y lo encienda, sin re-desplegar.
-        if (document.doc_type === 'VENDOR_BILL') {
+        if (document.doc_type === 'VENDOR_BILL' || document.doc_type === 'PURCHASE_RETURN') {
+            // Compra remisionada (VENDOR_BILL → CREM) y devolución a proveedor
+            // (PURCHASE_RETURN → DMP) van por el mismo motor y el mismo interruptor.
             // Leer el flag DEL TENANT DEL DOCUMENTO (no `limit(1)`): evita ambigüedad
             // si la consulta no está acotada por RLS a un único tenant.
             const { data: t } = await client

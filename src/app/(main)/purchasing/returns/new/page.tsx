@@ -16,10 +16,12 @@ export default async function NewPurchaseReturnPage() {
             total,
             balance,
             party_id,
-            parties(legal_name, trade_name)
+            warehouse_id,
+            parties(legal_name, trade_name),
+            lines:document_lines(id, product_id, description, qty, unit_price, tax_config)
         `)
         .eq('doc_type', 'VENDOR_BILL')
-        .in('status', ['POSTED', 'PARTIAL', 'PAID'])
+        .in('status', ['DRAFT', 'SENT', 'ACCEPTED'])
         .order('created_at', { ascending: false });
 
     return (

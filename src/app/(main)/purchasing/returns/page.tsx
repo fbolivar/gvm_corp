@@ -48,7 +48,9 @@ export default async function PurchaseReturnsPage() {
             parent:documents!parent_id(number, doc_type),
             party:parties(legal_name, trade_name)
         `)
-        .eq('doc_type', 'CREDIT_NOTE')
+        // PURCHASE_RETURN (flujo nuevo, con líneas e inventario) + CREDIT_NOTE
+        // (devoluciones antiguas, solo monto) para no perder el histórico.
+        .in('doc_type', ['PURCHASE_RETURN', 'CREDIT_NOTE'])
         .not('parent_id', 'is', null)
         .order('created_at', { ascending: false });
 
