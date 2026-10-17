@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { accountingService } from '../services/accountingService'
 import { purchaseAccountingService } from '../services/purchaseAccountingService'
+import { costOfSalesService } from '../services/costOfSalesService'
 
 /**
  * Simulación de la contabilización de ventas.
@@ -235,6 +236,85 @@ export async function simulateSalesAccountingAction(
                 debit: l.debit,
                 credit: l.credit,
             })),
+        })
+    }
+
+    return { documents, totals }
+}
+
+// ─── Simulación de COSTO DE VENTA ───────────────────────────────────────────
+
+export interface SimulatedCostDoc {
+    id: string;
+    number: string | null;
+    doc_type: string;
+    issue_date: string | null;
+    party_name: string;
+    costo: number;
+    unidades_sin_costo: number;
+    balanced: boolean;
+    warnings: string[];
+    lines: SimulatedLine[];
+}
+
+export interface CostSimulationResult {
+    documents: SimulatedCostDoc[];
+    totals: { analizados: number; con_costo: number; con_avisos: number; costo_total: number; unidades_sin_costo: number };
+    error?: string;
+}
+
+const EMPTY_COST: CostSimulationResult = {
+    documents: [],
+    totals: { analizados: 0, con_costo: 0, con_avisos: 0, costo_total: 0, unidades_sin_costo: 0 },
+}
+
+/**
+ * Simulación del COSTO DE VENTA sobre los pedidos facturados y facturas: muestra
+ * el asiento (débito costo / crédito inventario por tarifa) con el último costo
+ * del producto, SIN guardarlo. Pendiente de encender hasta el visto bueno del
+ * contador sobre cuentas y método de costo.
+ */
+export async function simulateCostOfSalesAction(from: string, to: string, limit = 500): Promise<CostSimulationResult> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { ...EMPTY_COST, error: 'Sesión expirada. Vuelve a iniciar sesión.' }
+
+    const { data: docs, error } = await supabase
+        .from('documents')
+        .select('id, number, doc_type, status, issue_date, party:parties(legal_name), lines:document_lines(qty, tax_config, product:products(cost, tax_category, sku))')
+        .or('doc_type.eq.INVOICE,and(doc_type.eq.SALES_ORDER,status.eq.ACCEPTED)')
+        .gte('issue_date', from)
+        .lte('issue_date', to)
+        .order('issue_date', { ascending: true })
+        .limit(limit)
+
+    if (error) return { ...EMPTY_COST, error: `No se pudieron leer los documentos: ${error.message}` }
+
+    const documents: SimulatedCostDoc[] = []
+    const totals = { ...EMPTY_COST.totals }
+
+    for (const raw of docs ?? []) {
+        const doc = raw as Record<string, unknown>
+        const partyRel = doc.party as { legal_name?: string } | Array<{ legal_name?: string }> | null
+        const party = Array.isArray(partyRel) ? partyRel[0] : partyRel
+
+        const draft = costOfSalesService.previewCostOfSalesEntry(doc)
+        totals.analizados++
+        if (draft.warnings.length > 0) totals.con_avisos++
+        if (draft.totals.costo > 0) { totals.con_costo++; totals.costo_total += draft.totals.costo }
+        totals.unidades_sin_costo += draft.totals.sin_costo
+
+        documents.push({
+            id: String(doc.id),
+            number: (doc.number as string) ?? null,
+            doc_type: String(doc.doc_type),
+            issue_date: (doc.issue_date as string) ?? null,
+            party_name: party?.legal_name ?? 'Consumidor Final',
+            costo: draft.totals.costo,
+            unidades_sin_costo: draft.totals.sin_costo,
+            balanced: Math.abs(draft.totals.debit - draft.totals.credit) < 0.01,
+            warnings: draft.warnings,
+            lines: draft.lines.map(l => ({ account_code: l.account_code, concept: l.concept, iva_rate: l.iva_rate, debit: l.debit, credit: l.credit })),
         })
     }
 
