@@ -118,7 +118,10 @@ export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOr
         const result = await markSalesOrderInvoicedAction(docId, false)
         setProcessingId(null)
         if (result?.error) toast.error(result.error)
-        else toast.success("Pedido marcado como no facturado")
+        else {
+            toast.success("Pedido marcado como no facturado")
+            if (result?.warning) toast.warning(result.warning)
+        }
     }
 
     /** Confirma el diálogo: marca como facturado con sus FEV, o solo las actualiza. */
@@ -142,6 +145,7 @@ export function SalesOrderList({ orders, page, totalPages, baseParams }: SalesOr
                     : "Pedido marcado como facturado"
                 : "Facturas actualizadas"
         )
+        if (result?.warning) toast.warning(result.warning)
     }
 
     const handleCreateDelivery = async (docId: string) => {

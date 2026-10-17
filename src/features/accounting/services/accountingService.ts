@@ -488,9 +488,70 @@ export const accountingService = {
         return { entry, warnings };
     },
 
+    /**
+     * Contabiliza un PEDIDO FACTURADO (SALES_ORDER en ACCEPTED) como factura de
+     * venta: es la operación real mientras la facturación sigue en WorldOffice y
+     * es justo lo que validó el contador en la simulación. Idempotente: si el
+     * pedido ya tiene asiento, no crea otro. GATED por tenants.auto_post_sales.
+     */
+    async postSalesOrderEntry(
+        client: SupabaseClient,
+        docId: string,
+    ): Promise<{ entry: unknown | null; warnings: string[]; skipped?: boolean }> {
+        // Idempotencia: no duplicar si ya hay asiento para este pedido.
+        const { data: existing } = await client
+            .from('journal_entries')
+            .select('id')
+            .eq('document_id', docId)
+            .limit(1)
+            .maybeSingle();
+        if (existing) return { entry: null, warnings: [], skipped: true };
+
+        const { data: doc } = await client
+            .from('documents')
+            .select('id, tenant_id, number, doc_type, status, issue_date, total, party_id, payment_form, lines:document_lines(qty, unit_price, tax_config, description, product:products(tax_category, sku))')
+            .eq('id', docId)
+            .single();
+        if (!doc || doc.doc_type !== 'SALES_ORDER' || doc.status !== 'ACCEPTED') {
+            return { entry: null, warnings: [] };
+        }
+
+        const { data: t } = await client
+            .from('tenants')
+            .select('auto_post_sales')
+            .eq('id', doc.tenant_id)
+            .maybeSingle();
+        if (!t?.auto_post_sales) return { entry: null, warnings: [] };
+
+        // Un pedido facturado se contabiliza con las reglas de factura de venta (FV).
+        return await this.createSalesEntry(client, { ...doc, doc_type: 'INVOICE' });
+    },
+
+    /**
+     * Revierte el asiento de un pedido (al desmarcar "facturado"). Borra el asiento
+     * autogenerado del pedido; no toca asientos de otros documentos.
+     */
+    async unpostSalesOrderEntry(client: SupabaseClient, docId: string): Promise<{ removed: number }> {
+        const { data: entries } = await client
+            .from('journal_entries')
+            .select('id')
+            .eq('document_id', docId);
+        if (!entries || entries.length === 0) return { removed: 0 };
+        const ids = entries.map((e: { id: string }) => e.id);
+        await client.from('journal_lines').delete().in('entry_id', ids);
+        await client.from('journal_entries').delete().in('id', ids);
+        return { removed: ids.length };
+    },
+
     async createEntryFromDocument(client: SupabaseClient, document: any) {
-        // Ventas: van por el motor de reglas del contador.
+        // Ventas (factura/NC): motor de reglas del contador, GATED por auto_post_sales.
         if (document.doc_type === 'INVOICE' || document.doc_type === 'CREDIT_NOTE') {
+            const { data: t } = await client
+                .from('tenants')
+                .select('auto_post_sales')
+                .eq('id', document.tenant_id)
+                .maybeSingle();
+            if (!t?.auto_post_sales) return;
             const { entry, warnings } = await this.createSalesEntry(client, document);
             if (warnings.length > 0) console.warn('[contabilización]', document.number, warnings.join(' | '));
             return entry;

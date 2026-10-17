@@ -167,8 +167,9 @@ export async function markSalesOrderInvoicedAction(
     id: string,
     invoiced: boolean,
     invoiceNumbers?: string[]
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; warning?: string }> {
     const supabase = await createClient();
+    let warning: string | undefined;
 
     try {
         const { data: doc, error: selErr } = await supabase
@@ -191,13 +192,31 @@ export async function markSalesOrderInvoicedAction(
             .eq('id', id);
 
         if (updErr) return { error: updErr.message };
+
+        // Contabilización automática: al facturar se genera el asiento de venta;
+        // al desmarcar se revierte. Gated por tenants.auto_post_sales. No bloquea
+        // la acción si algo falla, pero avisa (no se traga el problema en silencio).
+        try {
+            const { accountingService } = await import('@/features/accounting/services/accountingService');
+            if (invoiced) {
+                const { warnings } = await accountingService.postSalesOrderEntry(supabase, id);
+                if (warnings.length > 0) {
+                    warning = `Pedido facturado, pero la contabilización tuvo avisos: ${warnings.join(' | ')}`;
+                }
+            } else {
+                await accountingService.unpostSalesOrderEntry(supabase, id);
+            }
+        } catch (accError: unknown) {
+            warning = `Pedido actualizado, pero no se pudo contabilizar automáticamente: ${accError instanceof Error ? accError.message : 'error desconocido'}`;
+        }
     } catch (error: unknown) {
         return { error: error instanceof Error ? error.message : 'Error desconocido' };
     }
 
     revalidatePath('/sales/orders');
     revalidatePath(`/documents/${id}`);
-    return {};
+    revalidatePath('/accounting/entries');
+    return { warning };
 }
 
 /** Normaliza la lista de facturas: recorta, quita vacíos y duplicados. */
@@ -217,7 +236,7 @@ function normalizeInvoiceNumbers(list?: string[]): string[] | null {
 export async function updateInvoiceNumbersAction(
     id: string,
     invoiceNumbers: string[]
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; warning?: string }> {
     const supabase = await createClient();
 
     try {
