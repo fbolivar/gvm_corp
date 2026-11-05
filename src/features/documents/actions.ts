@@ -207,7 +207,16 @@ export async function markSalesOrderInvoicedAction(
                 await accountingService.unpostSalesOrderEntry(supabase, id);
             }
         } catch (accError: unknown) {
-            warning = `Pedido actualizado, pero no se pudo contabilizar automáticamente: ${accError instanceof Error ? accError.message : 'error desconocido'}`;
+            // Los errores de PostgREST/Supabase son objetos planos con `.message`
+            // (no instancias de Error): extraerlo para no mostrar "error desconocido"
+            // y perder la causa real (RLS, columna, etc.).
+            const accMsg = accError instanceof Error
+                ? accError.message
+                : (typeof accError === 'object' && accError !== null && 'message' in accError
+                    ? String((accError as { message?: unknown }).message)
+                    : 'error desconocido');
+            console.error('[markSalesOrderInvoicedAction] contabilización:', accError);
+            warning = `Pedido actualizado, pero no se pudo contabilizar automáticamente: ${accMsg}`;
         }
     } catch (error: unknown) {
         return { error: error instanceof Error ? error.message : 'Error desconocido' };

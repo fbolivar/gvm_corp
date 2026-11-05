@@ -38,6 +38,7 @@ export async function createSurveyAction(input: SurveyInput) {
             score_service: scores.service,
             score_orders: scores.orders,
             score_product: scores.product,
+            score_commercial: scores.commercial,
             overall_score: scores.overall,
             created_by: user.id,
         })

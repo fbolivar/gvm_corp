@@ -6,6 +6,7 @@ import { PageHeader } from '@/shared/components/ui/page-header';
 import { Button } from '@/shared/components/ui/button';
 import { Package, Plus, Warehouse as WarehouseIcon, FlaskConical, FileSpreadsheet, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { AnalyzeWithAIButton } from '@/features/ai/components/AnalyzeWithAIButton';
 
 interface PageProps {
     searchParams: Promise<{ filter?: string }>
@@ -68,6 +69,7 @@ export default async function InventoryPage({ searchParams }: PageProps) {
                 ]}
                 actions={
                     <>
+                        <AnalyzeWithAIButton module="inventory" />
                         <Button asChild variant="outline">
                             <Link href="/inventory/lots">
                                 <FlaskConical className="h-4 w-4 mr-1.5" />

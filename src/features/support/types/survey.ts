@@ -21,7 +21,7 @@ export interface ScaleOption {
     score: number | null;
 }
 
-export type SurveySectionId = 'SERVICE' | 'ORDERS' | 'PRODUCT' | 'GENERAL';
+export type SurveySectionId = 'SERVICE' | 'ORDERS' | 'PRODUCT' | 'COMMERCIAL' | 'GENERAL';
 
 export interface SurveyQuestion {
     /** Coincide con el nombre de la columna en `satisfaction_surveys`. */
@@ -35,6 +35,7 @@ export const SURVEY_SECTIONS: { id: SurveySectionId; title: string; description:
     { id: 'SERVICE', title: 'Atención y servicio', description: 'Trato, comunicación y respuesta del equipo.' },
     { id: 'ORDERS', title: 'Pedidos y entregas', description: 'Toma del pedido, cumplimiento y estado de la mercancía.' },
     { id: 'PRODUCT', title: 'Producto y solución de necesidades', description: 'Disponibilidad, calidad y ajuste a lo que necesita el cliente.' },
+    { id: 'COMMERCIAL', title: 'Gestión del comercial', description: 'Evaluación del asesor comercial que atiende la cuenta.' },
     { id: 'GENERAL', title: 'Experiencia general', description: 'Satisfacción global, recomendación y oportunidades de mejora.' },
 ];
 
@@ -56,6 +57,27 @@ const QUALITY_M: ScaleOption[] = [
 ];
 
 const NOT_APPLICABLE: ScaleOption = { value: 'NO_APLICA', label: 'No aplica', score: null };
+
+/** Escape para la sección del comercial: el cliente que no trata con un asesor no lo penaliza. */
+const DONT_KNOW: ScaleOption = { value: 'NO_LO_CONOZCO', label: 'No lo conozco / no aplica', score: null };
+
+/** Frecuencia de contacto del comercial (más = mejor). */
+const FREQUENCY: ScaleOption[] = [
+    { value: 'MUY_FRECUENTE', label: 'Muy frecuente', score: 5 },
+    { value: 'FRECUENTE', label: 'Frecuente', score: 4 },
+    { value: 'OCASIONAL', label: 'Ocasional', score: 3 },
+    { value: 'RARA_VEZ', label: 'Rara vez', score: 2 },
+    { value: 'NUNCA', label: 'Nunca', score: 1 },
+];
+
+/** Oportunidad / frecuencia positiva (Siempre … Nunca). */
+const ALWAYS_NEVER: ScaleOption[] = [
+    { value: 'SIEMPRE', label: 'Siempre', score: 5 },
+    { value: 'CASI_SIEMPRE', label: 'Casi siempre', score: 4 },
+    { value: 'ALGUNAS_VECES', label: 'Algunas veces', score: 3 },
+    { value: 'RARA_VEZ', label: 'Rara vez', score: 2 },
+    { value: 'NUNCA', label: 'Nunca', score: 1 },
+];
 
 /** Preguntas de escala, en el orden en que se muestran. */
 export const SURVEY_QUESTIONS: SurveyQuestion[] = [
@@ -168,6 +190,38 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
         ],
     },
 
+    // — Gestión del comercial —
+    {
+        id: 'commercial_visit_frequency',
+        section: 'COMMERCIAL',
+        label: '¿Con qué frecuencia su asesor comercial lo visita o se comunica con usted?',
+        options: [...FREQUENCY, DONT_KNOW],
+    },
+    {
+        id: 'commercial_knowledge',
+        section: 'COMMERCIAL',
+        label: '¿Cómo califica el conocimiento de su asesor sobre los productos y las necesidades de su empresa?',
+        options: [...QUALITY_M, DONT_KNOW],
+    },
+    {
+        id: 'commercial_followup',
+        section: 'COMMERCIAL',
+        label: '¿Cómo califica el seguimiento y acompañamiento de su asesor comercial?',
+        options: [...QUALITY_M, DONT_KNOW],
+    },
+    {
+        id: 'commercial_responsiveness',
+        section: 'COMMERCIAL',
+        label: 'Cuando le hace una solicitud a su asesor, ¿con qué oportunidad la atiende?',
+        options: [...ALWAYS_NEVER, DONT_KNOW],
+    },
+    {
+        id: 'commercial_proactivity',
+        section: 'COMMERCIAL',
+        label: '¿Su asesor le ofrece de forma proactiva promociones, nuevos productos o soluciones?',
+        options: [...ALWAYS_NEVER, DONT_KNOW],
+    },
+
     // — Experiencia general —
     {
         id: 'issue_handling',
@@ -242,6 +296,7 @@ export const surveySchema = z.object({
     id: z.string().uuid().optional(),
 
     party_id: z.string().uuid('Selecciona la empresa/cliente'),
+    salesperson_id: z.string().uuid('Selecciona el comercial que atiende la cuenta'),
     respondent_name: z.string().trim().min(3, 'Escribe el nombre de quien responde'),
     respondent_role: z.string().trim().min(2, 'Escribe el cargo'),
     role_weight: z.coerce.number().int().min(1).max(5),
@@ -281,9 +336,11 @@ export interface SurveyRow extends SurveyInput {
     score_service: number | null;
     score_orders: number | null;
     score_product: number | null;
+    score_commercial: number | null;
     overall_score: number | null;
     created_by?: string | null;
     created_at: string;
     party?: { legal_name: string; doc_number?: string | null } | null;
     author?: { full_name?: string | null } | null;
+    salesperson?: { full_name?: string | null } | null;
 }

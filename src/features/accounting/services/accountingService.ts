@@ -173,10 +173,24 @@ export const accountingService = {
             throw new Error(`Asiento desbalanceado: Débito ${totalDebit} vs Crédito ${totalCredit}`);
         }
 
+        // tenant_id es OBLIGATORIO: journal_entries no tiene default y su RLS exige
+        // tenant_id = get_my_tenant_id(). Sin él, el INSERT viola la política y la
+        // contabilización falla ("no se pudo contabilizar") para cualquier usuario.
+        // Se toma el del asiento si viene (p. ej. del documento) o el del usuario.
+        let tenantId = entry.tenant_id ?? null;
+        if (!tenantId) {
+            const { data: t } = await client.rpc('get_my_tenant_id');
+            tenantId = (t as string | null) ?? null;
+        }
+        if (!tenantId) {
+            throw new Error('No se pudo determinar el tenant para el asiento contable.');
+        }
+
         // 2. Create Header
         const { data: newEntry, error: entryError } = await client
             .from('journal_entries')
             .insert({
+                tenant_id: tenantId,
                 entry_date: entry.entry_date,
                 description: entry.description,
                 period: entry.entry_date.substring(0, 7), // YYYY-MM
@@ -477,6 +491,7 @@ export const accountingService = {
             entry_date: draft.entry_date,
             description: draft.description,
             document_id: draft.document_id,
+            tenant_id: document.tenant_id,
             lines: draft.lines.map(l => ({
                 account_id: l.account_id,
                 party_id: l.party_id,

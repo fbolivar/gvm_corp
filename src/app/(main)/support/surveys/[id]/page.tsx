@@ -51,6 +51,7 @@ export default async function SurveyDetailPage({ params }: PageProps) {
         SERVICE: survey.score_service,
         ORDERS: survey.score_orders,
         PRODUCT: survey.score_product,
+        COMMERCIAL: survey.score_commercial,
         GENERAL: null,
     };
 
@@ -122,6 +123,15 @@ export default async function SurveyDetailPage({ params }: PageProps) {
                                 )}
                             </div>
                         </div>
+                        {survey.salesperson?.full_name && (
+                            <div className="flex items-start gap-2">
+                                <UserRound className="h-4 w-4 text-indigo-400 mt-0.5" />
+                                <div>
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase">Comercial evaluado</p>
+                                    <p className="font-semibold text-slate-800">{survey.salesperson.full_name}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

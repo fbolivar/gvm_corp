@@ -9,6 +9,7 @@ import { cn } from '@/shared/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { AppNotification } from '@/features/notifications/types';
+import { alertActionLabel } from '@/features/notifications/utils/alertActions';
 
 export function CriticalAlertsPanel() {
     const [alerts, setAlerts] = useState<AppNotification[]>([]);
@@ -113,7 +114,7 @@ export function CriticalAlertsPanel() {
                                     <Link href={alert.link || '#'}>
                                         <span className="flex items-center gap-1.5">
                                             <Zap className={cn('h-3 w-3', alert.priority === 'CRITICAL' ? 'text-rose-500' : 'text-amber-500')} />
-                                            Tomar Acción
+                                            {alertActionLabel(alert.link, alert.category)}
                                         </span>
                                         <ArrowRight className="h-3 w-3" />
                                     </Link>

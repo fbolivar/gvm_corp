@@ -4,7 +4,7 @@ import { VendorBillList } from '@/features/purchasing/components/VendorBillList'
 import { getAttachmentCounts } from '@/features/documents/services/attachmentCountService';
 import { Button } from "@/shared/components/ui/button"
 import { Card, CardContent } from "@/shared/components/ui/card"
-import { Plus, FileCheck, Banknote, TrendingDown, Receipt } from "lucide-react"
+import { Plus, FileCheck, Banknote, TrendingDown, Receipt, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/shared/components/ui/page-header';
@@ -51,11 +51,18 @@ export default async function VendorBillsPage() {
                     { label: 'Facturas' },
                 ]}
                 actions={
-                    <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
-                        <Link href="/purchasing/bills/new">
-                            <Plus className="h-3.5 w-3.5" /> Nueva factura
-                        </Link>
-                    </Button>
+                    <>
+                        <Button asChild variant="outline" className="h-9 px-4 rounded-xl text-xs gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                            <Link href="/purchasing/bills/import">
+                                <Sparkles className="h-3.5 w-3.5" /> Importar con IA
+                            </Link>
+                        </Button>
+                        <Button asChild className="h-9 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs gap-2">
+                            <Link href="/purchasing/bills/new">
+                                <Plus className="h-3.5 w-3.5" /> Nueva factura
+                            </Link>
+                        </Button>
+                    </>
                 }
             />
 

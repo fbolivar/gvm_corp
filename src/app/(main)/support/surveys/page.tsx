@@ -35,6 +35,7 @@ export default async function SurveysPage({ searchParams }: PageProps) {
         score_service: r.score_service,
         score_orders: r.score_orders,
         score_product: r.score_product,
+        score_commercial: r.score_commercial,
         csat: r.csat,
         nps: r.nps,
     })));

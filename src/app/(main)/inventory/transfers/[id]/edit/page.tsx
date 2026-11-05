@@ -47,6 +47,7 @@ export default async function EditTransferPage({
         from_warehouse_id: transfer.from_warehouse_id,
         to_warehouse_id: transfer.to_warehouse_id,
         notes: transfer.notes ?? '',
+        legalized_number: transfer.legalized_number ?? '',
         lines: transfer.lines.map((l) => ({
             product_id: l.product_id ?? '',
             description: l.description ?? '',

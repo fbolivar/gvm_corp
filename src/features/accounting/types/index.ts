@@ -35,6 +35,7 @@ export type AccountFormData = z.infer<typeof accountFormSchema>;
 
 export interface JournalEntry {
     id?: string;
+    tenant_id?: string;
     entry_date: string;
     description?: string;
     number?: string;

@@ -3,6 +3,7 @@ import { crmService } from '@/features/crm/services/crmService';
 import { documentService } from '@/features/documents/services/documentService';
 import { Button } from '@/shared/components/ui/button';
 import { PageHeader } from '@/shared/components/ui/page-header';
+import { AnalyzeWithAIButton } from '@/features/ai/components/AnalyzeWithAIButton';
 import { EmptyState } from '@/shared/components/ui/empty-state';
 import {
     Users,
@@ -81,6 +82,7 @@ export default async function SalesDashboard() {
                 ]}
                 actions={
                     <>
+                        <AnalyzeWithAIButton module="sales" />
                         <Button asChild variant="outline">
                             <Link href="/sales/invoices">
                                 <Receipt className="h-4 w-4 mr-1.5" />

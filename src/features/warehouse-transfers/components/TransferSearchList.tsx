@@ -9,6 +9,7 @@ import { cn } from '@/shared/lib/utils';
 export interface TransferRow {
     id: string;
     number: string | null;
+    legalized_number?: string | null;
     from: string;
     to: string;
     status: string;
@@ -69,6 +70,7 @@ export function TransferSearchList({ rows }: { rows: TransferRow[] }) {
             if (!q) return true;
             return (
                 (r.number ?? '').toLowerCase().includes(q) ||
+                (r.legalized_number ?? '').toLowerCase().includes(q) ||
                 r.from.toLowerCase().includes(q) ||
                 r.to.toLowerCase().includes(q)
             );
@@ -85,7 +87,7 @@ export function TransferSearchList({ rows }: { rows: TransferRow[] }) {
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Buscar por número, bodega origen o destino..."
+                            placeholder="Buscar por número, N.º legalizado, bodega origen o destino..."
                             className="w-full h-10 pl-9 pr-3 text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-300"
                         />
                     </div>
@@ -139,6 +141,7 @@ export function TransferSearchList({ rows }: { rows: TransferRow[] }) {
                                 <th className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Destino</th>
                                 <th className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
                                 <th className="hidden md:table-cell px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
+                                <th className="px-4 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">N.º Legalización</th>
                                 <th className="px-5 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
@@ -162,6 +165,11 @@ export function TransferSearchList({ rows }: { rows: TransferRow[] }) {
                                             <Calendar className="h-3 w-3 text-slate-300 shrink-0" />
                                             <span className="text-[10px] text-slate-400">{formatDate(r.created_at)}</span>
                                         </div>
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        {r.legalized_number
+                                            ? <span className="text-xs font-bold text-emerald-700 font-mono">{r.legalized_number}</span>
+                                            : <span className="text-[11px] text-slate-300">—</span>}
                                     </td>
                                     <td className="px-5 py-4 text-right">
                                         <Button

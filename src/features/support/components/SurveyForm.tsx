@@ -27,6 +27,8 @@ import { createSurveyAction } from "../surveyActions"
 
 interface Props {
     parties: Array<{ id: string; legal_name: string; doc_number?: string | null }>
+    /** Equipo comercial a evaluar (nombre del asesor que atiende la cuenta). */
+    salespeople?: Array<{ id: string; name: string; role?: string | null }>
     /** Cliente preseleccionado, al encuestar a otra persona de la misma empresa. */
     defaultPartyId?: string
 }
@@ -146,7 +148,7 @@ function SectionCard({
     )
 }
 
-export function SurveyForm({ parties, defaultPartyId }: Props) {
+export function SurveyForm({ parties, salespeople = [], defaultPartyId }: Props) {
     const router = useRouter()
     const [submitting, setSubmitting] = useState(false)
     // El ref corta el segundo clic aunque llegue antes del re-render, igual que en
@@ -181,6 +183,16 @@ export function SurveyForm({ parties, defaultPartyId }: Props) {
 
     const strength = watch('main_strength')
     const improvement = watch('improvement_area')
+
+    const salespersonItems = useMemo(
+        () => salespeople.map(s => ({
+            value: s.id,
+            label: s.name,
+            subLabel: s.role ?? undefined,
+            keywords: `${s.name} ${s.role ?? ''}`,
+        })),
+        [salespeople],
+    )
 
     const onSubmit = async (data: SurveyInput) => {
         if (submittingRef.current) return
@@ -313,6 +325,28 @@ export function SurveyForm({ parties, defaultPartyId }: Props) {
             {/* — Secciones de preguntas de escala — */}
             {SURVEY_SECTIONS.filter(s => s.id !== 'GENERAL').map(section => (
                 <SectionCard key={section.id} title={section.title} description={section.description} icon={ClipboardList}>
+                    {/* En la sección del comercial, primero se elige el asesor a evaluar. */}
+                    {section.id === 'COMMERCIAL' && (
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                Comercial que atiende la cuenta
+                            </label>
+                            <Controller
+                                control={control}
+                                name="salesperson_id"
+                                render={({ field }) => (
+                                    <SearchableSelect
+                                        items={salespersonItems}
+                                        value={field.value ?? ''}
+                                        onChange={v => field.onChange(v || '')}
+                                        placeholder={salespersonItems.length ? 'Busca al comercial...' : 'No hay comerciales disponibles'}
+                                        error={!!err('salesperson_id')}
+                                    />
+                                )}
+                            />
+                            {err('salesperson_id') && <p className="text-xs text-rose-500 font-medium">{err('salesperson_id')?.message}</p>}
+                        </div>
+                    )}
                     {SURVEY_QUESTIONS.filter(q => q.section === section.id).map(q => (
                         <div key={q.id} className="space-y-3">
                             <p className="text-sm font-semibold text-slate-800">{q.label}</p>

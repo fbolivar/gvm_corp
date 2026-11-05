@@ -178,6 +178,43 @@ export async function receiveTransferAction(
 }
 
 /**
+ * Registra o actualiza el número de traslado legalizado (consecutivo con el que
+ * el traslado queda legalizado en el sistema contable de referencia). Se puede
+ * fijar en cualquier estado porque la legalización ocurre después del flujo.
+ */
+const legalizedNumberSchema = z.object({
+    id: z.string().uuid('ID de traslado inválido'),
+    legalized_number: z.string().trim().max(60, 'Máximo 60 caracteres').nullish(),
+});
+
+export async function setLegalizedNumberAction(
+    id: string,
+    legalizedNumber: string | null,
+): Promise<ActionResult> {
+    const parsed = legalizedNumberSchema.safeParse({ id, legalized_number: legalizedNumber });
+    if (!parsed.success) {
+        return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+    }
+
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: 'No autorizado. Inicie sesión para continuar.' };
+    }
+
+    try {
+        await transferService.setLegalizedNumber(supabase, id, parsed.data.legalized_number ?? null);
+        revalidateTransferPaths(id);
+        return { success: true };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        console.error('[setLegalizedNumberAction]', error);
+        return { error: message };
+    }
+}
+
+/**
  * Cancels a DRAFT transfer. Transfers already in transit or received cannot be cancelled.
  */
 export async function cancelTransferAction(id: string): Promise<ActionResult> {

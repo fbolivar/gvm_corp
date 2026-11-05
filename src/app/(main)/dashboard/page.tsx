@@ -16,9 +16,12 @@ import {
     FlaskConical,
     ArrowRight,
     LayoutDashboard,
+    Gavel,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { PageHeader } from '@/shared/components/ui/page-header';
+import { AnalyzeWithAIButton } from '@/features/ai/components/AnalyzeWithAIButton';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { StatusBadge } from '@/shared/components/ui/status-badge';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -64,6 +67,9 @@ export default async function DashboardPage() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect('/login');
+
+    // La Junta Directiva IA (análisis cruzado ejecutivo) es para quien ve la Analítica.
+    const canBoard = await canViewModule('analytics');
 
     // ─── Guard: solo roles con acceso a 'dashboard' ven el panel gerencial ───
     // Otros roles son redirigidos a su primer módulo con permiso.
@@ -163,6 +169,16 @@ export default async function DashboardPage() {
                     title={`Bienvenido, ${userFullName}`}
                     description={`Panel gerencial · ${monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}`}
                     icon={LayoutDashboard}
+                    actions={
+                        <div className="flex items-center gap-2">
+                            <AnalyzeWithAIButton module="general" label="Analizar el negocio" />
+                            {canBoard && (
+                                <Button asChild variant="outline" className="h-9 px-4 rounded-xl text-xs gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                                    <Link href="/analytics/board"><Gavel className="h-3.5 w-3.5" /> Junta Directiva IA</Link>
+                                </Button>
+                            )}
+                        </div>
+                    }
                 />
 
                 <CriticalAlertsPanel />

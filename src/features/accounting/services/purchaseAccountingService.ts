@@ -151,6 +151,7 @@ export const purchaseAccountingService = {
             entry_date: draft.entry_date,
             description: draft.description,
             document_id: draft.document_id,
+            tenant_id: document.tenant_id,
             lines: draft.lines.map(l => ({
                 account_id: idByCode.get(l.account_code)!,
                 party_id: partyId,

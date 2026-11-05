@@ -2,10 +2,13 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { SurveyRow } from '../types/survey';
 import { summarizeCompany, CompanySummary } from '../utils/surveyScoring';
 
+// Dos FKs a profiles (created_by y salesperson_id) → hay que nombrar el constraint
+// en cada embed o PostgREST no sabe cuál usar ("more than one relationship found").
 const SELECT = `
     *,
     party:parties(legal_name, doc_number),
-    author:profiles(full_name)
+    author:profiles!satisfaction_surveys_created_by_profiles_fkey(full_name),
+    salesperson:profiles!satisfaction_surveys_salesperson_id_profiles_fkey(full_name)
 `;
 
 export interface SurveyFilters {
@@ -75,6 +78,7 @@ export const surveyService = {
                 score_service: r.score_service,
                 score_orders: r.score_orders,
                 score_product: r.score_product,
+                score_commercial: r.score_commercial,
                 csat: r.csat,
                 nps: r.nps,
             })));

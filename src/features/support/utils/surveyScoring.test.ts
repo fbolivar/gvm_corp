@@ -109,6 +109,33 @@ describe('puntajes de una respuesta', () => {
         const s = computeSurveyScores({});
         expect(s.overall).toBeNull();
         expect(s.service).toBeNull();
+        expect(s.commercial).toBeNull();
+    });
+
+    test('la gestión del comercial puntúa en su propia sección', () => {
+        const commercialPerfect = {
+            commercial_visit_frequency: 'MUY_FRECUENTE',
+            commercial_knowledge: 'EXCELENTE',
+            commercial_followup: 'EXCELENTE',
+            commercial_responsiveness: 'SIEMPRE',
+            commercial_proactivity: 'SIEMPRE',
+        };
+        const s = computeSurveyScores(commercialPerfect);
+        expect(s.commercial).toBe(100);
+        // No arrastra las otras secciones (no se contestaron).
+        expect(s.service).toBeNull();
+    });
+
+    test('"No lo conozco" en el comercial se excluye, no penaliza', () => {
+        const answers = {
+            commercial_visit_frequency: 'MUY_FRECUENTE',   // 5
+            commercial_knowledge: 'NO_LO_CONOZCO',          // null → fuera
+            commercial_followup: 'NO_LO_CONOZCO',           // null → fuera
+            commercial_responsiveness: 'SIEMPRE',           // 5
+            commercial_proactivity: 'SIEMPRE',              // 5
+        };
+        // Solo 3 puntuaron, todas en 5 → 100.
+        expect(computeSurveyScores(answers).commercial).toBe(100);
     });
 });
 
@@ -177,9 +204,9 @@ describe('consolidado de empresa', () => {
     test('resume varias personas de la misma empresa ponderando por cargo', () => {
         // Arrange: tres decisores de una misma empresa.
         const rows = [
-            { role_weight: 5, overall_score: 90, score_service: 90, score_orders: 85, score_product: 95, csat: 9, nps: 10 },
-            { role_weight: 3, overall_score: 70, score_service: 60, score_orders: 75, score_product: 80, csat: 7, nps: 8 },
-            { role_weight: 1, overall_score: 40, score_service: 40, score_orders: 40, score_product: 40, csat: 4, nps: 3 },
+            { role_weight: 5, overall_score: 90, score_service: 90, score_orders: 85, score_product: 95, score_commercial: 100, csat: 9, nps: 10 },
+            { role_weight: 3, overall_score: 70, score_service: 60, score_orders: 75, score_product: 80, score_commercial: 70, csat: 7, nps: 8 },
+            { role_weight: 1, overall_score: 40, score_service: 40, score_orders: 40, score_product: 40, score_commercial: 20, csat: 4, nps: 3 },
         ];
 
         // Act
@@ -195,6 +222,8 @@ describe('consolidado de empresa', () => {
         expect(s.detractors).toBe(1);
         // NPS ponderado: (5 - 1) / 9 = 44.4 → 44
         expect(s.nps).toBe(44);
+        // Comercial ponderado: (100*5 + 70*3 + 20*1) / 9 = 81.11
+        expect(s.commercial).toBe(81.11);
     });
 
     test('empresa sin respuestas no rompe el tablero', () => {

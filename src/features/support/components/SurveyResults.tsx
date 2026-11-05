@@ -83,10 +83,11 @@ export function SurveyResults({ companies }: { companies: CompanyResult[] }) {
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 sm:gap-6">
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-6">
                                     <MiniScore label="Servicio" value={c.service} />
                                     <MiniScore label="Pedidos" value={c.orders} />
                                     <MiniScore label="Producto" value={c.product} />
+                                    <MiniScore label="Comercial" value={c.commercial} />
                                     <MiniScore label="CSAT" value={c.csat} suffix="/10" />
                                     <MiniScore label="NPS" value={c.nps} suffix="" />
                                 </div>

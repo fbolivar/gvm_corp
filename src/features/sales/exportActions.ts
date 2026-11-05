@@ -77,15 +77,21 @@ function embedded<T>(rel: unknown): T | null {
     return (rel as T) ?? null
 }
 
-/** Documentos (pedidos SALES_ORDER / cotizaciones QUOTATION) que cumplen los filtros. Tope 5000. */
+/**
+ * Documentos (pedidos SALES_ORDER / cotizaciones QUOTATION) que cumplen los filtros.
+ *
+ * Trae TODOS los documentos del filtro paginando de a 1.000: PostgREST nunca
+ * devuelve más de 1.000 filas por petición (ignora `per_page` mayores), así que
+ * pedir `per_page: 5000` dejaba el Excel con solo los 1.000 pedidos más recientes
+ * —los últimos ~2 meses— y se perdían julio/agosto en silencio.
+ */
 export async function exportDocumentsAction(docType: string, filters: OrderExportFilters): Promise<OrderExportData> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { rows: [], lines: [] }
 
-    const { data } = await documentService.getDocuments(supabase, {
-        page: 1,
-        per_page: 5000,
+    const PER = 1000
+    const baseFilters = {
         type: docType as never,
         search: filters.search,
         status: filters.status as never,
@@ -93,9 +99,16 @@ export async function exportDocumentsAction(docType: string, filters: OrderExpor
         warehouse_id: filters.warehouse_id,
         start_date: filters.start_date,
         end_date: filters.end_date,
-    })
+    }
 
-    const docs = (data ?? []) as Array<Record<string, any>>
+    const first = await documentService.getDocuments(supabase, { ...baseFilters, page: 1, per_page: PER })
+    const docs = [...((first.data ?? []) as Array<Record<string, any>>)]
+    const total = first.count ?? docs.length
+    const totalPages = Math.min(Math.ceil(total / PER), 100) // tope de seguridad: 100k docs
+    for (let page = 2; page <= totalPages; page++) {
+        const next = await documentService.getDocuments(supabase, { ...baseFilters, page, per_page: PER })
+        docs.push(...((next.data ?? []) as Array<Record<string, any>>))
+    }
 
     const rows: OrderExportRow[] = docs.map((d) => ({
         number: d.number ?? null,
@@ -116,11 +129,21 @@ export async function exportDocumentsAction(docType: string, filters: OrderExpor
     const lineRows: Array<Record<string, any>> = []
     const CHUNK = 100
     for (let i = 0; i < ids.length; i += CHUNK) {
-        const { data: chunk } = await supabase
-            .from('document_lines')
-            .select('document_id, description, qty, unit_price, tax_config, product:products(sku, name, uom, tax_category), warehouse:warehouses(name)')
-            .in('document_id', ids.slice(i, i + CHUNK))
-        if (chunk) lineRows.push(...(chunk as Array<Record<string, any>>))
+        const chunkIds = ids.slice(i, i + CHUNK)
+        // Paginado también aquí: un bloque de 100 pedidos puede tener más de 1.000
+        // líneas y PostgREST las recortaría sin avisar.
+        const chunk = await fetchAllRows<Record<string, any>>(
+            ({ from, to }) => supabase
+                .from('document_lines')
+                .select('document_id, description, qty, unit_price, tax_config, product:products(sku, name, uom, tax_category), warehouse:warehouses(name)')
+                .in('document_id', chunkIds)
+                // Orden total (document_id + id únicos) para que range() no salte líneas.
+                .order('document_id')
+                .order('id')
+                .range(from, to),
+            { label: 'export:document_lines' },
+        )
+        lineRows.push(...chunk)
     }
 
     const byDoc = new Map<string, Array<Record<string, any>>>()

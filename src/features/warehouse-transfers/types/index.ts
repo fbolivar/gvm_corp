@@ -31,6 +31,10 @@ export const warehouseTransferSchema = z.object({
     to_warehouse_id: z.string().min(1, 'Bodega destino requerida'),
     status: z.enum(TRANSFER_STATUSES).default('DRAFT'),
     notes: z.string().optional().default(''),
+    // Número/consecutivo con el que el traslado queda legalizado en el sistema
+    // contable de referencia (WorldOffice). Opcional; normalmente se captura
+    // después, desde el detalle.
+    legalized_number: z.string().trim().max(60, 'Máximo 60 caracteres').optional().nullable(),
     lines: z.array(transferLineSchema).min(1, 'Debe tener al menos una línea'),
 });
 
@@ -40,6 +44,7 @@ export type WarehouseTransfer = z.infer<typeof warehouseTransferSchema>;
 
 export interface TransferWithDetails extends Omit<WarehouseTransfer, 'lines'> {
     transfer_number: string;
+    legalized_number?: string | null;
     from_warehouse?: { name: string };
     to_warehouse?: { name: string };
     transferred_by_user?: { email: string };

@@ -109,6 +109,7 @@ export default function NewTransferClient({ warehouses, products, transferId, in
             to_warehouse_id: initialData?.to_warehouse_id ?? "",
             status: "DRAFT",
             notes: initialData?.notes ?? "",
+            legalized_number: initialData?.legalized_number ?? "",
             lines: initialData?.lines ?? [],
         },
     });
@@ -344,6 +345,20 @@ export default function NewTransferClient({ warehouses, products, transferId, in
                                 </p>
                             </div>
                         )}
+
+                    {/* Número legalizado (opcional) */}
+                    <div className="space-y-2">
+                        <Label className={labelClass}>N.º de Traslado Legalizado (Opcional)</Label>
+                        <Input
+                            {...form.register("legalized_number")}
+                            maxLength={60}
+                            placeholder="Consecutivo con el que queda legalizado (WorldOffice)"
+                            className="w-full h-14 bg-white border-none rounded-2xl px-6 text-sm font-bold text-slate-900 uppercase shadow-inner focus-visible:ring-4 focus-visible:ring-primary/5 outline-none hover:bg-slate-50 transition-all placeholder:text-slate-300 placeholder:font-medium placeholder:normal-case"
+                        />
+                        <p className="text-[10px] text-slate-400 font-medium ml-1">
+                            Puedes dejarlo en blanco y registrarlo luego desde el detalle, cuando se legalice.
+                        </p>
+                    </div>
 
                     {/* Notes */}
                     <div className="space-y-2">

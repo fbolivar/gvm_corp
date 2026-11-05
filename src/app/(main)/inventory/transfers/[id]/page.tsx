@@ -23,6 +23,7 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { TransferDetailActions } from '@/features/warehouse-transfers/components/TransferDetailActions';
+import { LegalizedNumberField } from '@/features/warehouse-transfers/components/LegalizedNumberField';
 import { formatLocalDate } from '@/shared/lib/dateFmt';
 import { TransferQuickNav, type TransferNavSibling } from '@/features/warehouse-transfers/components/TransferQuickNav';
 import { PrintWarehouseEntryButton } from '@/features/warehouse-transfers/components/PrintWarehouseEntryButton';
@@ -420,6 +421,14 @@ export default async function TransferDetailPage({
                                     icon={PackageCheck}
                                     label="Recibido"
                                     value={formatDate(transfer.received_at)}
+                                    accentText={cfg.accentText}
+                                />
+                            )}
+                            {transfer.legalized_number && (
+                                <InfoPill
+                                    icon={FileText}
+                                    label="N.º Legalizado"
+                                    value={transfer.legalized_number}
                                     accentText={cfg.accentText}
                                 />
                             )}
@@ -829,6 +838,7 @@ export default async function TransferDetailPage({
                 <CardContent className="p-6">
                     <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         <MetaField label="Número de Traslado" value={transfer.transfer_number ?? '—'} mono />
+                        <LegalizedNumberField transferId={transfer.id!} initialValue={transfer.legalized_number} />
                         <MetaField label="Estado" value={STATUS_MAP[status]?.label ?? status} />
                         <MetaField label="Solicitado / Creado por" value={createdByName} />
                         <MetaField label="Bodega Origen" value={fromName} />

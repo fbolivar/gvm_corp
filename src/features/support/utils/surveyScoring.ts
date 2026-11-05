@@ -25,6 +25,8 @@ export interface SurveyScores {
     service: number | null;
     orders: number | null;
     product: number | null;
+    /** Gestión del comercial, 0–100. */
+    commercial: number | null;
     /** 0–100 sobre todas las preguntas de escala contestadas. */
     overall: number | null;
 }
@@ -71,6 +73,7 @@ export function computeSurveyScores(answers: ScaleAnswers): SurveyScores {
         service: sectionPercent(answers, 'SERVICE'),
         orders: sectionPercent(answers, 'ORDERS'),
         product: sectionPercent(answers, 'PRODUCT'),
+        commercial: sectionPercent(answers, 'COMMERCIAL'),
         overall: all.length === 0 ? null : toPercent(all.reduce((a, b) => a + b, 0) / all.length),
     };
 }
@@ -145,6 +148,7 @@ export interface CompanySummaryInput {
     score_service: number | null;
     score_orders: number | null;
     score_product: number | null;
+    score_commercial: number | null;
     csat: number | null;
     nps: number | null;
 }
@@ -157,6 +161,7 @@ export interface CompanySummary {
     service: number | null;
     orders: number | null;
     product: number | null;
+    commercial: number | null;
     /** CSAT ponderado en su escala original 1–10. */
     csat: number | null;
     nps: number | null;
@@ -186,6 +191,7 @@ export function summarizeCompany(rows: CompanySummaryInput[]): CompanySummary {
         service: weightedAverage(pick('score_service')),
         orders: weightedAverage(pick('score_orders')),
         product: weightedAverage(pick('score_product')),
+        commercial: weightedAverage(pick('score_commercial')),
         csat: weightedAverage(pick('csat')),
         nps: computeNps(pick('nps')),
         promoters,

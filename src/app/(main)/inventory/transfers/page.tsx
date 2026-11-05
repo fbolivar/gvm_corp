@@ -285,6 +285,7 @@ export default async function TransfersPage() {
                             rows={transfers.map((t: TransferWithDetails) => ({
                                 id: t.id!,
                                 number: t.transfer_number ?? null,
+                                legalized_number: t.legalized_number ?? null,
                                 from: (t.from_warehouse as { name?: string } | undefined)?.name ?? '—',
                                 to: (t.to_warehouse as { name?: string } | undefined)?.name ?? '—',
                                 status: t.status as string,

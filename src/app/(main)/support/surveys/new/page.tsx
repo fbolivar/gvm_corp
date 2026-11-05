@@ -37,6 +37,15 @@ export default async function NewSurveyPage({ searchParams }: PageProps) {
         .filter((p): p is typeof p & { id: string } => !!p.id)
         .map(p => ({ id: p.id, legal_name: p.legal_name, doc_number: p.doc_number ?? null }));
 
+    // Para evaluar al comercial se muestran TODOS los miembros del tenant (no solo
+    // los roles "comerciales"): el usuario busca y elige a quien atiende la cuenta.
+    // get_team_members (SECURITY DEFINER) devuelve el equipo activo con nombre y rol.
+    const { data: teamRows } = tenantId
+        ? await supabase.rpc('get_team_members', { p_tenant_id: tenantId })
+        : { data: [] as Array<{ user_id: string; full_name: string | null; role_name: string | null }> };
+    const salespeople = ((teamRows ?? []) as Array<{ user_id: string; full_name: string | null; role_name: string | null }>)
+        .map(m => ({ id: m.user_id, name: m.full_name || 'Sin nombre', role: m.role_name ?? null }));
+
     return (
         <div className="page-container">
             <div className="space-y-6 pb-16 animate-in fade-in duration-500">
@@ -52,7 +61,11 @@ export default async function NewSurveyPage({ searchParams }: PageProps) {
                     ]}
                 />
 
-                <SurveyForm parties={parties ?? []} defaultPartyId={sp.party_id} />
+                <SurveyForm
+                    parties={parties ?? []}
+                    salespeople={salespeople}
+                    defaultPartyId={sp.party_id}
+                />
             </div>
         </div>
     );

@@ -19,7 +19,9 @@ import {
     AlertTriangle,
     RefreshCw,
     CheckCircle2,
+    ArrowRight,
 } from 'lucide-react'
+import { alertActionLabel } from '../utils/alertActions'
 import {
     markAsReadAction,
     markAllAsReadAction,
@@ -142,24 +144,33 @@ function NotificationItem({ notification: n, onRead, onDelete }: NotificationIte
                         <Zap className="h-2 w-2" />
                         {relativeTime(n.created_at)}
                     </p>
-                    {/* Action buttons visible on hover */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                        {!n.is_read && (
-                            <button
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRead(n.id) }}
-                                title="Marcar como leída"
-                                className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-600 transition-colors"
-                            >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                            </button>
+                    <div className="flex items-center gap-2">
+                        {/* Acción de 1 clic (verbo concreto según la alerta) */}
+                        {n.link && (
+                            <span className="flex items-center gap-1 text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                                {alertActionLabel(n.link, n.category)}
+                                <ArrowRight className="h-2.5 w-2.5" />
+                            </span>
                         )}
-                        <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(n.id) }}
-                            title="Eliminar"
-                            className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors"
-                        >
-                            <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {/* Action buttons visible on hover */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            {!n.is_read && (
+                                <button
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRead(n.id) }}
+                                    title="Marcar como leída"
+                                    className="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-300 hover:text-indigo-600 transition-colors"
+                                >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                </button>
+                            )}
+                            <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(n.id) }}
+                                title="Eliminar"
+                                className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -167,8 +178,9 @@ function NotificationItem({ notification: n, onRead, onDelete }: NotificationIte
     )
 
     if (n.link) {
+        // Al abrir la acción, la alerta se marca como leída (ya actuaste sobre ella).
         return (
-            <Link href={n.link} className="block">
+            <Link href={n.link} onClick={() => { if (!n.is_read) onRead(n.id) }} className="block">
                 {cardContent}
             </Link>
         )

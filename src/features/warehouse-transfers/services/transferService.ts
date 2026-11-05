@@ -78,6 +78,7 @@ export const transferService = {
             results = results.filter(
                 (t) =>
                     t.transfer_number?.toLowerCase().includes(s) ||
+                    t.legalized_number?.toLowerCase().includes(s) ||
                     (t.from_warehouse as any)?.name?.toLowerCase().includes(s) ||
                     (t.to_warehouse as any)?.name?.toLowerCase().includes(s)
             );
@@ -129,7 +130,13 @@ export const transferService = {
 
         const { data: created, error: headerError } = await client
             .from('warehouse_transfers')
-            .insert({ ...header, tenant_id, created_by: user?.id ?? null, status: 'DRAFT' as TransferStatus })
+            .insert({
+                ...header,
+                legalized_number: header.legalized_number?.trim() || null,
+                tenant_id,
+                created_by: user?.id ?? null,
+                status: 'DRAFT' as TransferStatus,
+            })
             .select('id, transfer_number')
             .single();
 
@@ -179,6 +186,7 @@ export const transferService = {
                 from_warehouse_id: header.from_warehouse_id,
                 to_warehouse_id: header.to_warehouse_id,
                 notes: header.notes ?? null,
+                legalized_number: header.legalized_number?.trim() || null,
                 updated_at: now,
             })
             .eq('id', id)
@@ -480,6 +488,26 @@ export const transferService = {
             return null;
         }
         return data.id;
+    },
+
+    /**
+     * Fija (o limpia) el número de traslado legalizado. Es un dato de referencia
+     * que se asigna cuando el traslado se legaliza en el sistema contable
+     * (WorldOffice), así que se puede registrar en cualquier estado. La RLS por
+     * tenant restringe qué traslados puede tocar el usuario.
+     */
+    async setLegalizedNumber(
+        client: SupabaseClient,
+        id: string,
+        legalizedNumber: string | null,
+    ): Promise<void> {
+        const value = legalizedNumber?.trim() || null;
+        const { error } = await client
+            .from('warehouse_transfers')
+            .update({ legalized_number: value, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) throw error;
     },
 
     /**
