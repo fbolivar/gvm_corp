@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { AuditTrail } from '@/shared/components/ui/audit-trail';
 import { partyService } from '@/features/parties/services/partyService';
 import { directoryService } from '@/features/crm/services/directoryService';
@@ -38,11 +39,16 @@ export default async function EditPartyPage({ params }: PageProps) {
             .select('id, full_name, email')
             .order('full_name');
 
-        // Directorio comercial del cliente: contactos y direcciones.
-        const [contacts, addresses] = await Promise.all([
-            directoryService.listContacts(supabase, id),
-            directoryService.listAddresses(supabase, id),
-        ]);
+        // Directorio comercial (contactos/direcciones): dato del CRM. Solo se
+        // carga y muestra a quien tiene permiso de CRM; terceros sigue abierto a
+        // compras/contabilidad/etc. sin exponer teléfonos y correos de contacto.
+        const canCrm = await canViewModule('crm');
+        const [contacts, addresses] = canCrm
+            ? await Promise.all([
+                directoryService.listContacts(supabase, id),
+                directoryService.listAddresses(supabase, id),
+            ])
+            : [[], []];
 
         return (
             <div className="pb-20">
@@ -52,10 +58,12 @@ export default async function EditPartyPage({ params }: PageProps) {
                     salespeople={salespeople || []}
                     employeeId={employeeLink?.id ?? null}
                 />
-                <div className="page-container mt-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <PartyContactsPanel partyId={id} initial={contacts} />
-                    <PartyAddressesPanel partyId={id} initial={addresses} />
-                </div>
+                {canCrm && (
+                    <div className="page-container mt-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <PartyContactsPanel partyId={id} initial={contacts} />
+                        <PartyAddressesPanel partyId={id} initial={addresses} />
+                    </div>
+                )}
                 <div className="mt-8">
                     <AuditTrail
                         client={supabase}

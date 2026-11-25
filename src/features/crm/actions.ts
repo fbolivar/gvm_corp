@@ -1,6 +1,9 @@
 "use server"
 
+import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import { canViewModule } from "@/shared/lib/moduleGuard"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { crmService } from "./services/crmService"
 import { leadSchema, Lead } from "./types"
 import { partyService } from "../parties/services/partyService"
@@ -8,8 +11,38 @@ import { Party } from "../parties/types"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+/** Guard común de las Server Actions del CRM: sesión + permiso de módulo. */
+async function crmGuard(supabase: SupabaseClient): Promise<{ userId: string } | { error: string }> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+    if (!(await canViewModule('crm'))) return { error: "Sin permiso para el CRM" };
+    return { userId: user.id };
+}
+
+/**
+ * Verifica que party_id/lead_id (si vienen) pertenezcan al tenant del usuario.
+ * La FK de Postgres NO respeta RLS: un uuid de otro tenant pasaría el INSERT y
+ * serviría de oráculo de existencia. Se confirma con el cliente de SESIÓN, cuya
+ * RLS ya filtra por tenant.
+ */
+async function assertOppRefs(supabase: SupabaseClient, refs: { party_id?: string | null; lead_id?: string | null }): Promise<string | null> {
+    if (refs.party_id) {
+        const { data } = await supabase.from('parties').select('id').eq('id', refs.party_id).maybeSingle();
+        if (!data) return "El cliente seleccionado no existe o no pertenece a tu empresa.";
+    }
+    if (refs.lead_id) {
+        const { data } = await supabase.from('leads').select('id').eq('id', refs.lead_id).maybeSingle();
+        if (!data) return "El prospecto seleccionado no existe o no pertenece a tu empresa.";
+    }
+    return null;
+}
+
+const oppValueSchema = z.coerce.number().finite().min(0).max(1e13);
+
 export async function createLeadAction(data: Lead) {
     const supabase = await createClient();
+    const guard = await crmGuard(supabase);
+    if ('error' in guard) return guard;
 
     const parsed = leadSchema.safeParse(data);
     if (!parsed.success) {
@@ -35,6 +68,8 @@ export async function createLeadAction(data: Lead) {
 
 export async function updateLeadAction(id: string, data: Lead) {
     const supabase = await createClient();
+    const guard = await crmGuard(supabase);
+    if ('error' in guard) return guard;
 
     const parsed = leadSchema.safeParse(data);
     if (!parsed.success) {
@@ -51,8 +86,10 @@ export async function updateLeadAction(id: string, data: Lead) {
     redirect('/crm/leads');
 }
 
-export async function updateOpportunityStageAction(id: string, stage: string) {
+export async function updateOpportunityStageAction(id: string, stage: string): Promise<{ success?: boolean; probability?: number; error?: string }> {
     const supabase = await createClient();
+    const guard = await crmGuard(supabase);
+    if ('error' in guard) return guard;
 
     try {
         const result = await crmService.updateStage(supabase, id, stage as any);
@@ -146,23 +183,34 @@ export async function deleteLeadAction(id: string) {
 
 export async function updateOpportunityAction(id: string, data: Record<string, unknown>) {
     const supabase = await createClient();
+    const guard = await crmGuard(supabase);
+    if ('error' in guard) return guard;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: "No autenticado" };
+    // Payload PARCIAL: solo se tocan las claves que vienen en `data`. Antes el
+    // payload fijaba expected_close_date/lead_id/party_id/description con
+    // `x || null`, así que un editor que mandaba solo { value } BORRABA esos
+    // campos (null no lo quita el filtro de undefined). Ahora un campo ausente
+    // no se toca.
+    const payload: Record<string, unknown> = {};
+    if ('name' in data) payload.name = data.name;
+    if ('value' in data) {
+        const v = oppValueSchema.safeParse(data.value);
+        if (!v.success) return { error: "El valor del negocio no es válido." };
+        payload.value = v.data;
+    }
+    if ('probability' in data) {
+        const p = z.coerce.number().int().min(0).max(100).safeParse(data.probability);
+        if (!p.success) return { error: "La probabilidad debe estar entre 0 y 100." };
+        payload.probability = p.data;
+    }
+    if ('expected_close_date' in data) payload.expected_close_date = data.expected_close_date || null;
+    if ('lead_id' in data) payload.lead_id = data.lead_id || null;
+    if ('party_id' in data) payload.party_id = data.party_id || null;
+    if ('notes' in data || 'description' in data) payload.description = (data.notes as string) || (data.description as string) || null;
+    if ('stage' in data && data.stage) payload.stage = data.stage;
 
-    const payload: Record<string, unknown> = {
-        name: data.name,
-        value: data.value,
-        probability: data.probability,
-        expected_close_date: data.expected_close_date || null,
-        lead_id: data.lead_id || null,
-        party_id: data.party_id || null,
-        description: (data.notes as string) || (data.description as string) || null,
-        stage: data.stage || undefined,
-    };
-
-    // Remove undefined keys
-    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+    const refErr = await assertOppRefs(supabase, { party_id: payload.party_id as string | null, lead_id: payload.lead_id as string | null });
+    if (refErr) return { error: refErr };
 
     try {
         const opportunity = await crmService.updateOpportunity(supabase, id, payload as Parameters<typeof crmService.updateOpportunity>[2]);
@@ -180,11 +228,36 @@ export async function updateOpportunityAction(id: string, data: Record<string, u
     }
 }
 
-export async function deleteOpportunityAction(id: string) {
+/** Edición rápida SOLO del valor (editor inline de la ficha). No toca otros campos. */
+export async function updateOpportunityValueAction(id: string, value: number): Promise<{ success?: boolean; error?: string }> {
     const supabase = await createClient();
+    const guard = await crmGuard(supabase);
+    if ('error' in guard) return guard;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: "No autenticado" };
+    const v = oppValueSchema.safeParse(value);
+    if (!v.success) return { error: "El valor del negocio no es válido." };
+
+    try {
+        // La RLS de crm_opportunities (ALL por tenant) impide tocar la de otro tenant.
+        await crmService.updateOpportunity(supabase, id, { value: v.data } as Parameters<typeof crmService.updateOpportunity>[2]);
+        revalidatePath('/crm/pipeline');
+        revalidatePath('/crm');
+        revalidatePath('/crm/forecast');
+        revalidatePath(`/crm/opportunities/${id}`);
+        return { success: true };
+    } catch (error: unknown) {
+        const err = error as Record<string, unknown>;
+        const msg = (typeof err?.message === 'string' ? err.message : null)
+            ?? (error instanceof Error ? error.message : null)
+            ?? 'Error al actualizar el valor';
+        return { error: msg };
+    }
+}
+
+export async function deleteOpportunityAction(id: string): Promise<{ success?: boolean; error?: string }> {
+    const supabase = await createClient();
+    const guard = await crmGuard(supabase);
+    if ('error' in guard) return guard;
 
     try {
         const { error } = await supabase
@@ -210,13 +283,15 @@ export async function deleteOpportunityAction(id: string) {
 
 export async function createOpportunityAction(data: Record<string, unknown>) {
     const supabase = await createClient();
-
-    // Inject tenant_id and assigned_to from the authenticated user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: "No autenticado" };
+    const guard = await crmGuard(supabase);
+    if ('error' in guard) return guard;
+    const user = { id: guard.userId };
 
     const { data: tenantRow } = await supabase.rpc('get_my_tenant_id');
     if (!tenantRow) return { error: "No se encontró el tenant" };
+
+    const refErr = await assertOppRefs(supabase, { party_id: (data.party_id as string) || null, lead_id: (data.lead_id as string) || null });
+    if (refErr) return { error: refErr };
 
     const payload = {
         name: data.name,

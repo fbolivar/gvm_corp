@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Pencil, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MoneyInput, formatCop } from '@/shared/components/ui/money-input';
-import { updateOpportunityAction } from '@/features/crm/actions';
+import { updateOpportunityValueAction } from '@/features/crm/actions';
 
 const fmt = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
@@ -20,7 +20,7 @@ export function OpportunityValueEditor({ id, initialValue }: { id: string; initi
     const [pending, start] = useTransition();
 
     const save = () => start(async () => {
-        const res = await updateOpportunityAction(id, { value });
+        const res = await updateOpportunityValueAction(id, value);
         if (res.error) { toast.error(res.error); return; }
         toast.success('Valor actualizado');
         setEditing(false);
