@@ -49,6 +49,17 @@ export const absenceRequestSchema = z.object({
     reviewed_by: z.string().uuid().optional().nullable(),
     reviewed_at: z.string().optional().nullable(),
     reviewer_notes: z.string().optional().nullable(),
+    // Soportes adjuntos (ej. incapacidad médica). El archivo vive en el bucket
+    // privado 'absence-attachments'; `url` solo se rellena al leer (firma temporal).
+    attachments: z.array(z.object({
+        name: z.string(),
+        path: z.string(),
+        size: z.number().optional(),
+        mime: z.string().nullable().optional(),
+        uploaded_at: z.string().optional(),
+        by: z.string().nullable().optional(),
+        url: z.string().nullable().optional(),
+    })).optional().nullable(),
     created_at: z.string().optional(),
     updated_at: z.string().optional(),
     employee: z.object({

@@ -57,3 +57,45 @@ export async function canViewModule(moduleKey: string): Promise<boolean> {
 
     return baseParent?.can_view === true
 }
+
+/**
+ * ¿El usuario autenticado puede ADMINISTRAR un módulo? (no solo verlo).
+ *
+ * Para acciones sensibles/destructivas (crear API keys, descargar o borrar
+ * respaldos, cerrar períodos…): el permiso de "ver" (can_view) NO alcanza. Se
+ * exige rol alto, `can_admin` explícito del módulo, o una excepción por persona
+ * en `team_admins`. (Auditoría 2026-11-24.)
+ */
+export async function canAdminModule(moduleKey: string): Promise<boolean> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const { data: ut } = await supabase
+        .from('user_tenants')
+        .select('role, role_id, status, tenant_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+    if (!ut || (ut.status && ut.status !== 'active')) return false
+    if (HIGH_LEVEL_ROLES.includes((ut.role as string) || '')) return true
+
+    if (ut.role_id) {
+        const { data: perm } = await supabase
+            .from('role_permissions')
+            .select('can_admin')
+            .eq('role_id', ut.role_id)
+            .eq('module_key', moduleKey)
+            .maybeSingle()
+        if (perm?.can_admin === true) return true
+    }
+
+    const { data: ta } = await supabase
+        .from('team_admins')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .eq('tenant_id', ut.tenant_id as string)
+        .maybeSingle()
+
+    return !!ta
+}

@@ -84,7 +84,7 @@ export function AnnualCampaignPanel({ openCampaign, defaultWindow, defaultName, 
                 <input value={name} onChange={e => setName(e.target.value)} maxLength={120}
                     className="w-full h-11 rounded-xl border border-slate-200 px-3 text-sm" />
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="block space-y-1">
                     <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Apertura</span>
                     <input type="date" value={opensOn} onChange={e => setOpensOn(e.target.value)}

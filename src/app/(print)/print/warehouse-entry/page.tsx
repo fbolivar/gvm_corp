@@ -4,12 +4,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Package } from "lucide-react";
 import { WarehouseEntryPrintControls } from "./WarehouseEntryPrintControls";
+import { NEW_PRODUCT_SKU } from "@/features/warehouse-transfers/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TransferLineRow {
     id: string;
     product_id: string;
+    description: string | null;
     qty: number;
     qty_received: number;
     notes: string | null;
@@ -130,7 +132,7 @@ export default async function WarehouseEntryPrintPage({
             from_warehouse:warehouses!from_warehouse_id(name),
             to_warehouse:warehouses!to_warehouse_id(name),
             lines:warehouse_transfer_lines(
-                id, product_id, qty, qty_received, notes,
+                id, product_id, description, qty, qty_received, notes,
                 product:products(name, sku, uom, cost)
             )
         `)
@@ -165,9 +167,15 @@ export default async function WarehouseEntryPrintPage({
         const qty = Number(l.qty_received || l.qty || 0);
         const unitValue = Number(l.product?.cost ?? 0);
         const total = qty * unitValue;
+        // PRODUCTO NUEVO: el nombre del producto es genérico ("...especificar en el detalle");
+        // lo que el bodeguero escribió va en l.description, y es lo que debe imprimirse.
+        const isPlaceholder = l.product?.sku === NEW_PRODUCT_SKU;
+        const displayName = isPlaceholder
+            ? (l.description?.trim() ? `PRODUCTO NUEVO: ${l.description.trim()}` : "PRODUCTO NUEVO (sin especificar)")
+            : (l.product?.name || l.description || "—");
         return {
             id: l.id,
-            description: l.product?.name || "—",
+            description: displayName,
             sku: l.product?.sku || "",
             warehouse: transfer.to_warehouse?.name || "—",
             qty,

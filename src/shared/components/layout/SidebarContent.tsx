@@ -76,6 +76,8 @@ import {
     CalendarClock,
     Timer,
     QrCode,
+    Barcode,
+    Contact,
     FileSpreadsheet,
     Star,
 } from "lucide-react"
@@ -221,6 +223,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: t.sidebar.lots, href: "/inventory/lots", icon: FlaskConical },
                         { title: 'Análisis ABC', href: "/inventory/analysis", icon: BarChart3 },
                         { title: 'Seriales', href: "/inventory/serials", icon: Hash },
+                        { title: 'Etiquetas código de barras', href: "/inventory/labels", icon: Barcode },
                         { title: 'Importar Stock', href: "/inventory/import-stock", icon: FileSpreadsheet },
                     ]
                 },
@@ -231,6 +234,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     moduleKey: 'crm',
                     children: [
                         { title: 'Cartera de clientes', href: "/crm/accounts", icon: Building2 },
+                        { title: 'Directorio de contactos', href: "/crm/directory", icon: Contact },
                         { title: 'Visitas', href: "/crm/visits", icon: CalendarCheck },
                         { title: t.sidebar.leads, href: "/crm/leads", icon: UserPlus },
                         { title: 'Pipeline (Oportunidades)', href: "/crm/pipeline", icon: BarChart2 },

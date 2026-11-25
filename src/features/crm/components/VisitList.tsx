@@ -6,7 +6,7 @@ import { AlertTriangle, MapPin, Video, Building2, Briefcase, ChevronRight } from
 import { cn } from '@/shared/lib/utils';
 import { formatLocalDate } from '@/shared/lib/dateFmt';
 import { isFollowupDue, isOverdue } from '../utils/visitStats';
-import { MANAGEMENT_TYPES, VISIT_STATUSES, type CrmVisit, type VisitStatus } from '../types/visits';
+import { MANAGEMENT_TYPES, PRIORITY_DOT, PRIORITY_LABELS, VISIT_STATUSES, type CrmVisit, type VisitStatus } from '../types/visits';
 import type { Salesperson } from '../services/visitService';
 
 /**
@@ -21,8 +21,6 @@ export const STATUS_BADGE: Record<VisitStatus, string> = {
     REPROGRAMADA: 'bg-amber-50 text-amber-700 border-amber-200',
     NO_REALIZADA: 'bg-rose-50 text-rose-700 border-rose-200',
 };
-
-const PRIORITY_DOT: Record<number, string> = { 1: 'bg-rose-500', 2: 'bg-amber-400', 3: 'bg-slate-300' };
 
 export function StatusBadge({ status }: { status: VisitStatus }) {
     return (
@@ -73,6 +71,10 @@ export function VisitList({ visits, salespeople, isManager, today, range }: Prop
                     <option value="">Todos los estados</option>
                     {Object.entries(VISIT_STATUSES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
+                <select value={sp.get('priority') ?? ''} onChange={e => setParam('priority', e.target.value)} className={selectCls}>
+                    <option value="">Todas las prioridades</option>
+                    {([1, 2, 3] as const).map(p => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+                </select>
                 {isManager && (
                     <select value={sp.get('salesperson') ?? ''} onChange={e => setParam('salesperson', e.target.value)} className={selectCls}>
                         <option value="">Todos los comerciales</option>
@@ -94,10 +96,12 @@ export function VisitList({ visits, salespeople, isManager, today, range }: Prop
                         const due = isFollowupDue(v, today);
                         return (
                             <Link key={v.id} href={`/crm/visits/${v.id}`}
-                                className={cn('bg-white rounded-2xl border shadow-sm p-4 flex gap-3 hover:border-indigo-200 transition-all',
+                                className={cn('rounded-2xl border shadow-sm p-4 flex gap-3 hover:border-indigo-200 transition-all',
+                                    // Prioridad Alta: resaltar toda la ficha (fondo rojo tenue + anillo rojo).
+                                    v.priority === 1 ? 'bg-red-50/60 ring-2 ring-red-500/50' : 'bg-white',
                                     overdue || due ? 'border-amber-200' : 'border-slate-100')}>
                                 <div className="flex flex-col items-center pt-1 gap-2 shrink-0">
-                                    <span className={cn('h-2.5 w-2.5 rounded-full', PRIORITY_DOT[v.priority])} title={`Prioridad ${v.priority}`} />
+                                    <span className={cn('h-2.5 w-2.5 rounded-full ring-1 ring-white', PRIORITY_DOT[v.priority])} title={`Prioridad ${PRIORITY_LABELS[v.priority]}`} />
                                 </div>
                                 <div className="min-w-0 flex-1 space-y-1.5">
                                     <div className="flex flex-wrap items-center gap-2">

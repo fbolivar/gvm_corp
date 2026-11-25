@@ -1,11 +1,9 @@
+import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { Badge } from '@/shared/components/ui/badge';
-import { Button } from '@/shared/components/ui/button';
 import {
-    Building2, FileText, DollarSign, Clock, CheckCircle2,
-    AlertTriangle, ArrowRight, Mail, Phone, Shield
+    Building2, FileText, Clock, CheckCircle2, AlertTriangle, Shield
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
@@ -21,31 +19,47 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; ic
 
 const ACTIVE_STATUSES = ['SENT', 'SIGNED', 'ACCEPTED'];
 
-export default async function ClientPortalPage({ params }: { params: Promise<{ partyId: string }> }) {
-    const { partyId } = await params;
+/**
+ * Portal público del cliente — acceso por TOKEN (no por UUID del tercero).
+ * El token aleatorio con vigencia se genera desde la app (auditoría 2026-11-24).
+ * Solo se envía al navegador lo mínimo: nombre, NIT y el estado de cuenta. No se
+ * exponen email/teléfono ni enlaces de pago (el pago usa el flujo firmado /pay/[token]).
+ */
+export default async function ClientPortalTokenPage({ params }: { params: Promise<{ token: string }> }) {
+    const { token } = await params;
+    if (!token || token.length < 16) notFound();
+
     const supabase = createAdminClient();
 
-    // Fetch party info
+    // En la BD se guarda el HASH del token (no el token en claro), así que si la columna
+    // se filtra por un select('*') no sirve para construir un enlace válido.
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
     const { data: party, error: partyError } = await supabase
         .from('parties')
-        .select('id, legal_name, trade_name, email, phone, nit, doc_number')
-        .eq('id', partyId)
-        .single();
+        .select('id, legal_name, trade_name, nit, portal_token_expires_at')
+        .eq('portal_token', tokenHash)
+        .maybeSingle();
 
     if (partyError || !party) notFound();
 
-    // Fetch documents (invoices and credit notes)
+    // Vigencia: un token caducado (o sin fecha) no da acceso (se regenera desde la app).
+    if (!party.portal_token_expires_at || new Date(party.portal_token_expires_at) < new Date()) {
+        notFound();
+    }
+
     const { data: documents } = await supabase
         .from('documents')
         .select('id, number, doc_type, issue_date, due_date, total, balance, status')
-        .eq('party_id', partyId)
+        .eq('party_id', party.id)
         .in('doc_type', ['INVOICE', 'CREDIT_NOTE'])
+        // Solo documentos emitidos: nunca mostrar borradores ni anulados al cliente.
+        .in('status', ['SENT', 'SIGNED', 'ACCEPTED', 'PAID'])
         .order('issue_date', { ascending: false })
         .limit(50);
 
     const docs = documents || [];
 
-    // Aggregate stats
     const pendingDocs = docs.filter(d => ACTIVE_STATUSES.includes(d.status));
     const pendingTotal = pendingDocs.reduce((s, d) => s + (Number(d.balance) || Number(d.total) || 0), 0);
 
@@ -80,18 +94,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ p
                     <div>
                         <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">{displayName}</h1>
                         {party.nit && <p className="text-white/40 font-bold text-[10px] uppercase tracking-widest mt-2">NIT {party.nit}</p>}
-                        <div className="flex flex-wrap items-center gap-4 mt-4">
-                            {party.email && (
-                                <div className="flex items-center gap-2 text-white/50 text-[10px] font-bold">
-                                    <Mail className="h-3.5 w-3.5" />{party.email}
-                                </div>
-                            )}
-                            {party.phone && (
-                                <div className="flex items-center gap-2 text-white/50 text-[10px] font-bold">
-                                    <Phone className="h-3.5 w-3.5" />{party.phone}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
             </div>
@@ -150,7 +152,6 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ p
                             {docs.map(doc => {
                                 const meta = STATUS_META[doc.status] || STATUS_META.SENT;
                                 const Icon = meta.icon;
-                                const isPayable = ACTIVE_STATUSES.includes(doc.status);
                                 return (
                                     <div key={doc.id} className="px-8 py-5 flex items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
                                         <div className="flex items-center gap-4 min-w-0">
@@ -171,20 +172,10 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ p
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-4 shrink-0">
-                                            <div className="text-right">
-                                                <p className="font-black text-slate-900 italic tabular-nums">{fmt(Number(doc.total) || 0)}</p>
-                                                {doc.balance != null && Number(doc.balance) !== Number(doc.total) && (
-                                                    <p className="text-[9px] font-bold text-rose-500">Saldo: {fmt(Number(doc.balance))}</p>
-                                                )}
-                                            </div>
-
-                                            {isPayable && doc.doc_type === 'INVOICE' && (
-                                                <Button asChild size="sm" className="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[9px] uppercase tracking-widest shadow-sm">
-                                                    <Link href={`/portal/pago/${doc.id}`} className="flex items-center gap-1.5">
-                                                        Pagar <ArrowRight className="h-3 w-3" />
-                                                    </Link>
-                                                </Button>
+                                        <div className="text-right shrink-0">
+                                            <p className="font-black text-slate-900 italic tabular-nums">{fmt(Number(doc.total) || 0)}</p>
+                                            {doc.balance != null && Number(doc.balance) !== Number(doc.total) && (
+                                                <p className="text-[9px] font-bold text-rose-500">Saldo: {fmt(Number(doc.balance))}</p>
                                             )}
                                         </div>
                                     </div>
@@ -200,7 +191,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ p
                         <Building2 className="h-4 w-4" />
                         <span className="text-[9px] font-black uppercase tracking-[0.3em]">GVM Corp ERP — Portal Seguro de Clientes</span>
                     </div>
-                    <p className="text-[8px] text-slate-300 font-medium">Los datos mostrados son de carácter informativo. Para disputas, contacte a su proveedor.</p>
+                    <p className="text-[8px] text-slate-300 font-medium">Los datos mostrados son de carácter informativo. Para disputas o pagos, contacte a su proveedor.</p>
                 </div>
             </div>
         </div>

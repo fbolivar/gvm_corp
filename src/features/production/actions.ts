@@ -1,11 +1,13 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { canViewModule } from "@/shared/lib/moduleGuard"
 import { productionService } from "./services/productionService"
 import { ProductionRecipe, ProductionOrder } from "./types"
 import { revalidatePath } from "next/cache"
 
 export async function createRecipeAction(recipe: ProductionRecipe & { items?: any[] }) {
+    if (!(await canViewModule('production'))) return { data: null, error: 'Sin permiso para producción' }
     const supabase = await createClient()
     try {
         const { items, ...recipeData } = recipe;
@@ -18,6 +20,7 @@ export async function createRecipeAction(recipe: ProductionRecipe & { items?: an
 }
 
 export async function createOrderAction(order: ProductionOrder) {
+    if (!(await canViewModule('production'))) return { data: null, error: 'Sin permiso para producción' }
     const supabase = await createClient()
     try {
         const data = await productionService.createOrder(supabase, order)
@@ -29,6 +32,7 @@ export async function createOrderAction(order: ProductionOrder) {
 }
 
 export async function finishOrderAction(orderId: string, qtyProduced: number) {
+    if (!(await canViewModule('production'))) return { data: null, error: 'Sin permiso para producción' }
     const supabase = await createClient()
     try {
         const data = await productionService.finishOrder(supabase, orderId, qtyProduced)

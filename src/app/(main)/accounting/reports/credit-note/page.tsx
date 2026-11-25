@@ -334,7 +334,7 @@ export default async function CreditNotePage({
                                                 {fmt(Number(line.unit_price))}
                                             </td>
                                             <td className={cn("px-5 py-4 text-xs font-black text-right tabular-nums", cfg.accentText)}>
-                                                {fmt(Number(line.total))}
+                                                {fmt(Number(line.qty) * Number(line.unit_price))}
                                             </td>
                                         </tr>
                                     )) : (

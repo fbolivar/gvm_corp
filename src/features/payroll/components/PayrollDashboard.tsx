@@ -38,7 +38,7 @@ export function PayrollDashboard({ stats }: PayrollDashboardProps) {
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                     { label: 'Contratos Activos', value: String(stats.activeEmployees), icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                     { label: 'Ultimo Desembolso', value: `$${stats.lastSettlementAmount.toLocaleString('es-CO')}`, icon: Banknote, color: 'text-emerald-600', bg: 'bg-emerald-50' },

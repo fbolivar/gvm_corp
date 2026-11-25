@@ -55,12 +55,30 @@ export function BarcodeScanner() {
     const [isCameraActive, setIsCameraActive] = useState(false)
     const [cameraStartRequested, setCameraStartRequested] = useState(false)
     const [cameraError, setCameraError] = useState<string | null>(null)
-    const html5QrCodeRef = useRef<unknown>(null)
+    const zxingControlsRef = useRef<{ stop: () => void } | null>(null)
+    const videoRef = useRef<HTMLVideoElement>(null)
 
     const scanBuffer = useRef("")
     const lastKeyTime = useRef(0)
 
+    // Bodega donde se registra la entrada/salida. GVM tiene muchas bodegas: NO se
+    // puede asumir "la primera". Se recuerda la última elegida (localStorage).
+    const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([])
+    const [warehouseId, setWarehouseId] = useState("")
+
     const isVisible = ALLOWED_PATHS.some(p => pathname.startsWith(p))
+
+    useEffect(() => {
+        if (!isVisible) return
+        const supabase = createClient()
+        supabase.from("warehouses").select("id, name").order("name").then(({ data }: { data: { id: string; name: string }[] | null }) => {
+            const list = (data ?? []) as { id: string; name: string }[]
+            setWarehouses(list)
+            let saved: string | null = null
+            try { saved = localStorage.getItem("scanner_wh") } catch { /* storage bloqueado */ }
+            setWarehouseId(prev => prev || (saved && list.some(w => w.id === saved) ? saved : (list[0]?.id ?? "")))
+        })
+    }, [isVisible])
 
     // HID scanner keyboard listener
     useEffect(() => {
@@ -84,17 +102,14 @@ export function BarcodeScanner() {
         return () => window.removeEventListener("keydown", handleKeyDown)
     }, [])
 
-    const stopCamera = useCallback(async () => {
-        try {
-            const scanner = html5QrCodeRef.current as { isScanning?: boolean; stop: () => Promise<void>; clear: () => void } | null
-            if (scanner && scanner.isScanning) {
-                await scanner.stop()
-                scanner.clear()
-            }
-        } catch {
-            // Ignore cleanup errors
+    const stopCamera = useCallback(() => {
+        try { zxingControlsRef.current?.stop() } catch { /* ignore */ }
+        zxingControlsRef.current = null
+        const v = videoRef.current
+        if (v && v.srcObject) {
+            try { (v.srcObject as MediaStream).getTracks().forEach(t => t.stop()) } catch { /* ignore */ }
+            v.srcObject = null
         }
-        html5QrCodeRef.current = null
         setIsCameraActive(false)
         setCameraError(null)
     }, [])
@@ -119,41 +134,45 @@ export function BarcodeScanner() {
 
         const initScanner = async () => {
             try {
-                const { Html5Qrcode } = await import("html5-qrcode")
+                const { BrowserMultiFormatReader } = await import("@zxing/browser")
+                const { DecodeHintType, BarcodeFormat } = await import("@zxing/library")
 
-                // Wait for DOM to render the container
-                await new Promise(r => setTimeout(r, 200))
-
-                const containerId = "barcode-camera-reader"
-                const container = document.getElementById(containerId)
-                if (!container) {
+                // Esperar a que el <video> esté montado.
+                await new Promise(r => setTimeout(r, 150))
+                const video = videoRef.current
+                if (!video) {
                     setCameraError("No se encontro el contenedor de camara. Intenta de nuevo.")
                     setIsCameraActive(false)
                     return
                 }
 
-                const scanner = new Html5Qrcode(containerId)
-                html5QrCodeRef.current = scanner
+                // ZXing lee códigos 1D (EAN/UPC/Code128…) de forma confiable TAMBIÉN en
+                // iPhone, donde el navegador NO tiene detector de códigos por hardware
+                // (por eso html5-qrcode mostraba la cámara pero no enganchaba). TRY_HARDER
+                // mejora la captura con poca luz o el código algo inclinado.
+                const hints = new Map()
+                hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+                    BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
+                    BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+                    BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
+                    BarcodeFormat.ITF, BarcodeFormat.CODABAR,
+                    BarcodeFormat.QR_CODE,
+                ])
+                hints.set(DecodeHintType.TRY_HARDER, true)
 
-                await scanner.start(
-                    { facingMode: "environment" },
-                    {
-                        fps: 10,
-                        qrbox: { width: 250, height: 150 },
-                        aspectRatio: 1.0,
-                        disableFlip: false,
-                    },
-                    (decodedText: string) => {
-                        toast.success("CODIGO DETECTADO", {
-                            description: decodedText,
-                        })
+                const reader = new BrowserMultiFormatReader(hints)
+                const controls = await reader.decodeFromConstraints(
+                    { video: { facingMode: { ideal: "environment" } } },
+                    video,
+                    (result) => {
+                        if (!result) return
+                        const text = result.getText()
+                        toast.success("CODIGO DETECTADO", { description: text })
                         stopCamera()
-                        lookupBarcode(decodedText)
+                        lookupBarcode(text)
                     },
-                    () => {
-                        // Scan frame — no match, ignore
-                    }
                 )
+                zxingControlsRef.current = controls
             } catch (err: unknown) {
                 console.error("Camera error:", err)
                 const msg = err instanceof Error ? err.message : String(err)
@@ -249,21 +268,15 @@ export function BarcodeScanner() {
 
     const handleMovement = async (type: "IN" | "OUT") => {
         if (!product) return
+        if (!warehouseId) { toast.error("Elige una bodega"); return }
         const supabase = createClient()
         try {
             setIsLoading(true)
-            const { data: warehouse } = await supabase
-                .from("warehouses")
-                .select("id")
-                .limit(1)
-                .single()
-            if (!warehouse) throw new Error("No hay bodegas")
-
             const { error } = await supabase
                 .from("inventory_movements")
                 .insert({
                     product_id: product.id,
-                    warehouse_id: warehouse.id,
+                    warehouse_id: warehouseId,
                     type,
                     qty: Number(qty),
                     // `reason` no existe en inventory_movements: el INSERT fallaba
@@ -330,9 +343,12 @@ export function BarcodeScanner() {
                                 {/* Camera scanner area */}
                                 {isCameraActive ? (
                                     <div className="w-full space-y-3">
-                                        <div
+                                        <video
+                                            ref={videoRef}
                                             id="barcode-camera-reader"
-                                            className="w-full rounded-2xl overflow-hidden bg-black"
+                                            className="w-full aspect-video object-cover rounded-2xl overflow-hidden bg-black"
+                                            muted
+                                            playsInline
                                         />
                                         <Button
                                             onClick={stopCamera}
@@ -490,6 +506,17 @@ export function BarcodeScanner() {
                                 </div>
 
                                 <div className="space-y-6">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Bodega</label>
+                                        <select
+                                            value={warehouseId}
+                                            onChange={(e) => { setWarehouseId(e.target.value); try { localStorage.setItem("scanner_wh", e.target.value) } catch { /* storage bloqueado */ } }}
+                                            className="h-12 bg-slate-50/50 border-none rounded-2xl px-4 font-bold text-slate-800 shadow-inner focus:ring-2 focus:ring-primary outline-none"
+                                        >
+                                            {warehouses.length === 0 && <option value="">Sin bodegas</option>}
+                                            {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        </select>
+                                    </div>
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cantidad</label>
                                         <Input

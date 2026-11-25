@@ -883,7 +883,7 @@ export function ImportWizard() {
         {step === 3 && result && (
           <div className="space-y-6">
             {/* Summary */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
                 <p className="text-3xl font-black text-emerald-600">{result.inserted}</p>

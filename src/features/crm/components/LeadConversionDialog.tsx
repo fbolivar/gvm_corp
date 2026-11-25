@@ -112,13 +112,18 @@ export function LeadConversionDialog({ open, onOpenChange, lead, onSuccess }: Pr
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] bg-white border-none shadow-premium rounded-[2rem] p-0 overflow-y-auto overflow-x-hidden relative border border-slate-50 max-h-[90vh]">
+            {/* `fixed` explícito: NO usar `relative` aquí — Tailwind-merge lo trata como
+                el mismo grupo que el `fixed` de la base de DialogContent y lo anularía,
+                dejando el modal en el flujo de la página (se iba al fondo y se cortaba al
+                compartir pantalla). El ícono decorativo `absolute` se ancla igual al
+                DialogContent porque `fixed` también es un contexto posicionado. */}
+            <DialogContent className="sm:max-w-[600px] bg-white border-none shadow-premium rounded-[2rem] p-0 overflow-hidden fixed border border-slate-50 max-h-[92dvh] flex flex-col">
                 {/* Decorative Background Icon */}
                 <div className="absolute top-0 right-0 p-12 opacity-[0.01] pointer-events-none">
                     <UserCheck className="h-64 w-64" />
                 </div>
 
-                <DialogHeader className="bg-slate-950 p-6 md:p-8 text-white relative overflow-hidden">
+                <DialogHeader className="bg-slate-950 p-6 md:p-8 text-white relative overflow-hidden shrink-0 z-10">
                     <div className="flex items-center gap-4">
                         <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-active shrink-0">
                             <ArrowRight className="h-5 w-5" />
@@ -134,7 +139,8 @@ export function LeadConversionDialog({ open, onOpenChange, lead, onSuccess }: Pr
                     </div>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6 p-6 md:p-8 bg-white">
+                <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1 bg-white">
+                    <div className="space-y-5 md:space-y-6 p-6 md:p-8 overflow-y-auto flex-1 min-h-0">
                     {/* Identidad del prospecto que se está convirtiendo: evita la confusión de
                         "no coincide la información" dejando a la vista de quién es esta conversión. */}
                     {lead && (
@@ -247,7 +253,9 @@ export function LeadConversionDialog({ open, onOpenChange, lead, onSuccess }: Pr
                         </div>
                     </div>
 
-                    <DialogFooter className="pt-2 gap-3 sm:justify-between items-center sm:flex-row-reverse w-full">
+                    </div>
+
+                    <DialogFooter className="shrink-0 gap-3 sm:justify-between items-center sm:flex-row-reverse w-full border-t border-slate-100 bg-white px-6 md:px-8 py-4">
                         <Button type="submit" disabled={isLoading} className="h-12 px-8 rounded-[1.2rem] bg-indigo-600 hover:bg-white hover:text-slate-950 text-white font-black text-[11px] uppercase tracking-[0.3em] shadow-active transition-all active:scale-95 disabled:opacity-20 italic flex items-center gap-3 border-none whitespace-nowrap order-last sm:order-first">
                             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                             {!isLoading && <ArrowRight className="h-4 w-4" />}

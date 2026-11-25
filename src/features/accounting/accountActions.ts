@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { accountingService } from './services/accountingService'
 import { accountFormSchema, AccountFormData } from './types'
 import { revalidatePath } from 'next/cache'
@@ -14,6 +15,7 @@ export async function createAccountAction(
             return { error: parsed.error.issues[0]?.message || 'Datos inválidos' };
         }
 
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         const account = await accountingService.createAccount(supabase, parsed.data);
 
@@ -38,6 +40,7 @@ export async function updateAccountAction(
             return { error: parsed.error.issues[0]?.message || 'Datos inválidos' };
         }
 
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         await accountingService.updateAccount(supabase, id, parsed.data);
 
@@ -56,6 +59,7 @@ export async function deleteAccountAction(
     id: string
 ): Promise<{ error?: string }> {
     try {
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         await accountingService.deleteAccount(supabase, id);
 
@@ -71,6 +75,7 @@ export async function toggleAccountActiveAction(
     isActive: boolean
 ): Promise<{ error?: string }> {
     try {
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         await accountingService.toggleAccountActive(supabase, id, isActive);
 

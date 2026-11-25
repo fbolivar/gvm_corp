@@ -31,7 +31,7 @@ export default async function ContractsPage() {
 
             {/* HEADER */}
             <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-active group">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
+                <div className="absolute top-0 right-0 p-5 md:p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-all duration-1000">
                     <FileText className="h-24 w-24 text-white" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row flex-wrap justify-between items-start md:items-end gap-10">
@@ -54,7 +54,7 @@ export default async function ContractsPage() {
             </div>
 
             {/* KPI STRIP */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 {[
                     { label: 'Contratos Activos',    value: activeCount,   icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Por Vencer (30d)',      value: expiringSoon,  icon: AlertTriangle, color: 'text-amber-600',  bg: 'bg-amber-50' },
@@ -77,7 +77,7 @@ export default async function ContractsPage() {
             {byType.length > 0 && (
                 <div className="bg-white rounded-[2.5rem] p-10 shadow-premium">
                     <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-6">Distribución por Tipo</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         {byType.map(t => (
                             <div key={t.type} className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 text-center">
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t.label}</p>

@@ -43,7 +43,7 @@ export function CourseForm() {
                 <Textarea name="description" rows={2} placeholder="Breve descripcion del curso..." className="bg-slate-50 border-slate-200 text-sm resize-none" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                     <Label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Modulo</Label>
                     <select name="module_key" className="w-full h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-none">

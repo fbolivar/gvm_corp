@@ -48,9 +48,19 @@ export const VISIT_RESULTS = {
 export type VisitResult = keyof typeof VISIT_RESULTS;
 
 export const PRIORITY_LABELS: Record<1 | 2 | 3, string> = {
-    1: 'Prioridad 1 — crítica',
-    2: 'Prioridad 2 — media',
-    3: 'Prioridad 3 — baja',
+    1: 'Alta',
+    2: 'Media',
+    3: 'Baja',
+};
+
+/**
+ * Semáforo de prioridad (una sola fuente para calendario, lista y leyenda):
+ * Alta = rojo, Media = amarillo, Baja = verde. Clase de color del puntito.
+ */
+export const PRIORITY_DOT: Record<1 | 2 | 3, string> = {
+    1: 'bg-red-500',
+    2: 'bg-amber-400',
+    3: 'bg-emerald-500',
 };
 
 const keys = <T extends Record<string, string>>(o: T) => Object.keys(o) as [keyof T & string, ...(keyof T & string)[]];

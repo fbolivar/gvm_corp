@@ -291,7 +291,7 @@ export function PartyList({ initialData, totalCount, currentPage, perPage, vendo
 
                                     {/* Vendor KPIs */}
                                     {party.is_vendor && party.id && vendorMetrics && vendorMetrics[party.id] && (
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100">
                                             <div className="flex items-center gap-2">
                                                 <TrendingUp className="h-3 w-3 text-emerald-500 shrink-0" />
                                                 <div>

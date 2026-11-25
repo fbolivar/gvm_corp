@@ -140,7 +140,7 @@ export function BudgetSpreadsheet({ budget: initialBudget, lines: initialLines, 
                     </div>
 
                     {/* KPI summary */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-5">
                         {[
                             { label: 'Ingresos Presupuestados', value: fmtCOP(totalBudgetIngresos), color: 'text-emerald-600' },
                             { label: 'Ingresos Reales',         value: fmtCOP(totalActualIngresos), color: 'text-emerald-700' },

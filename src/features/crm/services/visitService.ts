@@ -48,6 +48,7 @@ function mapVisit(row: Record<string, unknown>): CrmVisit {
 export interface VisitFilters {
     salespersonId?: string;
     status?: VisitStatus | '';
+    priority?: 1 | 2 | 3;
     from?: string;
     to?: string;
     partyId?: string;
@@ -103,6 +104,7 @@ export const visitService = {
         let q = client.from('crm_visits').select(SELECT);
         if (f.salespersonId) q = q.eq('salesperson_id', f.salespersonId);
         if (f.status) q = q.eq('status', f.status);
+        if (f.priority) q = q.eq('priority', f.priority);
         if (f.from) q = q.gte('planned_date', f.from);
         if (f.to) q = q.lte('planned_date', f.to);
         if (f.partyId) q = q.eq('party_id', f.partyId);

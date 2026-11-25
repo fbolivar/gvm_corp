@@ -356,9 +356,20 @@ export const commercialService = {
         const { data: req } = await client.from('commercial_requests').select('attachments, status').eq('id', requestId).single()
         if (!req) throw new Error('Solicitud no encontrada')
         if (req.status === 'LIQUIDATED') throw new Error('No se pueden modificar adjuntos de una solicitud liquidada')
+        // SEGURIDAD (auditoría 2026-11-24): el `path` viene del cliente. Verificar que
+        // de verdad pertenece a ESTA solicitud (la solicitud ya está acotada al tenant
+        // por la RLS del cliente de sesión) antes de borrar el objeto de Storage. Sin
+        // esto se podía borrar cualquier archivo del bucket conociendo su ruta.
+        const current = (req.attachments as { path?: string }[]) ?? []
+        if (!current.some((a) => a.path === path)) throw new Error('El adjunto no pertenece a esta solicitud')
+        // Defensa en profundidad: la ruta DEBE estar bajo la carpeta del tenant
+        // (`${tenant}/${solicitud}/...`), por si la columna attachments fuera escribible
+        // con una ruta ajena. Nunca borrar fuera de la carpeta del tenant.
+        const tenantId = await this.getTenantId(client)
+        if (!tenantId || !String(path).startsWith(`${tenantId}/`)) throw new Error('Ruta de archivo inválida')
         const admin = createAdminClient()
         await admin.storage.from('commercial-attachments').remove([path])
-        const attachments = ((req.attachments as { path?: string }[]) ?? []).filter((a) => a.path !== path)
+        const attachments = current.filter((a) => a.path !== path)
         const { error } = await client.from('commercial_requests')
             .update({ attachments, updated_at: new Date().toISOString() }).eq('id', requestId)
         if (error) throw new Error(error.message)

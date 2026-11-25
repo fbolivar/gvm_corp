@@ -143,6 +143,35 @@ export async function submitAbsenceRequest(formData: FormData) {
     }
     if (days === 0) days = 1;
 
+    // Soportes adjuntos (ej. incapacidad médica). Se suben ANTES de crear la
+    // solicitud: si la subida falla, no queda una solicitud huérfana sin su soporte.
+    // La subida va por admin client al bucket privado 'absence-attachments'.
+    const files = formData.getAll('attachments').filter((f): f is File => f instanceof File && f.size > 0);
+    const MAX_FILE = 15 * 1024 * 1024; // 15 MB
+    const attachments: Array<Record<string, unknown>> = [];
+    if (files.length > 0) {
+        if (files.length > 5) throw new Error('Máximo 5 archivos por solicitud');
+        const admin = createAdminClient(user.id);
+        for (const file of files) {
+            if (file.size > MAX_FILE) throw new Error(`"${file.name}" supera el límite de 15 MB`);
+            const safe = (file.name || 'archivo').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
+            const path = `${employee.tenant_id}/${crypto.randomUUID()}-${safe}`;
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const { error: upErr } = await admin.storage
+                .from('absence-attachments')
+                .upload(path, buffer, { contentType: file.type || 'application/octet-stream', upsert: false });
+            if (upErr) throw new Error(`No se pudo subir "${file.name}": ${upErr.message}`);
+            attachments.push({
+                name: file.name,
+                path,
+                size: file.size,
+                mime: file.type || null,
+                uploaded_at: new Date().toISOString(),
+                by: user.id,
+            });
+        }
+    }
+
     await absenceService.create(supabase, {
         tenant_id: employee.tenant_id as string,
         employee_id: employee.id as string,
@@ -151,6 +180,7 @@ export async function submitAbsenceRequest(formData: FormData) {
         end_date,
         days,
         reason,
+        attachments,
     });
 
     const employeeName = (employee.party as any)?.legal_name ?? 'Empleado';

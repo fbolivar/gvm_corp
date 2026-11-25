@@ -374,7 +374,7 @@ export function NotificationCenter({ initialNotifications }: NotificationCenterP
                 </div>
 
                 {/* Stat cards */}
-                <div className="relative z-10 grid grid-cols-4 gap-3 mt-7">
+                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-7">
                     <StatCard
                         label="Total"
                         value={notifications.length}

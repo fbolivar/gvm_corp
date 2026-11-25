@@ -7,6 +7,36 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Roles que pueden gestionar el equipo por su propio rol.
 const TEAM_ADMIN_ROLES = ['SUPER ADMINISTRADOR', 'ADMINISTRADOR'];
 
+// Nombres de rol que confieren poder administrativo: solo un SUPER ADMINISTRADOR
+// puede asignarlos. Incluye los alias heredados en minúscula (owner/admin) que
+// moduleGuard trata como alto nivel.
+const PRIVILEGED_ROLE_NAMES = ['SUPER ADMINISTRADOR', 'ADMINISTRADOR', 'owner', 'admin'];
+
+/**
+ * ¿El usuario objetivo está "protegido"? (admin de plataforma o rol administrativo
+ * en este tenant). Un gestor que no sea SUPER ADMINISTRADOR no puede resetearle la
+ * clave ni editarlo. (Auditoría 2026-11-24.)
+ */
+async function isProtectedTarget(
+    admin: SupabaseClient,
+    targetUserId: string,
+    tenantId: string
+): Promise<boolean> {
+    // Admin de plataforma.
+    const { data: prof } = await admin
+        .from('profiles').select('is_platform_admin').eq('id', targetUserId).maybeSingle();
+    if ((prof as { is_platform_admin?: boolean } | null)?.is_platform_admin) return true;
+    // Rol administrativo en CUALQUIER tenant (cubre owner/admin y multi-tenant).
+    const { data: uts } = await admin
+        .from('user_tenants').select('role').eq('user_id', targetUserId);
+    if ((uts ?? []).some((r) => PRIVILEGED_ROLE_NAMES.includes((r as { role: string }).role))) return true;
+    // Excepción por persona (gestiona el equipo) en este tenant.
+    const { data: ta } = await admin
+        .from('team_admins').select('user_id').eq('user_id', targetUserId).eq('tenant_id', tenantId).maybeSingle();
+    if (ta) return true;
+    return false;
+}
+
 /**
  * Verifica si el usuario autenticado puede gestionar miembros del equipo.
  * Retorna el tenant_id si tiene permiso, o null si no.
@@ -107,7 +137,7 @@ export async function POST(request: NextRequest) {
         // ANTI-ESCALADA: solo un SUPER ADMINISTRADOR puede crear/asignar cuentas con
         // rol administrativo. Sin esto, quien gestiona el equipo podría fabricarse
         // (o darle a un tercero) una cuenta con poder total sobre la empresa.
-        if (TEAM_ADMIN_ROLES.includes(role) && !managing.isSuperAdmin) {
+        if (PRIVILEGED_ROLE_NAMES.includes(role) && !managing.isSuperAdmin) {
             console.warn(`[API /team/members] escalada bloqueada: user ${user.id} intentó asignar rol "${role}"`);
             return NextResponse.json(
                 { error: `Solo un SUPER ADMINISTRADOR puede asignar el rol "${role}".` },
@@ -140,6 +170,12 @@ export async function POST(request: NextRequest) {
             .select('id')
             .eq('name', role)
             .maybeSingle();
+
+        // El rol debe existir en app_roles. Esto bloquea valores arbitrarios como
+        // 'owner'/'admin' (alias de alto nivel) que no están en el catálogo.
+        if (!appRole) {
+            return NextResponse.json({ error: `El rol "${role}" no es válido.` }, { status: 400 });
+        }
 
         // debug: [API /team/members] role lookup:', role, '→ appRole:', appRole?.id || 'NOT FOUND');
 
@@ -209,9 +245,34 @@ export async function POST(request: NextRequest) {
             targetUserId = existingUser.id;
             // debug: [API /team/members] Found existing user:', targetUserId);
 
-            // Update password if provided
-            if (password) {
-                await adminClient.auth.admin.updateUserById(targetUserId, { password });
+            // SEGURIDAD (auditoría 2026-11-24): NO secuestrar cuentas existentes.
+            // Antes, si el email existía, esta rama le CAMBIABA la contraseña y la
+            // reasignaba al tenant del gestor — tomando la cuenta de cualquier usuario
+            // (incluido el admin de plataforma u otra empresa). Ahora:
+            //  (a) no se toca la contraseña de un usuario existente por esta vía;
+            //  (b) no se vincula si es admin de plataforma o pertenece a otra empresa.
+            const { data: exProf } = await adminClient
+                .from('profiles').select('is_platform_admin').eq('id', targetUserId).maybeSingle();
+            if ((exProf as { is_platform_admin?: boolean } | null)?.is_platform_admin) {
+                return NextResponse.json({ error: 'Esa cuenta no se puede vincular al equipo.' }, { status: 403 });
+            }
+            const { data: exMemberships } = await adminClient
+                .from('user_tenants').select('tenant_id').eq('user_id', targetUserId);
+            if ((exMemberships ?? []).some((m: { tenant_id: string }) => m.tenant_id !== tenantId)) {
+                return NextResponse.json(
+                    { error: 'Ese correo ya pertenece a otra empresa y no puede vincularse aquí.' },
+                    { status: 409 }
+                );
+            }
+            // (c) un gestor que no sea SUPER ADMINISTRADOR NO puede re-vincular ni
+            // cambiar el rol de un administrador existente del mismo tenant (lo
+            // degradaría / le reescribiría el perfil). Antes esta rama se saltaba el
+            // candado que SÍ tienen PATCH/PUT.
+            if (!managing.isSuperAdmin && await isProtectedTarget(adminClient, targetUserId, tenantId)) {
+                return NextResponse.json(
+                    { error: 'Solo un SUPER ADMINISTRADOR puede modificar a un administrador existente.' },
+                    { status: 403 }
+                );
             }
 
             // Ensure profile exists (preserva username existente si no se envía nuevo)
@@ -349,6 +410,15 @@ export async function PUT(request: NextRequest) {
 
         const adminClient = createAdminClient();
 
+        // Un gestor que no sea SUPER ADMINISTRADOR no puede editar a un administrador
+        // ni a una cuenta de plataforma.
+        if (!managingPut.isSuperAdmin && await isProtectedTarget(adminClient, userId, managingPut.tenantId)) {
+            return NextResponse.json(
+                { error: 'Solo un SUPER ADMINISTRADOR puede editar a un administrador.' },
+                { status: 403 }
+            );
+        }
+
         // Leer estado actual para decidir si hay que regenerar email sintético
         const { data: currentAuth } = await adminClient.auth.admin.getUserById(userId);
         const currentEmail = currentAuth?.user?.email ?? '';
@@ -469,6 +539,16 @@ export async function PATCH(request: NextRequest) {
         // Fuerza cambio obligatorio en el siguiente login (si un admin resetea
         // la clave, el usuario debe personalizarla de inmediato).
         const adminClient = createAdminClient();
+
+        // Un gestor que no sea SUPER ADMINISTRADOR no puede resetear la clave de un
+        // administrador ni de una cuenta de plataforma (escalada / toma de cuenta).
+        if (!managingPatch.isSuperAdmin && await isProtectedTarget(adminClient, userId, managingPatch.tenantId)) {
+            return NextResponse.json(
+                { error: 'Solo un SUPER ADMINISTRADOR puede resetear la clave de un administrador.' },
+                { status: 403 }
+            );
+        }
+
         const { data: targetAuthUser } = await adminClient.auth.admin.getUserById(userId);
         const existingMeta = (targetAuthUser?.user?.user_metadata ?? {}) as Record<string, unknown>;
 

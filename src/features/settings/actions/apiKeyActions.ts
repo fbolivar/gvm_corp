@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { canAdminModule } from "@/shared/lib/moduleGuard"
 import { revalidatePath } from "next/cache"
 import crypto from "crypto"
 
@@ -10,6 +11,11 @@ export async function createApiKeyAction(data: { name: string }) {
         data: { user },
     } = await supabase.auth.getUser()
     if (!user) return { error: "No autenticado" }
+    // Una API key lee datos del tenant por OData: solo un administrador la crea.
+    if (!(await canAdminModule('settings'))) return { error: "Sin permiso para crear API keys" }
+
+    const name = typeof data?.name === 'string' ? data.name.trim() : ''
+    if (name.length < 1 || name.length > 80) return { error: "Nombre inválido (1-80 caracteres)" }
 
     try {
         const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
@@ -23,7 +29,7 @@ export async function createApiKeyAction(data: { name: string }) {
             .from('api_keys')
             .insert({
                 tenant_id: tenantId,
-                name: data.name,
+                name,
                 // La columna es `key_prefix`: con `prefix` el INSERT fallaba siempre.
                 key_prefix: prefix,
                 key_hash: keyHash,
@@ -47,6 +53,7 @@ export async function deleteApiKeyAction(id: string) {
         data: { user },
     } = await supabase.auth.getUser()
     if (!user) return { error: "No autenticado" }
+    if (!(await canAdminModule('settings'))) return { error: "Sin permiso para eliminar API keys" }
 
     try {
         const { error } = await supabase

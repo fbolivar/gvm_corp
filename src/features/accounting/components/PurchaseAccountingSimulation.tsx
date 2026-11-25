@@ -57,7 +57,7 @@ export function PurchaseAccountingSimulation({ defaultFrom, defaultTo }: { defau
 
             {result && (
                 <>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                         {[
                             ['Analizados', result.totals.analizados, 'text-slate-900'],
                             ['Contabilizables', result.totals.contabilizables, 'text-emerald-600'],

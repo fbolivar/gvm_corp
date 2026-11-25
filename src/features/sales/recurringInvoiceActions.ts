@@ -1,11 +1,13 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { recurringInvoiceService } from './services/recurringInvoiceService';
 import { revalidatePath } from 'next/cache';
 
 export async function generateRecurringInvoiceAction(id: string): Promise<{ docId?: string; error?: string }> {
     try {
+        if (!(await canViewModule('sales'))) return { error: 'Sin permiso para ventas' };
         const supabase = await createClient();
         const result = await recurringInvoiceService.generateInvoice(supabase, id);
         revalidatePath('/sales/recurring');
@@ -21,6 +23,7 @@ export async function updateRecurringStatusAction(
     status: 'ACTIVE' | 'PAUSED' | 'CANCELLED'
 ): Promise<{ error?: string }> {
     try {
+        if (!(await canViewModule('sales'))) return { error: 'Sin permiso para ventas' };
         const supabase = await createClient();
         await recurringInvoiceService.updateStatus(supabase, id, status);
         revalidatePath('/sales/recurring');
@@ -34,6 +37,7 @@ export async function createRecurringInvoiceAction(
     payload: Parameters<typeof recurringInvoiceService.create>[1]
 ): Promise<{ id?: string; error?: string }> {
     try {
+        if (!(await canViewModule('sales'))) return { error: 'Sin permiso para ventas' };
         const supabase = await createClient();
         const result = await recurringInvoiceService.create(supabase, payload);
         revalidatePath('/sales/recurring');

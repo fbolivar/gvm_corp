@@ -61,7 +61,7 @@ export function ARAgingWidget({ aging }: Props) {
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         {segments.map((s, idx) => (
                             <div
                                 key={idx}

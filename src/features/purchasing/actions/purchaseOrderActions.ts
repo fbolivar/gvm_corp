@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { purchaseOrderService } from '../services/purchaseOrderService';
 import { purchaseOrderSchema } from '../types';
 import { revalidatePath } from 'next/cache';
 
 export async function getNextPONumberAction(): Promise<{ poNumber?: string; error?: string }> {
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' };
     const supabase = await createClient();
     try {
         const poNumber = await purchaseOrderService.getNextPONumber(supabase);
@@ -16,6 +18,7 @@ export async function getNextPONumberAction(): Promise<{ poNumber?: string; erro
 }
 
 export async function createPurchaseOrderAction(formData: unknown) {
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' };
     const supabase = await createClient();
     const parsed = purchaseOrderSchema.safeParse(formData);
     if (!parsed.success) return { error: 'Datos inválidos: ' + JSON.stringify(parsed.error.format()) };
@@ -30,6 +33,7 @@ export async function createPurchaseOrderAction(formData: unknown) {
 }
 
 export async function updatePurchaseOrderAction(orderId: string, formData: unknown) {
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' };
     const supabase = await createClient();
     const parsed = purchaseOrderSchema.safeParse(formData);
     if (!parsed.success) return { error: 'Datos inválidos: ' + JSON.stringify(parsed.error.format()) };
@@ -45,6 +49,7 @@ export async function updatePurchaseOrderAction(orderId: string, formData: unkno
 }
 
 export async function submitForApprovalAction(orderId: string) {
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' };
     const supabase = await createClient();
     try {
         await purchaseOrderService.submitForApproval(supabase, orderId);
@@ -56,6 +61,7 @@ export async function submitForApprovalAction(orderId: string) {
 }
 
 export async function approveOrderAction(orderId: string) {
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' };
     const supabase = await createClient();
     try {
         await purchaseOrderService.approveOrder(supabase, orderId);
@@ -67,6 +73,7 @@ export async function approveOrderAction(orderId: string) {
 }
 
 export async function rejectOrderAction(orderId: string) {
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' };
     const supabase = await createClient();
     try {
         await purchaseOrderService.rejectOrder(supabase, orderId);
@@ -78,6 +85,7 @@ export async function rejectOrderAction(orderId: string) {
 }
 
 export async function cancelOrderAction(orderId: string) {
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' };
     const supabase = await createClient();
     try {
         await purchaseOrderService.cancelOrder(supabase, orderId);

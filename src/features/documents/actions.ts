@@ -1,13 +1,25 @@
 'use server'
 
 import { createClient } from "@/lib/supabase/server";
+import { canViewModule } from "@/shared/lib/moduleGuard";
 import { documentService } from "./services/documentService";
 import { Document, documentSchema, missingCatalogProductLines } from "./types";
 import { checkMarginViolations } from "./marginGuard";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+/**
+ * Guard para acciones destructivas/contables sobre documentos. Un documento puede
+ * ser de ventas o de compras, así que basta con tener acceso a cualquiera de esos
+ * módulos (o a "documents"). Bloquea a roles totalmente ajenos (p. ej. nómina/kiosco)
+ * sin estorbar a quien opera documentos. (Auditoría 2026-11-24.)
+ */
+async function canUseDocuments(): Promise<boolean> {
+    return (await canViewModule('sales')) || (await canViewModule('documents')) || (await canViewModule('purchasing'));
+}
+
 export async function createDocumentAction(data: Document) {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
 
     // Validate
@@ -52,6 +64,7 @@ export async function createDocumentAction(data: Document) {
  *  - Electronic documents (DIAN) — no borra si ya hay firma
  */
 export async function deleteDocumentAction(id: string): Promise<{ error?: string }> {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
 
     try {
@@ -129,6 +142,7 @@ export async function deleteDocumentAction(id: string): Promise<{ error?: string
  * Una vez confirmado aparece en la cola de logística como pendiente de despacho.
  */
 export async function confirmSalesOrderAction(id: string): Promise<{ error?: string }> {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
 
     try {
@@ -168,6 +182,7 @@ export async function markSalesOrderInvoicedAction(
     invoiced: boolean,
     invoiceNumbers?: string[]
 ): Promise<{ error?: string; warning?: string }> {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
     let warning: string | undefined;
 
@@ -246,6 +261,7 @@ export async function updateInvoiceNumbersAction(
     id: string,
     invoiceNumbers: string[]
 ): Promise<{ error?: string; warning?: string }> {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
 
     try {
@@ -282,6 +298,7 @@ export async function updateInvoiceNumbersAction(
  * Enviar texto vacío borra la observación.
  */
 export async function saveFinalNotesAction(id: string, notes: string): Promise<{ error?: string }> {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
 
     const clean = (notes ?? '').trim();
@@ -331,6 +348,7 @@ export async function saveFinalNotesAction(id: string, notes: string): Promise<{
  * está facturado (ACCEPTED), firmado en DIAN, o tiene documentos vinculados.
  */
 export async function voidSalesOrderAction(id: string): Promise<{ error?: string }> {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
 
     try {
@@ -383,6 +401,7 @@ export async function voidSalesOrderAction(id: string): Promise<{ error?: string
  * Mantiene los demás pre-checks (status DRAFT, firma DIAN).
  */
 export async function forceDeleteDocumentAction(id: string): Promise<{ error?: string; unlinked?: number }> {
+    if (!(await canUseDocuments())) return { error: 'Sin permiso' };
     const supabase = await createClient();
 
     try {

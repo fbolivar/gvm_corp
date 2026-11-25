@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { revalidateProductsCache } from '@/shared/lib/cachedLookups'
@@ -43,6 +44,7 @@ export async function importPriceListAction(priceListId: string, rows: PriceRow[
     if (!user) redirect('/login')
 
     const empty: PriceImportResult = { listName: '', isDefault: false, updated: 0, inserted: 0, selling_updated: 0, not_found: [], skipped: 0, errors: [] }
+    if (!(await canViewModule('inventory'))) return { ...empty, errors: ['Sin permiso para esta operación.'] }
 
     const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
     if (!tenantId) return { ...empty, errors: ['No se pudo determinar la empresa.'] }

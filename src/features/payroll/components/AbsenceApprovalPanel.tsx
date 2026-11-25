@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { reviewAbsenceRequest } from '../actions';
 import type { AbsenceRequest } from '../types';
-import { CheckCircle2, XCircle, CalendarDays, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, CalendarDays, Clock, Paperclip } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { format } from 'date-fns';
@@ -30,6 +30,31 @@ const STATUS_LABEL: Record<string, string> = {
 function formatDate(d: string | null | undefined) {
     if (!d) return '—';
     try { return format(new Date(d), 'dd MMM yyyy', { locale: es }); } catch { return d; }
+}
+
+/** Chips de adjuntos (soporte de incapacidad, etc.) con URL firmada. */
+function Attachments({ items }: { items: AbsenceRequest['attachments'] }) {
+    if (!items || items.length === 0) return null;
+    return (
+        <div className="flex flex-wrap gap-2">
+            {items.map((a, i) => (
+                <a
+                    key={i}
+                    href={a.url ?? '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                        'inline-flex items-center gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 hover:bg-amber-100 transition-colors max-w-[200px]',
+                        !a.url && 'opacity-50 pointer-events-none',
+                    )}
+                    title={a.name}
+                >
+                    <Paperclip className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{a.name}</span>
+                </a>
+            ))}
+        </div>
+    );
 }
 
 interface Props {
@@ -73,6 +98,8 @@ function ReviewCard({ req, onDone }: { req: AbsenceRequest; onDone: () => void }
             {req.reason && (
                 <p className="text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">{req.reason}</p>
             )}
+
+            <Attachments items={req.attachments} />
 
             <textarea
                 value={notes}
@@ -149,7 +176,7 @@ export function AbsenceApprovalPanel({ pendingRequests, allRequests }: Props) {
                             <table className="w-full text-xs">
                                 <thead>
                                     <tr className="border-b border-slate-100">
-                                        {['Empleado', 'Tipo', 'Periodo', 'Dias', 'Estado'].map(h => (
+                                        {['Empleado', 'Tipo', 'Periodo', 'Dias', 'Soporte', 'Estado'].map(h => (
                                             <th key={h} scope="col"
                                                 className="px-5 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                                                 {h}
@@ -170,6 +197,25 @@ export function AbsenceApprovalPanel({ pendingRequests, allRequests }: Props) {
                                                     {formatDate(req.start_date)} → {formatDate(req.end_date)}
                                                 </td>
                                                 <td className="px-5 py-3 font-bold text-slate-700 font-mono tabular-nums">{req.days}d</td>
+                                                <td className="px-5 py-3">
+                                                    {req.attachments && req.attachments.length > 0 ? (
+                                                        <a
+                                                            href={req.attachments[0].url ?? '#'}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className={cn(
+                                                                'inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 hover:underline',
+                                                                !req.attachments[0].url && 'opacity-50 pointer-events-none',
+                                                            )}
+                                                            title={req.attachments.map(a => a.name).join(', ')}
+                                                        >
+                                                            <Paperclip className="h-3 w-3" />
+                                                            {req.attachments.length}
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-slate-300">—</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-5 py-3">
                                                     <span className={cn("text-[10px] font-semibold px-2.5 py-1 rounded-lg", STATUS_STYLE[req.status] ?? '')}>
                                                         {STATUS_LABEL[req.status] ?? req.status}

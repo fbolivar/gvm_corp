@@ -18,6 +18,10 @@ export default async function UserActivityPage({
     } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
+    // Mismo candado que el registro de auditoría: solo quien puede ver nómina.
+    const { data: canViewPayroll } = await supabase.rpc('can_view_payroll');
+    if (!canViewPayroll) redirect('/dashboard');
+
     const sp = await searchParams;
     const from = sp.from || undefined;
     const to = sp.to || undefined;

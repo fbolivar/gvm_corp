@@ -123,7 +123,7 @@ export function AssetDetailClient({ asset, assignments, maintenanceSchedules, em
                     </div>
                 </CardHeader>
                 <CardContent className="p-5">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-1">
                             <div className="flex items-center gap-1.5 text-slate-400">
                                 <Tag className="h-3 w-3" />

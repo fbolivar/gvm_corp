@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { contractService, ContractStatus, ContractType } from './services/contractService';
 
 interface CreateContractPayload {
@@ -24,6 +25,7 @@ export async function createContractAction(
     payload: CreateContractPayload
 ): Promise<{ id?: string; error?: string }> {
     try {
+        if (!(await canViewModule('contracts'))) return { error: 'Sin permiso para contratos' };
         const supabase = await createClient();
         const contract = await contractService.create(supabase, {
             ...payload,
@@ -41,6 +43,7 @@ export async function updateContractStatusAction(
     status: ContractStatus
 ): Promise<{ error?: string }> {
     try {
+        if (!(await canViewModule('contracts'))) return { error: 'Sin permiso para contratos' };
         const supabase = await createClient();
         await contractService.updateStatus(supabase, id, status);
         revalidatePath('/contracts');
@@ -56,6 +59,7 @@ export async function addContractAmendmentAction(
     amendment: { description: string; effective_date: string; value_change?: number }
 ): Promise<{ error?: string }> {
     try {
+        if (!(await canViewModule('contracts'))) return { error: 'Sin permiso para contratos' };
         const supabase = await createClient();
         await contractService.addAmendment(supabase, contractId, amendment);
         revalidatePath(`/contracts/${contractId}`);

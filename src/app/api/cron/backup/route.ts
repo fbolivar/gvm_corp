@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { collectTenantBackup } from '@/features/settings/services/backupService';
 import { encryptGvm } from '@/lib/backup/gvmCrypto';
+import { isCronAuthorized } from '@/shared/lib/cronAuth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 min max for backup cron
 
 /** GET /api/cron/backup — Vercel Cron (domingos 3am UTC) */
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!isCronAuthorized(request.headers.get('authorization'))) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

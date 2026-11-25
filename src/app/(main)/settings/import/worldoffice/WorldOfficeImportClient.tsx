@@ -29,6 +29,7 @@ import {
   importWorldOfficePartiesAction,
   previewWorldOfficeBalanceAction,
   importBalanceChunkAction,
+  clearOpeningBalancesForCutoffAction,
   previewWorldOfficeReceivablesAction,
   importReceivablesChunkAction,
   previewWorldOfficeInventoryAction,
@@ -723,6 +724,7 @@ function BalanceImporter() {
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
   const [cutoffOverride, setCutoffOverride] = useState<string>('')
+  const [replaceMode, setReplaceMode] = useState(true)
   const [importResult, setImportResult] = useState<{ processed: number; difference: number } | null>(null)
 
   const handleFile = async (file: File) => {
@@ -755,7 +757,10 @@ function BalanceImporter() {
     const diffMsg = Math.abs(diff) > 1
       ? `\n\n⚠️ Advertencia: débitos - créditos = ${fmtMoney(diff)} (debería ser cercano a 0).`
       : ''
-    if (!confirm(`¿Importar saldos iniciales al corte ${cutoffOverride}?\n\n· ${preview.total} movimientos\n· ${preview.accounts_count} cuentas\n· ${preview.parties_count} terceros${diffMsg}`)) return
+    const replaceMsg = replaceMode
+      ? `\n\nSe REEMPLAZARÁ cualquier carga anterior de este corte (${cutoffOverride}).`
+      : '\n\nSe ACTUALIZARÁN las filas coincidentes; las cargas anteriores que no estén en este archivo se conservan.'
+    if (!confirm(`¿Importar saldos iniciales al corte ${cutoffOverride}?\n\n· ${preview.total} movimientos\n· ${preview.accounts_count} cuentas\n· ${preview.parties_count} terceros${diffMsg}${replaceMsg}`)) return
 
     setImporting(true)
     setImportProgress({ done: 0, total: preview.rows.length })
@@ -767,6 +772,18 @@ function BalanceImporter() {
     let totalCredits = 0
 
     try {
+      // Modo recargable "reemplazar": limpia el corte antes de volver a cargarlo,
+      // para que el resultado refleje EXACTAMENTE el archivo nuevo.
+      if (replaceMode) {
+        const cleared = await clearOpeningBalancesForCutoffAction(cutoffOverride)
+        if (!cleared.success) {
+          toast.error(`No se pudo limpiar la carga anterior: ${cleared.error}`)
+          setImporting(false)
+          setImportProgress(null)
+          return
+        }
+        if (cleared.deleted > 0) toast.info(`Carga anterior del corte eliminada (${cleared.deleted} filas).`)
+      }
       for (let i = 0; i < preview.rows.length; i += CHUNK) {
         const chunk = preview.rows.slice(i, i + CHUNK)
         const res = await importBalanceChunkAction(chunk, cutoffOverride, periodStart, periodEnd)
@@ -1009,10 +1026,23 @@ function BalanceImporter() {
                 <p className="font-semibold mb-1">Listo para importar</p>
                 <p className="text-xs">
                   Se registrarán {preview.total} movimientos al corte{' '}
-                  <strong>{cutoffOverride || '(define la fecha)'}</strong>. Si ya hay un corte en esa fecha, se actualizará.
+                  <strong>{cutoffOverride || '(define la fecha)'}</strong>.
                 </p>
               </div>
             </div>
+            <label className="flex items-start gap-2 mb-4 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={replaceMode}
+                onChange={(e) => setReplaceMode(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-amber-300"
+              />
+              <span className="text-xs text-amber-900">
+                <strong>Reemplazar la carga anterior de este corte</strong> (recargable). Borra lo que haya en{' '}
+                <strong>{cutoffOverride || 'el corte'}</strong> y deja exactamente este archivo. Desactívalo solo si quieres
+                mezclar/actualizar sobre una carga previa.
+              </span>
+            </label>
             <div className="flex items-center justify-end gap-2">
               <Button variant="outline" onClick={reset} disabled={importing}>Cancelar</Button>
               <Button onClick={handleImport} disabled={importing || !cutoffOverride}>

@@ -17,7 +17,7 @@ export interface SalesEntryDraft {
     document_id: string;
     taxpayer_code: string;
     payment_form: string;
-    totals: { base: number; iva: number; retefuente: number; reteica: number; reteiva: number; autorrenta: number; cartera: number; debit: number; credit: number };
+    totals: { base: number; freight: number; iva: number; retefuente: number; reteica: number; reteiva: number; autorrenta: number; cartera: number; debit: number; credit: number };
     lines: Array<{
         account_id: string;
         account_code: string;
@@ -194,7 +194,8 @@ export const accountingService = {
                 entry_date: entry.entry_date,
                 description: entry.description,
                 period: entry.entry_date.substring(0, 7), // YYYY-MM
-                document_id: entry.document_id
+                document_id: entry.document_id,
+                source_key: entry.source_key ?? null,
             })
             .select()
             .single();

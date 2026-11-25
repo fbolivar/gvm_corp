@@ -44,7 +44,7 @@ export function TeamPerformanceBoard({ team, period, isManager }: { team: TeamMe
                 )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <Kpi label="Meta del mes" value={cop.format(totalTarget)} />
                 <Kpi label="Venta del mes" value={cop.format(totalAchieved)} tone="indigo" />
                 <Kpi label="Cumplimiento" value={totalPct === null ? '—' : `${totalPct} %`} tone={totalPct === null ? 'slate' : totalPct >= expected ? 'emerald' : 'rose'} sub={totalPct === null ? 'define metas para medirlo' : `esperado ${expected} % · ${withTarget.length} con meta`} />

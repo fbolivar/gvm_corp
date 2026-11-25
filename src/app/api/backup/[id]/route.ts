@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { canAdminModule } from '@/shared/lib/moduleGuard';
 
 export const runtime = 'nodejs';
 
@@ -16,8 +17,13 @@ export async function GET(
         if (authError || !user) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
+        // Descargar un respaldo es una operación de administrador (contiene todo el
+        // negocio). Antes bastaba con tener sesión (cualquier empleado podía bajarlo).
+        if (!(await canAdminModule('settings'))) {
+            return NextResponse.json({ error: 'Sin permiso' }, { status: 403 });
+        }
 
-        // Verify backup belongs to user's tenant
+        // Verify backup belongs to user's tenant (RLS lo limita al tenant propio)
         const { data: backup } = await supabase
             .from('tenant_backups')
             .select('*')
@@ -30,6 +36,11 @@ export async function GET(
 
         if (!backup.file_path) {
             return NextResponse.json({ error: 'Archivo de backup no disponible' }, { status: 404 });
+        }
+
+        // Defensa en profundidad: el archivo DEBE estar bajo la carpeta del tenant.
+        if (!(backup.file_path as string).startsWith(`${backup.tenant_id}/`)) {
+            return NextResponse.json({ error: 'Ruta de archivo inválida' }, { status: 400 });
         }
 
         // Download from storage via admin client
@@ -74,6 +85,10 @@ export async function DELETE(
         if (authError || !user) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
+        // Borrar un respaldo es operación de administrador (disponibilidad/ransomware).
+        if (!(await canAdminModule('settings'))) {
+            return NextResponse.json({ error: 'Sin permiso' }, { status: 403 });
+        }
 
         const { data: backup } = await supabase
             .from('tenant_backups')
@@ -87,8 +102,8 @@ export async function DELETE(
 
         const admin = createAdminClient();
 
-        // Delete from storage
-        if (backup.file_path) {
+        // Delete from storage — solo si el archivo está bajo la carpeta del tenant.
+        if (backup.file_path && (backup.file_path as string).startsWith(`${backup.tenant_id}/`)) {
             await admin.storage.from('backups').remove([backup.file_path]);
         }
 

@@ -68,7 +68,7 @@ export default async function CRMHome({ searchParams }: PageProps) {
             {isManager ? (
                 <TeamPerformanceBoard team={team} period={period} isManager />
             ) : mine && (
-                <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     <Kpi label="Mi meta del mes" value={mine.target > 0 ? cop.format(mine.target) : 'Sin meta'} />
                     <Kpi label="Mi venta del mes" value={cop.format(mine.achieved)} tone="indigo" />
                     <Kpi label="Cumplimiento" value={mine.attainment_pct === null ? '—' : `${Math.round(mine.attainment_pct)} %`} sub={`esperado a hoy ${mine.expected_pct} %`}

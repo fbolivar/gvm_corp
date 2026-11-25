@@ -32,6 +32,12 @@ export default async function AuditLogPage({
     } = await supabase.auth.getUser();
     if (!user) redirect('/login');
 
+    // El registro de auditoría puede contener cambios de datos protegidos (nómina).
+    // Se restringe a quien puede ver nómina (admins y roles con permiso de payroll),
+    // usando la MISMA regla que la RLS real de salarios (can_view_payroll).
+    const { data: canViewPayroll } = await supabase.rpc('can_view_payroll');
+    if (!canViewPayroll) redirect('/dashboard');
+
     const sp = await searchParams;
     const filters: AuditFilters = {
         q: sp.q || undefined,

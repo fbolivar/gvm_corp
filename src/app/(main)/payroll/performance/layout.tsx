@@ -1,9 +1,11 @@
-import { ModuleGate } from '@/shared/components/ModuleGate'
-
 /**
- * Evaluación de desempeño (PRP-007). Sub-función de Nómina: hereda el permiso
- * de `payroll` salvo restricción explícita en la matriz de Permisos finos.
+ * Evaluación de desempeño (PRP-007).
+ *
+ * El gate del módulo NO va aquí: la LISTA (`page.tsx`) se protege server-side con
+ * `canViewModule('payroll:performance')`, pero el DETALLE (`[id]/page.tsx`) debe poder
+ * abrirlo un empleado designado como evaluador 360° aunque no tenga el módulo —ese
+ * detalle aplica su propio control (gerente o evaluador asignado a ESA evaluación).
  */
 export default function performanceLayout({ children }: { children: React.ReactNode }) {
-    return <ModuleGate moduleKey="payroll:performance">{children}</ModuleGate>
+    return <>{children}</>
 }

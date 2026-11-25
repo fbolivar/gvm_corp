@@ -278,7 +278,7 @@ export default async function InvoiceTemplatePage({
                                                 {fmt(Number(line.unit_price))}
                                             </td>
                                             <td className="px-5 py-4 text-xs font-black text-slate-900 text-right tabular-nums">
-                                                {fmt(Number(line.total))}
+                                                {fmt(Number(line.qty) * Number(line.unit_price))}
                                             </td>
                                         </tr>
                                     )) : (

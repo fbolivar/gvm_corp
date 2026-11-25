@@ -1,5 +1,18 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { fetchAllRows } from '@/shared/lib/fetchAllRows';
 import { Product, ProductFilters } from '../types';
+
+/**
+ * ¿Dos SKU son el "mismo código base"? Cubre el caso real que generó duplicados:
+ * alguien tecleó el código + la descripción como SKU (`PREIN-2714-PREINICIADOR...`)
+ * cuando el importador de WO trae el código corto (`PREIN-2714`). Se consideran el
+ * mismo si uno es prefijo del otro seguido de `-` o espacio (o son idénticos).
+ */
+export function isSameBaseCode(a: string, b: string): boolean {
+    a = (a || '').trim(); b = (b || '').trim();
+    if (!a || !b) return false;
+    return a === b || a.startsWith(b + '-') || a.startsWith(b + ' ') || b.startsWith(a + '-') || b.startsWith(a + ' ');
+}
 
 export const productService = {
     // Retorna todos los productos activos paginando internamente en lotes de 1000
@@ -98,6 +111,27 @@ export const productService = {
 
         if (error) throw error;
         return data as Product;
+    },
+
+    /**
+     * Busca un producto existente con el MISMO código base que `sku` (ver
+     * `isSameBaseCode`). Sirve para avisar antes de crear un duplicado. Usa el
+     * cliente de sesión (RLS por tenant); pagina para no toparse con el tope de
+     * 1.000 filas de PostgREST.
+     */
+    async findBaseCodeDuplicate(
+        client: SupabaseClient,
+        sku: string,
+        excludeId?: string,
+    ): Promise<{ id: string; sku: string; name: string } | null> {
+        const target = (sku || '').trim();
+        if (!target) return null;
+        const rows = await fetchAllRows<{ id: string; sku: string | null; name: string | null }>(
+            ({ from, to }) => client.from('products').select('id, sku, name').order('id').range(from, to),
+            { label: 'products.dupCheck' },
+        );
+        const hit = rows.find(p => p.id !== excludeId && p.sku && isSameBaseCode(target, p.sku));
+        return hit ? { id: hit.id, sku: String(hit.sku), name: hit.name ?? '' } : null;
     },
 
     async createProduct(client: SupabaseClient, product: Product) {

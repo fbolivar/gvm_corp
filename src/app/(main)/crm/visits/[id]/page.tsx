@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CalendarCheck, Building2, Briefcase, History } from 'lucide-react';
 import { PageHeader } from '@/shared/components/ui/page-header';
+import { cn } from '@/shared/lib/utils';
 import { formatLocalDate } from '@/shared/lib/dateFmt';
 import { loadVisitPageContext } from '@/features/crm/services/visitPageContext';
 import { visitService } from '@/features/crm/services/visitService';
@@ -12,7 +13,7 @@ import { StatusBadge } from '@/features/crm/components/VisitList';
 import { ContactActions } from '@/features/crm/components/ContactActions';
 import { InteractionList } from '@/features/crm/components/InteractionList';
 import { getPartyInteractionsAction } from '@/features/crm/actions/interactionActions';
-import { MANAGEMENT_TYPES, MEETING_TYPES, PRIORITY_LABELS, VISIT_RESULTS } from '@/features/crm/types/visits';
+import { MANAGEMENT_TYPES, MEETING_TYPES, PRIORITY_DOT, PRIORITY_LABELS, VISIT_RESULTS } from '@/features/crm/types/visits';
 
 export const metadata = { title: 'Visita — GVM Corp' };
 
@@ -62,10 +63,15 @@ export default async function VisitDetailPage({ params }: PageProps) {
                             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Planeación</h3>
                             <StatusBadge status={visit.status} />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             <Field label="Comercial" value={visit.salesperson_name} />
                             <Field label="Fecha planeada" value={formatLocalDate(visit.planned_date)} />
-                            <Field label="Prioridad" value={PRIORITY_LABELS[visit.priority]} />
+                            <Field label="Prioridad" value={
+                                <span className="inline-flex items-center gap-1.5">
+                                    <span className={cn('h-2.5 w-2.5 rounded-full ring-1 ring-white', PRIORITY_DOT[visit.priority])} />
+                                    {PRIORITY_LABELS[visit.priority]}
+                                </span>
+                            } />
                             <Field label="Tipo de gestión" value={MANAGEMENT_TYPES[visit.management_type]} />
                             <Field label="Tipo de reunión" value={MEETING_TYPES[visit.meeting_type]} />
                             {visit.party_city && <Field label="Ciudad" value={visit.party_city} />}
@@ -90,7 +96,7 @@ export default async function VisitDetailPage({ params }: PageProps) {
                     {visit.status === 'REALIZADA' && (
                         <section className="bg-emerald-50/50 rounded-3xl border border-emerald-100 p-5 md:p-6 space-y-4">
                             <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Resultado registrado</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                                 <Field label="Fecha realizada" value={formatLocalDate(visit.done_date)} />
                                 <Field label="Resultado" value={visit.result ? VISIT_RESULTS[visit.result] : '—'} />
                                 <Field label="Próximo seguimiento" value={formatLocalDate(visit.next_followup_date)} />

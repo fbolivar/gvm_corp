@@ -7,20 +7,22 @@ export type TransferStatus = typeof TRANSFER_STATUSES[number];
 
 // ─── Schemas ───────────────────────────────────────────────────────────────────
 
+/** SKU del producto canónico "PRODUCTO NUEVO": placeholder para mercancía en
+ *  compra cuya factura aún no llega. Al usarlo, el detalle (`description`) debe
+ *  decir qué producto es — así NO se crean productos sueltos y duplicados. */
+export const NEW_PRODUCT_SKU = 'PRODUCTO-NUEVO';
+
 export const transferLineSchema = z.object({
     id: z.string().optional(),
     transfer_id: z.string().optional(),
-    // product_id es opcional: se permite un ítem de texto libre (producto aún no
-    // creado en el sistema) usando `description`. Debe haber al menos uno de los dos.
-    product_id: z.string().optional().nullable(),
+    // product_id es OBLIGATORIO: ya no se permite texto libre (generaba duplicidad).
+    // Para mercancía aún sin crear se usa el ítem "PRODUCTO NUEVO" + el detalle.
+    product_id: z.string().min(1, 'Selecciona el producto del catálogo'),
     description: z.string().optional().default(''),
     qty: z.coerce.number().positive('Cantidad debe ser mayor a 0'),
     qty_received: z.coerce.number().min(0).default(0),
     notes: z.string().optional().default(''),
-}).refine(
-    (l) => (!!l.product_id && l.product_id.length > 0) || (!!l.description && l.description.trim().length > 0),
-    { message: 'Selecciona un producto o escribe una descripción', path: ['description'] }
-);
+});
 
 export type TransferLine = z.infer<typeof transferLineSchema>;
 

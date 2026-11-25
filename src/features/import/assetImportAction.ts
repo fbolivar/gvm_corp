@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -42,6 +43,7 @@ export async function importFixedAssetsAction(rows: AssetImportRow[]): Promise<A
     if (!user) redirect('/login')
 
     const empty: AssetImportResult = { inserted: 0, skipped_existing: [], skipped: 0, errors: [] }
+    if (!(await canViewModule('accounting'))) return { ...empty, errors: ['Sin permiso para esta operación.'] }
     const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
     if (!tenantId) return { ...empty, errors: ['No se pudo determinar la empresa.'] }
 

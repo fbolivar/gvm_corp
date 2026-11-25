@@ -3,8 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { canEvaluate } from './services/performanceService';
-import { requireEvaluatorContext } from './services/evaluatorContext';
+import { requireEvaluatorContext, requireTenantContext } from './services/evaluatorContext';
 import {
     annualCampaignSchema,
     addEvaluatorSchema,
@@ -59,7 +58,7 @@ export async function addAnnualEvaluatorAction(input: unknown): Promise<ActionRe
     if ('error' in ctx) return { error: ctx.error };
 
     const parsed = addEvaluatorSchema.safeParse(input);
-    if (!parsed.success) return { error: 'Revisa evaluador y peso (mayor que 0, máximo 10)' };
+    if (!parsed.success) return { error: 'Revisa el evaluador y el puntaje de importancia (entero de 1 a 5)' };
     const { evaluationId, evaluatorId, weight } = parsed.data;
 
     const { data: evaluation } = await ctx.supabase
@@ -70,9 +69,18 @@ export async function addAnnualEvaluatorAction(input: unknown): Promise<ActionRe
     if (!evaluation || evaluation.eval_type !== 'ANNUAL') return { error: 'Evaluación anual no encontrada' };
     if (evaluation.status === 'CLOSED') return { error: 'Esta evaluación ya está cerrada' };
 
+    // Evaluación 360°: cualquier miembro ACTIVO del tenant puede ser designado evaluador,
+    // sin importar su rol. El permiso para calificar lo da estar asignado aquí (lo verifica
+    // el RPC submit_annual_evaluation). Solo validamos pertenencia real a la empresa.
     const admin = createAdminClient();
-    if (!(await canEvaluate(admin, ctx.tenantId, evaluatorId))) {
-        return { error: 'La persona seleccionada no está autorizada para evaluar' };
+    const { data: member } = await admin
+        .from('user_tenants')
+        .select('status')
+        .eq('tenant_id', ctx.tenantId)
+        .eq('user_id', evaluatorId)
+        .maybeSingle();
+    if (!member || member.status !== 'active') {
+        return { error: 'La persona seleccionada no pertenece a la empresa o está inactiva' };
     }
 
     const { error } = await ctx.supabase
@@ -89,7 +97,9 @@ export async function addAnnualEvaluatorAction(input: unknown): Promise<ActionRe
 }
 
 export async function submitAnnualEvaluationAction(input: unknown): Promise<ActionResult> {
-    const ctx = await requireEvaluatorContext();
+    // Contexto ligero: no exige permiso del módulo. El RPC valida que quien envía esté
+    // asignado como evaluador PENDING de esta evaluación (360°).
+    const ctx = await requireTenantContext();
     if ('error' in ctx) return { error: ctx.error };
 
     const parsed = annualSubmitSchema.safeParse(input);

@@ -17,7 +17,7 @@ function NotificationsSkeleton() {
                         <div className="h-3 w-32 bg-white/5 rounded-lg" />
                     </div>
                 </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="h-16 bg-white/5 rounded-2xl border border-white/10" />
                     ))}

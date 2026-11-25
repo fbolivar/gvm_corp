@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { absenceService } from '@/features/payroll/services/absenceService';
+import type { AbsenceRequest } from '@/features/payroll/types';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { AbsenceApprovalPanel } from '@/features/payroll/components/AbsenceApprovalPanel';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
@@ -19,9 +21,32 @@ export default async function AbsencesPage() {
     const tenant = await settingsService.getTenantInfo(supabase);
     if (!tenant) redirect('/login');
 
-    const [pendingRequests, allRequests] = await Promise.all([
+    const [pendingRaw, allRaw] = await Promise.all([
         absenceService.getPendingRequests(supabase, tenant.id).catch(() => []),
         absenceService.getAllRequests(supabase, tenant.id).catch(() => []),
+    ]);
+
+    // Firma temporal (1 h) de los adjuntos para que RRHH pueda abrirlos. El bucket
+    // es privado; se firma en el servidor con admin client (nunca se expone el path).
+    const signAttachments = async (requests: AbsenceRequest[]): Promise<AbsenceRequest[]> => {
+        const hasAny = requests.some(r => Array.isArray(r.attachments) && r.attachments.length > 0);
+        if (!hasAny) return requests;
+        const admin = createAdminClient();
+        return Promise.all(requests.map(async r => {
+            const atts = Array.isArray(r.attachments) ? r.attachments : [];
+            if (atts.length === 0) return r;
+            const signed = await Promise.all(atts.map(async a => {
+                if (!a?.path) return a;
+                const { data } = await admin.storage.from('absence-attachments').createSignedUrl(a.path, 60 * 60);
+                return { ...a, url: data?.signedUrl ?? null };
+            }));
+            return { ...r, attachments: signed };
+        }));
+    };
+
+    const [pendingRequests, allRequests] = await Promise.all([
+        signAttachments(pendingRaw),
+        signAttachments(allRaw),
     ]);
 
     const approvedCount = allRequests.filter(r => r.status === 'APPROVED').length;

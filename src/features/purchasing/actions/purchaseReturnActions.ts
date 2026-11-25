@@ -2,6 +2,7 @@
 
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import { canViewModule } from "@/shared/lib/moduleGuard"
 import { revalidatePath } from "next/cache"
 import { inventoryService } from "@/features/inventory/services/inventoryService"
 import { accountingService } from "@/features/accounting/services/accountingService"
@@ -39,6 +40,7 @@ export async function createPurchaseReturnAction(input: CreatePurchaseReturnInpu
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "No autenticado" }
+    if (!(await canViewModule('purchasing'))) return { error: 'Sin permiso para compras' }
 
     const { data: tenantId } = await supabase.rpc("get_my_tenant_id")
     if (!tenantId) return { error: "No se encontró el tenant" }

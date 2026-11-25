@@ -2,12 +2,14 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Mail, Phone, Building2, Printer, FileText, CreditCard, BarChart2 } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Building2, Printer, FileText, CreditCard, BarChart2, Link2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { cn } from '@/shared/lib/utils'
 import type { ClientDetail, ClientDocument, ClientPayment, AgingBucket } from '../types'
+import { generateClientPortalLinkAction } from '../actions/portalLinkActions'
 
 interface ClientDetailViewProps {
   client: ClientDetail
@@ -98,6 +100,25 @@ export function ClientDetailView({ client, invoices, payments }: ClientDetailVie
     { label: 'Facturas Vencidas', value: overdueCount.toString(), color: overdueCount > 0 ? 'text-rose-600' : 'text-slate-900' },
   ]
 
+  const [portalLinkBusy, setPortalLinkBusy] = useState(false)
+  async function handleGeneratePortalLink() {
+    setPortalLinkBusy(true)
+    try {
+      const res = await generateClientPortalLinkAction(client.id)
+      if (res.error || !res.token) {
+        toast.error(res.error || 'No se pudo generar el enlace')
+        return
+      }
+      const url = `${window.location.origin}/portal/${res.token}`
+      try { await navigator.clipboard.writeText(url) } catch { /* sin portapapeles */ }
+      toast.success('Enlace del portal generado y copiado', {
+        description: `${url} — vigente 30 días. Compártelo con el cliente.`,
+      })
+    } finally {
+      setPortalLinkBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-6 pb-16 animate-in fade-in duration-500">
       {/* Back */}
@@ -136,6 +157,17 @@ export function ClientDetailView({ client, invoices, payments }: ClientDetailVie
             </div>
           </div>
           <button
+            onClick={handleGeneratePortalLink}
+            disabled={portalLinkBusy}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30
+                       text-white text-xs font-semibold uppercase tracking-wide px-4 py-2.5 rounded-xl
+                       transition-colors shrink-0 disabled:opacity-50"
+            aria-label="Generar enlace del portal del cliente"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            <span>{portalLinkBusy ? 'Generando…' : 'Enlace del portal'}</span>
+          </button>
+          <button
             onClick={() => window.print()}
             className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/10
                        text-white text-xs font-semibold uppercase tracking-wide px-4 py-2.5 rounded-xl
@@ -149,7 +181,7 @@ export function ClientDetailView({ client, invoices, payments }: ClientDetailVie
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((s) => (
           <div key={s.label} className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{s.label}</p>

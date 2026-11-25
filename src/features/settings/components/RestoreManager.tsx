@@ -197,7 +197,7 @@ export function RestoreManager({ tenantId: _tenantId }: { tenantId: string }) {
                                     </Badge>
                                 )}
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                                 <MetaBox label="Fecha" value={new Date(analysis.meta.created_at).toLocaleString("es-CO")} />
                                 <MetaBox label="Registros" value={analysis.meta.record_count.toLocaleString("es-CO")} />
                                 <MetaBox label="Tablas" value={String(analysis.meta.tables_included.length)} />

@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { revalidatePath } from 'next/cache'
 
 const BUCKET = 'product-datasheets'
@@ -40,6 +41,7 @@ export async function listDatasheetsAction(productId: string): Promise<Datasheet
 export async function uploadDatasheetAction(formData: FormData): Promise<{ success?: true; error?: string }> {
     const ctx = await getAuthTenant()
     if ('error' in ctx) return { error: ctx.error }
+    if (!(await canViewModule('inventory'))) return { error: 'Sin permiso para inventario' }
     const { supabase, user, tenantId } = ctx
 
     const productId = formData.get('product_id') as string
@@ -97,6 +99,7 @@ export async function getDatasheetUrlAction(id: string): Promise<{ url?: string;
 export async function deleteDatasheetAction(id: string): Promise<{ success?: true; error?: string }> {
     const ctx = await getAuthTenant()
     if ('error' in ctx) return { error: ctx.error }
+    if (!(await canViewModule('inventory'))) return { error: 'Sin permiso para inventario' }
     const { data: row } = await ctx.supabase
         .from('product_datasheets').select('file_path').eq('id', id).maybeSingle()
     if (!row) return { error: 'Ficha no encontrada' }

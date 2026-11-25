@@ -30,6 +30,8 @@ export default async function NewVisitPage({ searchParams }: PageProps) {
         party_id: sp.party_id && parties.some(p => p.id === sp.party_id) ? sp.party_id : undefined,
         management_type: sp.management_type && sp.management_type in MANAGEMENT_TYPES ? (sp.management_type as ManagementType) : undefined,
         priority: sp.priority && ['1', '2', '3'].includes(sp.priority) ? (Number(sp.priority) as 1 | 2 | 3) : undefined,
+        // Día tocado en el calendario (?date=YYYY-MM-DD).
+        planned_date: sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : undefined,
     };
 
     return (

@@ -41,7 +41,9 @@ export const annualCampaignSchema = z.object({
 export const addEvaluatorSchema = z.object({
     evaluationId: z.string().uuid(),
     evaluatorId: z.string().uuid(),
-    weight: z.number().positive().max(10),
+    // Puntaje de importancia del evaluador: entero de 1 (menor) a 5 (mayor).
+    // La nota final es el promedio ponderado por este peso.
+    weight: z.number().int().min(1).max(5),
 });
 
 export const OUTCOME_LABEL: Record<string, string> = {

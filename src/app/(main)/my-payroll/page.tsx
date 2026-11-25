@@ -11,6 +11,8 @@ import { CertificateButtons } from "@/features/payroll/components/CertificateBut
 import { AbsenceRequestForm } from "@/features/payroll/components/AbsenceRequestForm"
 import { MyTrainings } from "@/features/training/components/MyTrainings"
 import { MyPerformanceResults, type PerformanceResult } from "@/features/performance/components/MyPerformanceResults"
+import { MyPendingEvaluations, type PendingEvaluation } from "@/features/performance/components/MyPendingEvaluations"
+import { partyName } from "@/features/performance/services/performanceService"
 import { trainingService } from "@/features/training/services/trainingService"
 import { MyAssets } from "@/features/technology/components/MyAssets"
 import { technologyService } from "@/features/technology/services/technologyService"
@@ -79,6 +81,24 @@ export default async function MyPayrollPage() {
     // Solo resultados cerrados, por la función de la base (sin recomendaciones ni aprobaciones).
     const { data: performanceResults, error: performanceError } = await supabase.rpc('my_performance_results')
     if (performanceError) console.error('[my-payroll] resultados de desempeño:', performanceError.message)
+
+    // Evaluaciones 360° donde este usuario es evaluador PENDIENTE (aún no calificó).
+    // Nombres con admin client para no chocar con la RLS de salarios de employees; es seguro:
+    // solo trae el nombre del tercero del evaluado, filtrado a las evaluaciones de ESTE evaluador.
+    const { data: pendingRows } = await admin
+        .from('performance_evaluators')
+        .select('status, evaluation:performance_evaluations(id, status, due_date, employee:employees(party:parties(legal_name)))')
+        .eq('evaluator_id', user.id)
+        .eq('tenant_id', employee.tenant_id)
+        .eq('status', 'PENDING')
+    type PendingRow = { status: string; evaluation: { id: string; status: string; due_date: string; employee: { party: { legal_name: string } | { legal_name: string }[] | null } | { party: { legal_name: string } | { legal_name: string }[] | null }[] | null } | null }
+    const pendingEvaluations: PendingEvaluation[] = ((pendingRows ?? []) as unknown as PendingRow[])
+        .map(r => r.evaluation)
+        .filter((e): e is NonNullable<PendingRow['evaluation']> => !!e && e.status !== 'CLOSED')
+        .map(e => {
+            const emp = Array.isArray(e.employee) ? e.employee[0] : e.employee
+            return { id: e.id, name: partyName(emp?.party ?? null), dueDate: e.due_date }
+        })
 
     // Cargo del empleado (rol) para el certificado laboral.
     const cargo = await getEmployeeCargo(employee.tenant_id || '', employee.user_id ?? user.id, employee.contract_type, user.id).catch(() => undefined)
@@ -222,6 +242,18 @@ export default async function MyPayrollPage() {
                         </div>
                         <MyTrainings records={trainings} />
                     </section>
+
+                    {/* EVALUACIONES POR CALIFICAR (evaluador 360°) */}
+                    {pendingEvaluations.length > 0 && (
+                        <section className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="h-px flex-1 bg-slate-100" />
+                                <h2 className="text-xs font-semibold text-amber-500 uppercase tracking-wide shrink-0 px-3">Evaluaciones por Calificar</h2>
+                                <div className="h-px flex-1 bg-slate-100" />
+                            </div>
+                            <MyPendingEvaluations evaluations={pendingEvaluations} />
+                        </section>
+                    )}
 
                     {/* PERFORMANCE SECTION */}
                     {Array.isArray(performanceResults) && performanceResults.length > 0 && (

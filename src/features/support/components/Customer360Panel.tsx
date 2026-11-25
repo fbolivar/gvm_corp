@@ -67,7 +67,7 @@ export function Customer360Panel({ partyId, ticketId }: { partyId: string, ticke
                     )}
 
                     {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Valor de Vida (LTV)</p>
                             <p className="text-sm font-bold text-slate-900 font-mono tabular-nums">

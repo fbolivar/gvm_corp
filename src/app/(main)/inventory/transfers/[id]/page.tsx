@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { transferService } from '@/features/warehouse-transfers/services/transferService';
-import { TransferStatus, TransferWithDetails, TransferLine } from '@/features/warehouse-transfers/types';
+import { TransferStatus, TransferWithDetails, TransferLine, NEW_PRODUCT_SKU } from '@/features/warehouse-transfers/types';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -612,14 +612,36 @@ export default async function TransferDetailPage({
                                                     {/* Product name */}
                                                     <td className="px-6 py-4 max-w-[220px]">
                                                         <div>
-                                                            <p className="text-xs font-bold text-slate-900 leading-snug truncate">
-                                                                {line.product?.name ?? line.description ?? 'Producto desconocido'}
-                                                            </p>
-                                                            {!line.product?.name && line.description && (
-                                                                <span className="inline-block mt-0.5 text-[8px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                                                                    Solicitud · sin producto
-                                                                </span>
-                                                            )}
+                                                            {(() => {
+                                                                // PRODUCTO NUEVO: el nombre del producto es genérico; lo
+                                                                // que importa es lo que escribió el bodeguero (description).
+                                                                const isPlaceholder = line.product?.sku === NEW_PRODUCT_SKU;
+                                                                const detail = line.description?.trim();
+                                                                if (isPlaceholder) {
+                                                                    return (
+                                                                        <>
+                                                                            <p className="text-xs font-bold text-slate-900 leading-snug truncate" title={detail || undefined}>
+                                                                                {detail || 'Sin especificar'}
+                                                                            </p>
+                                                                            <span className="inline-block mt-0.5 text-[8px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                                                                                Producto nuevo (por comprar)
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <>
+                                                                        <p className="text-xs font-bold text-slate-900 leading-snug truncate">
+                                                                            {line.product?.name ?? detail ?? 'Producto desconocido'}
+                                                                        </p>
+                                                                        {!line.product?.name && detail && (
+                                                                            <span className="inline-block mt-0.5 text-[8px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                                                                                Solicitud · sin producto
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                );
+                                                            })()}
                                                             {/* Progress bar */}
                                                             {isInTransit || isReceived ? (
                                                                 <div className="mt-1.5 h-1 w-full bg-slate-100 rounded-full overflow-hidden">

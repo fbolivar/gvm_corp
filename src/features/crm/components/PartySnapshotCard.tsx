@@ -76,7 +76,7 @@ export function PartySnapshotCard({ partyId, initial, compact = false }: { party
             {error && <p className="text-xs text-rose-600">{error}</p>}
 
             {snap && (
-                <div className={cn('grid grid-cols-2 gap-3', !compact && 'md:grid-cols-4')}>
+                <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-3', !compact && 'md:grid-cols-4')}>
                     <Stat label="Venta año actual" value={cop.format(snap.sales_ytd)} extra={<Var pct={snap.var_ytd_pct} />} hint={`Año anterior: ${cop.format(snap.sales_prev_ytd)}`} />
                     <Stat label="Venta mes actual" value={cop.format(snap.sales_month)} extra={<Var pct={snap.var_month_pct} />} hint={`Mismo mes año anterior: ${cop.format(snap.sales_prev_month)}`} />
                     <Stat label="Última compra" value={formatLocalDate(snap.last_purchase_date)} hint={`${snap.orders_count_ytd} pedidos este año`} />

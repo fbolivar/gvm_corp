@@ -1,9 +1,9 @@
 "use client"
 
-import { useForm, useFieldArray, useWatch, type FieldErrors } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import {
     Warehouse as WarehouseIcon,
@@ -19,7 +19,8 @@ import {
     AlertCircle,
 } from "lucide-react";
 
-import { warehouseTransferSchema, WarehouseTransfer } from "@/features/warehouse-transfers/types";
+import { warehouseTransferSchema, WarehouseTransfer, NEW_PRODUCT_SKU } from "@/features/warehouse-transfers/types";
+import { SearchableSelect } from "@/shared/components/ui/searchable-select";
 import {
     createTransferAction,
     updateTransferAction,
@@ -62,36 +63,6 @@ const selectClass =
 const labelClass =
     "text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block";
 
-// ─── Validation helpers ─────────────────────────────────────────────────────────
-
-/**
- * Extrae un mensaje de error legible y específico del primer problema de
- * validación, para que el usuario sepa EXACTAMENTE qué corregir (nada de
- * "guardar en silencio" sin feedback).
- */
-function firstErrorMessage(errors: FieldErrors<WarehouseTransfer>): string {
-    if (errors.from_warehouse_id?.message) return String(errors.from_warehouse_id.message);
-    if (errors.to_warehouse_id?.message) return String(errors.to_warehouse_id.message);
-
-    if (errors.lines) {
-        // Error a nivel del arreglo (ej. "Debe tener al menos una línea")
-        if (!Array.isArray(errors.lines) && (errors.lines as { message?: string }).message) {
-            return String((errors.lines as { message?: string }).message);
-        }
-        // Error en una línea específica
-        if (Array.isArray(errors.lines)) {
-            for (let i = 0; i < errors.lines.length; i++) {
-                const le = errors.lines[i];
-                if (!le) continue;
-                if (le.description?.message) return `Artículo ${i + 1}: ${String(le.description.message)}`;
-                if (le.product_id?.message) return `Artículo ${i + 1}: ${String(le.product_id.message)}`;
-                if (le.qty?.message) return `Artículo ${i + 1}: ${String(le.qty.message)}`;
-            }
-        }
-    }
-    return 'Revisa los campos marcados en rojo antes de guardar';
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function NewTransferClient({ warehouses, products, transferId, initialData }: Props) {
@@ -116,10 +87,28 @@ export default function NewTransferClient({ warehouses, products, transferId, in
 
     const fromWarehouseId = useWatch({ control: form.control, name: "from_warehouse_id" });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
         name: "lines",
     });
+
+    // Producto canónico "PRODUCTO NUEVO" (para mercancía en compra sin factura aún).
+    const newProductId = useMemo(
+        () => products.find((p) => p.sku === NEW_PRODUCT_SKU)?.id ?? "",
+        [products]
+    );
+    // Ítems del buscador: PRODUCTO NUEVO de primero, luego el resto del catálogo.
+    const productItems = useMemo(() => {
+        const toItem = (p: ProductOption) => ({
+            value: p.id ?? "",
+            label: p.sku === NEW_PRODUCT_SKU ? "➕ PRODUCTO NUEVO (especificar abajo)" : p.name,
+            subLabel: p.sku,
+            keywords: `${p.name} ${p.sku}`,
+        });
+        const nuevo = products.filter((p) => p.id === newProductId).map(toItem);
+        const rest = products.filter((p) => p.id !== newProductId).map(toItem);
+        return [...nuevo, ...rest];
+    }, [products, newProductId]);
 
     // ─── Handlers ─────────────────────────────────────────────────────────────
 
@@ -133,40 +122,66 @@ export default function NewTransferClient({ warehouses, products, transferId, in
         });
     }
 
-    // Valida el formulario y, si hay problemas, muestra mensaje específico +
-    // banner + scroll al error. Devuelve true solo si todo está correcto.
-    async function validateBeforeSubmit(): Promise<boolean> {
-        setSubmitError(null);
-        const valid = await form.trigger();
-        if (!valid) {
-            const msg = firstErrorMessage(form.formState.errors);
-            setSubmitError(msg);
-            toast.error(msg);
-            // Llevar la vista al problema
-            if (form.formState.errors.lines) {
-                linesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            } else {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            }
-            return false;
-        }
-        const vals = form.getValues();
-        if (vals.from_warehouse_id === vals.to_warehouse_id) {
-            const msg = "La bodega destino debe ser diferente a la bodega origen";
-            setSubmitError(msg);
-            toast.error(msg);
+    const failValidation = (msg: string, scrollToLines = false): null => {
+        setSubmitError(msg);
+        toast.error(msg);
+        if (scrollToLines) {
+            linesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else {
             window.scrollTo({ top: 0, behavior: "smooth" });
-            return false;
         }
-        return true;
+        return null;
+    };
+
+    // Valida y devuelve los datos LIMPIOS a guardar (o null si hay un problema).
+    // Las líneas completamente vacías (sin producto y sin detalle) se DESCARTAN: son
+    // renglones que el usuario dejó en blanco y no deben bloquear el guardado.
+    function validateBeforeSubmit(): WarehouseTransfer | null {
+        setSubmitError(null);
+        const vals = form.getValues();
+
+        if (!vals.from_warehouse_id) return failValidation("Selecciona la bodega origen");
+        if (!vals.to_warehouse_id) return failValidation("Selecciona la bodega destino");
+        if (vals.from_warehouse_id === vals.to_warehouse_id) {
+            return failValidation("La bodega destino debe ser diferente a la bodega origen");
+        }
+
+        // Descartar líneas en blanco (ni producto ni detalle escrito).
+        const cleanLines = (vals.lines ?? []).filter(
+            (l) => !!l.product_id || !!(l.description ?? "").trim()
+        );
+        if (cleanLines.length === 0) {
+            return failValidation("Agrega al menos un artículo con producto y cantidad", true);
+        }
+
+        // Validar cada línea que SÍ tiene contenido.
+        for (let i = 0; i < cleanLines.length; i++) {
+            const l = cleanLines[i];
+            if (!l.product_id) {
+                return failValidation(`Artículo ${i + 1}: elige el producto del catálogo (o "PRODUCTO NUEVO" para algo que no existe aún)`, true);
+            }
+            if (!(Number(l.qty) > 0)) {
+                return failValidation(`Artículo ${i + 1}: la cantidad debe ser mayor a 0`, true);
+            }
+            // "PRODUCTO NUEVO" exige el detalle de qué producto es.
+            if (newProductId && l.product_id === newProductId && !(l.description ?? "").trim()) {
+                return failValidation(`Artículo ${i + 1}: escribe QUÉ producto es (al elegir "PRODUCTO NUEVO" debes especificarlo)`, true);
+            }
+        }
+
+        // Reflejar en pantalla las líneas limpias (desaparecen las vacías) y devolverlas.
+        if (cleanLines.length !== (vals.lines ?? []).length) {
+            replace(cleanLines);
+        }
+        return { ...vals, lines: cleanLines };
     }
 
     async function handleSaveDraft() {
-        if (!(await validateBeforeSubmit())) return;
+        const data = validateBeforeSubmit();
+        if (!data) return;
 
         setLoadingDraft(true);
         try {
-            const data = form.getValues();
             const result = isEdit
                 ? await updateTransferAction(transferId!, { ...data, status: "DRAFT" })
                 : await createTransferAction({ ...data, status: "DRAFT" });
@@ -196,12 +211,11 @@ export default function NewTransferClient({ warehouses, products, transferId, in
     }
 
     async function handleSaveAndSend() {
-        if (!(await validateBeforeSubmit())) return;
+        const data = validateBeforeSubmit();
+        if (!data) return;
 
         setLoadingSend(true);
         try {
-            const data = form.getValues();
-
             // 1. Guardar el borrador (crear o actualizar el existente)
             const saveResult = isEdit
                 ? await updateTransferAction(transferId!, { ...data, status: "DRAFT" })
@@ -423,7 +437,8 @@ export default function NewTransferClient({ warehouses, products, transferId, in
                                     key={field.id}
                                     index={index}
                                     form={form}
-                                    products={products}
+                                    items={productItems}
+                                    newProductId={newProductId}
                                     onRemove={() => remove(index)}
                                 />
                             ))}
@@ -500,11 +515,17 @@ export default function NewTransferClient({ warehouses, products, transferId, in
 interface LineRowProps {
     index: number;
     form: ReturnType<typeof useForm<WarehouseTransfer>>;
-    products: Array<{ id?: string; name: string; sku: string }>;
+    items: Array<{ value: string; label: string; subLabel?: string; keywords?: string }>;
+    newProductId: string;
     onRemove: () => void;
 }
 
-function TransferLineRow({ index, form, products, onRemove }: LineRowProps) {
+function TransferLineRow({ index, form, items, newProductId, onRemove }: LineRowProps) {
+    // El producto seleccionado en ESTA línea (para mostrar el detalle si es "PRODUCTO NUEVO").
+    const selectedProductId = useWatch({ control: form.control, name: `lines.${index}.product_id` });
+    const description = useWatch({ control: form.control, name: `lines.${index}.description` });
+    const isNewProduct = !!newProductId && selectedProductId === newProductId;
+
     return (
         <div className="bg-slate-50 rounded-2xl p-4 md:p-0 md:bg-transparent">
             <div className="grid grid-cols-1 md:grid-cols-[2rem_1fr_10rem_3rem] gap-4 items-start">
@@ -515,28 +536,45 @@ function TransferLineRow({ index, form, products, onRemove }: LineRowProps) {
                     </Badge>
                 </div>
 
-                {/* Producto: nombre libre (primario) + catálogo (opcional) */}
+                {/* Producto: SOLO del catálogo (obligatorio, con buscador por nombre/código).
+                    Si se elige "PRODUCTO NUEVO" aparece abajo la casilla para decir cuál es. */}
                 <div className="space-y-2">
-                    <Input
-                        {...form.register(`lines.${index}.description`)}
-                        placeholder="Producto a trasladar (nombre libre)"
-                        className="h-12 bg-white border-none rounded-xl px-4 text-xs font-bold text-slate-900 shadow-inner focus:ring-4 focus:ring-primary/5"
+                    <Controller
+                        control={form.control}
+                        name={`lines.${index}.product_id`}
+                        render={({ field }) => (
+                            <SearchableSelect
+                                items={items}
+                                value={field.value ?? ""}
+                                onChange={(v) => field.onChange(v)}
+                                placeholder="Buscar producto por nombre o código..."
+                                error={!!form.formState.errors.lines?.[index]?.product_id}
+                                // Si lo que escriben NO está en el catálogo, pueden crearlo como
+                                // PRODUCTO NUEVO con un clic (el texto queda en el detalle).
+                                allowCreate={!!newProductId}
+                                onCreate={(text) => {
+                                    field.onChange(newProductId);
+                                    form.setValue(`lines.${index}.description`, text, { shouldDirty: true });
+                                }}
+                                createLabel={(t) => `➕ Producto nuevo: «${t}»`}
+                                customLabel={
+                                    isNewProduct && description?.trim()
+                                        ? `PRODUCTO NUEVO: ${description.trim()}`
+                                        : undefined
+                                }
+                            />
+                        )}
                     />
-                    <div className="relative">
-                        <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300 pointer-events-none z-10" />
-                        <select
-                            {...form.register(`lines.${index}.product_id`)}
-                            className="w-full h-10 bg-slate-50 border-none rounded-xl pl-10 pr-8 text-[11px] font-bold text-slate-600 appearance-none shadow-inner focus:ring-4 focus:ring-primary/5 outline-none hover:bg-slate-100 transition-all cursor-pointer"
-                        >
-                            <option value="">Del catálogo (opcional)</option>
-                            {products.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                    {p.name} — {p.sku}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-300 pointer-events-none" />
-                    </div>
+                    {isNewProduct && (
+                        <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
+                            <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-amber-400 pointer-events-none z-10" />
+                            <Input
+                                {...form.register(`lines.${index}.description`)}
+                                placeholder="¿Qué producto es? (nombre / referencia de la mercancía por comprar)"
+                                className="h-11 bg-amber-50 border-2 border-amber-200 rounded-xl pl-10 pr-4 text-xs font-bold text-slate-900 shadow-inner focus-visible:ring-4 focus-visible:ring-amber-200/40 placeholder:text-amber-500/60 placeholder:font-medium"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Quantity */}
@@ -565,13 +603,12 @@ function TransferLineRow({ index, form, products, onRemove }: LineRowProps) {
             </div>
 
             {/* Field errors */}
-            {(form.formState.errors.lines?.[index]?.description ||
-                form.formState.errors.lines?.[index]?.product_id ||
+            {(form.formState.errors.lines?.[index]?.product_id ||
                 form.formState.errors.lines?.[index]?.qty) && (
                 <p className="text-rose-500 text-[9px] font-black uppercase tracking-widest mt-2 ml-1">
-                    {form.formState.errors.lines?.[index]?.description?.message
+                    {form.formState.errors.lines?.[index]?.product_id?.message
                         || form.formState.errors.lines?.[index]?.qty?.message
-                        || 'Completa el producto y la cantidad'}
+                        || 'Selecciona el producto y la cantidad'}
                 </p>
             )}
         </div>

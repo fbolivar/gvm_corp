@@ -64,7 +64,7 @@ export function PunctualityReport({ records, startDate, endDate }: Props) {
     return (
         <div className="space-y-6">
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                 {kpis.map(kpi => (
                     <div key={kpi.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-2">
                         <div className="flex items-center justify-between">

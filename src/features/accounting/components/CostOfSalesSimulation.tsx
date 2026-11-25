@@ -1,13 +1,13 @@
 "use client"
 
 import { Fragment, useState } from "react"
-import { simulateCostOfSalesAction, type CostSimulationResult } from "../actions/simulationActions"
+import { simulateCostOfSalesAction, postMonthlyCogsAction, unpostMonthlyCogsAction, type CostSimulationResult } from "../actions/simulationActions"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { toast } from "sonner"
 import { cn } from "@/shared/lib/utils"
-import { Play, Loader2, AlertTriangle, CheckCircle2, ChevronDown } from "lucide-react"
+import { Play, Loader2, AlertTriangle, CheckCircle2, ChevronDown, BookCheck, Undo2 } from "lucide-react"
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`
 
@@ -22,6 +22,37 @@ export function CostOfSalesSimulation({ defaultFrom, defaultTo }: { defaultFrom:
     const [running, setRunning] = useState(false)
     const [result, setResult] = useState<CostSimulationResult | null>(null)
     const [expanded, setExpanded] = useState<string | null>(null)
+    const [cogsMonth, setCogsMonth] = useState(defaultTo.slice(0, 7))
+    const [posting, setPosting] = useState<'post' | 'unpost' | null>(null)
+
+    async function postMonth() {
+        setPosting('post')
+        try {
+            const res = await postMonthlyCogsAction(cogsMonth)
+            if (res.ok) {
+                toast.success(res.message)
+                if (res.sin_costo && res.sin_costo > 0) toast.warning(`${Math.round(res.sin_costo)} unidad(es) sin costo quedaron fuera del asiento.`)
+            } else {
+                toast.error(res.message)
+            }
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'No se pudo contabilizar el mes')
+        } finally {
+            setPosting(null)
+        }
+    }
+
+    async function unpostMonth() {
+        setPosting('unpost')
+        try {
+            const res = await unpostMonthlyCogsAction(cogsMonth)
+            res.ok ? toast.success(res.message) : toast.error(res.message)
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'No se pudo revertir el mes')
+        } finally {
+            setPosting(null)
+        }
+    }
 
     async function run() {
         setRunning(true)
@@ -41,8 +72,9 @@ export function CostOfSalesSimulation({ defaultFrom, defaultTo }: { defaultFrom:
     return (
         <div className="space-y-5">
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] text-amber-800">
-                Pendiente de confirmación del contador: cuentas por tarifa (costo 61352201/02/03 ↔ inventario 143501/03/05)
-                y método de costo (hoy: último costo de <code>products.cost</code>). El costo de venta aún NO se contabiliza.
+                Costo por tarifa: costo 61352201/02/03 ↔ inventario 143501/03/05. Método: costo promedio (hoy sale de <code>products.cost</code>
+                hasta cargar la base de costo del contador). El posteo mensual existe pero está <strong>apagado</strong> (<code>auto_post_cogs</code>)
+                hasta tener esa base cargada y el visto bueno.
             </div>
 
             <div className="flex flex-wrap items-end gap-3">
@@ -59,9 +91,31 @@ export function CostOfSalesSimulation({ defaultFrom, defaultTo }: { defaultFrom:
                 </Button>
             </div>
 
+            {/* Contabilización MENSUAL CONSOLIDADA (decisión del contador: un asiento al
+                mes, como WorldOffice). Idempotente y reversible. Solo surte efecto si el
+                tenant tiene `auto_post_cogs` encendido. */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+                <div>
+                    <p className="text-[13px] font-bold text-slate-800">Contabilizar costo de venta del mes</p>
+                    <p className="text-[11px] text-slate-500">Un asiento consolidado por mes (débito costo / crédito inventario). Reejecutar el mismo mes no duplica; «Revertir» lo borra para recalcular.</p>
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                    <div className="space-y-1">
+                        <Label className="text-[11px] uppercase tracking-wider text-slate-500">Mes</Label>
+                        <Input type="month" value={cogsMonth} onChange={e => setCogsMonth(e.target.value)} className="h-10 rounded-xl" />
+                    </div>
+                    <Button onClick={postMonth} disabled={!!posting} className="h-10 rounded-xl gap-2 bg-emerald-600 hover:bg-emerald-700">
+                        {posting === 'post' ? <><Loader2 className="h-4 w-4 animate-spin" /> Contabilizando…</> : <><BookCheck className="h-4 w-4" /> Contabilizar mes</>}
+                    </Button>
+                    <Button onClick={unpostMonth} disabled={!!posting} variant="outline" className="h-10 rounded-xl gap-2 text-slate-600">
+                        {posting === 'unpost' ? <><Loader2 className="h-4 w-4 animate-spin" /> Revirtiendo…</> : <><Undo2 className="h-4 w-4" /> Revertir</>}
+                    </Button>
+                </div>
+            </div>
+
             {result && (
                 <>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                         {[
                             ['Analizados', String(result.totals.analizados), 'text-slate-900'],
                             ['Con costo', String(result.totals.con_costo), 'text-emerald-600'],

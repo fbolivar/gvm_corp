@@ -100,8 +100,10 @@ export async function POST(req: NextRequest) {
         // 5. Generar referencia bancaria única
         const bank_reference = `REF-${Date.now()}`
 
-        // 6. Actualizar payment_link como PAID
-        const { error: updateLinkError } = await adminClient
+        // 6. Registrar el reporte de pago en el link, de forma ATÓMICA: solo si el
+        //    link sigue en PENDING (el filtro adicional evita la carrera de dos
+        //    peticiones simultáneas que antes restaban el saldo dos veces).
+        const { data: updatedLink, error: updateLinkError } = await adminClient
             .from('payment_links')
             .update({
                 status: 'PAID',
@@ -113,6 +115,8 @@ export async function POST(req: NextRequest) {
                 paid_at: new Date().toISOString(),
             })
             .eq('id', paymentLink.id)
+            .eq('status', 'PENDING')
+            .select('id')
 
         if (updateLinkError) {
             console.error('[process] Error actualizando payment_link:', updateLinkError)
@@ -121,32 +125,23 @@ export async function POST(req: NextRequest) {
                 { status: 500 }
             )
         }
-
-        // 7. Actualizar el documento: status='PAID' y balance=0 si el pago cubre el saldo
-        const { data: document, error: docFetchError } = await adminClient
-            .from('documents')
-            .select('id, balance, total, status')
-            .eq('id', paymentLink.document_id)
-            .maybeSingle()
-
-        if (!docFetchError && document) {
-            const docBalance = Number(document.balance ?? document.total ?? 0)
-            const paidAmount = Number(paymentLink.amount)
-
-            // Solo marcar PAID si el pago cubre el saldo completo
-            const newBalance = Math.max(0, docBalance - paidAmount)
-            const newStatus = newBalance === 0 ? 'PAID' : document.status
-
-            await adminClient
-                .from('documents')
-                .update({
-                    balance: newBalance,
-                    status: newStatus,
-                })
-                .eq('id', paymentLink.document_id)
+        if (!updatedLink || updatedLink.length === 0) {
+            // Otra petición ya lo procesó (carrera) o dejó de estar PENDING.
+            return NextResponse.json(
+                { error: 'Este link ya fue procesado.' },
+                { status: 409 }
+            )
         }
 
-        console.info(`[process] Pago procesado. Ref: ${bank_reference}, Link: ${paymentLink.id}`)
+        // SEGURIDAD (auditoría 2026-11-24): este endpoint es PÚBLICO y NO verifica un
+        // pago real (no hay pasarela conectada). Por eso NO marca la factura como
+        // pagada ni toca `documents.balance` — antes lo hacía con un setTimeout
+        // simulado, así que cualquiera con el link cerraba su deuda sin pagar. El
+        // pago queda REPORTADO en payment_links para que tesorería lo concilie. Cuando
+        // se integre una pasarela real, la confirmación del pago debe llegar por su
+        // webhook firmado, nunca por este POST del navegador.
+
+        console.info(`[process] Pago REPORTADO (sin conciliar). Ref: ${bank_reference}, Link: ${paymentLink.id}`)
 
         return NextResponse.json({
             success: true,

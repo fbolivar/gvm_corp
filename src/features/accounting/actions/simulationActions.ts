@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { accountingService } from '../services/accountingService'
 import { purchaseAccountingService } from '../services/purchaseAccountingService'
 import { costOfSalesService } from '../services/costOfSalesService'
@@ -35,6 +37,8 @@ export interface SimulatedDocument {
     /** Total del documento tal como está guardado, para contrastar. */
     doc_total: number;
     base: number;
+    /** Flete cobrado al cliente (ingreso por transporte, cuenta 423510/INGRESO_FLETE). */
+    flete: number;
     iva: number;
     retefuente: number;
     reteica: number;
@@ -53,6 +57,7 @@ export interface SimulationResult {
         contabilizables: number;
         con_advertencias: number;
         base: number;
+        flete: number;
         iva: number;
         retefuente: number;
         reteica: number;
@@ -65,7 +70,7 @@ export interface SimulationResult {
 
 const EMPTY: SimulationResult = {
     documents: [],
-    totals: { analizados: 0, contabilizables: 0, con_advertencias: 0, base: 0, iva: 0, retefuente: 0, reteica: 0, reteiva: 0, autorrenta: 0, cartera: 0 },
+    totals: { analizados: 0, contabilizables: 0, con_advertencias: 0, base: 0, flete: 0, iva: 0, retefuente: 0, reteica: 0, reteiva: 0, autorrenta: 0, cartera: 0 },
 }
 
 // ─── Simulación de COMPRAS ──────────────────────────────────────────────────
@@ -197,6 +202,7 @@ export async function simulateSalesAccountingAction(
         if (warnings.length > 0) totals.con_advertencias++
 
         const base = draft?.totals.base ?? 0
+        const flete = draft?.totals.freight ?? 0
         const iva = draft?.totals.iva ?? 0
         const retefuente = draft?.totals.retefuente ?? 0
         const reteica = draft?.totals.reteica ?? 0
@@ -207,6 +213,7 @@ export async function simulateSalesAccountingAction(
         if (draft) {
             totals.contabilizables++
             totals.base += base
+            totals.flete += flete
             totals.iva += iva
             totals.retefuente += retefuente
             totals.reteica += reteica
@@ -226,7 +233,7 @@ export async function simulateSalesAccountingAction(
             taxpayer_code: draft?.taxpayer_code ?? null,
             payment_form: draft?.payment_form ?? null,
             doc_total: Number(doc.total) || 0,
-            base, iva, retefuente, reteica, reteiva, autorrenta, cartera,
+            base, flete, iva, retefuente, reteica, reteiva, autorrenta, cartera,
             balanced: draft ? Math.abs(draft.totals.debit - draft.totals.credit) < 0.01 : false,
             warnings,
             lines: (draft?.lines ?? []).map(l => ({
@@ -319,4 +326,59 @@ export async function simulateCostOfSalesAction(from: string, to: string, limit 
     }
 
     return { documents, totals }
+}
+
+// ─── Posteo MENSUAL CONSOLIDADO del costo de venta ──────────────────────────
+
+export interface CogsPostResult {
+    ok: boolean;
+    message: string;
+    costo?: number;
+    sin_costo?: number;
+    warnings?: string[];
+}
+
+/**
+ * Contabiliza el costo de venta de un MES como un asiento consolidado (lo que pidió
+ * el contador: mensual, no por documento). GATED por `tenants.auto_post_cogs` e
+ * idempotente por mes. `period` es 'YYYY-MM'.
+ */
+export async function postMonthlyCogsAction(period: string): Promise<CogsPostResult> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { ok: false, message: 'Sesión expirada. Vuelve a iniciar sesión.' }
+    if (!(await canViewModule('accounting'))) return { ok: false, message: 'No tienes permiso para contabilizar.' }
+
+    const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
+    if (!tenantId) return { ok: false, message: 'No se pudo determinar la empresa.' }
+
+    try {
+        const res = await costOfSalesService.postMonthlyCogs(supabase, { tenantId: tenantId as string, period })
+        if (res.skipped) return { ok: false, message: res.reason ?? 'No se contabilizó.', warnings: res.warnings }
+        revalidatePath('/accounting/simulation')
+        return {
+            ok: true,
+            message: `Costo de ventas de ${period} contabilizado (${res.totals ? `$${Math.round(res.totals.costo).toLocaleString('es-CO')}` : ''}).`,
+            costo: res.totals?.costo,
+            sin_costo: res.totals?.sin_costo,
+            warnings: res.warnings,
+        }
+    } catch (e) {
+        return { ok: false, message: e instanceof Error ? e.message : 'Error al contabilizar el costo de venta.' }
+    }
+}
+
+/** Revierte el asiento de COGS de un mes (para recalcular si llega más costo). */
+export async function unpostMonthlyCogsAction(period: string): Promise<CogsPostResult> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { ok: false, message: 'Sesión expirada. Vuelve a iniciar sesión.' }
+    if (!(await canViewModule('accounting'))) return { ok: false, message: 'No tienes permiso para contabilizar.' }
+
+    const { data: tenantId } = await supabase.rpc('get_my_tenant_id')
+    if (!tenantId) return { ok: false, message: 'No se pudo determinar la empresa.' }
+
+    const { removed } = await costOfSalesService.unpostMonthlyCogs(supabase, tenantId as string, period)
+    revalidatePath('/accounting/simulation')
+    return { ok: true, message: removed > 0 ? `Asiento de costo de ${period} revertido.` : `No había asiento de costo para ${period}.` }
 }

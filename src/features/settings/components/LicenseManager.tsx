@@ -534,7 +534,7 @@ export function LicenseManager() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
                 Emitida por

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { fixedAssetService } from '@/features/accounting/services/fixedAssetService';
+import { isCronAuthorized } from '@/shared/lib/cronAuth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 /** GET /api/cron/depreciation — Vercel Cron (1º de cada mes 4am UTC) */
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!isCronAuthorized(request.headers.get('authorization'))) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

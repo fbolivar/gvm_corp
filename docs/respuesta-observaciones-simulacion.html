@@ -1,0 +1,131 @@
+<title>Respuesta a la revisión contable</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#fbfaf7; --paper:#ffffff; --ink:#1d2430; --muted:#5b6472; --rule:#dcd8cf;
+    --accent:#0f5f8a; --accent-soft:#e6f0f6; --ok:#1f7a4d; --ok-soft:#e5f3ea; --warn:#9a5b00; --warn-soft:#fbf1dc; --code:#f1efe9;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --bg:#15181d; --paper:#1c2027; --ink:#e8e6e0; --muted:#a4a9b2; --rule:#333944;
+    --accent:#7fb7dc; --accent-soft:#1f2e3a; --ok:#6fcf97; --ok-soft:#1c2f25; --warn:#e2b56a; --warn-soft:#3a2f1a; --code:#262b33;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#15181d; --paper:#1c2027; --ink:#e8e6e0; --muted:#a4a9b2; --rule:#333944;
+    --accent:#7fb7dc; --accent-soft:#1f2e3a; --ok:#6fcf97; --ok-soft:#1c2f25; --warn:#e2b56a; --warn-soft:#3a2f1a; --code:#262b33;
+  }
+  body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.55;padding-block:32px;padding-inline:20px}
+  main{max-width:820px;margin:0 auto}
+  h1{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:34px;line-height:1.15;margin:0 0 6px;text-wrap:balance}
+  h2{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:22px;margin:40px 0 12px;padding-top:14px;border-top:1px solid var(--rule)}
+  h3{font-size:15px;font-weight:600;margin:20px 0 6px}
+  .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 16px}
+  .lead{color:var(--muted);max-width:66ch;margin:0 0 8px}
+  p{max-width:70ch}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin:10px 0 6px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .wrap{overflow-x:auto}
+  code,.acct{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:13px;background:var(--code);padding:1px 5px;border-radius:4px}
+  .pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .ok{background:var(--ok-soft);color:var(--ok)} .warn{background:var(--warn-soft);color:var(--warn)} .info{background:var(--accent-soft);color:var(--accent)}
+  .box{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;margin:12px 0}
+  .box.q{border-left:4px solid var(--accent)}
+  ul{padding-left:20px;max-width:72ch} li{margin:4px 0}
+  .asiento td:first-child{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  .meta{font-size:13px;color:var(--muted)}
+  @media print{ body{background:#fff;color:#000;font-size:12.5px;padding:0} h2{break-after:avoid} .box,table{break-inside:avoid} }
+</style>
+<main>
+  <p class="eyebrow">GVM Corp · Contabilización automática de ventas · 17 de septiembre de 2026</p>
+  <h1>Respuesta a la revisión de la simulación contable</h1>
+  <p class="lead">Para Andrés Benavides, contador general. Cada observación del documento y cada respuesta a las cinco preguntas quedó aplicada en el ERP; abajo va el detalle de qué cambió, con el asiento que ahora produce cada pedido observado, y las preguntas que quedan abiertas.</p>
+  <p class="meta">Adjunto: <b>Terceros a revisar - tipo de contribuyente.xlsx</b> (lista de los que no cruzan).</p>
+
+  <h2>1. Observaciones del documento — cómo quedó cada una</h2>
+  <div class="wrap"><table>
+    <thead><tr><th>Observación</th><th>Causa en el ERP</th><th>Corrección</th><th>Estado</th></tr></thead>
+    <tbody>
+      <tr><td>13 clientes con <span class="acct">13551801</span> (ReteICA) que no la practican: Agropecuaria Alfa, El Porfín, Campeón, Ecosis, Granja La California, Cerdicol, La Granjota, Reproducir, Toscana, pedido 1096…</td><td>Todos son <i>Persona Jurídica</i> de Bogotá con la marca «practica ICA» que trajo WorldOffice, y el motor usaba esa marca para ventas.</td><td>La marca de WorldOffice queda solo para proveedores. En ventas, ReteICA se practica únicamente por tipo de contribuyente: <b>Gran Contribuyente (autorretenedor y no), ESAL y Entidades del Estado</b>, y solo si el cliente es de Bogotá. Persona jurídica común y toda persona natural: nunca.</td><td><span class="pill ok">Corregido</span></td></tr>
+      <tr><td>AVINSA: falta ReteICA y sí la debe llevar.</td><td>Gran Contribuyente No Autorretenedor de Bogotá, pero sin la marca de WorldOffice.</td><td>Con la regla por tipo ya la practica: pedido 511 → ReteICA <span class="acct">232.406</span> sobre 56.136.788.</td><td><span class="pill ok">Corregido</span></td></tr>
+      <tr><td>Reproducir Genética: además no supera la base.</td><td>La base mínima de ICA estaba en $0.</td><td>Base mínima ReteICA <b>$1.414.000</b> (la que indicaste).</td><td><span class="pill ok">Corregido</span></td></tr>
+      <tr><td>Pedidos 847 y 899: el flete debe ir a <span class="acct">423510</span> y no ser base de retención.</td><td>El flete se sumaba al ingreso 4135 y a la base de retefuente.</td><td>Toda línea de flete (producto «flete» o línea libre «FLETE ENVÍO») va a <span class="acct">423510</span>, fuera de la base de retefuente, ReteICA y reteIVA; sí entra en la autorretención. Ver asiento del 847 abajo. <b>Nota:</b> el pedido 899 en el ERP no tiene línea de flete (5 productos veterinarios + toallas al 19 %); confírmame si era otro número.</td><td><span class="pill ok">Corregido</span></td></tr>
+      <tr><td>Pedido 859 (bonificación en $0): debe traer <span class="acct">13551511</span>, <span class="acct">23657501</span>, <span class="acct">13050501</span> e ingreso aunque estén en cero.</td><td>El motor omitía las líneas con valor 0.</td><td>Los documentos en $0 generan las cuatro cuentas con valor 0.</td><td><span class="pill ok">Corregido</span></td></tr>
+      <tr><td>Agrovet Soluciones (pedidos 992, 1044, 1100) y Porcícola Los Claveles: falta retefuente, son persona jurídica y superan la base.</td><td>Estaban mal clasificados: Agrovet como Régimen Simple (valor por defecto del importador de WorldOffice) y Los Claveles como Persona Natural No Responsable.</td><td>Ambos pasados a <b>Persona Jurídica</b>. Ahora: 992 → RF 43.588; 1044 → RF 27.929; 1100 → RF 22.095.</td><td><span class="pill ok">Corregido</span></td></tr>
+      <tr><td>Arango Hermanos: cambiar a Grande Contribuyente No Autorretenedor.</td><td>Estaba como Persona Jurídica.</td><td>Cambiado en el ERP (igual que en WorldOffice).</td><td><span class="pill ok">Corregido</span></td></tr>
+      <tr><td>Pedido 1096: el producto 1257 es con IVA pero en el pedido va al 0 %.</td><td>La línea se digitó como texto libre («TERMO-1257 TERMÓMETRO…») sin escoger el producto del catálogo, y las líneas libres quedan al 0 % si nadie cambia el IVA.</td><td>No es del motor: es captura. Ver el punto 4 — hay 428 líneas así en 244 pedidos.</td><td><span class="pill warn">Captura</span></td></tr>
+      <tr><td>Pedido 895 (Genesys): productos no creados en el ERP, con IVA, digitados sin IVA.</td><td>15 de las 16 líneas son texto libre (jaulas, tolvas, placas, bombillo BOMBI-1050…); esos códigos no existen en el catálogo del ERP aunque sí existen otros bombillos.</td><td>Mismo caso: falta crear los productos en el catálogo y bloquear el texto libre. Ver punto 4.</td><td><span class="pill warn">Captura</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Asiento del pedido 847 (Agroavícola Origen) con flete, tal como sale ahora</h3>
+  <div class="wrap"><table class="asiento">
+    <thead><tr><th>Cuenta</th><th>Concepto</th><th class="num">Débito</th><th class="num">Crédito</th></tr></thead>
+    <tbody>
+      <tr><td>41352201</td><td>Ingreso productos 0 %</td><td class="num"></td><td class="num">408.343</td></tr>
+      <tr><td>423510</td><td>Ingreso por transporte (flete)</td><td class="num"></td><td class="num">15.500</td></tr>
+      <tr><td>13551511</td><td>Autorretención 0,55 % (sobre 423.843)</td><td class="num">2.331,14</td><td class="num"></td></tr>
+      <tr><td>23657501</td><td>Autorretención por pagar</td><td class="num"></td><td class="num">2.331,14</td></tr>
+      <tr><td>13050501</td><td>Clientes</td><td class="num">423.843</td><td class="num"></td></tr>
+    </tbody>
+  </table></div>
+  <p class="meta">Retefuente $0 porque la base de productos (408.343) no supera $524.000; el flete no cuenta para esa base.</p>
+
+  <h2>2. Tus respuestas a las cinco preguntas — aplicadas</h2>
+  <div class="wrap"><table>
+    <thead><tr><th>Pregunta</th><th>Tu decisión</th><th>En el ERP</th></tr></thead>
+    <tbody>
+      <tr><td>1 · Ventas de contado</td><td>Igual que a crédito: <span class="acct">13050501</span>; el recibo de caja abona la cartera contra el banco.</td><td>Ya era así en la matriz (contado y crédito llevan 13050501). Confirmado; no se usa caja.</td></tr>
+      <tr><td>2 · Persona natural responsable de IVA</td><td>A ninguna persona natural le practican ReteICA; la marca era para proveedores.</td><td>Aplicado: ReteICA eliminada para todos los tipos «persona natural» y para persona jurídica común. La marca de WorldOffice se reservó para compras.</td></tr>
+      <tr><td>3 · Entidades del Estado</td><td>Copiar la contabilización de Gran Contribuyente Autorretenedor: 13551501, 13551701 y 13551801 si es de Bogotá.</td><td>Creadas 93 reglas para «Instituciones del Estado» copiando las de GC Autorretenedor; ReteICA solo si la ciudad es Bogotá (hoy es la única tarifa de ICA activa).</td></tr>
+      <tr><td>4 · Base de retefuente</td><td>Por factura, no acumulada por día.</td><td>Así funciona: cada documento evalúa su propia base ($524.000).</td></tr>
+      <tr><td>5 · Régimen simple</td><td>Solo autorrenta (13551511 / 23657501), sin retenciones.</td><td>Así está: RST persona natural y jurídica solo llevan ingreso, IVA, autorrenta y cartera.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Otros puntos de tu correo</h3>
+  <ul>
+    <li><b>Ventas del exterior:</b> ingreso al crédito, <span class="acct">13551511</span> débito, <span class="acct">23657501</span> crédito y <span class="acct">13051001</span> clientes del exterior al débito. Se quitó la retefuente que traía la matriz para «Tercero del Exterior» y se añadió la cartera en 13051001.</li>
+    <li><b>ReteICA de otros municipios:</b> no sale en la factura; solo Bogotá está activa. Las tarifas de La Ceja, Entrerríos y Fómeque quedan cargadas pero apagadas para cuando se maneje al momento del pago.</li>
+    <li><b>Flete:</b> misma contabilización para todo régimen (423510 crédito, autorrenta débito/crédito, 13050501 débito), no entra a la base de retenciones.</li>
+    <li><b>Conciliación bancaria:</b> de acuerdo, lo vemos en reunión. El módulo importa el extracto (CSV/Excel del banco) y propone cruces contra los movimientos de tesorería registrados en el ERP; como hoy los pagos siguen en WorldOffice, no hay contra qué cruzar todavía. Lo revisamos con un extracto real en pantalla.</li>
+  </ul>
+
+  <div class="box q">
+    <p><b>Vacíos en la matriz de ventas que quedaron a la vista al revisar reglas.</b> No los cambié; dime si son omisiones:</p>
+    <ul>
+      <li>Gran Contribuyente No Autorretenedor: sin retefuente en factura y devolución al 0 % de contado (sí la tiene a crédito y en 5 % / 19 %).</li>
+      <li>Persona Jurídica Autorretenedor: sin retefuente en devoluciones al 0 %.</li>
+      <li>Persona Natural o Jurídica Ley 1429: sin retefuente en ninguna combinación al 0 %.</li>
+      <li>Persona Natural Responsable del IVA: retefuente solo en una combinación de doce (NC 0 % crédito).</li>
+    </ul>
+  </div>
+
+  <h2>3. Terceros que no cruzan — lista adjunta</h2>
+  <p>En el Excel adjunto van <b>14 clientes con pedidos</b> cuyo tipo de contribuyente en el ERP no parece el real: 12 quedaron como «Régimen Simple» porque el importador de WorldOffice los dejó así por defecto (Agropecuaria Valcárcel, Fonteverde, Campo Verde del Occidente, Inversiones Soga, Caviagro, Huevos Reales, Vache Lait…) y 2 sociedades quedaron como persona natural. La columna «Tipo correcto» está en blanco para que la llenes; con eso los actualizo en bloque.</p>
+  <p>Si en WorldOffice puedes exportar el listado de terceros con la columna «Propiedad de retención», mejor: con ese archivo reclasifico los 1.443 clientes de una vez y no solo los 14.</p>
+
+  <h2>4. Un riesgo de captura que afecta la contabilización</h2>
+  <div class="box">
+    <p><b>428 líneas de pedido en 244 pedidos facturados ($372 millones) se digitaron como texto libre</b>, sin escoger el producto del catálogo. Cuando eso pasa, la línea queda al 0 % de IVA salvo que quien captura lo cambie, y el asiento sale sin IVA aunque el producto sea gravado (casos 1096 y 895). De esas 428 líneas, 390 corresponden a códigos que <b>no existen en el catálogo del ERP</b> (equipos, jaulas, placas, bombillos…).</p>
+    <p>Lo que propongo, sujeto a tu visto bueno y al de Fernando: (a) cargar al catálogo los productos faltantes con su tarifa de IVA desde el Listado de Inventarios de WorldOffice, y (b) que el ERP exija elegir producto o, si la línea es libre, exija marcar la tarifa de IVA en vez de asumir 0 %. Mientras tanto, la simulación muestra esos pedidos tal como se capturaron.</p>
+  </div>
+
+  <h2>5. Contabilización de compras — qué encontré en la matriz</h2>
+  <p>Recibí «CONTABILIZACIÓN AUTOMÁTICA COMPRAS GVM.xlsx» (6 hojas: excluido, IVA 5 %, IVA 19 % y sus devoluciones; CREM y DMP; contado y crédito; 14 tipos de contribuyente). Tiene la misma estructura que la de ventas, así que el motor se construye igual. Antes de cargarla te pido confirmar estas inconsistencias, porque se repiten en todas las hojas:</p>
+  <div class="wrap"><table>
+    <thead><tr><th>Dónde</th><th>Qué aparece</th><th>Pregunta</th></tr></thead>
+    <tbody>
+      <tr><td>«Persona Natural Responsable del IVA Agente retenedor», todas las hojas</td><td>Solo la línea <span class="acct">23680101</span> (ReteICA). Sin inventario, sin proveedor, sin IVA.</td><td>¿Faltan las demás cuentas (como en ventas, donde pasó lo mismo)?</td></tr>
+      <tr><td>«Tercero del Exterior»</td><td>Solo existe en crédito; en DEV EXCLUIDO lleva <span class="acct">220501</span> (nacionales) y retenciones <span class="acct">23654001</span> / <span class="acct">23680101</span>.</td><td>¿Debe ser <span class="acct">221001</span> sin retenciones, y existir también de contado?</td></tr>
+      <tr><td>ReteICA compras (<span class="acct">23680101</span>) según forma de pago</td><td>Persona Jurídica Autorretenedor: ICA solo en excluido a crédito; Persona Natural No Responsable: retefuente 23654001 en excluido a crédito pero 23654005 (3,5 %) en 5 % y 19 %.</td><td>¿La forma de pago debe cambiar la retención? En ventas acordamos que no.</td></tr>
+      <tr><td>Gran Contribuyente No Autorretenedor, excluido de contado</td><td>Sin retefuente; sí la tiene a crédito y en 5 % / 19 %.</td><td>¿Omisión?</td></tr>
+      <tr><td>Tarifas de compras</td><td>La matriz da cuentas, no porcentajes.</td><td>Confirmar: retefuente compras 2,5 % declarantes (23654001) y 3,5 % no declarantes (23654005), base $1.414.000 (bienes); reteIVA 15 % (23670501/23670504) solo a Régimen Simple; ReteICA Bogotá 4,14 ‰ base $1.414.000.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Un dato importante: hoy el ERP <b>no tiene facturas de compra registradas</b> (todas las compras siguen en WorldOffice; hay 13 órdenes de compra sin recibir). Puedo dejar el motor de compras construido y probado con casos de laboratorio, pero la simulación con datos reales solo será posible cuando se empiecen a registrar facturas de proveedor en el ERP. Te propongo definir con Fernando desde qué mes se capturan compras en el ERP.</p>
+
+  <h2>6. Cómo ver los cambios</h2>
+  <p>Entra con tu usuario (<code>andres.benavides</code>) a <b>Contabilidad → Simulación contable</b>. Los pedidos del documento (847, 859, 992, 1044, 1096, 1100, 511 de AVINSA) ya muestran el asiento corregido. El motor sigue apagado: no se ha contabilizado nada en firme; se enciende cuando des el visto bueno, solo para facturas nuevas.</p>
+  <p class="meta">Preparado por Fernando Bolívar · GVM Corp ERP · versión del 17 de septiembre de 2026.</p>
+</main>

@@ -66,6 +66,7 @@ export function AccountingSimulation({ defaultFrom, defaultTo }: { defaultFrom: 
                 { header: 'Contribuyente', key: 'tipoc', width: 20 },
                 { header: 'Forma pago', key: 'forma', width: 12 },
                 { header: 'Base', key: 'base', width: 15 },
+                { header: 'Flete', key: 'flete', width: 13 },
                 { header: 'IVA', key: 'iva', width: 14 },
                 { header: 'Retefuente', key: 'rf', width: 14 },
                 { header: 'ReteICA', key: 'ica', width: 12 },
@@ -81,13 +82,13 @@ export function AccountingSimulation({ defaultFrom, defaultTo }: { defaultFrom: 
                     num: d.number ?? '', tipo: docLabel(d),
                     fecha: d.issue_date ?? '', cliente: d.party_name, nit: d.party_doc,
                     tipoc: d.taxpayer_code ?? '', forma: d.payment_form ?? '',
-                    base: d.base, iva: d.iva, rf: d.retefuente, ica: d.reteica, riva: d.reteiva,
+                    base: d.base, flete: d.flete, iva: d.iva, rf: d.retefuente, ica: d.reteica, riva: d.reteiva,
                     auto: d.autorrenta, cartera: d.cartera, tot: d.doc_total,
                     ok: d.balanced ? 'Sí' : 'NO', warn: d.warnings.join(' | '),
                 })
             }
             ws.getRow(1).font = { bold: true }
-            for (const c of ['base', 'iva', 'rf', 'ica', 'riva', 'auto', 'cartera', 'tot']) {
+            for (const c of ['base', 'flete', 'iva', 'rf', 'ica', 'riva', 'auto', 'cartera', 'tot']) {
                 ws.getColumn(c).numFmt = '$#,##0'
             }
 
@@ -159,12 +160,13 @@ export function AccountingSimulation({ defaultFrom, defaultTo }: { defaultFrom: 
             {result && result.documents.length > 0 && (
                 <>
                     {/* Totales */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
                         {[
                             { label: 'Documentos', value: String(result.totals.analizados) },
                             { label: 'Contabilizables', value: String(result.totals.contabilizables) },
                             { label: 'Con advertencia', value: String(result.totals.con_advertencias) },
                             { label: 'Base', value: money(result.totals.base) },
+                            { label: 'Flete', value: money(result.totals.flete) },
                             { label: 'IVA', value: money(result.totals.iva) },
                             { label: 'Retenciones', value: money(result.totals.retefuente + result.totals.reteica + result.totals.reteiva) },
                             { label: 'Cartera', value: money(result.totals.cartera) },
@@ -186,6 +188,7 @@ export function AccountingSimulation({ defaultFrom, defaultTo }: { defaultFrom: 
                                         <th className="text-left px-4 py-3">Cliente</th>
                                         <th className="text-left px-4 py-3">Contribuyente</th>
                                         <th className="text-right px-4 py-3">Base</th>
+                                        <th className="text-right px-4 py-3">Flete</th>
                                         <th className="text-right px-4 py-3">IVA</th>
                                         <th className="text-right px-4 py-3">Retenciones</th>
                                         <th className="text-right px-4 py-3">Cartera</th>
@@ -215,6 +218,7 @@ export function AccountingSimulation({ defaultFrom, defaultTo }: { defaultFrom: 
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-3 text-right tabular-nums">{money(d.base)}</td>
+                                                    <td className="px-4 py-3 text-right tabular-nums">{d.flete ? money(d.flete) : '—'}</td>
                                                     <td className="px-4 py-3 text-right tabular-nums">{money(d.iva)}</td>
                                                     <td className="px-4 py-3 text-right tabular-nums text-amber-700">{ret ? money(ret) : '—'}</td>
                                                     <td className="px-4 py-3 text-right tabular-nums font-bold">{money(d.cartera)}</td>
@@ -235,7 +239,7 @@ export function AccountingSimulation({ defaultFrom, defaultTo }: { defaultFrom: 
                                                 </tr>
                                                 {open && (
                                                     <tr className="bg-slate-50/60">
-                                                        <td colSpan={8} className="px-6 py-4">
+                                                        <td colSpan={9} className="px-6 py-4">
                                                             {d.warnings.length > 0 && (
                                                                 <ul className="mb-3 space-y-1">
                                                                     {d.warnings.map((w, i) => (

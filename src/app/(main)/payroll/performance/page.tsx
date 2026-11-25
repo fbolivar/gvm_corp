@@ -8,6 +8,7 @@ import { OUTCOME_LABEL, PROBATION_DAYS } from '@/features/performance/types';
 import { annualCampaignWindow } from '@/features/performance/utils/dates';
 import { AnnualCampaignPanel } from '@/features/performance/components/AnnualCampaignPanel';
 import { getEvaluatorOptions } from '@/features/performance/services/evaluatorOptions';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader';
 import { bogotaDateString } from '@/features/payroll/utils/bogotaTime';
 import { Button } from '@/shared/components/ui/button';
@@ -36,6 +37,11 @@ export default async function PerformancePage() {
 
     const tenant = await settingsService.getTenantInfo(supabase);
     if (!tenant) redirect('/login');
+
+    // La lista completa de evaluaciones es solo para quien tiene el módulo (gerencia/RRHH).
+    // Un evaluador 360° sin módulo entra directo al detalle de SU evaluación (link de la
+    // notificación), no a esta lista.
+    if (!(await canViewModule('payroll:performance'))) redirect('/my-payroll');
 
     const canCreate = await canEvaluate(supabase, tenant.id as string, user.id);
 

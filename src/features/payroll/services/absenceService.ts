@@ -56,6 +56,7 @@ export const absenceService = {
         end_date: string;
         days: number;
         reason?: string;
+        attachments?: Array<Record<string, unknown>>;
     }): Promise<AbsenceRequest> {
         const { data, error } = await client
             .from('absence_requests')

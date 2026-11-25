@@ -80,6 +80,13 @@ export async function createProductAction(data: Product, prices?: Record<string,
         parsed.data.tax_category = 'IVA_19';
     }
 
+    // Aviso de duplicado por código base: evita el caso real de teclear el código
+    // + la descripción como SKU cuando ya existe el código corto (y viceversa).
+    const dup = await productService.findBaseCodeDuplicate(supabase, parsed.data.sku);
+    if (dup) {
+        return { error: `Posible duplicado: ya existe el producto "${dup.sku}"${dup.name ? ` (${dup.name})` : ''} con el mismo código base. Usa ese producto en lugar de crear uno nuevo; si de verdad es distinto, cámbiale el código (solo el código, sin la descripción).` };
+    }
+
     let created: Product | undefined;
     try {
         created = await productService.createProduct(supabase, parsed.data);
@@ -103,10 +110,19 @@ export async function updateProductAction(id: string, data: Product, prices?: Re
         return { error: "Datos inválidos" };
     }
 
+    const existing = await productService.getProductById(supabase, id);
     // Si no está autorizado, conserva el IVA que ya tenía el producto (no lo puede cambiar).
-    if (!(await userCanEditTax(supabase))) {
-        const existing = await productService.getProductById(supabase, id);
-        if (existing?.tax_category) parsed.data.tax_category = existing.tax_category;
+    if (!(await userCanEditTax(supabase)) && existing?.tax_category) {
+        parsed.data.tax_category = existing.tax_category;
+    }
+
+    // Aviso de duplicado por código base SOLO si el SKU cambió (no bloqueamos la
+    // edición de productos que ya tienen un gemelo histórico pendiente de depurar).
+    if (existing && (parsed.data.sku || '').trim() !== (existing.sku || '').trim()) {
+        const dup = await productService.findBaseCodeDuplicate(supabase, parsed.data.sku, id);
+        if (dup) {
+            return { error: `Posible duplicado: ya existe el producto "${dup.sku}"${dup.name ? ` (${dup.name})` : ''} con el mismo código base. Ajusta el código para que no choque (solo el código, sin la descripción).` };
+        }
     }
 
     try {

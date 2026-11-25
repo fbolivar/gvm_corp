@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -30,6 +31,7 @@ export async function importProductBarcodesAction(rows: BarcodeRow[]): Promise<B
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
+    if (!(await canViewModule('inventory'))) return { updated: 0, not_found: [], skipped: 0, errors: ['Sin permiso para esta operación.'] }
 
     const { data: tenantId, error: tErr } = await supabase.rpc('get_my_tenant_id')
     if (tErr || !tenantId) {

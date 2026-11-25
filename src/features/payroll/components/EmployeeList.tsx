@@ -365,7 +365,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                                         <p className="text-xs text-slate-400 mt-0.5">{emp.contract_type} · {emp.party?.doc_number}</p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="bg-slate-50 p-3 rounded-xl">
                                             <p className="text-[10px] text-slate-400 uppercase tracking-wider">Salario</p>
                                             <p className="text-sm font-bold text-slate-900 font-mono tabular-nums">${emp.salary.toLocaleString('es-CO')}</p>

@@ -120,7 +120,7 @@ export function PriceListImporter({ priceLists }: Props) {
                         <p className="text-xs text-slate-500">{fileName}</p>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     {[
                         { label: 'Actualizados', value: result.updated, color: 'text-indigo-600' },
                         { label: 'Nuevos', value: result.inserted, color: 'text-emerald-600' },

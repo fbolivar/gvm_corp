@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { TransferWithDetails } from '../types';
+import { type TransferWithDetails, NEW_PRODUCT_SKU } from '../types';
 import { buildReceiptRows } from '../utils/receiptRows';
 import {
     drawBrandHeader,
@@ -94,10 +94,16 @@ export const transferPdfService = {
             totalRecv += recv;
             totalCost += unitCost * qty;
             totalIva += ivaAmt;
+            // PRODUCTO NUEVO: el nombre del producto es un genérico ("...especificar en el
+            // detalle"); lo que importa es lo que el bodeguero escribió (line.description).
+            const isPlaceholder = prod?.sku === NEW_PRODUCT_SKU;
+            const prodLabel = isPlaceholder
+                ? (line.description?.trim() ? `PRODUCTO NUEVO: ${line.description.trim()}` : 'PRODUCTO NUEVO (sin especificar)')
+                : (prod?.name ?? line.description ?? 'Producto (solicitud)');
             return [
                 String(i + 1),
                 prod?.sku ?? '',
-                prod?.name ?? line.description ?? 'Producto (solicitud)',
+                prodLabel,
                 prod ? money(unitCost) : '—',
                 prod ? `${rate}%` : '—',
                 prod ? money(ivaAmt) : '—',

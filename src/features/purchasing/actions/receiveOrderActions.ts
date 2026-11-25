@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { purchaseOrderService } from '../services/purchaseOrderService'
 import { inventoryService } from '@/features/inventory/services/inventoryService'
 import { revalidatePath } from 'next/cache'
@@ -54,6 +55,9 @@ export async function receiveOrderAction(
     } = await supabase.auth.getUser()
     if (!user) {
         return { error: 'No autorizado. Inicie sesión para continuar.' }
+    }
+    if (!(await canViewModule('purchasing'))) {
+        return { error: 'Sin permiso para compras' }
     }
 
     try {

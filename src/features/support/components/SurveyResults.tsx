@@ -47,7 +47,7 @@ export function SurveyResults({ companies }: { companies: CompanyResult[] }) {
 
     if (companies.length === 0) {
         return (
-            <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center">
+            <div className="bg-white border border-slate-100 rounded-2xl p-5 md:p-12 text-center">
                 <Building2 className="h-8 w-8 text-slate-300 mx-auto mb-3" />
                 <p className="text-sm font-semibold text-slate-700">Aún no hay encuestas registradas</p>
                 <p className="text-xs text-slate-500 mt-1">

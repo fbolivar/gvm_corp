@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { revalidatePath } from 'next/cache'
 import { commercialService } from './services/commercialService'
 import { commercialRequestSchema, type CommercialRequestInput } from './types'
@@ -13,6 +14,7 @@ function revalidate(id?: string) {
 
 export async function createCommercialRequestAction(input: CommercialRequestInput, submit: boolean) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     const parsed = commercialRequestSchema.safeParse(input)
     if (!parsed.success) {
         return { error: parsed.error.issues[0]?.message || 'Datos inválidos' }
@@ -28,6 +30,7 @@ export async function createCommercialRequestAction(input: CommercialRequestInpu
 
 export async function updateCommercialRequestAction(id: string, input: CommercialRequestInput, submit: boolean) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     const parsed = commercialRequestSchema.safeParse(input)
     if (!parsed.success) {
         return { error: parsed.error.issues[0]?.message || 'Datos inválidos' }
@@ -44,6 +47,7 @@ export async function updateCommercialRequestAction(id: string, input: Commercia
 
 export async function submitCommercialRequestAction(id: string) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     try {
         await commercialService.submit(supabase, id)
         revalidate(id)
@@ -55,6 +59,7 @@ export async function submitCommercialRequestAction(id: string) {
 
 export async function decideCommercialRequestAction(id: string, decision: 'APPROVED' | 'REJECTED', notes?: string) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     try {
         await commercialService.decide(supabase, id, decision, notes)
         revalidate(id)
@@ -66,6 +71,7 @@ export async function decideCommercialRequestAction(id: string, decision: 'APPRO
 
 export async function liquidateCommercialRequestAction(id: string, actuals: { item_id: string; actual_cost: number }[]) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     try {
         await commercialService.liquidate(supabase, id, actuals)
         revalidate(id)
@@ -77,6 +83,7 @@ export async function liquidateCommercialRequestAction(id: string, actuals: { it
 
 export async function uploadCommercialAttachmentAction(requestId: string, formData: FormData) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     const file = formData.get('file') as File | null
     const kind = String(formData.get('kind') || 'Soporte')
     if (!file || file.size === 0) return { error: 'Selecciona un archivo' }
@@ -92,6 +99,7 @@ export async function uploadCommercialAttachmentAction(requestId: string, formDa
 
 export async function deleteCommercialAttachmentAction(requestId: string, path: string) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     try {
         await commercialService.removeAttachment(supabase, requestId, path)
         revalidate(requestId)
@@ -103,6 +111,7 @@ export async function deleteCommercialAttachmentAction(requestId: string, path: 
 
 export async function deleteCommercialRequestAction(id: string) {
     const supabase = await createClient()
+    if (!(await canViewModule('commercial'))) return { error: 'Sin permiso para gestión comercial' }
     try {
         await commercialService.remove(supabase, id)
         revalidate()

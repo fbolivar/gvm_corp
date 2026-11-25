@@ -35,6 +35,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // El CSV de auditoría puede contener cambios de datos protegidos (nómina).
+    // Mismo candado que la pantalla: solo quien puede ver nómina (can_view_payroll).
+    const { data: canViewPayroll } = await supabase.rpc('can_view_payroll');
+    if (!canViewPayroll) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
     const sp = request.nextUrl.searchParams;
     const filters: AuditFilters = {
         q: sp.get('q') || undefined,

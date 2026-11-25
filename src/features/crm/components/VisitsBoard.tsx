@@ -30,7 +30,7 @@ export function VisitsBoard({ visits, today }: { visits: CrmVisit[]; today: stri
     return (
         <div className="space-y-6">
             {/* KPIs generales */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <Kpi label="Planeadas" value={totals.planned} />
                 <Kpi label="Realizadas" value={totals.realizada} sub={`${progress} % de avance`} tone="emerald" />
                 <Kpi label="Cuentas críticas (P1)" value={totals.critical} tone="rose" />
@@ -59,7 +59,7 @@ export function VisitsBoard({ visits, today }: { visits: CrmVisit[]; today: stri
                             {stats.map(s => (
                                 <tr key={s.salesperson_id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
                                     <td className="px-3 py-2.5 text-xs font-bold text-slate-900 whitespace-nowrap">
-                                        <Link href={`/crm/visits?range=all&salesperson=${s.salesperson_id}`} className="hover:text-indigo-600">{s.salesperson_name}</Link>
+                                        <Link href={`/crm/visits?view=list&range=all&salesperson=${s.salesperson_id}`} className="hover:text-indigo-600">{s.salesperson_name}</Link>
                                     </td>
                                     <td className={cell}>{s.planned}</td>
                                     <td className={cell}>{s.agendada}</td>

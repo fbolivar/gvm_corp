@@ -830,6 +830,45 @@ export async function importBalanceChunkAction(
   }
 }
 
+/**
+ * Borra TODOS los saldos de apertura de un corte (cutoff_date) del tenant.
+ * Hace la carga RECARGABLE en modo "reemplazar": antes de volver a importar el
+ * balance de ese corte se limpia lo anterior, de modo que el resultado refleje
+ * EXACTAMENTE el archivo nuevo (si trae menos filas, las viejas no quedan).
+ * El upsert por sí solo no elimina filas que desaparecen del nuevo archivo.
+ */
+export async function clearOpeningBalancesForCutoffAction(
+  cutoffDate: string,
+): Promise<{ success: true; deleted: number } | { success: false; error: string }> {
+  try {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(cutoffDate || '')) {
+      return { success: false, error: 'Fecha de corte inválida (usa YYYY-MM-DD).' }
+    }
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'No autenticado' }
+
+    const { data: ut } = await supabase
+      .from('user_tenants')
+      .select('tenant_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!ut?.tenant_id) return { success: false, error: 'Usuario sin tenant' }
+
+    const { data, error } = await supabase
+      .from('opening_balances')
+      .delete()
+      .eq('tenant_id', ut.tenant_id)
+      .eq('cutoff_date', cutoffDate)
+      .select('id')
+    if (error) return { success: false, error: error.message }
+
+    return { success: true, deleted: (data ?? []).length }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error al limpiar el corte' }
+  }
+}
+
 // ============================================================
 // CARTERA WO — Edades de Cartera (Detalle por documento)
 // ============================================================

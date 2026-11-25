@@ -31,8 +31,8 @@ interface Props {
     isManager: boolean;
     today: string;
     visit?: CrmVisit;
-    /** Valores precargados desde una alerta o desde la cartera. */
-    defaults?: Partial<Pick<VisitPlanInput, 'party_id' | 'management_type' | 'priority'>>;
+    /** Valores precargados desde una alerta, desde la cartera o desde un día del calendario. */
+    defaults?: Partial<Pick<VisitPlanInput, 'party_id' | 'management_type' | 'priority' | 'planned_date'>>;
 }
 
 const selectCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm outline-none focus:border-indigo-300';
@@ -63,7 +63,7 @@ export function VisitForm({ parties, salespeople, currentUserId, isManager, toda
             priority: defaults?.priority ?? 2,
             management_type: defaults?.management_type ?? 'FIDELIZACION',
             meeting_type: 'GRANJA',
-            planned_date: today,
+            planned_date: defaults?.planned_date ?? today,
             status: 'PENDIENTE',
         },
     });

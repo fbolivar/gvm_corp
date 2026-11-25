@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { canViewModule } from "@/shared/lib/moduleGuard"
 import { salesService } from "./services/salesService"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -10,6 +11,7 @@ import { DocumentType } from "@/features/documents/types"
 const CONVERT_DEDUP_SECONDS = 60;
 
 export async function convertDocumentAction(sourceId: string, targetType: DocumentType) {
+    if (!(await canViewModule('sales'))) return { error: 'Sin permiso para ventas' };
     const supabase = await createClient();
 
     // Doble clic en "convertir": el segundo envío llega cuando el primero ya creó
@@ -58,6 +60,7 @@ export async function convertDocumentAction(sourceId: string, targetType: Docume
  * Duplica un pedido en un nuevo borrador editable y abre ese borrador en edición.
  */
 export async function duplicateSalesOrderAction(sourceId: string) {
+    if (!(await canViewModule('sales'))) return { error: 'Sin permiso para ventas' };
     const supabase = await createClient();
 
     let newId: string;

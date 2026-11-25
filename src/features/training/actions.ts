@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/features/settings/services/settingsService';
 import { notificationService } from '@/features/notifications/services/notificationService';
@@ -65,6 +66,14 @@ export async function setProgramVideoAction(
     if (!user) return { success: false, error: 'No autenticado' };
 
     if (!programId) return { success: false, error: 'Programa requerido' };
+    if (!(await canViewModule('training'))) return { success: false, error: 'Sin permiso para capacitación' };
+    // SEGURIDAD (auditoría 2026-11-24): el `video_path` viene del cliente. La ruta de
+    // subida es siempre `${tenant}/${program}/archivo`, así que se exige ese prefijo
+    // para que nadie guarde (y luego firme/borre) un archivo de otra empresa.
+    const { data: svTenantId } = await supabase.rpc('get_my_tenant_id');
+    if (input.video_path && !String(input.video_path).startsWith(`${svTenantId}/`)) {
+        return { success: false, error: 'Ruta de archivo inválida' };
+    }
 
     // Normalizar enlace externo (si es lo que se envió)
     let videoUrl = input.video_url?.trim() || null;
@@ -117,6 +126,12 @@ export async function getProgramVideoUrlAction(programId: string): Promise<{ url
     if (program.video_url) return { url: program.video_url as string };
     if (!program.video_path) return { error: 'Este programa no tiene video' };
 
+    // Defensa: solo firmar archivos de la carpeta del propio tenant.
+    const { data: gvTenantId } = await supabase.rpc('get_my_tenant_id');
+    if (!String(program.video_path).startsWith(`${gvTenantId}/`)) {
+        return { error: 'Ruta de archivo inválida' };
+    }
+
     const admin = createAdminClient();
     const { data, error } = await admin.storage
         .from(VIDEO_BUCKET)
@@ -141,7 +156,9 @@ export async function removeProgramVideoAction(programId: string): Promise<{ suc
     try {
         await trainingService.setProgramVideo(supabase, programId, { video_url: null, video_path: null, video_name: null });
         const oldPath = program.video_path as string | null;
-        if (oldPath) {
+        // Solo borrar el archivo si está en la carpeta del propio tenant (no borrar ajenos).
+        const { data: rmTenantId } = await supabase.rpc('get_my_tenant_id');
+        if (oldPath && String(oldPath).startsWith(`${rmTenantId}/`)) {
             const admin = createAdminClient();
             await admin.storage.from(VIDEO_BUCKET).remove([oldPath]).catch(() => {});
         }

@@ -48,7 +48,7 @@ export function ProgramForm() {
             </div>
 
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                             Codigo <span className="text-rose-500">*</span>

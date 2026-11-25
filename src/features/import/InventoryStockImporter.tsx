@@ -137,7 +137,7 @@ export function InventoryStockImporter() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
                         { label: 'Ajustes aplicados', value: result.adjusted, color: 'text-indigo-600' },
                         { label: 'Productos nuevos', value: result.new_products, color: 'text-emerald-600' },

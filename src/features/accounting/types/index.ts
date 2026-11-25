@@ -42,6 +42,8 @@ export interface JournalEntry {
     period?: string;
     status?: string;
     document_id?: string;
+    /** Clave estable de idempotencia para asientos sin documento (ej. COGS:YYYY-MM). */
+    source_key?: string;
     lines: JournalLine[];
 }
 

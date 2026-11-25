@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { fixedAssetService, FixedAsset } from './services/fixedAssetService';
 import { revalidatePath } from 'next/cache';
 
@@ -8,6 +9,7 @@ export async function createFixedAssetAction(
     payload: Omit<FixedAsset, 'id' | 'tenant_id' | 'accumulated_depreciation' | 'created_at' | 'last_depreciation_date'>
 ): Promise<{ id?: string; error?: string }> {
     try {
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         const result = await fixedAssetService.create(supabase, payload);
         revalidatePath('/accounting/fixed-assets');
@@ -22,6 +24,7 @@ export async function registerDepreciationAction(
     months = 1
 ): Promise<{ newAccumulated?: number; error?: string }> {
     try {
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         const result = await fixedAssetService.registerDepreciation(supabase, assetId, months);
         revalidatePath('/accounting/fixed-assets');
@@ -33,6 +36,7 @@ export async function registerDepreciationAction(
 
 export async function runMonthlyDepreciationAction(): Promise<{ processed?: number; skipped?: number; total?: number; errors?: number; error?: string }> {
     try {
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         const r = await fixedAssetService.runMonthlyDepreciation(supabase);
         revalidatePath('/accounting/fixed-assets');
@@ -44,6 +48,7 @@ export async function runMonthlyDepreciationAction(): Promise<{ processed?: numb
 
 export async function disposeFixedAssetAction(assetId: string): Promise<{ error?: string }> {
     try {
+        if (!(await canViewModule('accounting'))) return { error: 'Sin permiso para contabilidad' };
         const supabase = await createClient();
         await fixedAssetService.dispose(supabase, assetId);
         revalidatePath('/accounting/fixed-assets');

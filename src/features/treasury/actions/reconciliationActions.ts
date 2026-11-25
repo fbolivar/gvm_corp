@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { canViewModule } from '@/shared/lib/moduleGuard'
 import { revalidatePath } from 'next/cache'
 import type { ParsedBankLine } from '../services/bankFileParser'
 
@@ -29,6 +30,7 @@ export async function importBankStatementAction(input: {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { ok: false, error: 'Sesión expirada. Vuelve a iniciar sesión.' }
+        if (!(await canViewModule('treasury'))) return { ok: false, error: 'Sin permiso para tesorería' }
 
         if (input.lines.length === 0) return { ok: false, error: 'El archivo no tiene movimientos que importar.' }
 
@@ -103,6 +105,7 @@ export async function autoMatchStatementAction(
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { ...base, error: 'Sesión expirada. Vuelve a iniciar sesión.' }
+        if (!(await canViewModule('treasury'))) return { ...base, error: 'Sin permiso para tesorería' }
 
         const { data: stmt } = await supabase
             .from('bank_statements')
@@ -187,6 +190,7 @@ export async function getReconciliationDifferencesAction(statementId: string): P
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { soloBanco: [], soloLibro: [], error: 'Sesión expirada.' }
+        if (!(await canViewModule('treasury'))) return { soloBanco: [], soloLibro: [], error: 'Sin permiso para tesorería' }
 
         const { data: stmt } = await supabase
             .from('bank_statements')

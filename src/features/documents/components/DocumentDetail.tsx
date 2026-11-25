@@ -304,8 +304,8 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
             )}
 
             {/* 💎 PREMIUM HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
-                <div className="flex items-center gap-6">
+            <div className="flex flex-col gap-4 px-1">
+                <div className="flex items-center gap-4 sm:gap-6 min-w-0">
                     <Hint label="Volver" side="top">
                         <Button
                             variant="outline"
@@ -316,15 +316,20 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                     </Hint>
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
+                    <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-10 w-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg shrink-0">
                                 <FileText className="h-5 w-5" />
                             </div>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight italic">
-                                {docTypeLabel[document.doc_type] || document.doc_type}
-                            </h1>
-                            <Badge variant="outline" className="h-7 border-none bg-slate-100 text-slate-500 font-black px-4 text-[10px] tracking-widest uppercase">
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic leading-none">
+                                    {docTypeLabel[document.doc_type] || document.doc_type}
+                                </span>
+                                <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight italic leading-tight truncate">
+                                    {document.party?.legal_name || docTypeLabel[document.doc_type] || document.doc_type}
+                                </h1>
+                            </div>
+                            <Badge variant="outline" className="h-7 border-none bg-slate-100 text-slate-500 font-black px-4 text-[10px] tracking-widest uppercase shrink-0">
                                 #{document.number}
                             </Badge>
                         </div>
@@ -355,7 +360,7 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-start md:justify-end gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
                     {/* Botones de impresión para tipos específicos */}
                     {isDeliveryNote && <PrintDeliveryNoteButton docId={document.id!} />}
                     {isDeliveryNote && <ViewDeliveryPricesButton docId={document.id!} />}

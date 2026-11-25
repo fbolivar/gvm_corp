@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { canViewModule } from '@/shared/lib/moduleGuard';
 import { pettyCashService, type ExpenseCategory } from '../services/pettyCashService';
 
 // ── Validation schemas ─────────────────────────────────────────────────────────
@@ -60,6 +61,7 @@ export async function createPettyCashFundAction(
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { error: 'No autorizado' };
+        if (!(await canViewModule('treasury'))) return { error: 'Sin permiso para tesorería' };
 
         const fund = await pettyCashService.createFund(supabase, parsed.data);
         revalidatePath('/treasury/petty-cash');
@@ -85,6 +87,7 @@ export async function addPettyCashExpenseAction(
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { error: 'No autorizado' };
+        if (!(await canViewModule('treasury'))) return { error: 'Sin permiso para tesorería' };
 
         const tx = await pettyCashService.addExpense(supabase, fundId, {
             amount: parsed.data.amount,
@@ -116,6 +119,7 @@ export async function addPettyCashReimbursementAction(
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { error: 'No autorizado' };
+        if (!(await canViewModule('treasury'))) return { error: 'Sin permiso para tesorería' };
 
         const tx = await pettyCashService.addReimbursement(
             supabase,
@@ -139,6 +143,7 @@ export async function closePettyCashFundAction(fundId: string): Promise<ActionRe
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { error: 'No autorizado' };
+        if (!(await canViewModule('treasury'))) return { error: 'Sin permiso para tesorería' };
 
         await pettyCashService.closeFund(supabase, fundId);
         revalidatePath('/treasury/petty-cash');

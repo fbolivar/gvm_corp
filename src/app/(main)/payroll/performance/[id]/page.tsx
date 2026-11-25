@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { partyName, canEvaluate } from '@/features/performance/services/performanceService';
-import { getEvaluatorOptions } from '@/features/performance/services/evaluatorOptions';
+import { getAllStaffOptions } from '@/features/performance/services/evaluatorOptions';
 import { ProbationEvaluationForm } from '@/features/performance/components/ProbationEvaluationForm';
 import { AnnualEvaluatorsForm } from '@/features/performance/components/AnnualEvaluatorsForm';
 import { SalaryIncreasePanel, type SalaryApproval } from '@/features/performance/components/SalaryIncreasePanel';
@@ -26,14 +27,12 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
 
     const { data: evaluation } = await supabase
         .from('performance_evaluations')
-        .select('id, status, eval_type, due_date, role_id_snapshot, probation_outcome, outcome_comments, closed_at, final_score, employee:employees(party:parties(legal_name))')
+        .select('id, status, eval_type, due_date, role_id_snapshot, probation_outcome, outcome_comments, closed_at, final_score, employee_id')
         .eq('id', id)
         .maybeSingle();
     if (!evaluation || (evaluation.eval_type !== 'PROBATION' && evaluation.eval_type !== 'ANNUAL')) notFound();
 
     const isAnnual = evaluation.eval_type === 'ANNUAL';
-    const employee = Array.isArray(evaluation.employee) ? evaluation.employee[0] : evaluation.employee;
-    const employeeName = partyName(employee?.party ?? null);
     const snapshotRole = evaluation.role_id_snapshot as string | null;
     const isOpen = evaluation.status !== 'CLOSED';
 
@@ -57,6 +56,23 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
 
     const canAnswer = isOpen && assignment?.status === 'PENDING';
     const isManager = await canEvaluate(supabase, tenant.id as string, user.id);
+
+    // Acceso al detalle: gerencia/RRHH (módulo) o un evaluador asignado a ESTA evaluación.
+    // El acceso 360° (evaluador sin módulo) es SOLO para la evaluación ANUAL; el período de
+    // prueba lo ve únicamente gerencia/RRHH.
+    if (!isManager && !(isAnnual && assignment)) notFound();
+
+    // Nombre del evaluado: se resuelve con admin client porque la RLS de `employees` oculta
+    // la ficha de otra persona a un rol sin can_view_payroll (un evaluador 360° vería "Sin
+    // nombre"). Es seguro: solo se pide el nombre del tercero (no salario) DESPUÉS del candado.
+    const admin = createAdminClient();
+    const { data: empRow } = await admin
+        .from('employees')
+        .select('user_id, party:parties(legal_name)')
+        .eq('id', evaluation.employee_id as string)
+        .maybeSingle();
+    const employeeName = partyName((empRow?.party as { legal_name: string } | { legal_name: string }[] | null) ?? null);
+    const evaluatedUserId = (empRow?.user_id as string | null) ?? null;
     const { data: recommendation } = isAnnual && isManager
         ? await supabase.from('performance_salary_recommendations').select('pct').eq('evaluation_id', id).maybeSingle()
         : { data: null };
@@ -75,7 +91,7 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
             .from('performance_evaluators')
             .select('evaluator_id, status, weight')
             .eq('evaluation_id', id);
-        const names = new Map((await getEvaluatorOptions(tenant.id as string)).map(o => [o.id, o.name]));
+        const names = new Map((await getAllStaffOptions(tenant.id as string)).map(o => [o.id, o.name]));
         evaluators = (rows ?? []).map(r => ({
             id: r.evaluator_id as string,
             status: r.status as string,
@@ -102,8 +118,11 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
     }
 
     const showEvaluatorManagement = isAnnual && isManager && isOpen;
+    // Evaluación 360°: se puede designar a cualquier persona activa, excepto quien gestiona,
+    // el propio evaluado (no se autoevalúa) y quienes ya están asignados.
     const evaluatorOptions = showEvaluatorManagement
-        ? (await getEvaluatorOptions(tenant.id as string, user.id)).filter(o => !evaluators.some(e => e.id === o.id))
+        ? (await getAllStaffOptions(tenant.id as string, user.id)).filter(o =>
+            o.id !== evaluatedUserId && !evaluators.some(e => e.id === o.id))
         : [];
 
     return (
@@ -157,9 +176,13 @@ export default async function PerformanceEvaluationPage({ params }: { params: Pr
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Resultado</p>
                         {isAnnual ? (
-                            <p className="text-base font-bold text-slate-900">
-                                Calificación final: {evaluation.final_score !== null ? `${Number(evaluation.final_score).toFixed(2)} / 5` : '—'}
-                            </p>
+                            isManager ? (
+                                <p className="text-base font-bold text-slate-900">
+                                    Calificación final: {evaluation.final_score !== null ? `${Number(evaluation.final_score).toFixed(2)} / 5` : '—'}
+                                </p>
+                            ) : (
+                                <p className="text-sm text-slate-600">Ya registraste tu calificación. El resultado final lo gestiona Recursos Humanos.</p>
+                            )
                         ) : (
                             <>
                                 <p className="text-base font-bold text-slate-900">

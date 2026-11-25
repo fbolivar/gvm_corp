@@ -33,6 +33,16 @@ interface ActionResult {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Extrae el mensaje real: los errores de PostgREST son objetos planos (no `Error`),
+ *  así que `error instanceof Error` los enmascaraba como "Error interno del servidor". */
+function errMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (error && typeof error === 'object' && 'message' in error) {
+        return String((error as { message: unknown }).message) || 'Error interno del servidor';
+    }
+    return 'Error interno del servidor';
+}
+
 function revalidateTransferPaths(id?: string): void {
     revalidatePath('/inventory/transfers');
     revalidatePath('/inventory');
@@ -65,7 +75,7 @@ export async function createTransferAction(
         revalidateTransferPaths(result.id);
         return { success: true, id: result.id, transfer_number: result.transfer_number };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        const message = errMessage(error);
         console.error('[createTransferAction]', error);
         return { error: message };
     }
@@ -101,7 +111,7 @@ export async function updateTransferAction(
         revalidateTransferPaths(id);
         return { success: true, id: result.id, transfer_number: result.transfer_number };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        const message = errMessage(error);
         console.error('[updateTransferAction]', error);
         return { error: message };
     }
@@ -129,7 +139,7 @@ export async function sendTransferAction(id: string): Promise<ActionResult> {
         revalidateTransferPaths(id);
         return { success: true };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        const message = errMessage(error);
         console.error('[sendTransferAction]', error);
         // Partial success: transfer sent but some movements failed
         if (message.includes('advertencias')) {
@@ -171,7 +181,7 @@ export async function receiveTransferAction(
             ? { success: true, error: warnings.join(' ') }
             : { success: true };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        const message = errMessage(error);
         console.error('[receiveTransferAction]', error);
         return { error: message };
     }
@@ -208,7 +218,7 @@ export async function setLegalizedNumberAction(
         revalidateTransferPaths(id);
         return { success: true };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        const message = errMessage(error);
         console.error('[setLegalizedNumberAction]', error);
         return { error: message };
     }
@@ -235,7 +245,7 @@ export async function cancelTransferAction(id: string): Promise<ActionResult> {
         revalidateTransferPaths(id);
         return { success: true };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Error interno del servidor';
+        const message = errMessage(error);
         console.error('[cancelTransferAction]', error);
         return { error: message };
     }
