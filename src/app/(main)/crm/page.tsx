@@ -5,7 +5,9 @@ import { PageHeader } from '@/shared/components/ui/page-header';
 import { loadVisitPageContext } from '@/features/crm/services/visitPageContext';
 import { visitService } from '@/features/crm/services/visitService';
 import { accountService } from '@/features/crm/services/accountService';
+import { getQuotationConversion } from '@/features/crm/services/quotationConversionService';
 import { deriveAlerts, attainment } from '@/features/crm/utils/accountSummary';
+import { QuotationConversionCard } from '@/features/crm/components/QuotationConversionCard';
 import { isFollowupDue, isOverdue } from '@/features/crm/utils/visitStats';
 import { AccountAlerts } from '@/features/crm/components/AccountAlerts';
 import { TeamPerformanceBoard } from '@/features/crm/components/TeamPerformanceBoard';
@@ -33,6 +35,14 @@ export default async function CRMHome({ searchParams }: PageProps) {
     ]);
     const alerts = deriveAlerts(accounts);
     const overdue = visits.filter(v => isOverdue(v, today) || isFollowupDue(v, today));
+
+    // % de cotizaciones que pasan a ser ventas. Gerencia: toda la empresa.
+    // Comercial: solo las cotizaciones de los clientes de su cartera.
+    const conversion = await getQuotationConversion(
+        supabase,
+        period,
+        isManager ? undefined : accounts.map(a => a.id),
+    );
     const names = isManager ? new Map((await visitService.getSalespeople(supabase, userId)).map(s => [s.id, s.name])) : undefined;
 
     // Meta propia del comercial (misma regla que el tablero del gerente).
@@ -76,6 +86,8 @@ export default async function CRMHome({ searchParams }: PageProps) {
                     <Kpi label="Mis clientes" value={String(accounts.length)} sub={`${accounts.filter(a => a.account_status.startsWith('ACTIVO')).length} activos`} />
                 </section>
             )}
+
+            <QuotationConversionCard data={conversion} scopeLabel={isManager ? 'de toda la empresa' : 'de tu cartera'} />
 
             <AccountAlerts alerts={alerts} overdueVisits={overdue} salespersonNames={names} currentUserName={userName} />
 
