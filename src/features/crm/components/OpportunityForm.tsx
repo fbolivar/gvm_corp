@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
+import { MoneyInput } from "@/shared/components/ui/money-input"
 import { Label } from "@/shared/components/ui/label"
 import { Card, CardContent } from "@/shared/components/ui/card"
 import { Target, DollarSign, Sparkles, Building2, UserCircle, Calendar, ShieldCheck, Loader2, AlertCircle } from "lucide-react"
@@ -141,11 +142,11 @@ export function OpportunityForm({ onSubmit, initialData, leads = [], parties = [
                                     <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Valor del Negocio (COP) *</Label>
                                     <div className="relative">
                                         <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                                        <Input
-                                            type="number"
-                                            {...form.register("value", { valueAsNumber: true })}
+                                        <MoneyInput
+                                            value={form.watch("value")}
+                                            onChange={(n) => form.setValue("value", n, { shouldValidate: true })}
                                             className="h-12 pl-11 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 placeholder:text-slate-300 focus-visible:ring-2 focus-visible:ring-indigo-500/20"
-                                            placeholder="10000000"
+                                            placeholder="10.000.000"
                                         />
                                     </div>
                                     {form.formState.errors.value && (

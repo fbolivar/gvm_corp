@@ -8,9 +8,10 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import {
     Target, Building2, Calendar, DollarSign, Percent,
-    ArrowLeft, Users, Mail, Phone, CheckCircle2, Clock, Activity
+    ArrowLeft, Users, Mail, Phone, CheckCircle2, Clock, Activity, Pencil
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { OpportunityValueEditor } from '@/features/crm/components/OpportunityValueEditor';
 
 const STAGE_META: Record<string, { label: string; color: string; bg: string; order: number }> = {
     PROSPECTING:  { label: 'Prospección',   color: 'text-slate-600',   bg: 'bg-slate-100',   order: 0 },
@@ -67,6 +68,9 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                             <Link href="/crm/pipeline"><ArrowLeft className="h-5 w-5" /></Link>
                         </Button>
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Pipeline CRM</span>
+                        <Button asChild variant="ghost" size="sm" className="ml-auto h-9 px-4 rounded-xl text-white/70 hover:text-white hover:bg-white/10 text-xs font-bold gap-2">
+                            <Link href={`/crm/opportunities/${opp.id}/edit`}><Pencil className="h-3.5 w-3.5" /> Editar</Link>
+                        </Button>
                     </div>
 
                     <div className="flex flex-col md:flex-row flex-wrap md:items-end justify-between gap-8">
@@ -85,10 +89,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                             )}
                         </div>
 
-                        <div className="flex flex-col items-end gap-2">
-                            <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Valor del Negocio</span>
-                            <span className="text-4xl font-black italic tracking-tighter">{fmt(opp.value || 0)}</span>
-                        </div>
+                        <OpportunityValueEditor id={opp.id} initialValue={opp.value || 0} />
                     </div>
                 </div>
             </div>

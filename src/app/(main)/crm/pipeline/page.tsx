@@ -9,6 +9,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { VisualReportHeader } from '@/features/accounting/components/VisualReportHeader'
 import { settingsService } from "@/features/settings/services/settingsService"
+import { LeadPipelineSwitch } from "@/features/crm/components/LeadPipelineSwitch"
 
 export default async function PipelinePage() {
     const supabase = await createClient();
@@ -35,8 +36,9 @@ export default async function PipelinePage() {
                 tenant={tenant}
             />
 
-            {/* Action button */}
-            <div className="flex flex-wrap gap-3">
+            {/* Conmutador Prospectos / Oportunidades + acción */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <LeadPipelineSwitch />
                 <Button asChild className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold text-xs">
                     <Link href="/crm/opportunities/new" className="flex items-center gap-2">
                         <Plus className="h-4 w-4" />

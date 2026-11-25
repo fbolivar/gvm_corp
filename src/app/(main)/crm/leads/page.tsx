@@ -8,6 +8,7 @@ import { Plus, Users, Sparkles, Activity, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/shared/components/ui/page-header';
+import { LeadPipelineSwitch } from '@/features/crm/components/LeadPipelineSwitch';
 
 export default async function LeadsPage() {
     const supabase = await createClient();
@@ -40,6 +41,8 @@ export default async function LeadsPage() {
                     </Button>
                 }
             />
+
+            <LeadPipelineSwitch />
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

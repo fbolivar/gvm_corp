@@ -200,7 +200,6 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                     icon: ShoppingCart,
                     moduleKey: 'sales',
                     children: [
-                        { title: t.sidebar.quotations, href: "/sales/quotations", icon: ClipboardList },
                         { title: t.sidebar.orders, href: "/sales/orders", icon: FileBarChart },
                         { title: 'Remisiones', href: "/sales/deliveries", icon: Truck },
                         { title: 'Facturas', href: "/sales/invoices", icon: FileDigit },
@@ -236,8 +235,8 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
                         { title: 'Cartera de clientes', href: "/crm/accounts", icon: Building2 },
                         { title: 'Directorio de contactos', href: "/crm/directory", icon: Contact },
                         { title: 'Visitas', href: "/crm/visits", icon: CalendarCheck },
-                        { title: t.sidebar.leads, href: "/crm/leads", icon: UserPlus },
-                        { title: 'Pipeline (Oportunidades)', href: "/crm/pipeline", icon: BarChart2 },
+                        { title: 'Prospectos y oportunidades', href: "/crm/leads", icon: UserPlus },
+                        { title: t.sidebar.quotations, href: "/sales/quotations", icon: ClipboardList },
                         { title: 'Forecast', href: "/crm/forecast", icon: TrendingUp },
                     ]
                 },
