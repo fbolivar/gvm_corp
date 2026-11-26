@@ -68,6 +68,8 @@ interface DocumentDetailProps {
     dianResolution?: DianResolutionPdfInfo | null;
     /** Cantidad ya enviada por product_id (para % enviado/pendiente en pedidos). */
     shippedByProduct?: Record<string, number>;
+    /** Nombre del vendedor/comercial responsable (se imprime en cotización y pedido). */
+    commercialName?: string | null;
 }
 
 /** Extrae la tasa de IVA (%) desde el tax_config de una línea (array u objeto). */
@@ -84,7 +86,7 @@ function ivaRateOf(taxConfig: unknown): number {
     return 0;
 }
 
-export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianResolution, shippedByProduct }: DocumentDetailProps) {
+export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianResolution, shippedByProduct, commercialName }: DocumentDetailProps) {
     const router = useRouter();
     const [ConfirmDialogEl, confirmFn] = useConfirm();
     const [processing, setProcessing] = useState(false);
@@ -371,7 +373,7 @@ export function DocumentDetail({ document, relatedDocuments, tenantInfo, dianRes
                     {/* Botón PDF — disponible para todos los tipos */}
                     <Button
                         variant="outline"
-                        onClick={() => documentPdfService.generatePdf(document, tenantInfo, dianResolution)}
+                        onClick={() => documentPdfService.generatePdf(document, tenantInfo, dianResolution, commercialName)}
                         className="h-11 rounded-xl border-slate-100 bg-white shadow-sm px-4 font-black text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all text-[10px] uppercase tracking-widest"
                     >
                         <FileDown className="mr-3 h-4 w-4" /> PDF

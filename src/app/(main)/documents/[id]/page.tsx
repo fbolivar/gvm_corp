@@ -25,6 +25,18 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         const document = await documentService.getDocumentById(supabase, id);
         const relatedDocs = await documentService.getRelatedDocuments(supabase, id, document.parent_id);
 
+        // Vendedor/comercial responsable: su nombre se imprime en cotización y
+        // pedido (petición del contador). La RLS de profiles ya filtra por tenant.
+        let commercialName: string | null = null;
+        if (document.commercial_user_id) {
+            const { data: prof } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', document.commercial_user_id)
+                .maybeSingle();
+            commercialName = (prof?.full_name as string) || null;
+        }
+
         // Para pedidos: cantidades ya enviadas por producto (desde logística) →
         // permite calcular % enviado / pendiente por línea.
         const shippedByProduct: Record<string, number> = {};
@@ -102,6 +114,7 @@ export default async function DocumentDetailPage({ params }: PageProps) {
                     tenantInfo={tenantInfo}
                     dianResolution={dianResolution}
                     shippedByProduct={shippedByProduct}
+                    commercialName={commercialName}
                 />
                 <DocumentAuditTrail client={supabase} documentId={id} />
             </div>

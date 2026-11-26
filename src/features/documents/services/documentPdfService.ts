@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Document } from '../types';
+import autoTable, { Styles } from 'jspdf-autotable';
+import { Document, DocumentLine } from '../types';
 import { numberToWords } from '@/shared/utils/numberToWords';
 
 type RGB = [number, number, number];
@@ -94,7 +94,8 @@ export const documentPdfService = {
     async generatePdf(
         document: Document,
         tenant?: TenantPdfInfo | null,
-        resolution?: DianResolutionPdfInfo | null
+        resolution?: DianResolutionPdfInfo | null,
+        commercialName?: string | null,
     ) {
         const doc = new jsPDF('p', 'mm', 'letter');
         const pw = doc.internal.pageSize.width;
@@ -206,20 +207,56 @@ export const documentPdfService = {
         // =====================================================
         // CLIENTE — bloque limpio con fondo sutil
         // =====================================================
-        // El concepto va a todo el ancho y envuelve (textos largos de envío/recibe).
-        const conceptText = (document.notes_public || '').trim();
-        doc.setFontSize(8.5);
-        const conceptLines: string[] = conceptText ? (doc.splitTextToSize(conceptText, CW - 30) as string[]) : [];
-        const clientH = conceptText ? (29 + conceptLines.length * 4) : 26;
-        doc.setFillColor(...SOFT);
-        doc.setDrawColor(...LINE);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(M, y, CW, clientH, 2, 2, 'FD');
+        const party = document.party as Record<string, unknown> | undefined;
+        // En documentos de compra el tercero es el proveedor, no el cliente.
+        const isPurchaseDoc = document.doc_type === 'PURCHASE_ORDER' || document.doc_type === 'VENDOR_BILL';
+        const partyLabel = isPurchaseDoc ? 'Proveedor' : 'Cliente';
+        // Documentos comerciales informativos (cotización/pedido): muestran el
+        // vendedor y, el pedido, la fecha de entrega aproximada. Petición del
+        // contador (no aplica a factura/NC, cuya estructura no cambia).
+        const isSaleInfoDoc = document.doc_type === 'QUOTATION' || document.doc_type === 'SALES_ORDER';
+        const vendedor = (commercialName || '').trim();
+        const showVendedor = isSaleInfoDoc && !!vendedor;
+        const showEntrega = document.doc_type === 'SALES_ORDER' && !!document.expected_delivery_date;
 
         const colGap = 8;
         const colW = (CW - colGap) / 2;
         const lx = M + 4;
         const rx = M + colW + colGap;
+
+        // Campos por columna: [etiqueta, valor, anchoEtiqueta?]
+        const leftFields: [string, string, number?][] = [
+            [partyLabel, document.party?.legal_name || ''],
+            ['NIT / CC', document.party?.doc_number || ''],
+            ['Dirección', (party?.address as string) || ''],
+            ['Ciudad', (party?.city as string) || ''],
+        ];
+        const rightFields: [string, string, number?][] = [
+            ['Teléfono', document.party?.phone || ''],
+            ['Fecha', fmtDate(document.issue_date)],
+            ['Forma de pago', 'Contado', 30],
+        ];
+        if (showVendedor) rightFields.push(['Vendedor', vendedor, 22]);
+        if (showEntrega) rightFields.push(['Entrega aprox.', fmtDate(document.expected_delivery_date), 30]);
+
+        const rowStep = 6;
+        const firstRowY = 6;
+        const gridRows = Math.max(leftFields.length, rightFields.length);
+        const fieldsBottom = firstRowY + (gridRows - 1) * rowStep + 2; // relativo a y
+
+        // El concepto va a todo el ancho y envuelve (textos largos de envío/recibe),
+        // DEBAJO de todos los campos para no solaparse con las filas extra.
+        const conceptText = (document.notes_public || '').trim();
+        doc.setFontSize(8.5);
+        const conceptLines: string[] = conceptText ? (doc.splitTextToSize(conceptText, CW - 30) as string[]) : [];
+        const conceptTop = fieldsBottom + 5; // relativo a y
+        const clientH = conceptText ? (conceptTop + conceptLines.length * 4 + 3) : (fieldsBottom + 3);
+
+        doc.setFillColor(...SOFT);
+        doc.setDrawColor(...LINE);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(M, y, CW, clientH, 2, 2, 'FD');
+
         const field = (lab: string, val: string, x: number, yy: number, labW = 26) => {
             doc.setFontSize(6.5);
             doc.setFont('helvetica', 'bold');
@@ -231,22 +268,12 @@ export const documentPdfService = {
             doc.text(val || '-', x + labW, yy);
         };
 
-        const party = document.party as Record<string, unknown> | undefined;
-        // En documentos de compra el tercero es el proveedor, no el cliente.
-        const isPurchaseDoc = document.doc_type === 'PURCHASE_ORDER' || document.doc_type === 'VENDOR_BILL';
-        const partyLabel = isPurchaseDoc ? 'Proveedor' : 'Cliente';
-        field(partyLabel, document.party?.legal_name || '', lx, y + 6);
-        field('NIT / CC', document.party?.doc_number || '', lx, y + 12);
-        field('Dirección', (party?.address as string) || '', lx, y + 18);
-        field('Ciudad', (party?.city as string) || '', lx, y + 24);
-
-        field('Teléfono', document.party?.phone || '', rx, y + 6);
-        field('Fecha', fmtDate(document.issue_date), rx, y + 12);
-        field('Forma de pago', 'Contado', rx, y + 18, 30);
+        leftFields.forEach(([lab, val, labW], i) => field(lab, val, lx, y + firstRowY + i * rowStep, labW));
+        rightFields.forEach(([lab, val, labW], i) => field(lab, val, rx, y + firstRowY + i * rowStep, labW));
 
         // Concepto: etiqueta + texto completo a todo el ancho, en varias líneas si hace falta
         if (conceptText) {
-            const cy = y + 29;
+            const cy = y + conceptTop;
             doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MUTED);
             doc.text('CONCEPTO', lx, cy);
             doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(...INK);
@@ -258,7 +285,26 @@ export const documentPdfService = {
         // =====================================================
         // TABLA DE ÍTEMS
         // =====================================================
-        const tHead = [['#', 'Código', 'Descripción', 'Cant.', 'Lote', 'U. Med', 'Vr Unitario', 'IVA', 'Vr IVA', 'Dcto %', 'Total']];
+        // La columna "Lote" es una casilla fantasma para diligenciar a mano. El
+        // contador pidió quitarla de cotización y pedido (documentos informativos);
+        // se conserva en factura, nota crédito, remisión, etc. (no se cambia su
+        // estructura). Las columnas se arman como lista para poder omitir una sin
+        // reindexar los estilos a mano.
+        const hideLote = isSaleInfoDoc;
+        type RowCtx = { i: number; line: DocumentLine; sku: string; qty: number; price: number; iva: number; ivaAmt: number; total: number };
+        const cols: { title: string; style: Partial<Styles>; render: (ctx: RowCtx) => string }[] = [
+            { title: '#', style: { halign: 'center', cellWidth: 8 }, render: ({ i }) => String(i + 1) },
+            { title: 'Código', style: { cellWidth: 22, fontStyle: 'bold' }, render: ({ sku }) => sku },
+            { title: 'Descripción', style: { cellWidth: 'auto' }, render: ({ line }) => line.description || '' },
+            { title: 'Cant.', style: { halign: 'right', cellWidth: 15 }, render: ({ qty }) => fmtInt(qty) },
+            ...(hideLote ? [] : [{ title: 'Lote', style: { halign: 'center', cellWidth: 22, minCellHeight: 9 } as Partial<Styles>, render: () => '' }]),
+            { title: 'U. Med', style: { halign: 'center', cellWidth: 12 }, render: () => 'Und.' },
+            { title: 'Vr Unitario', style: { halign: 'right', cellWidth: 20 }, render: ({ price }) => fmtInt(price) },
+            { title: 'IVA', style: { halign: 'center', cellWidth: 12 }, render: ({ iva }) => `${iva}%` },
+            { title: 'Vr IVA', style: { halign: 'right', cellWidth: 18 }, render: ({ ivaAmt }) => fmtInt(ivaAmt) },
+            { title: 'Dcto %', style: { halign: 'center', cellWidth: 11 }, render: () => '0' },
+            { title: 'Total', style: { halign: 'right', cellWidth: 24, fontStyle: 'bold' }, render: ({ line, total }) => fmtInt(Number(line.line_total) || total) },
+        ];
 
         let calcSubtotal = 0;
         let calcTaxes = 0;
@@ -272,24 +318,13 @@ export const documentPdfService = {
             calcTaxes += ivaAmt;
             const prod = (line as { product?: { sku?: string } | { sku?: string }[] | null }).product;
             const sku = (Array.isArray(prod) ? prod[0]?.sku : prod?.sku) || '';
-            return [
-                String(i + 1),
-                sku,
-                line.description || '',
-                fmtInt(qty),
-                '', // Lote — casilla en blanco para diligenciar a mano en el impreso
-                'Und.',
-                fmtInt(price),
-                `${iva}%`,
-                fmtInt(ivaAmt),
-                '0',
-                fmtInt(Number(line.line_total) || base + ivaAmt),
-            ];
+            const ctx: RowCtx = { i, line, sku, qty, price, iva, ivaAmt, total: base + ivaAmt };
+            return cols.map((c) => c.render(ctx));
         });
 
         autoTable(doc, {
             startY: y,
-            head: tHead,
+            head: [cols.map((c) => c.title)],
             body: tBody,
             styles: {
                 fontSize: 8,
@@ -310,19 +345,7 @@ export const documentPdfService = {
                 lineWidth: 0,
             },
             alternateRowStyles: { fillColor: SOFT as unknown as [number, number, number] },
-            columnStyles: {
-                0: { halign: 'center', cellWidth: 8 },
-                1: { cellWidth: 22, fontStyle: 'bold' },
-                2: { cellWidth: 'auto' },
-                3: { halign: 'right', cellWidth: 15 },
-                4: { halign: 'center', cellWidth: 22, minCellHeight: 9 }, // Lote — casilla fantasma para escribir a mano
-                5: { halign: 'center', cellWidth: 12 },
-                6: { halign: 'right', cellWidth: 20 },
-                7: { halign: 'center', cellWidth: 12 },
-                8: { halign: 'right', cellWidth: 18 },
-                9: { halign: 'center', cellWidth: 11 },
-                10: { halign: 'right', cellWidth: 24, fontStyle: 'bold' },
-            },
+            columnStyles: Object.fromEntries(cols.map((c, i) => [i, c.style])) as Record<number, Partial<Styles>>,
             margin: { left: M, right: M },
             theme: 'grid',
         });

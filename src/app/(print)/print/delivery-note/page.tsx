@@ -274,16 +274,17 @@ export default async function DeliveryNotePage({
 
                 {/* TABLA */}
                 {showPrices ? (
-                    /* ── Variante CON precios e IVA ── */
+                    /* ── Variante CON valor (interna GVM): precios/IVA + casilla de vencimiento ── */
                     <table className="rm-table mb-0 text-[11px]">
                         <thead>
                             <tr>
-                                <th className="text-left font-normal w-[40%]">Descripción</th>
+                                <th className="text-left font-normal w-[32%]">Descripción</th>
                                 <th className="text-center font-normal w-[8%]">Cant.</th>
-                                <th className="text-right font-normal w-[15%]">Vr. Unitario</th>
-                                <th className="text-center font-normal w-[8%]">IVA</th>
-                                <th className="text-right font-normal w-[14%]">Vr. IVA</th>
-                                <th className="text-right font-normal w-[15%]">Total</th>
+                                <th className="text-center font-normal w-[13%]">F. Venc.</th>
+                                <th className="text-right font-normal w-[14%]">Vr. Unitario</th>
+                                <th className="text-center font-normal w-[7%]">IVA</th>
+                                <th className="text-right font-normal w-[13%]">Vr. IVA</th>
+                                <th className="text-right font-normal w-[13%]">Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -295,6 +296,7 @@ export default async function DeliveryNotePage({
                                     <tr key={line.id || idx}>
                                         <td className="align-top">{prodLabel}</td>
                                         <td className="text-center align-top tabular-nums">{qty.toLocaleString('es-CO')}</td>
+                                        <td className="text-center align-top"></td>
                                         <td className="text-right align-top tabular-nums">{fmtCOP(price)}</td>
                                         <td className="text-center align-top tabular-nums">{iva}%</td>
                                         <td className="text-right align-top tabular-nums">{fmtCOP(ivaAmt)}</td>
@@ -304,51 +306,52 @@ export default async function DeliveryNotePage({
                             })}
                             {Array.from({ length: Math.max(0, 10 - lines.length) }).map((_, i) => (
                                 <tr key={`empty-${i}`} className="rm-empty">
-                                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                                 </tr>
                             ))}
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td className="text-right font-semibold" colSpan={4}>Subtotal</td>
+                                <td className="text-right font-semibold" colSpan={5}>Subtotal</td>
                                 <td></td>
                                 <td className="text-right font-semibold tabular-nums">{fmtCOP(subtotal)}</td>
                             </tr>
                             <tr>
-                                <td className="text-right font-semibold" colSpan={4}>IVA</td>
+                                <td className="text-right font-semibold" colSpan={5}>IVA</td>
                                 <td></td>
                                 <td className="text-right font-semibold tabular-nums">{fmtCOP(ivaTotal)}</td>
                             </tr>
                             <tr>
-                                <td className="text-right font-bold" colSpan={4}>Total</td>
+                                <td className="text-right font-bold" colSpan={5}>Total</td>
                                 <td></td>
                                 <td className="text-right font-bold tabular-nums">{fmtCOP(grandTotal)}</td>
                             </tr>
                         </tfoot>
                     </table>
                 ) : (
-                    /* ── Variante hoja de envío (sin precios) ── */
+                    /* ── Variante SIN valor (para el cliente): código, lote y vencimiento ── */
                     <table className="rm-table mb-0 text-[11px]">
                         <thead>
                             <tr>
-                                <th className="text-left font-normal w-[48%]">Descripción</th>
-                                <th className="text-center font-normal w-[17%]">Peso / Vol.</th>
-                                <th className="text-center font-normal w-[17%]">Cantidad pedida</th>
-                                <th className="text-center font-normal w-[18%]">Cantidad a enviar</th>
+                                <th className="text-left font-normal w-[14%]">Código</th>
+                                <th className="text-left font-normal w-[36%]">Descripción</th>
+                                <th className="text-center font-normal w-[16%]">Lote</th>
+                                <th className="text-center font-normal w-[16%]">F. Vencimiento</th>
+                                <th className="text-center font-normal w-[8%]">U. Med</th>
+                                <th className="text-center font-normal w-[10%]">Cantidad</th>
                             </tr>
                         </thead>
                         <tbody>
                             {lines.map((line, idx) => {
-                                const prodLabel = line.products?.sku
-                                    ? `${line.products.sku} - ${line.description || line.products.name || ''}`
-                                    : (line.description || line.products?.name || '—');
+                                const sku = line.products?.sku || '—';
+                                const desc = line.description || line.products?.name || '—';
                                 return (
                                     <tr key={line.id || idx}>
-                                        <td className="align-top">{prodLabel}</td>
+                                        <td className="align-top text-[9.5px] font-mono">{sku}</td>
+                                        <td className="align-top">{desc}</td>
                                         <td className="text-center align-top"></td>
-                                        <td className="text-center align-top tabular-nums">
-                                            {Number(line.qty).toLocaleString('es-CO')}
-                                        </td>
+                                        <td className="text-center align-top"></td>
+                                        <td className="text-center align-top">Und.</td>
                                         <td className="text-center align-top tabular-nums">
                                             {Number(line.qty).toLocaleString('es-CO')}
                                         </td>
@@ -362,14 +365,14 @@ export default async function DeliveryNotePage({
                                     <td></td>
                                     <td></td>
                                     <td></td>
+                                    <td></td>
+                                    <td></td>
                                 </tr>
                             ))}
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td className="text-center font-bold">Total</td>
-                                <td></td>
-                                <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
+                                <td colSpan={5} className="text-right font-bold">Total</td>
                                 <td className="text-center font-bold tabular-nums">{totalQty.toLocaleString('es-CO')}</td>
                             </tr>
                         </tfoot>
