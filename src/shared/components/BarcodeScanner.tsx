@@ -13,7 +13,10 @@ import {
     Link as LinkIcon,
     CheckCircle2,
     Camera,
-    CameraOff
+    CameraOff,
+    Layers,
+    CalendarClock,
+    Ban
 } from "lucide-react"
 import {
     Dialog,
@@ -25,6 +28,7 @@ import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Badge } from "@/shared/components/ui/badge"
 import { createClient } from "@/lib/supabase/client"
+import { registerScanMovement } from "@/features/inventory/actions/scanActions"
 import { toast } from "sonner"
 
 interface ScannerProduct {
@@ -45,6 +49,18 @@ export function BarcodeScanner() {
     const [product, setProduct] = useState<ScannerProduct | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [qty, setQty] = useState("1")
+
+    // Lote + vencimiento (para la carga de inventario del go-live). El movimiento
+    // es la ÚNICA fuente de la cantidad; el lote solo se etiqueta en el movimiento.
+    const [lots, setLots] = useState<{ id: string; lot_number: string; expiration_date: string; qty: number }[]>([])
+    const [lotMode, setLotMode] = useState<"existing" | "new" | "none">("none")
+    const [selectedLotId, setSelectedLotId] = useState("")
+    const [newLotNumber, setNewLotNumber] = useState("")
+    const [newLotExp, setNewLotExp] = useState("")
+
+    const resetLot = () => {
+        setLotMode("none"); setSelectedLotId(""); setNewLotNumber(""); setNewLotExp(""); setLots([])
+    }
 
     const [isLinking, setIsLinking] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
@@ -79,6 +95,27 @@ export function BarcodeScanner() {
             setWarehouseId(prev => prev || (saved && list.some(w => w.id === saved) ? saved : (list[0]?.id ?? "")))
         })
     }, [isVisible])
+
+    // Lotes activos del producto en la bodega elegida (orden FEFO). Si el producto
+    // ya maneja lotes → se sugiere el próximo a vencer; si no, se asume "nuevo lote"
+    // (típico en la carga: la caja que llega trae su lote y vencimiento).
+    useEffect(() => {
+        if (!product || !warehouseId) { setLots([]); return }
+        const supabase = createClient()
+        supabase
+            .from("product_lots")
+            .select("id, lot_number, expiration_date, qty")
+            .eq("product_id", product.id)
+            .eq("warehouse_id", warehouseId)
+            .eq("status", "ACTIVE")
+            .order("expiration_date", { ascending: true })
+            .then(({ data }: { data: { id: string; lot_number: string; expiration_date: string; qty: number }[] | null }) => {
+                const list = (data ?? []) as { id: string; lot_number: string; expiration_date: string; qty: number }[]
+                setLots(list)
+                if (list.length > 0) { setLotMode("existing"); setSelectedLotId(list[0].id) }
+                else { setLotMode("new"); setSelectedLotId("") }
+            })
+    }, [product, warehouseId])
 
     // HID scanner keyboard listener
     useEffect(() => {
@@ -269,29 +306,38 @@ export function BarcodeScanner() {
     const handleMovement = async (type: "IN" | "OUT") => {
         if (!product) return
         if (!warehouseId) { toast.error("Elige una bodega"); return }
-        const supabase = createClient()
+        const nQty = Number(qty)
+        if (!nQty || nQty <= 0) { toast.error("Cantidad inválida"); return }
+
+        // Resolver el lote según el modo elegido.
+        let lotArgs: { lotId?: string | null; newLotNumber?: string | null; expirationDate?: string | null } = {}
+        if (lotMode === "existing") {
+            if (!selectedLotId) { toast.error("Elige un lote"); return }
+            lotArgs = { lotId: selectedLotId }
+        } else if (lotMode === "new") {
+            if (!newLotNumber.trim()) { toast.error("Ingresa el número de lote"); return }
+            if (!newLotExp) { toast.error("Ingresa la fecha de vencimiento del lote"); return }
+            lotArgs = { newLotNumber: newLotNumber.trim(), expirationDate: newLotExp }
+        } // "none" → sin lote
+
         try {
             setIsLoading(true)
-            const { error } = await supabase
-                .from("inventory_movements")
-                .insert({
-                    product_id: product.id,
-                    warehouse_id: warehouseId,
-                    type,
-                    qty: Number(qty),
-                    // `reason` no existe en inventory_movements: el INSERT fallaba
-                    // siempre y el escáner nunca registró un movimiento. El origen
-                    // se deja en ref_doc_type, que sí es una columna real.
-                    ref_doc_type: 'SCANNER',
-                    occurred_at: new Date().toISOString()
-                })
+            const res = await registerScanMovement({
+                productId: product.id,
+                warehouseId,
+                type,
+                qty: nQty,
+                ...lotArgs,
+            })
+            if (res.error) { toast.error("ERROR", { description: res.error }); return }
 
-            if (error) throw error
-
-            toast.success("MOVIMIENTO REGISTRADO")
+            toast.success("MOVIMIENTO REGISTRADO", {
+                description: lotMode === "none" ? undefined : `Lote ${lotMode === "new" ? newLotNumber.trim() : (lots.find(l => l.id === selectedLotId)?.lot_number ?? "")}`,
+            })
             setIsOpen(false)
             setProduct(null)
             setScannedCode("")
+            resetLot()
         } catch (error: unknown) {
             const msg = error instanceof Error ? error.message : "Error desconocido"
             toast.error("ERROR", { description: msg })
@@ -517,6 +563,72 @@ export function BarcodeScanner() {
                                             {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                         </select>
                                     </div>
+                                    {/* LOTE + VENCIMIENTO */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                                            <Layers className="h-3 w-3" /> Lote
+                                        </label>
+                                        <div className={`grid gap-2 ${lots.length > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
+                                            {lots.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setLotMode("existing"); if (!selectedLotId && lots[0]) setSelectedLotId(lots[0].id) }}
+                                                    className={`h-9 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${lotMode === "existing" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                                                >
+                                                    Existente
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setLotMode("new")}
+                                                className={`h-9 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all inline-flex items-center justify-center gap-1 ${lotMode === "new" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                                            >
+                                                <CalendarClock className="h-3 w-3" /> Nuevo
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setLotMode("none")}
+                                                className={`h-9 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all inline-flex items-center justify-center gap-1 ${lotMode === "none" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                                            >
+                                                <Ban className="h-3 w-3" /> Sin lote
+                                            </button>
+                                        </div>
+
+                                        {lotMode === "existing" && lots.length > 0 && (
+                                            <select
+                                                value={selectedLotId}
+                                                onChange={(e) => setSelectedLotId(e.target.value)}
+                                                className="h-11 bg-slate-50/50 border-none rounded-2xl px-4 font-bold text-slate-800 shadow-inner focus:ring-2 focus:ring-primary outline-none"
+                                            >
+                                                {lots.map((l) => (
+                                                    <option key={l.id} value={l.id}>
+                                                        {l.lot_number} · vence {l.expiration_date} · {l.qty} und
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        {lotMode === "new" && (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Input
+                                                    placeholder="N° de lote"
+                                                    value={newLotNumber}
+                                                    onChange={(e) => setNewLotNumber(e.target.value)}
+                                                    className="h-11 bg-slate-50/50 border-none rounded-2xl font-bold text-center shadow-inner"
+                                                />
+                                                <Input
+                                                    type="date"
+                                                    value={newLotExp}
+                                                    onChange={(e) => setNewLotExp(e.target.value)}
+                                                    title="Fecha de vencimiento"
+                                                    className="h-11 bg-slate-50/50 border-none rounded-2xl font-bold px-3 shadow-inner"
+                                                />
+                                            </div>
+                                        )}
+                                        {lotMode === "new" && (
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vencimiento obligatorio para un lote nuevo</p>
+                                        )}
+                                    </div>
+
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cantidad</label>
                                         <Input
@@ -543,7 +655,7 @@ export function BarcodeScanner() {
                                     </div>
                                 </div>
 
-                                <Button variant="ghost" onClick={() => { setProduct(null); setScannedCode("") }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <Button variant="ghost" onClick={() => { setProduct(null); setScannedCode(""); resetLot() }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                     Limpiar y Escanear otro
                                 </Button>
                             </div>
