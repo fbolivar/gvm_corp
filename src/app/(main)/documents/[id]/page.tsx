@@ -26,13 +26,24 @@ export default async function DocumentDetailPage({ params }: PageProps) {
         const relatedDocs = await documentService.getRelatedDocuments(supabase, id, document.parent_id);
 
         // Vendedor/comercial responsable: su nombre se imprime en cotización y
-        // pedido (petición del contador). La RLS de profiles ya filtra por tenant.
+        // pedido (petición del contador). Se toma del documento si lo trae; si no,
+        // del comercial asignado al cliente en el CRM (parties.salesperson_id), que
+        // es como GVM reparte la cartera. La RLS de profiles/parties filtra por tenant.
         let commercialName: string | null = null;
-        if (document.commercial_user_id) {
+        let commercialUserId: string | null = document.commercial_user_id ?? null;
+        if (!commercialUserId && document.party_id) {
+            const { data: party } = await supabase
+                .from('parties')
+                .select('salesperson_id')
+                .eq('id', document.party_id)
+                .maybeSingle();
+            commercialUserId = (party?.salesperson_id as string) || null;
+        }
+        if (commercialUserId) {
             const { data: prof } = await supabase
                 .from('profiles')
                 .select('full_name')
-                .eq('id', document.commercial_user_id)
+                .eq('id', commercialUserId)
                 .maybeSingle();
             commercialName = (prof?.full_name as string) || null;
         }

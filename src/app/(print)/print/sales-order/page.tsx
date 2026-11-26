@@ -39,6 +39,7 @@ interface Party {
   city?: string;
   phone?: string;
   email?: string;
+  salesperson_id?: string | null;
 }
 
 interface DocRow {
@@ -107,7 +108,7 @@ export default async function SalesOrderPrintPage({
   const { data: rawDoc, error } = await supabase
     .from("documents")
     .select(
-      "*, party:parties(legal_name, doc_number, doc_type, address, city, phone, email), warehouse:warehouses(id, name, code), document_lines(*, products(name, sku, uom))"
+      "*, party:parties(legal_name, doc_number, doc_type, address, city, phone, email, salesperson_id), warehouse:warehouses(id, name, code), document_lines(*, products(name, sku, uom))"
     )
     .eq("id", params.id)
     .eq("doc_type", "SALES_ORDER")
@@ -132,13 +133,15 @@ export default async function SalesOrderPrintPage({
   const party = doc.party as Party | null;
   const lines = (doc.document_lines ?? []) as DocumentLine[];
 
-  // Comercial + firma
+  // Comercial + firma. Se toma del documento si lo trae; si no, del comercial
+  // asignado al cliente en el CRM (parties.salesperson_id).
   let commercial: { full_name: string | null; signature_url: string | null; commercial_code: string | null; email: string | null } | null = null;
-  if (doc.commercial_user_id) {
+  const commercialUserId = doc.commercial_user_id || party?.salesperson_id || null;
+  if (commercialUserId) {
     const { data } = await supabase
       .from("profiles")
       .select("full_name, email, signature_url, commercial_code")
-      .eq("id", doc.commercial_user_id)
+      .eq("id", commercialUserId)
       .maybeSingle();
     commercial = data;
   }
